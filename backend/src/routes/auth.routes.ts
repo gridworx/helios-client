@@ -33,9 +33,9 @@ router.post('/login',
 
     // Find user
     const result = await db.query(
-      `SELECT id, email, password_hash, first_name, last_name, role, is_active
-       FROM users
-       WHERE email = $1 AND role = 'platform_owner'`,
+      `SELECT id, email, password_hash, first_name, last_name, role, is_active, organization_id
+       FROM organization_users
+       WHERE email = $1`,
       [email.toLowerCase()]
     );
 
@@ -68,25 +68,25 @@ router.post('/login',
 
     // Generate tokens
     const accessToken = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role, type: 'access' },
+      { userId: user.id, email: user.email, role: user.role, organizationId: user.organization_id, type: 'access' },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
 
     const refreshToken = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role, type: 'refresh' },
+      { userId: user.id, email: user.email, role: user.role, organizationId: user.organization_id, type: 'refresh' },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
 
     // Update last login
-    await db.query('UPDATE users SET last_login = NOW() WHERE id = $1', [user.id]);
+    await db.query('UPDATE organization_users SET last_login = NOW() WHERE id = $1', [user.id]);
 
     // Log login
     await db.query(
-      `INSERT INTO audit_logs (user_id, action, resource, ip_address, user_agent)
-       VALUES ($1, 'login', 'auth', $2, $3)`,
-      [user.id, req.ip, req.get('User-Agent') || 'Unknown']
+      `INSERT INTO audit_logs (user_id, organization_id, action, resource, ip_address, user_agent)
+       VALUES ($1, $2, 'login', 'auth', $3, $4)`,
+      [user.id, user.organization_id, req.ip, req.get('User-Agent') || 'Unknown']
     );
 
     logger.info('User logged in successfully', {

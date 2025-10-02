@@ -22,6 +22,7 @@ import authRoutes from './routes/auth.routes';
 // import tenantSetupRoutes from './routes/tenant-setup.routes';
 // import GoogleWorkspaceRoutes from './routes/google-workspace.routes';
 import modulesRoutes from './routes/modules.routes';
+import organizationRoutes from './routes/organization.routes';
 
 const app = express();
 const PORT = process.env['PORT'] || 3001;
@@ -113,11 +114,12 @@ app.get('/health', async (req, res) => {
 // Platform setup check middleware - this is the core routing logic
 app.use('/api', async (req, res, next) => {
   try {
-    // Skip setup check for health, setup, tenant setup, modules, and google workspace endpoints
+    // Skip setup check for health, organization setup, auth, and other setup endpoints
     if (req.path.startsWith('/health') ||
+        req.path.startsWith('/organization/setup') ||
+        req.path.startsWith('/auth') ||
         req.path.startsWith('/setup') ||
         req.path.startsWith('/tenant-setup') ||
-        req.path.startsWith('/auth/tenant-') ||
         req.path.startsWith('/google-workspace') ||
         req.path.startsWith('/modules')) {
       return next();
@@ -150,8 +152,7 @@ app.use('/api', async (req, res, next) => {
 });
 
 // API Routes
-// app.use('/api/setup', setupRoutes);
-// app.use('/api/tenant-setup', tenantSetupRoutes);
+app.use('/api/organization', organizationRoutes);
 app.use('/api/auth', authRoutes);
 // app.use('/api/auth', tenantAuthRoutes); // Tenant authentication
 app.use('/api/user', userRoutes);
