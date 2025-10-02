@@ -93,11 +93,11 @@ function App() {
         localStorage.removeItem('helios_client_tenant');
       }
 
-      // Check if any tenants exist (determines setup vs login)
-      const checkResponse = await fetch('http://localhost:3001/api/tenant-setup/check');
+      // Check if organization is set up (determines setup vs login)
+      const checkResponse = await fetch('http://localhost:3001/api/organization/setup/status');
       if (checkResponse.ok) {
         const checkData = await checkResponse.json();
-        if (checkData.hasSetup) {
+        if (checkData.data && checkData.data.isSetupComplete) {
           // Pre-populate organization name for login screen
           if (checkData.organizationName) {
             setConfig({

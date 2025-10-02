@@ -35,10 +35,17 @@ export function AccountSetup({ onComplete }: AccountSetupProps) {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('http://localhost:3001/api/tenant-setup/account-only', {
+      const response = await fetch('http://localhost:3001/api/organization/setup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          organizationName: formData.organizationName,
+          organizationDomain: formData.domain,
+          adminEmail: formData.adminEmail,
+          adminPassword: formData.adminPassword,
+          adminFirstName: formData.adminFirstName,
+          adminLastName: formData.adminLastName
+        })
       });
 
       const data = await response.json();
@@ -47,12 +54,15 @@ export function AccountSetup({ onComplete }: AccountSetupProps) {
         throw new Error(data.error || 'Setup failed');
       }
 
-      // Store the tenant info
-      localStorage.setItem('helios_tenant_config', JSON.stringify({
-        tenantId: data.data.tenantId,
-        domain: formData.domain,
-        organizationName: formData.organizationName
+      // Store the organization info and token
+      localStorage.setItem('helios_organization', JSON.stringify({
+        organizationId: data.data.organization.id,
+        organizationName: data.data.organization.name,
+        domain: data.data.organization.domain
       }));
+
+      // Store the auth token
+      localStorage.setItem('helios_token', data.data.token);
 
       onComplete();
     } catch (err: any) {
