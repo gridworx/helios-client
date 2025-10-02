@@ -1,0 +1,141 @@
+import { Router, Request, Response } from 'express';
+import { body, validationResult } from 'express-validator';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import { db } from '../database/connection';
+import { logger } from '../utils/logger';
+import { asyncHandler } from '../middleware/errorHandler';
+
+const router = Router();
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secure_jwt_secret_key_here';
+
+/**
+ * POST /api/auth/login
+ * Login with email and password
+ */
+router.post('/login',
+  [
+    body('email').isEmail().withMessage('Valid email is required').normalizeEmail(),
+    body('password').notEmpty().withMessage('Password is required')
+  ],
+  asyncHandler(async (req: Request, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { email, password } = req.body;
+
+    // Find user
+    const result = await db.query(
+      `SELECT id, email, password_hash, first_name, last_name, role, is_active
+       FROM users
+       WHERE email = $1 AND role = 'platform_owner'`,
+      [email.toLowerCase()]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid email or password'
+      });
+    }
+
+    const user = result.rows[0];
+
+    if (!user.is_active) {
+      return res.status(401).json({
+        success: false,
+        error: 'Account is disabled'
+      });
+    }
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+
+    if (!isPasswordValid) {
+      logger.warn('Failed login attempt', { email });
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid email or password'
+      });
+    }
+
+    // Generate tokens
+    const accessToken = jwt.sign(
+      { userId: user.id, email: user.email, role: user.role, type: 'access' },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    const refreshToken = jwt.sign(
+      { userId: user.id, email: user.email, role: user.role, type: 'refresh' },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    // Update last login
+    await db.query('UPDATE users SET last_login = NOW() WHERE id = $1', [user.id]);
+
+    // Log login
+    await db.query(
+      `INSERT INTO audit_logs (user_id, action, resource, ip_address, user_agent)
+       VALUES ($1, 'login', 'auth', $2, $3)`,
+      [user.id, req.ip, req.get('User-Agent') || 'Unknown']
+    );
+
+    logger.info('User logged in successfully', {
+      userId: user.id,
+      email: user.email,
+      role: user.role
+    });
+
+    res.json({
+      success: true,
+      message: 'Login successful',
+      data: {
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          role: user.role
+        },
+        tokens: {
+          accessToken,
+          refreshToken,
+          expiresIn: 86400
+        }
+      }
+    });
+  })
+);
+
+/**
+ * POST /api/auth/logout
+ */
+router.post('/logout', asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.body.userId;
+
+  if (userId) {
+    await db.query(
+      `INSERT INTO audit_logs (user_id, action, resource, ip_address, user_agent)
+       VALUES ($1, 'logout', 'auth', $2, $3)`,
+      [userId, req.ip, req.get('User-Agent') || 'Unknown']
+    );
+
+    logger.info('User logged out', { userId });
+  }
+
+  res.json({
+    success: true,
+    message: 'Logged out successfully'
+  });
+}));
+
+export default router;

@@ -1,0 +1,292 @@
+import { Router } from 'express';
+import { body, validationResult } from 'express-validator';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { db } from '../database/connection';
+import { logger } from '../utils/logger';
+import { asyncHandler, createError } from '../middleware/errorHandler';
+
+const router = Router();
+
+// Login endpoint
+router.post('/login',
+  [
+    body('email')
+      .isEmail()
+      .withMessage('Valid email is required')
+      .normalizeEmail(),
+    body('password')
+      .isLength({ min: 1 })
+      .withMessage('Password is required')
+  ],
+  asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { email, password } = req.body;
+
+    try {
+      // Find user by email
+      const user = await db.findOne('users', {
+        email: email.toLowerCase(),
+        is_active: true
+      });
+
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          error: 'Invalid credentials'
+        });
+      }
+
+      // Check password
+      const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+      if (!isPasswordValid) {
+        return res.status(401).json({
+          success: false,
+          error: 'Invalid credentials'
+        });
+      }
+
+      // Get tenant info if user has one
+      let tenant = null;
+      if (user.tenant_id) {
+        tenant = await db.findOne('tenants', {
+          id: user.tenant_id,
+          is_active: true
+        });
+      }
+
+      // Generate JWT tokens
+      const accessToken = jwt.sign(
+        {
+          userId: user.id,
+          email: user.email,
+          role: user.role,
+          tenantId: user.tenant_id,
+        },
+        process.env['JWT_SECRET'] as string,
+        { expiresIn: process.env['JWT_EXPIRES_IN'] || '24h' }
+      );
+
+      const refreshToken = jwt.sign(
+        { userId: user.id },
+        process.env['JWT_SECRET'] as string,
+        { expiresIn: process.env['JWT_REFRESH_EXPIRES_IN'] || '7d' }
+      );
+
+      // Store refresh token in database
+      const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+
+      await db.insert('user_sessions', {
+        user_id: user.id,
+        refresh_token_hash: refreshTokenHash,
+        expires_at: expiresAt,
+        ip_address: req.ip,
+        user_agent: req.get('User-Agent')
+      });
+
+      // Update last login
+      await db.update('users',
+        { last_login: new Date() },
+        { id: user.id }
+      );
+
+      // Log successful login
+      await db.insert('audit_logs', {
+        user_id: user.id,
+        tenant_id: user.tenant_id,
+        action: 'login',
+        resource: 'auth',
+        ip_address: req.ip,
+        user_agent: req.get('User-Agent')
+      });
+
+      // Set refresh token as httpOnly cookie
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: process.env['NODE_ENV'] === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      });
+
+      res.json({
+        success: true,
+        message: 'Login successful',
+        data: {
+          user: {
+            id: user.id,
+            email: user.email,
+            firstName: user.first_name,
+            lastName: user.last_name,
+            role: user.role,
+            tenantId: user.tenant_id,
+            isActive: user.is_active,
+            lastLogin: user.last_login
+          },
+          tenant,
+          tokens: {
+            accessToken,
+            expiresIn: 24 * 60 * 60 // 24 hours in seconds
+          }
+        }
+      });
+
+      logger.info('User logged in successfully', {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        tenantId: user.tenant_id,
+        ip: req.ip
+      });
+
+    } catch (error) {
+      logger.error('Login failed', error);
+      throw createError('Login failed', 500);
+    }
+  })
+);
+
+// Refresh token endpoint
+router.post('/refresh', asyncHandler(async (req, res) => {
+  const refreshToken = req.cookies['refreshToken'];
+
+  if (!refreshToken) {
+    return res.status(401).json({
+      success: false,
+      error: 'Refresh token not provided'
+    });
+  }
+
+  try {
+    // Verify refresh token
+    const decoded = jwt.verify(refreshToken, process.env['JWT_SECRET'] as string) as any;
+    const userId = decoded.userId;
+
+    // Check if refresh token exists in database
+    const sessions = await db.findMany('user_sessions', { user_id: userId });
+
+    let validSession = null;
+    for (const session of sessions) {
+      if (await bcrypt.compare(refreshToken, session.refresh_token_hash)) {
+        if (new Date(session.expires_at) > new Date()) {
+          validSession = session;
+          break;
+        }
+      }
+    }
+
+    if (!validSession) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid refresh token'
+      });
+    }
+
+    // Get user details
+    const user = await db.findOne('users', {
+      id: userId,
+      is_active: true
+    });
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    // Generate new access token
+    const accessToken = jwt.sign(
+      {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        tenantId: user.tenant_id,
+      },
+      process.env['JWT_SECRET'] as string,
+      { expiresIn: process.env['JWT_EXPIRES_IN'] || '24h' }
+    );
+
+    // Update session last used
+    await db.update('user_sessions',
+      { last_used: new Date() },
+      { id: validSession.id }
+    );
+
+    res.json({
+      success: true,
+      data: {
+        accessToken,
+        expiresIn: 24 * 60 * 60 // 24 hours in seconds
+      }
+    });
+
+  } catch (error) {
+    logger.error('Token refresh failed', error);
+    res.status(401).json({
+      success: false,
+      error: 'Invalid refresh token'
+    });
+  }
+}));
+
+// Logout endpoint
+router.post('/logout', asyncHandler(async (req, res) => {
+  const refreshToken = req.cookies['refreshToken'];
+
+  if (refreshToken) {
+    try {
+      const decoded = jwt.verify(refreshToken, process.env['JWT_SECRET'] as string) as any;
+
+      // Remove session from database
+      const sessions = await db.findMany('user_sessions', { user_id: decoded.userId });
+
+      for (const session of sessions) {
+        if (await bcrypt.compare(refreshToken, session.refresh_token_hash)) {
+          await db.delete('user_sessions', { id: session.id });
+          break;
+        }
+      }
+
+      // Log logout
+      await db.insert('audit_logs', {
+        user_id: decoded.userId,
+        action: 'logout',
+        resource: 'auth',
+        ip_address: req.ip,
+        user_agent: req.get('User-Agent')
+      });
+
+    } catch (error) {
+      logger.warn('Logout with invalid token', error);
+    }
+  }
+
+  // Clear refresh token cookie
+  res.clearCookie('refreshToken');
+
+  res.json({
+    success: true,
+    message: 'Logged out successfully'
+  });
+}));
+
+// Get current user endpoint (requires auth middleware)
+router.get('/me', asyncHandler(async (_req, res) => {
+  // This will be implemented with auth middleware
+  res.status(501).json({
+    success: false,
+    error: 'Not implemented yet - requires auth middleware'
+  });
+}));
+
+export { router as authRoutes };
