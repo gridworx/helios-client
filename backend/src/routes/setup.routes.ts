@@ -11,7 +11,7 @@ const router = Router();
 // Check platform setup status
 router.get('/status', asyncHandler(async (_req, res) => {
   const isPlatformSetup = await dbInitializer.isPlatformSetupComplete();
-  const ownerCount = await dbInitializer.getPlatformOwnerCount();
+  const ownerCount = await dbInitializer.getAdminCount();
 
   res.json({
     success: true,
@@ -68,7 +68,7 @@ router.post('/initialize',
     }
 
     // Check if platform owner already exists
-    const ownerCount = await dbInitializer.getPlatformOwnerCount();
+    const ownerCount = await dbInitializer.getAdminCount();
     if (ownerCount > 0) {
       return res.status(409).json({
         success: false,
@@ -90,10 +90,10 @@ router.post('/initialize',
         // Hash password
         const passwordHash = await bcrypt.hash(ownerPassword, 12);
 
-        // Create platform owner
+        // Create admin user
         const ownerResult = await client.query(
-          `INSERT INTO users (email, password_hash, first_name, last_name, role, is_active, email_verified)
-           VALUES ($1, $2, $3, $4, 'platform_owner', true, true)
+          `INSERT INTO organization_users (email, password_hash, first_name, last_name, role, is_active, email_verified)
+           VALUES ($1, $2, $3, $4, 'admin', true, true)
            RETURNING id, email, first_name, last_name, role, created_at`,
           [ownerEmail, passwordHash, ownerFirstName, ownerLastName]
         );

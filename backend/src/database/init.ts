@@ -7,7 +7,7 @@ export class DatabaseInitializer {
   private schemaPath: string;
 
   constructor() {
-    this.schemaPath = path.join(__dirname, '../../..', 'database', 'schema.sql');
+    this.schemaPath = path.join(__dirname, '../../..', 'database', 'schema_organization.sql');
   }
 
   public async initializeDatabase(): Promise<void> {
@@ -43,11 +43,11 @@ export class DatabaseInitializer {
 
       // Check if required tables exist
       const requiredTables = [
-        'platform_settings',
-        'tenants',
-        'users',
-        'plugins',
-        'plugin_configs',
+        'organizations',
+        'organization_users',
+        'organization_settings',
+        'modules',
+        'organization_modules',
         'user_sessions',
         'audit_logs'
       ];
@@ -80,14 +80,14 @@ export class DatabaseInitializer {
   public async isPlatformSetupComplete(): Promise<boolean> {
     try {
       const result = await db.query(
-        "SELECT value FROM platform_settings WHERE key = 'setup_complete'"
+        "SELECT is_setup_complete FROM organizations LIMIT 1"
       );
 
       if (result.rows.length === 0) {
         return false;
       }
 
-      return result.rows[0].value === 'true';
+      return result.rows[0].is_setup_complete === true;
     } catch (error) {
       logger.error('Failed to check platform setup status', error);
       return false;
@@ -97,29 +97,28 @@ export class DatabaseInitializer {
   public async markPlatformSetupComplete(): Promise<void> {
     try {
       await db.query(
-        `INSERT INTO platform_settings (key, value, description, is_public)
-         VALUES ('setup_complete', 'true', 'Platform setup completed', false)
-         ON CONFLICT (key) DO UPDATE SET
-         value = 'true',
-         updated_at = NOW()`
+        `UPDATE organizations
+         SET is_setup_complete = true,
+         updated_at = NOW()
+         WHERE id = (SELECT id FROM organizations LIMIT 1)`
       );
 
-      logger.info('Platform setup marked as complete');
+      logger.info('Organization setup marked as complete');
     } catch (error) {
-      logger.error('Failed to mark platform setup as complete', error);
+      logger.error('Failed to mark organization setup as complete', error);
       throw error;
     }
   }
 
-  public async getPlatformOwnerCount(): Promise<number> {
+  public async getAdminCount(): Promise<number> {
     try {
       const result = await db.query(
-        "SELECT COUNT(*) as count FROM users WHERE role = 'platform_owner'"
+        "SELECT COUNT(*) as count FROM organization_users WHERE role = 'admin'"
       );
 
       return parseInt(result.rows[0].count, 10);
     } catch (error) {
-      logger.error('Failed to get platform owner count', error);
+      logger.error('Failed to get admin count', error);
       throw error;
     }
   }
@@ -129,13 +128,13 @@ export class DatabaseInitializer {
       logger.info('Seeding initial data...');
 
       // Check if data already exists
-      const ownerCount = await this.getPlatformOwnerCount();
-      if (ownerCount > 0) {
-        logger.info('Platform owners already exist, skipping seed');
+      const adminCount = await this.getAdminCount();
+      if (adminCount > 0) {
+        logger.info('Admins already exist, skipping seed');
         return;
       }
 
-      // The actual platform owner will be created during setup process
+      // The actual admin will be created during setup process
       // This is just for ensuring the database is ready
 
       logger.info('Initial data seeded successfully');

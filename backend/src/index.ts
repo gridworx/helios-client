@@ -13,14 +13,14 @@ import { logger } from './utils/logger';
 import { db } from './database/connection';
 import { dbInitializer } from './database/init';
 import { errorHandler } from './middleware/errorHandler';
-import { setupRoutes } from './routes/setup.routes';
-import { platformRoutes } from './routes/platform.routes';
+// import { setupRoutes } from './routes/setup.routes';
+// import { platformRoutes } from './routes/platform.routes';
 import { PluginManager } from './core/plugins/PluginManager';
 import userRoutes from './routes/user.routes';
 import authRoutes from './routes/auth.routes';
-import tenantAuthRoutes from './routes/tenant-auth.routes';
-import tenantSetupRoutes from './routes/tenant-setup.routes';
-import GoogleWorkspaceRoutes from './routes/google-workspace.routes';
+// import tenantAuthRoutes from './routes/tenant-auth.routes';
+// import tenantSetupRoutes from './routes/tenant-setup.routes';
+// import GoogleWorkspaceRoutes from './routes/google-workspace.routes';
 import modulesRoutes from './routes/modules.routes';
 
 const app = express();
@@ -150,13 +150,13 @@ app.use('/api', async (req, res, next) => {
 });
 
 // API Routes
-app.use('/api/setup', setupRoutes);
-app.use('/api/tenant-setup', tenantSetupRoutes);
+// app.use('/api/setup', setupRoutes);
+// app.use('/api/tenant-setup', tenantSetupRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/auth', tenantAuthRoutes); // Tenant authentication
+// app.use('/api/auth', tenantAuthRoutes); // Tenant authentication
 app.use('/api/user', userRoutes);
-app.use('/api/platform', platformRoutes);
-app.use('/api/google-workspace', GoogleWorkspaceRoutes);
+// app.use('/api/platform', platformRoutes);
+// app.use('/api/google-workspace', GoogleWorkspaceRoutes);
 app.use('/api/modules', modulesRoutes);
 
 // Catch-all for undefined API routes
