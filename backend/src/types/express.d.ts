@@ -6,13 +6,17 @@ declare global {
       user?: {
         id: string;
         email: string;
+        firstName: string;
+        lastName: string;
         role: string;
-        tenantId?: string;
+        organizationId: string;
+        department?: string;
       };
-      tenant?: {
+      organization?: {
         id: string;
         name: string;
         domain: string;
+        isSetupComplete: boolean;
       };
     }
 

@@ -4,8 +4,8 @@ import { db } from '../database/connection';
 import { logger } from '../utils/logger';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secure_jwt_secret_key_here';
-const JWT_EXPIRES_IN: string = process.env.JWT_EXPIRES_IN || '24h';
-const JWT_REFRESH_EXPIRES_IN: string = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
+const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
 export interface TokenPayload {
   userId: string;
@@ -45,7 +45,9 @@ export class AuthService {
       type: 'access' as const
     };
 
-    return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+    return jwt.sign(payload, JWT_SECRET, {
+      expiresIn: JWT_EXPIRES_IN
+    } as any);
   }
 
   /**
@@ -59,7 +61,9 @@ export class AuthService {
       type: 'refresh' as const
     };
 
-    return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_REFRESH_EXPIRES_IN });
+    return jwt.sign(payload, JWT_SECRET, {
+      expiresIn: JWT_REFRESH_EXPIRES_IN
+    } as any);
   }
 
   /**

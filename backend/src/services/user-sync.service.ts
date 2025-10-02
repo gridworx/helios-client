@@ -302,7 +302,7 @@ export class UserSyncService {
 
       const result = await db.query(query, params);
 
-      return result.rows.map(row => ({
+      return result.rows.map((row: any) => ({
         id: row.id,
         tenantId: row.tenant_id,
         email: row.email,

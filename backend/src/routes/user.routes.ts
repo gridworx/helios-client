@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { db } from '../database/connection';
 import { logger } from '../utils/logger';
 import { asyncHandler } from '../middleware/errorHandler';
-import { authenticateToken } from '../middleware/auth.middleware';
+import { authenticateToken } from '../middleware/auth';
 
 const router = Router();
 

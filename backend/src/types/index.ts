@@ -1,4 +1,4 @@
-// Shared TypeScript types for Helios Platform
+// Shared TypeScript types for Helios Client Portal
 
 export interface User {
   id: string;
@@ -6,78 +6,93 @@ export interface User {
   firstName: string;
   lastName: string;
   role: UserRole;
-  tenantId?: string; // null for platform owners
+  organizationId: string;
+  department?: string;
   isActive: boolean;
+  emailVerified: boolean;
+  twoFactorEnabled: boolean;
   lastLogin?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export enum UserRole {
-  PLATFORM_OWNER = 'platform_owner',
-  TENANT_ADMIN = 'tenant_admin',
-  TENANT_USER = 'tenant_user'
+  ADMIN = 'admin',
+  MANAGER = 'manager',
+  USER = 'user'
 }
 
-export interface Tenant {
+export interface Organization {
   id: string;
   name: string;
   domain: string;
   logo?: string;
   primaryColor?: string;
-  isActive: boolean;
+  secondaryColor?: string;
+  isSetupComplete: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface Plugin {
+export interface Module {
   id: string;
   name: string;
+  slug: string;
   description: string;
+  icon?: string;
   version: string;
-  isEnabled: boolean;
+  isAvailable: boolean;
   configSchema?: Record<string, any>;
-  config?: Record<string, any>;
-  dependencies?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface PlatformSettings {
+export interface OrganizationModule {
   id: string;
+  organizationId: string;
+  moduleId: string;
+  isEnabled: boolean;
+  isConfigured: boolean;
+  config?: Record<string, any>;
+  lastSyncAt?: Date;
+  syncStatus?: string;
+  syncError?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface OrganizationSettings {
+  id: string;
+  organizationId: string;
   key: string;
   value: string;
-  description?: string;
-  isPublic: boolean; // whether setting can be read by non-owners
+  isSensitive: boolean;
+  createdAt: Date;
   updatedAt: Date;
 }
 
 export interface AuditLog {
   id: string;
   userId: string;
-  tenantId?: string;
+  organizationId: string;
   action: string;
   resource: string;
   resourceId?: string;
-  oldValues?: Record<string, any>;
-  newValues?: Record<string, any>;
+  details?: Record<string, any>;
   ipAddress: string;
   userAgent: string;
-  timestamp: Date;
+  createdAt: Date;
 }
 
-// Google Workspace Plugin Types
+// Google Workspace Module Types
 export interface GoogleWorkspaceConfig {
-  tenantId: string;
-  clientId: string;
-  clientSecret: string;
-  redirectUri: string;
+  organizationId: string;
+  serviceAccountKey: string; // encrypted JSON key
+  adminEmail: string;
   domain: string;
-  isConnected: boolean;
-  accessToken?: string;
-  refreshToken?: string;
-  tokenExpiresAt?: Date;
-  lastSyncAt?: Date;
+  scopes?: string[];
+  isValid: boolean;
+  lastValidatedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -104,21 +119,13 @@ export interface LoginRequest {
 export interface LoginResponse extends ApiResponse<{
   user: User;
   tokens: AuthTokens;
-  tenant?: Tenant;
+  organization?: Organization;
 }> {}
 
-// Platform setup types
-export interface PlatformSetupRequest {
-  ownerEmail: string;
-  ownerPassword: string;
-  ownerFirstName: string;
-  ownerLastName: string;
-  platformName: string;
-}
-
-export interface TenantCreateRequest {
-  name: string;
-  domain: string;
+// Organization setup types
+export interface OrganizationSetupRequest {
+  organizationName: string;
+  organizationDomain: string;
   adminEmail: string;
   adminPassword: string;
   adminFirstName: string;
@@ -127,14 +134,19 @@ export interface TenantCreateRequest {
   primaryColor?: string;
 }
 
+// Module configuration types
+export interface ModuleConfigRequest {
+  moduleId: string;
+  config: Record<string, any>;
+}
+
 // Context types for React
-export interface TenantContextType {
-  currentTenant?: Tenant;
-  availableTenants: Tenant[];
-  switchTenant: (tenantId: string) => Promise<void>;
-  isMSPMode: boolean;
+export interface OrganizationContextType {
+  organization?: Organization;
+  isSetupComplete: boolean;
   isLoading: boolean;
   error?: string;
+  refreshOrganization: () => Promise<void>;
 }
 
 export interface AuthContextType {
@@ -142,6 +154,60 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   login: (credentials: LoginRequest) => Promise<void>;
   logout: () => void;
+  refreshToken: () => Promise<void>;
   isLoading: boolean;
   error?: string;
+}
+
+// Dashboard types
+export interface DashboardStats {
+  totalUsers: number;
+  adminUsers: number;
+  enabledModules: number;
+  syncedGoogleUsers: number;
+  lastSync?: Date;
+}
+
+// Google Workspace synced data types
+export interface GoogleUser {
+  id: string;
+  organizationId: string;
+  googleId: string;
+  email: string;
+  givenName?: string;
+  familyName?: string;
+  fullName?: string;
+  isAdmin: boolean;
+  isSuspended: boolean;
+  orgUnitPath?: string;
+  department?: string;
+  jobTitle?: string;
+  lastLoginTime?: Date;
+  creationTime?: Date;
+  rawData?: Record<string, any>;
+  lastSyncAt: Date;
+}
+
+export interface GoogleGroup {
+  id: string;
+  organizationId: string;
+  googleId: string;
+  email: string;
+  name?: string;
+  description?: string;
+  memberCount: number;
+  rawData?: Record<string, any>;
+  lastSyncAt: Date;
+}
+
+export interface GoogleOrgUnit {
+  id: string;
+  organizationId: string;
+  googleId: string;
+  name: string;
+  path: string;
+  parentId?: string;
+  description?: string;
+  rawData?: Record<string, any>;
+  lastSyncAt: Date;
 }

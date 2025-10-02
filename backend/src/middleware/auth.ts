@@ -12,6 +12,7 @@ declare global {
         userId: string;
         email: string;
         role: string;
+        organizationId: string;
       };
     }
   }
@@ -56,7 +57,8 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
   req.user = {
     userId: decoded.userId,
     email: decoded.email,
-    role: decoded.role
+    role: decoded.role,
+    organizationId: decoded.organizationId || decoded.tenantId // Support both for migration
   };
 
   next();
@@ -106,7 +108,8 @@ export const optionalAuth = (req: Request, res: Response, next: NextFunction) =>
         req.user = {
           userId: decoded.userId,
           email: decoded.email,
-          role: decoded.role
+          role: decoded.role,
+          organizationId: decoded.organizationId || decoded.tenantId // Support both for migration
         };
       }
     } catch (error) {
@@ -115,4 +118,35 @@ export const optionalAuth = (req: Request, res: Response, next: NextFunction) =>
   }
 
   next();
+};
+
+/**
+ * Alias for authenticateToken for better naming consistency
+ */
+export const requireAuth = authenticateToken;
+
+/**
+ * Middleware to require specific permission/role
+ */
+export const requirePermission = (permission: string) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required'
+      });
+    }
+
+    // For now, check if user is admin for any permission
+    // Later can expand to more granular permissions
+    if (permission === 'admin' && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Insufficient permissions',
+        message: `${permission} permission required`
+      });
+    }
+
+    next();
+  };
 };

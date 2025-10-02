@@ -12,18 +12,18 @@ const router = Router();
  */
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const tenantId = req.user?.tenantId;
+    const organizationId = req.user?.organizationId;
 
-    if (!tenantId) {
+    if (!organizationId) {
       return res.status(400).json({
         success: false,
-        error: 'Tenant ID required'
+        error: 'Organization ID required'
       });
     }
 
     const { platform, active, limit = 100, offset = 0 } = req.query;
 
-    const users = await userSyncService.getUnifiedUsers(tenantId, {
+    const users = await userSyncService.getUnifiedUsers(organizationId, {
       platform: platform as string,
       isActive: active === 'true' ? true : active === 'false' ? false : undefined,
       limit: parseInt(limit as string),
@@ -51,19 +51,19 @@ router.get('/', requireAuth, async (req, res) => {
  */
 router.post('/sync/google-workspace', requirePermission('admin'), async (req, res) => {
   try {
-    const tenantId = req.user?.tenantId;
+    const organizationId = req.user?.organizationId;
     const { domain, adminEmail } = req.body;
 
-    if (!tenantId || !domain) {
+    if (!organizationId || !domain) {
       return res.status(400).json({
         success: false,
-        error: 'Tenant ID and domain required'
+        error: 'Organization ID and domain required'
       });
     }
 
     // Start sync process
     const result = await userSyncService.syncGoogleWorkspaceUsers(
-      tenantId,
+      organizationId,
       domain,
       adminEmail
     );
@@ -85,12 +85,12 @@ router.post('/sync/google-workspace', requirePermission('admin'), async (req, re
  */
 router.post('/sync/all', requirePermission('admin'), async (req, res) => {
   try {
-    const tenantId = req.user?.tenantId;
+    const organizationId = req.user?.organizationId;
 
-    if (!tenantId) {
+    if (!organizationId) {
       return res.status(400).json({
         success: false,
-        error: 'Tenant ID required'
+        error: 'Organization ID required'
       });
     }
 
@@ -105,12 +105,12 @@ router.post('/sync/all', requirePermission('admin'), async (req, res) => {
     };
 
     // Check if Google Workspace is enabled
-    const gwStatus = await googleWorkspaceService.getSetupStatus(tenantId);
+    const gwStatus = await googleWorkspaceService.getSetupStatus(organizationId);
     if (gwStatus.isConfigured) {
       const { domain } = gwStatus.config || {};
       if (domain) {
         results.google_workspace = await userSyncService.syncGoogleWorkspaceUsers(
-          tenantId,
+          organizationId,
           domain,
           gwStatus.config?.adminEmail
         );
@@ -152,17 +152,17 @@ router.post('/sync/all', requirePermission('admin'), async (req, res) => {
  */
 router.get('/:userId', requireAuth, async (req, res) => {
   try {
-    const tenantId = req.user?.tenantId;
+    const organizationId = req.user?.organizationId;
     const { userId } = req.params;
 
-    if (!tenantId) {
+    if (!organizationId) {
       return res.status(400).json({
         success: false,
-        error: 'Tenant ID required'
+        error: 'Organization ID required'
       });
     }
 
-    const users = await userSyncService.getUnifiedUsers(tenantId, {
+    const users = await userSyncService.getUnifiedUsers(organizationId, {
       limit: 1
     });
 

@@ -518,6 +518,45 @@ export class GoogleWorkspaceService {
       };
     }
   }
+
+  /**
+   * Get setup status for Google Workspace integration
+   */
+  async getSetupStatus(organizationId: string): Promise<{
+    isConfigured: boolean;
+    config?: {
+      domain?: string;
+      adminEmail?: string;
+    };
+  }> {
+    try {
+      // Check if credentials exist
+      const credResult = await db.query(
+        `SELECT domain, admin_email FROM tenant_credentials
+         WHERE tenant_id = $1 AND is_active = true`,
+        [organizationId]
+      );
+
+      if (credResult.rows.length === 0) {
+        return { isConfigured: false };
+      }
+
+      const row = credResult.rows[0];
+      return {
+        isConfigured: true,
+        config: {
+          domain: row.domain,
+          adminEmail: row.admin_email
+        }
+      };
+    } catch (error: any) {
+      logger.error('Failed to get setup status', {
+        organizationId,
+        error: error.message
+      });
+      return { isConfigured: false };
+    }
+  }
 }
 
 export const googleWorkspaceService = new GoogleWorkspaceService();
