@@ -47,6 +47,72 @@ export interface ConnectionTestResult {
 
 export class GoogleWorkspaceService {
   /**
+   * Test connection with domain-wide delegation
+   */
+  async testConnectionWithDelegation(
+    serviceAccount: ServiceAccountCredentials,
+    adminEmail: string,
+    domain: string
+  ): Promise<ConnectionTestResult> {
+    try {
+      // Create JWT client with domain-wide delegation
+      const jwtClient = new JWT({
+        email: serviceAccount.client_email,
+        key: serviceAccount.private_key,
+        scopes: [
+          'https://www.googleapis.com/auth/admin.directory.user.readonly',
+          'https://www.googleapis.com/auth/admin.directory.group.readonly'
+        ],
+        subject: adminEmail // Impersonate admin for domain-wide delegation
+      });
+
+      // Create admin client
+      const admin = google.admin({ version: 'directory_v1', auth: jwtClient });
+
+      // Test by fetching user count
+      const usersResponse = await admin.users.list({
+        domain: domain,
+        maxResults: 1
+      });
+
+      // Test groups access
+      const groupsResponse = await admin.groups.list({
+        domain: domain,
+        maxResults: 1
+      });
+
+      return {
+        success: true,
+        message: 'Successfully connected to Google Workspace',
+        details: {
+          projectId: serviceAccount.project_id,
+          clientEmail: serviceAccount.client_email,
+          domain: domain,
+          userCount: usersResponse.data.users?.length || 0,
+          adminUsers: 0
+        }
+      };
+    } catch (error: any) {
+      logger.error('Connection test failed', { error: error.message });
+
+      let errorMessage = 'Failed to connect to Google Workspace';
+      if (error.message?.includes('invalid_grant')) {
+        errorMessage = 'Domain-wide delegation not properly configured. Please ensure the service account has been granted domain-wide delegation in Google Workspace Admin.';
+      } else if (error.message?.includes('unauthorized_client')) {
+        errorMessage = 'Service account not authorized. Please add the required scopes in Google Workspace Admin > Security > API Controls.';
+      } else if (error.message?.includes('Not Authorized')) {
+        errorMessage = 'Admin email is not a super admin or domain is incorrect.';
+      }
+
+      return {
+        success: false,
+        message: errorMessage,
+        error: error.message
+      };
+    }
+  }
+
+  /**
    * Store service account credentials for a tenant with Domain-Wide Delegation
    */
   async storeServiceAccountCredentials(
