@@ -3,7 +3,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
   padding: 2rem;
 }
 
@@ -17,7 +17,7 @@
 }
 
 .account-setup-header {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
   color: white;
   padding: 2rem;
   text-align: center;
@@ -64,7 +64,7 @@
 }
 
 .progress-step.active .step-number {
-  background: #4f46e5;
+  background: #8b5cf6;
   color: white;
   box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
 }
@@ -76,7 +76,7 @@
 }
 
 .progress-step.active .step-label {
-  color: #4f46e5;
+  color: #8b5cf6;
 }
 
 .progress-line {
@@ -87,7 +87,7 @@
 }
 
 .progress-line.active {
-  background: #4f46e5;
+  background: #8b5cf6;
 }
 
 .account-setup-body {
@@ -136,7 +136,7 @@
 
 .form-group input:focus {
   outline: none;
-  border-color: #4f46e5;
+  border-color: #8b5cf6;
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
@@ -198,7 +198,7 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
   color: white;
 }
 

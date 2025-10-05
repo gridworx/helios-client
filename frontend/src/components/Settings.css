@@ -63,8 +63,8 @@
 
 .settings-nav-item.active {
   background: #eff6ff;
-  color: #4f46e5;
-  border-left-color: #4f46e5;
+  color: #8b5cf6;
+  border-left-color: #8b5cf6;
 }
 
 .settings-nav-item .nav-icon {
@@ -187,7 +187,7 @@
 
 .enable-btn {
   padding: 0.5rem 1.5rem;
-  background: #4f46e5;
+  background: #8b5cf6;
   color: white;
   border: none;
   border-radius: 6px;
@@ -278,7 +278,7 @@
 
 .form-input:focus {
   outline: none;
-  border-color: #4f46e5;
+  border-color: #8b5cf6;
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
@@ -313,7 +313,7 @@
 
 .upload-btn {
   padding: 0.625rem 1.25rem;
-  background: #4f46e5;
+  background: #8b5cf6;
   color: white;
   border: none;
   border-radius: 6px;
@@ -386,7 +386,7 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
   color: white;
   display: flex;
   align-items: center;
@@ -466,7 +466,7 @@
 .checkbox-label input[type="checkbox"] {
   width: 16px;
   height: 16px;
-  accent-color: #4f46e5;
+  accent-color: #8b5cf6;
 }
 
 /* Modal Styles */
@@ -591,7 +591,7 @@
 .configure-btn {
   width: 100%;
   padding: 0.875rem 1.5rem;
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
   color: white;
   border: none;
   border-radius: 8px;

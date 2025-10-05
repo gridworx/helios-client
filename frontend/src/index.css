@@ -37,12 +37,12 @@ body {
 
 a {
   font-weight: 500;
-  color: #4f46e5;
+  color: #8b5cf6;
   text-decoration: none;
 }
 
 a:hover {
-  color: #4338ca;
+  color: #7c3aed;
   text-decoration: underline;
 }
 
@@ -53,6 +53,6 @@ button {
 
 button:focus,
 button:focus-visible {
-  outline: 2px solid #4f46e5;
+  outline: 2px solid #8b5cf6;
   outline-offset: 2px;
 }

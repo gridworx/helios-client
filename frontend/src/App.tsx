@@ -28,7 +28,6 @@ interface OrganizationStats {
 }
 
 function App() {
-  console.log('[App] Component rendering...');
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState<OrganizationConfig | null>(null);
   const [step, setStep] = useState<'welcome' | 'setup' | 'login' | 'dashboard'>('welcome');
