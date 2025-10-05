@@ -113,12 +113,13 @@ export class GoogleWorkspaceService {
   }
 
   /**
-   * Store service account credentials for a tenant with Domain-Wide Delegation
+   * Store service account credentials for an organization with Domain-Wide Delegation
    */
   async storeServiceAccountCredentials(
-    tenantId: string,
+    organizationId: string,
     domain: string,
-    credentials: ServiceAccountCredentials
+    credentials: ServiceAccountCredentials,
+    adminEmail?: string
   ): Promise<{ success: boolean; message: string }> {
     try {
       // Validate credentials structure
@@ -132,53 +133,56 @@ export class GoogleWorkspaceService {
         }
       }
 
-      // Store in tenant_credentials table (using correct columns)
+      // Store in gw_credentials table
+      // Use the provided admin email for impersonation, not the service account email
+      const adminEmailToUse = adminEmail || `admin@${domain}`;
+
       await db.query(`
-        INSERT INTO tenant_credentials (tenant_id, service_account_key, admin_email, domain, admin_email_stored, scopes, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-        ON CONFLICT (tenant_id)
+        INSERT INTO gw_credentials (organization_id, service_account_key, admin_email, domain, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, NOW(), NOW())
+        ON CONFLICT (organization_id)
         DO UPDATE SET
           service_account_key = EXCLUDED.service_account_key,
           admin_email = EXCLUDED.admin_email,
           domain = EXCLUDED.domain,
-          admin_email_stored = EXCLUDED.admin_email_stored,
-          scopes = EXCLUDED.scopes,
           updated_at = NOW()
       `, [
-        tenantId,
+        organizationId,
         JSON.stringify(credentials),
-        credentials.client_email,
-        domain,
-        credentials.client_email, // Store the admin email separately
-        [
-          'https://www.googleapis.com/auth/admin.directory.user',
-          'https://www.googleapis.com/auth/admin.directory.group',
-          'https://www.googleapis.com/auth/admin.directory.orgunit',
-          'https://www.googleapis.com/auth/admin.directory.domain',
-          'https://www.googleapis.com/auth/admin.reports.audit.readonly'
-        ]
+        adminEmailToUse,
+        domain
       ]);
 
       logger.info('Service account credentials stored with DWD', {
-        tenantId,
+        organizationId,
         domain,
         projectId: credentials.project_id,
         clientEmail: credentials.client_email
       });
 
-      // Mark the module as enabled for this tenant
-      await db.query(`
-        INSERT INTO tenant_modules (tenant_id, module_name, is_enabled, configuration, updated_at)
-        VALUES ($1, 'google_workspace', true, $2, NOW())
-        ON CONFLICT (tenant_id, module_name)
-        DO UPDATE SET
-          is_enabled = true,
-          configuration = $2,
-          updated_at = NOW()
-      `, [
-        tenantId,
-        JSON.stringify({ domain, adminEmail: credentials.client_email })
-      ]);
+      // Get the Google Workspace module ID
+      const moduleResult = await db.query(
+        `SELECT id FROM modules WHERE slug = 'google-workspace' LIMIT 1`
+      );
+
+      if (moduleResult.rows.length > 0) {
+        const moduleId = moduleResult.rows[0].id;
+
+        // Mark the module as enabled for this organization
+        await db.query(`
+          INSERT INTO organization_modules (organization_id, module_id, is_enabled, config, updated_at)
+          VALUES ($1, $2, true, $3, NOW())
+          ON CONFLICT (organization_id, module_id)
+          DO UPDATE SET
+            is_enabled = true,
+            config = $3,
+            updated_at = NOW()
+        `, [
+          organizationId,
+          moduleId,
+          JSON.stringify({ domain, adminEmail: adminEmailToUse })
+        ]);
+      }
 
       return {
         success: true,
@@ -187,7 +191,7 @@ export class GoogleWorkspaceService {
 
     } catch (error: any) {
       logger.error('Failed to store service account credentials', {
-        tenantId,
+        organizationId,
         domain,
         error: error.message
       });
@@ -220,13 +224,13 @@ export class GoogleWorkspaceService {
   }
 
   /**
-   * Get stored credentials for a tenant (matching backup structure)
+   * Get stored credentials for an organization
    */
-  private async getCredentials(tenantId: string): Promise<ServiceAccountCredentials | null> {
+  private async getCredentials(organizationId: string): Promise<ServiceAccountCredentials | null> {
     try {
       const result = await db.query(
-        'SELECT service_account_key FROM tenant_credentials WHERE tenant_id = $1 AND is_active = true',
-        [tenantId]
+        'SELECT service_account_key FROM gw_credentials WHERE organization_id = $1',
+        [organizationId]
       );
 
       if (result.rows.length === 0) {
@@ -235,7 +239,7 @@ export class GoogleWorkspaceService {
 
       return JSON.parse(result.rows[0].service_account_key);
     } catch (error) {
-      logger.error('Failed to get credentials', { tenantId, error });
+      logger.error('Failed to get credentials', { organizationId, error });
       return null;
     }
   }
@@ -244,19 +248,19 @@ export class GoogleWorkspaceService {
    * Test Google Workspace connection using Domain-Wide Delegation
    */
   async testConnection(
-    tenantId: string,
+    organizationId: string,
     domain: string,
     adminEmail?: string
   ): Promise<ConnectionTestResult> {
     try {
       // Load credentials from database
-      const credentials = await this.getCredentials(tenantId);
+      const credentials = await this.getCredentials(organizationId);
 
       if (!credentials) {
         return {
           success: false,
           message: 'Service account credentials not found',
-          error: 'No credentials found for this tenant. Please upload service account JSON file.'
+          error: 'No credentials found for this organization. Please upload service account JSON file.'
         };
       }
 
@@ -279,7 +283,7 @@ export class GoogleWorkspaceService {
       const adminUsers = users.data.users?.filter((user: any) => user.isAdmin).length || 0;
 
       logger.info('Google Workspace DWD connection test successful', {
-        tenantId,
+        organizationId,
         domain,
         projectId: credentials.project_id,
         userCount,
@@ -300,7 +304,7 @@ export class GoogleWorkspaceService {
 
     } catch (error: any) {
       logger.error('Google Workspace DWD connection test failed', {
-        tenantId,
+        organizationId,
         domain,
         error: error.message
       });
@@ -329,13 +333,13 @@ export class GoogleWorkspaceService {
    * Get Google Workspace users using Domain-Wide Delegation
    */
   async getUsers(
-    tenantId: string,
+    organizationId: string,
     domain: string,
     adminEmail?: string,
     maxResults: number = 100
   ): Promise<{ success: boolean; users?: WorkspaceUser[]; error?: string }> {
     try {
-      const credentials = await this.getCredentials(tenantId);
+      const credentials = await this.getCredentials(organizationId);
 
       if (!credentials) {
         return {
@@ -371,7 +375,7 @@ export class GoogleWorkspaceService {
       }));
 
       logger.info('Retrieved Google Workspace users via DWD', {
-        tenantId,
+        organizationId,
         domain,
         userCount: users.length
       });
@@ -383,7 +387,7 @@ export class GoogleWorkspaceService {
 
     } catch (error: any) {
       logger.error('Failed to retrieve Google Workspace users via DWD', {
-        tenantId,
+        organizationId,
         domain,
         error: error.message
       });
@@ -430,28 +434,28 @@ export class GoogleWorkspaceService {
   /**
    * Get organizational units from Google Workspace
    */
-  async getOrgUnits(tenantId: string): Promise<any> {
+  async getOrgUnits(organizationId: string): Promise<any> {
     try {
-      // Get tenant info and credentials
-      const tenantResult = await db.query(
-        'SELECT domain FROM tenants WHERE id = $1',
-        [tenantId]
+      // Get organization info and credentials
+      const orgResult = await db.query(
+        'SELECT domain FROM organizations WHERE id = $1',
+        [organizationId]
       );
 
-      if (tenantResult.rows.length === 0) {
-        return { success: false, error: 'Tenant not found' };
+      if (orgResult.rows.length === 0) {
+        return { success: false, error: 'Organization not found' };
       }
 
-      const domain = tenantResult.rows[0].domain;
+      const domain = orgResult.rows[0].domain;
 
       // Get stored credentials
       const credResult = await db.query(
-        'SELECT service_account_key, admin_email FROM tenant_credentials WHERE tenant_id = $1',
-        [tenantId]
+        'SELECT service_account_key, admin_email FROM gw_credentials WHERE organization_id = $1',
+        [organizationId]
       );
 
       if (credResult.rows.length === 0) {
-        return { success: false, error: 'No credentials found for this tenant' };
+        return { success: false, error: 'No credentials found for this organization' };
       }
 
       const { service_account_key, admin_email } = credResult.rows[0];
@@ -477,7 +481,7 @@ export class GoogleWorkspaceService {
       const orgUnits = response.data.organizationUnits || [];
 
       logger.info('Retrieved organizational units', {
-        tenantId,
+        organizationId,
         domain,
         count: orgUnits.length
       });
@@ -496,7 +500,7 @@ export class GoogleWorkspaceService {
 
     } catch (error: any) {
       logger.error('Failed to retrieve org units', {
-        tenantId,
+        organizationId,
         error: error.message
       });
 
@@ -510,10 +514,10 @@ export class GoogleWorkspaceService {
   /**
    * Sync organizational units from Google Workspace to database
    */
-  async syncOrgUnits(tenantId: string): Promise<any> {
+  async syncOrgUnits(organizationId: string): Promise<any> {
     try {
       // First get the org units from Google
-      const fetchResult = await this.getOrgUnits(tenantId);
+      const fetchResult = await this.getOrgUnits(organizationId);
 
       if (!fetchResult.success) {
         return fetchResult;
@@ -525,38 +529,45 @@ export class GoogleWorkspaceService {
       await db.query('BEGIN');
 
       try {
-        // Clear existing org units for this tenant
+        // Clear existing org units for this organization
         await db.query(
-          'DELETE FROM organizational_units WHERE tenant_id = $1',
-          [tenantId]
+          'DELETE FROM gw_org_units WHERE organization_id = $1',
+          [organizationId]
         );
 
         // Insert new org units
         for (const unit of orgUnits) {
           await db.query(`
-            INSERT INTO organizational_units
-            (id, tenant_id, name, path, parent_path, description, source_platform, external_id, sync_status, last_synced)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+            INSERT INTO gw_org_units
+            (id, organization_id, name, path, parent_path, description, external_id, last_synced)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
           `, [
             unit.id,
-            tenantId,
+            organizationId,
             unit.name,
             unit.path,
             unit.parentPath,
             unit.description,
-            'google_workspace',
-            unit.id,
-            'synced'
+            unit.id
           ]);
         }
 
-        // Update sync timestamp
-        await db.query(`
-          UPDATE tenant_modules
-          SET last_sync = NOW(),
-              configuration = configuration || jsonb_build_object('org_units_count', $2)
-          WHERE tenant_id = $1 AND module_name = 'google_workspace'
-        `, [tenantId, orgUnits.length]);
+        // Get module ID for Google Workspace
+        const moduleResult = await db.query(
+          `SELECT id FROM modules WHERE slug = 'google-workspace' LIMIT 1`
+        );
+
+        if (moduleResult.rows.length > 0) {
+          const moduleId = moduleResult.rows[0].id;
+
+          // Update sync timestamp
+          await db.query(`
+            UPDATE organization_modules
+            SET last_sync = NOW(),
+                config = config || jsonb_build_object('org_units_count', $3)
+            WHERE organization_id = $1 AND module_id = $2
+          `, [organizationId, moduleId, orgUnits.length]);
+        }
 
         await db.query('COMMIT');
 
@@ -574,7 +585,7 @@ export class GoogleWorkspaceService {
 
     } catch (error: any) {
       logger.error('Failed to sync org units', {
-        tenantId,
+        organizationId,
         error: error.message
       });
 
@@ -598,8 +609,8 @@ export class GoogleWorkspaceService {
     try {
       // Check if credentials exist
       const credResult = await db.query(
-        `SELECT domain, admin_email FROM tenant_credentials
-         WHERE tenant_id = $1 AND is_active = true`,
+        `SELECT domain, admin_email FROM gw_credentials
+         WHERE organization_id = $1`,
         [organizationId]
       );
 

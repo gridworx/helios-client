@@ -4,19 +4,20 @@ import { ClientLogin } from './components/ClientLogin'
 import { ClientUserMenu } from './components/ClientUserMenu'
 import { AccountSetup } from './components/AccountSetup'
 import { Settings } from './components/Settings'
+import { Administrators } from './components/Administrators'
 import { Users } from './pages/Users'
 import { Groups } from './pages/Groups'
 import { OrgUnits } from './pages/OrgUnits'
 import { AssetManagement } from './pages/AssetManagement'
 
-interface TenantConfig {
-  tenantId: string;
+interface OrganizationConfig {
+  organizationId: string;
   domain: string;
   organizationName: string;
   dwdConfigured: boolean;
 }
 
-interface TenantStats {
+interface OrganizationStats {
   totalUsers: number;
   activeUsers: number;
   suspendedUsers: number;
@@ -27,9 +28,10 @@ interface TenantStats {
 }
 
 function App() {
+  console.log('[App] Component rendering...');
   const [loading, setLoading] = useState(true);
-  const [config, setConfig] = useState<TenantConfig | null>(null);
-  const [step, setStep] = useState<'welcome' | 'setup' | 'dashboard'>('welcome');
+  const [config, setConfig] = useState<OrganizationConfig | null>(null);
+  const [step, setStep] = useState<'welcome' | 'setup' | 'login' | 'dashboard'>('welcome');
   const [setupStep, setSetupStep] = useState(1);
   const [setupData, setSetupData] = useState({
     organizationName: '',
@@ -41,28 +43,53 @@ function App() {
     adminPassword: ''
   });
   const [setupError, setSetupError] = useState<string | null>(null);
-  const [stats, setStats] = useState<TenantStats | null>(null);
+  const [stats, setStats] = useState<OrganizationStats | null>(null);
   const [syncLoading, setSyncLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentPage, setCurrentPage] = useState('dashboard');
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [loginOrgName, setLoginOrgName] = useState<string>('');
 
   useEffect(() => {
     checkConfiguration();
   }, []);
+
+  // Fetch organization name for login screen
+  useEffect(() => {
+    if (step === 'login' && !loginOrgName) {
+      const fetchOrgInfo = async () => {
+        try {
+          const response = await fetch('http://localhost:3001/api/organization/current');
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data) {
+              setLoginOrgName(data.data.name);
+            }
+          }
+        } catch (err) {
+          console.log('Could not fetch organization info');
+        }
+      };
+      fetchOrgInfo();
+    }
+  }, [step, loginOrgName]);
 
   const checkConfiguration = async () => {
     try {
       setLoading(true);
 
       // Check if user is authenticated
-      const token = localStorage.getItem('helios_client_token');
-      const storedTenant = localStorage.getItem('helios_client_tenant');
+      const token = localStorage.getItem('helios_token');
+      const storedOrg = localStorage.getItem('helios_organization');
 
-      if (token && storedTenant) {
+      if (token && storedOrg) {
+        // Also load user data
+        const storedUser = localStorage.getItem('helios_user');
+
         // Verify token is still valid
         try {
-          const response = await fetch('http://localhost:3001/api/auth/tenant-verify', {
+          const response = await fetch('http://localhost:3001/api/auth/verify', {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -72,15 +99,21 @@ function App() {
             const data = await response.json();
             if (data.success) {
               // User is authenticated, set up dashboard
-              const tenantData = JSON.parse(storedTenant);
+              const orgData = JSON.parse(storedOrg);
               setConfig({
-                tenantId: tenantData.id,
-                domain: tenantData.domain,
-                organizationName: tenantData.name,
-                dwdConfigured: true
+                organizationId: orgData.organizationId,
+                domain: orgData.domain,
+                organizationName: orgData.organizationName,
+                dwdConfigured: false
               });
+
+              // Load user data
+              if (storedUser) {
+                setCurrentUser(JSON.parse(storedUser));
+              }
+
               setStep('dashboard');
-              fetchTenantStats(tenantData.id);
+              fetchOrganizationStats(orgData.organizationId);
               return;
             }
           }
@@ -89,8 +122,8 @@ function App() {
         }
 
         // Token invalid, clear it
-        localStorage.removeItem('helios_client_token');
-        localStorage.removeItem('helios_client_tenant');
+        localStorage.removeItem('helios_token');
+        localStorage.removeItem('helios_organization');
       }
 
       // Check if organization is set up (determines setup vs login)
@@ -98,16 +131,8 @@ function App() {
       if (checkResponse.ok) {
         const checkData = await checkResponse.json();
         if (checkData.data && checkData.data.isSetupComplete) {
-          // Pre-populate organization name for login screen
-          if (checkData.organizationName) {
-            setConfig({
-              tenantId: '',
-              domain: '',
-              organizationName: checkData.organizationName,
-              dwdConfigured: false
-            });
-          }
-          setStep('login');
+          // Organization exists, show login screen
+          setStep('login'); // Show login screen since organization exists
         } else {
           setStep('setup'); // Go directly to account setup
         }
@@ -123,21 +148,21 @@ function App() {
     }
   };
 
-  const fetchTenantStats = async (tenantId: string) => {
+  const fetchOrganizationStats = async (organizationId: string) => {
     try {
-      const response = await fetch(`http://localhost:3001/api/google-workspace/tenant-stats/${tenantId}`);
+      const response = await fetch(`http://localhost:3001/api/google-workspace/organization-stats/${organizationId}`);
       const data = await response.json();
 
       if (data.success) {
         setStats(data.data);
       }
     } catch (err) {
-      console.error('Failed to fetch tenant stats:', err);
+      console.error('Failed to fetch organization stats:', err);
     }
   };
 
   const handleManualSync = async () => {
-    if (!config?.tenantId) return;
+    if (!config?.organizationId) return;
 
     try {
       setSyncLoading(true);
@@ -145,14 +170,14 @@ function App() {
       const response = await fetch('http://localhost:3001/api/google-workspace/sync-now', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tenantId: config.tenantId })
+        body: JSON.stringify({ organizationId: config.organizationId })
       });
 
       const data = await response.json();
 
       if (data.success) {
         // Refresh stats after sync
-        await fetchTenantStats(config.tenantId);
+        await fetchOrganizationStats(config.organizationId);
       } else {
         alert(`Sync failed: ${data.message}`);
       }
@@ -190,18 +215,28 @@ function App() {
       <ClientLogin
         onLoginSuccess={(loginData) => {
           console.log('Setting config from login data:', loginData);
-          console.log('Setting user data:', loginData.user);
-          setCurrentUser(loginData.user);
-          setConfig({
-            tenantId: loginData.tenant.id,
-            domain: loginData.tenant.domain,
-            organizationName: loginData.tenant.name,
-            dwdConfigured: false // No modules enabled yet
-          });
+          console.log('Setting user data:', loginData.data.user);
+          setCurrentUser(loginData.data.user);
+
+          // Use organization info from login response (backend now includes it)
+          if (loginData.data.organization) {
+            setConfig({
+              organizationId: loginData.data.organization.id,
+              domain: loginData.data.organization.domain,
+              organizationName: loginData.data.organization.name,
+              dwdConfigured: false
+            });
+          }
+
           console.log('Setting step to dashboard');
           setStep('dashboard');
+
+          // Fetch organization stats after login
+          if (loginData.data.organization) {
+            fetchOrganizationStats(loginData.data.organization.id);
+          }
         }}
-        organizationName={config?.organizationName}
+        organizationName={loginOrgName || 'Your Organization'}
       />
     );
   }
@@ -561,7 +596,7 @@ function App() {
                       className="btn-primary"
                       onClick={async () => {
                         try {
-                          // Upload service account and create tenant
+                          // Upload service account and create organization
                           if (!setupData.serviceAccountFile) {
                             setSetupError('Please upload service account file first');
                             return;
@@ -569,13 +604,13 @@ function App() {
 
                           const fileContent = await setupData.serviceAccountFile.text();
                           const credentials = JSON.parse(fileContent);
-                          const tenantId = crypto.randomUUID();
+                          const organizationId = crypto.randomUUID();
 
                           const response = await fetch('http://localhost:3001/api/google-workspace/setup', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                              tenantId,
+                              organizationId,
                               domain: setupData.domain,
                               organizationName: setupData.organizationName,
                               adminEmail: setupData.adminEmail,
@@ -591,18 +626,18 @@ function App() {
 
                           // Complete setup
                           const newConfig = {
-                            tenantId,
+                            organizationId,
                             domain: setupData.domain,
                             organizationName: setupData.organizationName,
                             dwdConfigured: true
                           };
 
-                          localStorage.setItem('helios_client_config', JSON.stringify(newConfig));
+                          localStorage.setItem('helios_organization', JSON.stringify(newConfig));
                           setConfig(newConfig);
                           setStep('dashboard');
 
                           // Trigger initial sync
-                          setTimeout(() => fetchTenantStats(tenantId), 1000);
+                          setTimeout(() => fetchOrganizationStats(organizationId), 1000);
 
                         } catch (err: any) {
                           setSetupError(err.message || 'Setup failed');
@@ -647,7 +682,7 @@ function App() {
           <div className="welcome-stats">
             <span className="welcome-text">Welcome, {currentUser?.firstName || 'User'}!</span>
             <div className="quick-stats">
-              <span className="stat-item">0 Users</span>
+              <span className="stat-item">{stats?.totalUsers || 0} Users</span>
               <span className="stat-separator">•</span>
               <span className="stat-item">0 Groups</span>
               <span className="stat-separator">•</span>
@@ -659,20 +694,31 @@ function App() {
             userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'User'}
             userEmail={currentUser?.email || 'user@domain.com'}
             userRole={currentUser?.role || 'user'}
+            onChangePassword={() => {
+              setCurrentPage('settings');
+              setShowPasswordModal(true);
+            }}
+            onNavigateToSettings={() => {
+              setCurrentPage('settings');
+            }}
+            onNavigateToAdministrators={() => {
+              setCurrentPage('administrators');
+            }}
             onLogout={async () => {
               try {
-                await fetch('http://localhost:3001/api/auth/tenant-logout', {
+                await fetch('http://localhost:3001/api/auth/logout', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ tenantId: config?.tenantId })
+                  body: JSON.stringify({ userId: currentUser?.id })
                 });
               } catch (err) {
                 console.warn('Logout API call failed:', err);
               }
 
               // Clear all stored data
-              localStorage.removeItem('helios_client_token');
-              localStorage.removeItem('helios_client_tenant');
+              localStorage.removeItem('helios_token');
+              localStorage.removeItem('helios_refresh_token');
+              localStorage.removeItem('helios_organization');
               localStorage.removeItem('helios_client_config');
 
               // Reset to check configuration again
@@ -698,7 +744,12 @@ function App() {
           <nav className="nav">
             <button
               className={`nav-item ${currentPage === 'dashboard' ? 'active' : ''}`}
-              onClick={() => setCurrentPage('dashboard')}
+              onClick={() => {
+                setCurrentPage('dashboard');
+                if (config?.organizationId) {
+                  fetchOrganizationStats(config.organizationId);
+                }
+              }}
             >
               <span className="nav-icon">🏠</span>
               <span>Home</span>
@@ -787,9 +838,9 @@ function App() {
 
               <div className="dashboard-grid">
                 <div className="dashboard-card stat-card">
-                  <div className="stat-number">0</div>
+                  <div className="stat-number">{stats?.totalUsers || 0}</div>
                   <div className="stat-label">Users</div>
-                  <div className="stat-trend">No change</div>
+                  <div className="stat-trend">{stats?.totalUsers > 0 ? `${stats.activeUsers} active` : 'No change'}</div>
                 </div>
 
                 <div className="dashboard-card stat-card">
@@ -817,24 +868,31 @@ function App() {
             <Settings
               organizationName={config?.organizationName || 'Organization'}
               domain={config?.domain || 'domain.com'}
-              tenantId={config?.tenantId || ''}
+              organizationId={config?.organizationId || ''}
+              showPasswordModal={showPasswordModal}
+              onPasswordModalChange={setShowPasswordModal}
+              currentUser={currentUser}
             />
           )}
 
           {currentPage === 'users' && (
-            <Users tenantId={config?.tenantId || ''} />
+            <Users organizationId={config?.organizationId || ''} />
+          )}
+
+          {currentPage === 'administrators' && (
+            <Administrators />
           )}
 
           {currentPage === 'groups' && (
-            <Groups tenantId={config?.tenantId || ''} />
+            <Groups organizationId={config?.organizationId || ''} />
           )}
 
           {currentPage === 'orgUnits' && (
-            <OrgUnits tenantId={config?.tenantId || ''} />
+            <OrgUnits organizationId={config?.organizationId || ''} />
           )}
 
           {currentPage === 'assets' && (
-            <AssetManagement tenantId={config?.tenantId || ''} />
+            <AssetManagement organizationId={config?.organizationId || ''} />
           )}
 
           {currentPage !== 'dashboard' && currentPage !== 'settings' && currentPage !== 'users' && currentPage !== 'groups' && currentPage !== 'orgUnits' && currentPage !== 'assets' && (

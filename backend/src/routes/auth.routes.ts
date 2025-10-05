@@ -89,6 +89,14 @@ router.post('/login',
       [user.id, user.organization_id, req.ip, req.get('User-Agent') || 'Unknown']
     );
 
+    // Get organization details
+    const orgResult = await db.query(
+      'SELECT id, name, domain FROM organizations WHERE id = $1',
+      [user.organization_id]
+    );
+
+    const organization = orgResult.rows[0];
+
     logger.info('User logged in successfully', {
       userId: user.id,
       email: user.email,
@@ -104,7 +112,13 @@ router.post('/login',
           email: user.email,
           firstName: user.first_name,
           lastName: user.last_name,
-          role: user.role
+          role: user.role,
+          organizationId: user.organization_id
+        },
+        organization: {
+          id: organization.id,
+          name: organization.name,
+          domain: organization.domain
         },
         tokens: {
           accessToken,

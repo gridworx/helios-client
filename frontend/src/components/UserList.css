@@ -186,19 +186,20 @@
 
 .platform-icons {
   display: flex;
-  gap: 6px;
+  align-items: center;
 }
 
 .platform-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: white !important;
   font-weight: bold;
   font-size: 14px;
+  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .platform-icon.small {

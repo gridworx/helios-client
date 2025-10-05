@@ -6,9 +6,12 @@ interface ClientUserMenuProps {
   userEmail: string;
   userRole: string;
   onLogout: () => void;
+  onChangePassword?: () => void;
+  onNavigateToSettings?: () => void;
+  onNavigateToAdministrators?: () => void;
 }
 
-export function ClientUserMenu({ userName, userEmail, userRole, onLogout }: ClientUserMenuProps) {
+export function ClientUserMenu({ userName, userEmail, userRole, onLogout, onChangePassword, onNavigateToSettings, onNavigateToAdministrators }: ClientUserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -67,11 +70,23 @@ export function ClientUserMenu({ userName, userEmail, userRole, onLogout }: Clie
           <div className="menu-divider"></div>
 
           <div className="menu-items">
-            <button className="menu-item" onClick={() => alert('Change password coming soon!')}>
+            <button className="menu-item" onClick={() => {
+              setIsOpen(false);
+              if (onChangePassword) {
+                onChangePassword();
+              } else if (onNavigateToSettings) {
+                onNavigateToSettings();
+              }
+            }}>
               <span className="menu-icon">🔑</span>
               <span>Change Password</span>
             </button>
-            <button className="menu-item" onClick={() => alert('Administrators coming soon!')}>
+            <button className="menu-item" onClick={() => {
+              setIsOpen(false);
+              if (onNavigateToAdministrators) {
+                onNavigateToAdministrators();
+              }
+            }}>
               <span className="menu-icon">👥</span>
               <span>Administrators</span>
             </button>
@@ -79,7 +94,14 @@ export function ClientUserMenu({ userName, userEmail, userRole, onLogout }: Clie
               <span className="menu-icon">🔐</span>
               <span>My API Keys</span>
             </button>
-            <button className="menu-item" onClick={() => alert('Settings coming soon!')}>
+            <button className="menu-item" onClick={() => {
+              setIsOpen(false);
+              if (onNavigateToSettings) {
+                onNavigateToSettings();
+              } else {
+                alert('Settings coming soon!');
+              }
+            }}>
               <span className="menu-icon">⚙️</span>
               <span>Settings</span>
             </button>

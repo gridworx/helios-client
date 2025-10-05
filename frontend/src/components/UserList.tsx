@@ -34,25 +34,14 @@ export function UserList({ tenantId }: UserListProps) {
       // For now, we'll use mock data since the API isn't fully connected
       // In production, this would call: GET /api/v1/users
 
-      // Simulate API call with mock data
-      const mockUsers: User[] = [
-        {
-          id: 'ecfd5caa-ec34-4c1c-8368-fd95b923172f',
-          email: 'mike@gridworx.io',
-          firstName: 'Michael',
-          lastName: 'Agu',
-          role: 'tenant_admin',
-          isActive: true,
-          platforms: ['google_workspace'],
-          lastLogin: '2025-10-01T06:00:00Z'
-        }
-      ];
+      // Mock data removed - using real data from API
 
       // Fetch from database
       try {
-        const response = await fetch(`http://localhost:3001/api/v1/users`, {
+        const token = localStorage.getItem('helios_token');
+        const response = await fetch(`http://localhost:3001/api/organization/users`, {
           headers: {
-            'Authorization': `Bearer ${JSON.parse(localStorage.getItem('auth') || '{}').token}`
+            'Authorization': `Bearer ${token}`
           }
         });
 
@@ -66,22 +55,22 @@ export function UserList({ tenantId }: UserListProps) {
               lastName: user.lastName || user.last_name || '',
               role: user.role || 'tenant_user',
               isActive: user.isActive !== false,
-              platforms: user.platforms?.map((p: any) => p.platform) || [],
+              platforms: user.platforms || [],
               lastLogin: user.lastLogin || user.last_login
             }));
             setUsers(formattedUsers);
           } else {
-            // Use mock data if API fails
-            setUsers(mockUsers);
+            // API returned no data
+            setUsers([]);
           }
         } else {
-          // Use mock data if API fails
-          setUsers(mockUsers);
+          // API call failed
+          setUsers([]);
         }
       } catch (err) {
-        // Use mock data if API fails
-        console.log('Using mock data due to API error:', err);
-        setUsers(mockUsers);
+        // API error
+        console.log('API error:', err);
+        setUsers([]);
       }
 
     } catch (err: any) {
@@ -97,6 +86,7 @@ export function UserList({ tenantId }: UserListProps) {
       microsoft_365: { icon: 'M', color: '#0078D4', title: 'Microsoft 365' },
       slack: { icon: 'S', color: '#4A154B', title: 'Slack' },
       okta: { icon: 'O', color: '#007DC1', title: 'Okta' },
+      local: { icon: 'L', color: '#28a745', title: 'Local User' },
       default: { icon: '?', color: '#666', title: 'Unknown' }
     };
 
@@ -107,7 +97,9 @@ export function UserList({ tenantId }: UserListProps) {
     const badges: Record<string, { label: string; className: string }> = {
       platform_owner: { label: 'Platform Owner', className: 'badge-owner' },
       tenant_admin: { label: 'Admin', className: 'badge-admin' },
+      admin: { label: 'Admin', className: 'badge-admin' },
       tenant_user: { label: 'User', className: 'badge-user' },
+      user: { label: 'User', className: 'badge-user' },
       default: { label: 'User', className: 'badge-user' }
     };
 
@@ -211,13 +203,21 @@ export function UserList({ tenantId }: UserListProps) {
                   <div className="col-platforms">
                     <div className="platform-icons">
                       {user.platforms.length > 0 ? (
-                        user.platforms.map(platform => {
+                        user.platforms.map((platform, index) => {
                           const icon = getPlatformIcon(platform);
                           return (
                             <div
                               key={platform}
                               className="platform-icon"
-                              style={{ backgroundColor: icon.color }}
+                              style={{
+                                backgroundColor: icon.color,
+                                marginLeft: index > 0 ? '-8px' : '0',
+                                zIndex: user.platforms.length - index,
+                                border: '2px solid white',
+                                fontSize: '14px',
+                                color: 'white',
+                                fontWeight: 'bold'
+                              }}
                               title={icon.title}
                             >
                               {icon.icon}
@@ -263,20 +263,28 @@ export function UserList({ tenantId }: UserListProps) {
         </div>
         <div className="platform-legend">
           <span>Platform indicators:</span>
-          {uniquePlatforms.map(platform => {
-            const icon = getPlatformIcon(platform);
-            return (
-              <div key={platform} className="legend-item">
-                <div
-                  className="platform-icon small"
-                  style={{ backgroundColor: icon.color }}
-                >
-                  {icon.icon}
+          {uniquePlatforms.length > 0 ? (
+            uniquePlatforms.map(platform => {
+              const icon = getPlatformIcon(platform);
+              return (
+                <div key={platform} className="legend-item">
+                  <div
+                    className="platform-icon small"
+                    style={{
+                      backgroundColor: icon.color,
+                      color: 'white',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    {icon.icon}
+                  </div>
+                  <span>{icon.title}</span>
                 </div>
-                <span>{icon.title}</span>
-              </div>
-            );
-          })}
+              );
+            })
+          ) : (
+            <span style={{ marginLeft: '8px', color: '#666' }}>No platforms</span>
+          )}
         </div>
       </div>
     </div>

@@ -20,7 +20,7 @@ import userRoutes from './routes/user.routes';
 import authRoutes from './routes/auth.routes';
 // import tenantAuthRoutes from './routes/tenant-auth.routes';
 // import tenantSetupRoutes from './routes/tenant-setup.routes';
-// import GoogleWorkspaceRoutes from './routes/google-workspace.routes';
+import GoogleWorkspaceRoutes from './routes/google-workspace.routes';
 import modulesRoutes from './routes/modules.routes';
 import organizationRoutes from './routes/organization.routes';
 
@@ -157,7 +157,7 @@ app.use('/api/auth', authRoutes);
 // app.use('/api/auth', tenantAuthRoutes); // Tenant authentication
 app.use('/api/user', userRoutes);
 // app.use('/api/platform', platformRoutes);
-// app.use('/api/google-workspace', GoogleWorkspaceRoutes);
+app.use('/api/google-workspace', GoogleWorkspaceRoutes);
 app.use('/api/modules', modulesRoutes);
 
 // Catch-all for undefined API routes

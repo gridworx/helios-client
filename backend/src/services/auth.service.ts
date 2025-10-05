@@ -11,6 +11,7 @@ export interface TokenPayload {
   userId: string;
   email: string;
   role: string;
+  organizationId: string;
   type: 'access' | 'refresh';
 }
 
@@ -37,13 +38,18 @@ export class AuthService {
   /**
    * Generate JWT access token
    */
-  generateAccessToken(userId: string, email: string, role: string): string {
-    const payload = {
+  generateAccessToken(userId: string, email: string, role: string, organizationId?: string): string {
+    const payload: any = {
       userId,
       email,
       role,
       type: 'access' as const
     };
+
+    // Include organizationId if provided
+    if (organizationId) {
+      payload.organizationId = organizationId;
+    }
 
     return jwt.sign(payload, JWT_SECRET, {
       expiresIn: JWT_EXPIRES_IN
@@ -53,13 +59,18 @@ export class AuthService {
   /**
    * Generate JWT refresh token
    */
-  generateRefreshToken(userId: string, email: string, role: string): string {
-    const payload = {
+  generateRefreshToken(userId: string, email: string, role: string, organizationId?: string): string {
+    const payload: any = {
       userId,
       email,
       role,
       type: 'refresh' as const
     };
+
+    // Include organizationId if provided
+    if (organizationId) {
+      payload.organizationId = organizationId;
+    }
 
     return jwt.sign(payload, JWT_SECRET, {
       expiresIn: JWT_REFRESH_EXPIRES_IN
@@ -84,11 +95,12 @@ export class AuthService {
    */
   async login(email: string, password: string): Promise<LoginResult> {
     try {
-      // Find user by email
+      // Find user by email in organization_users table
       const result = await db.query(
-        `SELECT id, email, password_hash, first_name, last_name, role, is_active
-         FROM users
-         WHERE email = $1 AND role = 'platform_owner'`,
+        `SELECT ou.id, ou.email, ou.password_hash, ou.first_name, ou.last_name,
+                ou.role, ou.is_active, ou.organization_id
+         FROM organization_users ou
+         WHERE ou.email = $1`,
         [email.toLowerCase()]
       );
 
@@ -120,25 +132,29 @@ export class AuthService {
         };
       }
 
-      // Generate tokens
-      const accessToken = this.generateAccessToken(user.id, user.email, user.role);
-      const refreshToken = this.generateRefreshToken(user.id, user.email, user.role);
+      // Generate tokens with organizationId
+      const accessToken = this.generateAccessToken(user.id, user.email, user.role, user.organization_id);
+      const refreshToken = this.generateRefreshToken(user.id, user.email, user.role, user.organization_id);
 
       // Calculate expiration time in seconds
       const expiresIn = this.getTokenExpirationSeconds(JWT_EXPIRES_IN);
 
       // Update last login time
       await db.query(
-        `UPDATE users SET last_login = NOW() WHERE id = $1`,
+        `UPDATE organization_users SET last_login = NOW() WHERE id = $1`,
         [user.id]
       );
 
-      // Log successful login
-      await db.query(
-        `INSERT INTO audit_logs (user_id, action, resource, ip_address, user_agent)
-         VALUES ($1, 'login', 'auth', $2, $3)`,
-        [user.id, 'system', 'Owner Portal Login']
-      );
+      // Log successful login (if audit_logs table exists)
+      try {
+        await db.query(
+          `INSERT INTO audit_logs (user_id, action, resource, ip_address, user_agent)
+           VALUES ($1, 'login', 'auth', $2, $3)`,
+          [user.id, 'system', 'Organization Portal Login']
+        );
+      } catch (error) {
+        // Audit logs table might not exist yet, ignore
+      }
 
       logger.info('User logged in successfully', {
         userId: user.id,
@@ -187,9 +203,9 @@ export class AuthService {
 
       // Verify user still exists and is active
       const result = await db.query(
-        `SELECT id, email, first_name, last_name, role, is_active
-         FROM users
-         WHERE id = $1 AND role = 'platform_owner'`,
+        `SELECT id, email, first_name, last_name, role, is_active, organization_id
+         FROM organization_users
+         WHERE id = $1`,
         [decoded.userId]
       );
 
@@ -202,9 +218,9 @@ export class AuthService {
 
       const user = result.rows[0];
 
-      // Generate new tokens
-      const newAccessToken = this.generateAccessToken(user.id, user.email, user.role);
-      const newRefreshToken = this.generateRefreshToken(user.id, user.email, user.role);
+      // Generate new tokens with organizationId
+      const newAccessToken = this.generateAccessToken(user.id, user.email, user.role, user.organization_id);
+      const newRefreshToken = this.generateRefreshToken(user.id, user.email, user.role, user.organization_id);
       const expiresIn = this.getTokenExpirationSeconds(JWT_EXPIRES_IN);
 
       return {

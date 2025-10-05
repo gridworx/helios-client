@@ -50,3 +50,7 @@ temp/
 # OS files
 Thumbs.db
 Desktop.ini
+
+# Sensitive files
+token.txt
+*.token

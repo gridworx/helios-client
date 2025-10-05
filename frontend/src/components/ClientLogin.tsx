@@ -2,12 +2,12 @@ import { useState } from 'react';
 import './ClientLogin.css';
 
 interface ClientLoginProps {
-  onLoginSuccess: (tenantData: any) => void;
-  tenantDomain?: string;
+  onLoginSuccess: (organizationData: any) => void;
+  organizationDomain?: string;
   organizationName?: string;
 }
 
-export function ClientLogin({ onLoginSuccess, tenantDomain, organizationName }: ClientLoginProps) {
+export function ClientLogin({ onLoginSuccess, organizationDomain, organizationName }: ClientLoginProps) {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -21,7 +21,7 @@ export function ClientLogin({ onLoginSuccess, tenantDomain, organizationName }: 
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:3001/api/auth/tenant-login', {
+      const response = await fetch('http://localhost:3001/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -39,10 +39,19 @@ export function ClientLogin({ onLoginSuccess, tenantDomain, organizationName }: 
       }
 
       if (data.success) {
-        // Store tenant auth data
-        localStorage.setItem('helios_client_token', data.token);
-        localStorage.setItem('helios_client_tenant', JSON.stringify(data.tenant));
-        localStorage.setItem('helios_client_user', JSON.stringify(data.user));
+        // Store organization auth data
+        localStorage.setItem('helios_token', data.data.tokens.accessToken);
+        localStorage.setItem('helios_refresh_token', data.data.tokens.refreshToken);
+        localStorage.setItem('helios_user', JSON.stringify(data.data.user));
+
+        // Store organization info
+        if (data.data.organization) {
+          localStorage.setItem('helios_organization', JSON.stringify({
+            organizationId: data.data.organization.id,
+            organizationName: data.data.organization.name,
+            domain: data.data.organization.domain
+          }));
+        }
 
         console.log('Login successful, calling onLoginSuccess with:', data);
         onLoginSuccess(data);

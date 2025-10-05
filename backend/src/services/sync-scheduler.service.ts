@@ -23,17 +23,12 @@ export class SyncSchedulerService {
   }
 
   /**
-   * Start sync for a tenant with their configured interval
+   * Start sync for an organization with their configured interval
    */
-  async startTenantSync(tenantId: string): Promise<void> {
+  async startOrganizationSync(organizationId: string): Promise<void> {
     try {
-      // Get tenant sync interval from database
-      const result = await db.query(
-        'SELECT sync_interval_seconds FROM tenant_settings WHERE tenant_id = $1',
-        [tenantId]
-      );
-
-      const interval = result.rows[0]?.sync_interval_seconds || this.config.defaultInterval;
+      // Get organization sync interval from database (use default for now)
+      const interval = this.config.defaultInterval;
 
       // Ensure interval respects platform limits
       const validInterval = Math.max(
@@ -42,69 +37,69 @@ export class SyncSchedulerService {
       );
 
       // Clear existing interval if any
-      this.stopTenantSync(tenantId);
+      this.stopOrganizationSync(organizationId);
 
       // Set up new interval
       const intervalMs = validInterval * 1000;  // Convert seconds to milliseconds
       const timeout = setInterval(() => {
-        this.syncTenantData(tenantId).catch(error => {
-          logger.error('Sync failed for tenant', { tenantId, error });
+        this.syncOrganizationData(organizationId).catch(error => {
+          logger.error('Sync failed for organization', { organizationId, error });
         });
       }, intervalMs);
 
-      this.syncIntervals.set(tenantId, timeout);
+      this.syncIntervals.set(organizationId, timeout);
 
       // Run initial sync
-      await this.syncTenantData(tenantId);
+      await this.syncOrganizationData(organizationId);
 
-      logger.info('Started sync for tenant', { tenantId, intervalSeconds: validInterval });
+      logger.info('Started sync for organization', { organizationId, intervalSeconds: validInterval });
     } catch (error) {
-      logger.error('Failed to start tenant sync', { tenantId, error });
+      logger.error('Failed to start organization sync', { organizationId, error });
     }
   }
 
   /**
-   * Stop sync for a tenant
+   * Stop sync for an organization
    */
-  stopTenantSync(tenantId: string): void {
-    const interval = this.syncIntervals.get(tenantId);
+  stopOrganizationSync(organizationId: string): void {
+    const interval = this.syncIntervals.get(organizationId);
     if (interval) {
       clearInterval(interval);
-      this.syncIntervals.delete(tenantId);
-      logger.info('Stopped sync for tenant', { tenantId });
+      this.syncIntervals.delete(organizationId);
+      logger.info('Stopped sync for organization', { organizationId });
     }
   }
 
   /**
-   * Sync data for a specific tenant
+   * Sync data for a specific organization
    */
-  async syncTenantData(tenantId: string): Promise<void> {
+  async syncOrganizationData(organizationId: string): Promise<void> {
     try {
-      // Get tenant info and admin email from credentials
-      const tenantResult = await db.query(`
-        SELECT t.domain, t.name, tc.admin_email_stored as admin_email
-        FROM tenants t
-        LEFT JOIN tenant_credentials tc ON t.id = tc.tenant_id
-        WHERE t.id = $1
-      `, [tenantId]);
+      // Get organization info and admin email from credentials
+      const orgResult = await db.query(`
+        SELECT o.domain, o.name, gc.admin_email
+        FROM organizations o
+        LEFT JOIN gw_credentials gc ON o.id = gc.organization_id
+        WHERE o.id = $1
+      `, [organizationId]);
 
-      if (tenantResult.rows.length === 0) {
-        throw new Error('Tenant not found');
+      if (orgResult.rows.length === 0) {
+        throw new Error('Organization not found');
       }
 
-      const tenant = tenantResult.rows[0];
+      const org = orgResult.rows[0];
 
-      if (!tenant.admin_email) {
-        throw new Error('Admin email not configured for tenant');
+      if (!org.admin_email) {
+        throw new Error('Admin email not configured for organization');
       }
 
-      logger.info('Starting sync for tenant', { tenantId, domain: tenant.domain });
+      logger.info('Starting sync for organization', { organizationId, domain: org.domain });
 
       // Get users from Google Workspace
       const usersResult = await googleWorkspaceService.getUsers(
-        tenantId,
-        tenant.domain,
-        tenant.admin_email,
+        organizationId,
+        org.domain,
+        org.admin_email,
         500
       );
 
@@ -114,75 +109,59 @@ export class SyncSchedulerService {
 
       const users = usersResult.users;
 
-      // Calculate statistics
-      const stats = {
-        totalUsers: users.length,
-        activeUsers: users.filter(u => !u.suspended).length,
-        suspendedUsers: users.filter(u => u.suspended).length,
-        adminUsers: users.filter(u => u.isAdmin || u.isDelegatedAdmin).length
-      };
+      // Clear existing synced users for this organization
+      await db.query('DELETE FROM gw_synced_users WHERE organization_id = $1', [organizationId]);
 
-      // Update dashboard cache
-      await db.query(`
-        INSERT INTO dashboard_cache (
-          tenant_id, total_users, active_users, suspended_users,
-          admin_users, last_sync, sync_status, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, NOW(), 'healthy', NOW(), NOW())
-        ON CONFLICT (tenant_id)
-        DO UPDATE SET
-          total_users = EXCLUDED.total_users,
-          active_users = EXCLUDED.active_users,
-          suspended_users = EXCLUDED.suspended_users,
-          admin_users = EXCLUDED.admin_users,
-          last_sync = NOW(),
-          sync_status = 'healthy',
-          error_message = NULL,
-          updated_at = NOW()
-      `, [tenantId, stats.totalUsers, stats.activeUsers, stats.suspendedUsers, stats.adminUsers]);
-
-      // Update tenant_modules table with user count and last sync
-      await db.query(`
-        UPDATE tenant_modules
-        SET user_count = $1,
-            last_sync = NOW(),
-            updated_at = NOW()
-        WHERE tenant_id = $2 AND module_name = 'google_workspace'
-      `, [stats.totalUsers, tenantId]);
-
-      // Clear and update user cache
-      await db.query('DELETE FROM user_cache WHERE tenant_id = $1', [tenantId]);
-
-      // Store all users in the user_data JSONB column
-      if (users.length > 0) {
+      // Insert all users into gw_synced_users table
+      for (const user of users) {
         await db.query(`
-          INSERT INTO user_cache (tenant_id, user_data, cached_at, expires_at)
-          VALUES ($1, $2, NOW(), NOW() + INTERVAL '24 hours')
+          INSERT INTO gw_synced_users (
+            organization_id, google_id, email,
+            given_name, family_name, full_name,
+            is_admin, is_suspended, org_unit_path,
+            creation_time, last_login_time, raw_data,
+            last_sync_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
         `, [
-          tenantId,
-          JSON.stringify(users)
+          organizationId,
+          user.id,
+          user.primaryEmail,
+          user.name?.givenName || '',
+          user.name?.familyName || '',
+          user.name?.fullName || '',
+          user.isAdmin || user.isDelegatedAdmin || false,
+          user.suspended || false,
+          user.orgUnitPath || '/',
+          user.creationTime || null,
+          user.lastLoginTime || null,
+          JSON.stringify(user)
         ]);
       }
 
+      // Update organization_modules table with last sync
+      const moduleResult = await db.query(
+        `SELECT id FROM modules WHERE slug = 'google-workspace' LIMIT 1`
+      );
+
+      if (moduleResult.rows.length > 0) {
+        const moduleId = moduleResult.rows[0].id;
+        await db.query(`
+          UPDATE organization_modules
+          SET last_sync_at = NOW(),
+              config = config || $3::jsonb,
+              updated_at = NOW()
+          WHERE organization_id = $1 AND module_id = $2
+        `, [organizationId, moduleId, JSON.stringify({ user_count: users.length })]);
+      }
+
       logger.info('Sync completed successfully', {
-        tenantId,
-        domain: tenant.domain,
-        stats
+        organizationId,
+        domain: org.domain,
+        userCount: users.length
       });
 
     } catch (error: any) {
-      // Update sync status with error
-      await db.query(`
-        INSERT INTO sync_status (tenant_id, sync_type, sync_status, error_message, last_sync_at, updated_at)
-        VALUES ($1, 'all', 'failed', $2, NOW(), NOW())
-        ON CONFLICT (tenant_id, sync_type)
-        DO UPDATE SET
-          sync_status = 'failed',
-          error_message = EXCLUDED.error_message,
-          last_sync_at = NOW(),
-          updated_at = NOW()
-      `, [tenantId, error.message]);
-
-      logger.error('Sync failed for tenant', { tenantId, error: error.message });
+      logger.error('Sync failed for organization', { organizationId, error: error.message });
       throw error;
     }
   }
@@ -190,14 +169,19 @@ export class SyncSchedulerService {
   /**
    * Manual sync trigger for immediate sync
    */
-  async manualSync(tenantId: string): Promise<{ success: boolean; message: string; stats?: any }> {
+  async manualSync(organizationId: string): Promise<{ success: boolean; message: string; stats?: any }> {
     try {
-      await this.syncTenantData(tenantId);
+      await this.syncOrganizationData(organizationId);
 
-      // Get updated stats
+      // Get updated stats from gw_synced_users
       const statsResult = await db.query(
-        'SELECT total_users, active_users, suspended_users, admin_users, last_sync FROM dashboard_cache WHERE tenant_id = $1',
-        [tenantId]
+        `SELECT COUNT(*) as total_users,
+                COUNT(CASE WHEN is_suspended = false THEN 1 END) as active_users,
+                COUNT(CASE WHEN is_suspended = true THEN 1 END) as suspended_users,
+                COUNT(CASE WHEN is_admin = true THEN 1 END) as admin_users,
+                MAX(last_sync_at) as last_sync
+         FROM gw_synced_users WHERE organization_id = $1`,
+        [organizationId]
       );
 
       return {
@@ -214,18 +198,21 @@ export class SyncSchedulerService {
   }
 
   /**
-   * Get tenant dashboard stats
+   * Get organization dashboard stats
    */
-  async getTenantStats(tenantId: string): Promise<any> {
+  async getOrganizationStats(organizationId: string): Promise<any> {
     const result = await db.query(
-      `SELECT total_users, active_users, suspended_users, admin_users,
-              last_sync, sync_status, error_message
-       FROM dashboard_cache
-       WHERE tenant_id = $1`,
-      [tenantId]
+      `SELECT COUNT(*) as total_users,
+              COUNT(CASE WHEN is_suspended = false THEN 1 END) as active_users,
+              COUNT(CASE WHEN is_suspended = true THEN 1 END) as suspended_users,
+              COUNT(CASE WHEN is_admin = true THEN 1 END) as admin_users,
+              MAX(last_sync_at) as last_sync
+       FROM gw_synced_users
+       WHERE organization_id = $1`,
+      [organizationId]
     );
 
-    if (result.rows.length === 0) {
+    if (result.rows.length === 0 || result.rows[0].total_users == 0) {
       return {
         totalUsers: 0,
         activeUsers: 0,
@@ -239,30 +226,43 @@ export class SyncSchedulerService {
 
     const row = result.rows[0];
     return {
-      totalUsers: row.total_users,
-      activeUsers: row.active_users,
-      suspendedUsers: row.suspended_users,
-      adminUsers: row.admin_users,
+      totalUsers: parseInt(row.total_users) || 0,
+      activeUsers: parseInt(row.active_users) || 0,
+      suspendedUsers: parseInt(row.suspended_users) || 0,
+      adminUsers: parseInt(row.admin_users) || 0,
       lastSync: row.last_sync,
-      syncStatus: row.sync_status,
-      errorMessage: row.error_message
+      syncStatus: 'synced',
+      errorMessage: null
     };
   }
 
   /**
-   * Get cached users for a tenant
+   * Get cached users for an organization
    */
-  async getCachedUsers(tenantId: string): Promise<any[]> {
+  async getCachedUsers(organizationId: string): Promise<any[]> {
     const result = await db.query(
-      'SELECT user_data FROM user_cache WHERE tenant_id = $1 AND expires_at > NOW()',
-      [tenantId]
+      `SELECT
+        id,
+        google_id,
+        email,
+        full_name,
+        given_name,
+        family_name,
+        org_unit_path,
+        department,
+        job_title,
+        is_admin,
+        is_suspended,
+        last_login_time,
+        creation_time,
+        last_sync_at
+       FROM gw_synced_users
+       WHERE organization_id = $1
+       ORDER BY full_name`,
+      [organizationId]
     );
 
-    if (result.rows.length === 0) {
-      return [];
-    }
-
-    return JSON.parse(result.rows[0].user_data);
+    return result.rows;
   }
 }
 

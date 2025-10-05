@@ -323,6 +323,7 @@ Each module is independent. Don't create dependencies between modules.
 ### RULE 4: Security First
 Never store plaintext passwords
 Always encrypt service account keys
+Each organization MUST use their own service account (see SECURITY-SERVICE-ACCOUNTS.md)
 Validate all inputs
 Sanitize all outputs
 
@@ -330,6 +331,20 @@ Sanitize all outputs
 This is for business users, not developers
 Keep it clean and simple
 Avoid technical jargon in UI
+
+## 🔒 Security Documentation
+
+### Required Reading for Google Workspace Integration
+- **SECURITY-SERVICE-ACCOUNTS.md** - Critical security requirements for service accounts
+- **GOOGLE-WORKSPACE-SETUP-GUIDE.md** - Step-by-step setup guide for clients
+- **PROVIDER-SETUP-GUIDE.md** - Guide for MSPs/consultants helping clients
+
+### Key Security Principle
+**Each organization MUST use their own Google Cloud service account.** Never share service accounts between organizations. This ensures:
+- Complete data isolation
+- Compliance with regulations
+- Client control over access
+- Reduced breach impact
 
 ---
 

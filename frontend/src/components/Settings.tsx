@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
 import './Settings.css';
 import { RolesManagement } from './RolesManagement';
+// import { ThemeSelector } from './ThemeSelector';
 
 interface SettingsProps {
   organizationName: string;
   domain: string;
-  tenantId: string;
+  organizationId: string;
+  showPasswordModal?: boolean;
+  onPasswordModalChange?: (show: boolean) => void;
+  currentUser?: any;
 }
 
 interface ModuleStatus {
@@ -16,13 +20,29 @@ interface ModuleStatus {
   updatedAt?: string;
 }
 
-export function Settings({ organizationName, domain, tenantId }: SettingsProps) {
+export function Settings({ organizationName, domain, organizationId, showPasswordModal: externalShowPasswordModal, onPasswordModalChange, currentUser }: SettingsProps) {
   const [activeTab, setActiveTab] = useState('modules');
   const [showModuleConfig, setShowModuleConfig] = useState(false);
   const [configuringModule, setConfiguringModule] = useState<string | null>(null);
   const [adminEmail, setAdminEmail] = useState('');
   const [serviceAccountFile, setServiceAccountFile] = useState<File | null>(null);
   const [isConfiguring, setIsConfiguring] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+
+  // Sync external password modal state
+  useEffect(() => {
+    if (externalShowPasswordModal !== undefined) {
+      setShowPasswordModal(externalShowPasswordModal);
+      if (externalShowPasswordModal) {
+        setActiveTab('security');
+      }
+    }
+  }, [externalShowPasswordModal]);
   const [googleWorkspaceStatus, setGoogleWorkspaceStatus] = useState<ModuleStatus>({
     isEnabled: false,
     userCount: 0,
@@ -42,12 +62,12 @@ export function Settings({ organizationName, domain, tenantId }: SettingsProps) 
   // Fetch module status on component mount
   useEffect(() => {
     fetchModuleStatus();
-  }, [tenantId]);
+  }, [organizationId]);
 
   const fetchModuleStatus = async () => {
     try {
       setIsLoadingStatus(true);
-      const response = await fetch(`http://localhost:3001/api/google-workspace/module-status/${tenantId}`);
+      const response = await fetch(`http://localhost:3001/api/google-workspace/module-status/${organizationId}`);
       const data = await response.json();
 
       if (data.success) {
@@ -159,6 +179,63 @@ export function Settings({ organizationName, domain, tenantId }: SettingsProps) 
                           )}
                           {googleWorkspaceStatus.isEnabled && (
                             <>
+                              <button
+                                className="test-btn"
+                                style={{ marginLeft: '8px', padding: '6px 12px', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.875rem' }}
+                                onClick={async () => {
+                                  try {
+                                    const token = localStorage.getItem('helios_token');
+                                    const response = await fetch('http://localhost:3001/api/google-workspace/test-connection', {
+                                      method: 'POST',
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${token}`
+                                      },
+                                      body: JSON.stringify({ organizationId, domain })
+                                    });
+
+                                    const data = await response.json();
+                                    if (data.success) {
+                                      alert(`✅ Connection successful!\n\nProject: ${data.details?.projectId}\nDomain: ${data.details?.domain}\nUsers accessible: ${data.details?.userCount || 0}`);
+                                    } else {
+                                      alert(`❌ Connection failed: ${data.message || data.error}`);
+                                    }
+                                  } catch (error: any) {
+                                    alert(`❌ Test failed: ${error.message}`);
+                                  }
+                                }}
+                              >
+                                🔍 Test
+                              </button>
+                              <button
+                                className="sync-btn"
+                                style={{ marginLeft: '8px', padding: '6px 12px', background: '#2196F3', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.875rem' }}
+                                onClick={async () => {
+                                  try {
+                                    const token = localStorage.getItem('helios_token');
+                                    const response = await fetch('http://localhost:3001/api/google-workspace/sync-now', {
+                                      method: 'POST',
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${token}`
+                                      },
+                                      body: JSON.stringify({ organizationId })
+                                    });
+
+                                    const data = await response.json();
+                                    if (data.success) {
+                                      alert(`✅ Sync complete!\n\nTotal users: ${data.stats?.total_users || 0}\nActive: ${data.stats?.active_users || 0}\nSuspended: ${data.stats?.suspended_users || 0}\nAdmins: ${data.stats?.admin_users || 0}`);
+                                      await fetchModuleStatus(); // Refresh the display
+                                    } else {
+                                      alert(`❌ Sync failed: ${data.message}`);
+                                    }
+                                  } catch (error: any) {
+                                    alert(`❌ Sync failed: ${error.message}`);
+                                  }
+                                }}
+                              >
+                                🔄 Sync
+                              </button>
                               <button
                                 className="configure-btn"
                                 onClick={() => {
@@ -311,6 +388,20 @@ export function Settings({ organizationName, domain, tenantId }: SettingsProps) 
                 </div>
 
                 <div className="security-card">
+                  <h3>🔑 Change Password</h3>
+                  <p>Update your account password</p>
+                  <button
+                    className="btn-primary"
+                    onClick={() => {
+                      // Will implement password change modal
+                      setShowPasswordModal(true);
+                    }}
+                  >
+                    Change Password
+                  </button>
+                </div>
+
+                <div className="security-card">
                   <h3>🔒 Authentication</h3>
                   <p>Configure login methods and session settings</p>
                   <div className="auth-options">
@@ -437,24 +528,19 @@ export function Settings({ organizationName, domain, tenantId }: SettingsProps) 
                   </div>
                 </div>
 
-                <div className="customization-card">
-                  <h3>🎨 Theme Settings</h3>
-                  <p>Customize the look and feel of your portal</p>
-                  <div className="theme-options">
-                    <label className="radio-label">
-                      <input type="radio" name="theme" value="light" defaultChecked />
-                      <span>Light Theme</span>
-                    </label>
-                    <label className="radio-label">
-                      <input type="radio" name="theme" value="dark" />
-                      <span>Dark Theme</span>
-                    </label>
-                    <label className="radio-label">
-                      <input type="radio" name="theme" value="auto" />
-                      <span>Auto (Follow System)</span>
-                    </label>
+                {/* Theme Settings - Temporarily disabled */}
+                {/* {currentUser?.role === 'admin' ? (
+                  <ThemeSelector />
+                ) : (
+                  <div className="customization-card">
+                    <h3>🎨 Theme Settings</h3>
+                    <p>Theme customization is restricted to administrators</p>
+                    <div className="info-box">
+                      <span className="info-icon">ℹ️</span>
+                      <span>Only organization administrators can change the theme. Please contact your admin if you'd like to request a different theme.</span>
+                    </div>
                   </div>
-                </div>
+                )} */}
               </div>
             </div>
           )}
@@ -472,6 +558,40 @@ export function Settings({ organizationName, domain, tenantId }: SettingsProps) 
                   <p>Configure how data syncs between Helios and connected platforms</p>
 
                   <div className="sync-settings">
+                    <div className="sync-setting-group">
+                      <h4>Sync Intervals</h4>
+                      <div className="sync-options">
+                        <label>Automatic Sync Interval:</label>
+                        <select className="form-select" defaultValue="900">
+                          <option value="300">Every 5 minutes</option>
+                          <option value="900">Every 15 minutes (Recommended)</option>
+                          <option value="1800">Every 30 minutes</option>
+                          <option value="3600">Every 1 hour</option>
+                          <option value="7200">Every 2 hours</option>
+                          <option value="14400">Every 4 hours</option>
+                          <option value="28800">Every 8 hours</option>
+                          <option value="86400">Once per day</option>
+                        </select>
+                        <div className="form-hint">
+                          How often to automatically sync data from connected platforms. Shorter intervals provide fresher data but use more resources.
+                        </div>
+                      </div>
+
+                      <div className="sync-options">
+                        <label className="checkbox-label">
+                          <input type="checkbox" defaultChecked />
+                          <span>Enable automatic synchronization</span>
+                        </label>
+                      </div>
+
+                      <div className="sync-options">
+                        <label className="checkbox-label">
+                          <input type="checkbox" defaultChecked />
+                          <span>Sync immediately after configuration changes</span>
+                        </label>
+                      </div>
+                    </div>
+
                     <div className="sync-setting-group">
                       <h4>Organizational Units</h4>
                       <div className="sync-options">
@@ -493,13 +613,6 @@ export function Settings({ organizationName, domain, tenantId }: SettingsProps) 
                           <option value="from_platform">From Platform Only (Read-only)</option>
                           <option value="to_platform">To Platform Only (Push changes)</option>
                         </select>
-                      </div>
-
-                      <div className="sync-options">
-                        <label className="checkbox-label">
-                          <input type="checkbox" defaultChecked />
-                          <span>Auto-sync every hour</span>
-                        </label>
                       </div>
                     </div>
 
@@ -557,6 +670,34 @@ export function Settings({ organizationName, domain, tenantId }: SettingsProps) 
             </div>
 
             <div className="modal-body">
+              <div className="security-notice" style={{
+                background: '#fff3cd',
+                border: '1px solid #ffc107',
+                borderRadius: '8px',
+                padding: '16px',
+                marginBottom: '24px'
+              }}>
+                <h4 style={{ color: '#856404', marginTop: 0 }}>🔒 Security Notice</h4>
+                <p style={{ color: '#856404', marginBottom: '8px' }}>
+                  <strong>You must use YOUR OWN Google Cloud service account.</strong>
+                </p>
+                <ul style={{ color: '#856404', marginBottom: 0, paddingLeft: '20px' }}>
+                  <li>Create a service account in YOUR Google Cloud project</li>
+                  <li>Never share service accounts between organizations</li>
+                  <li>This ensures complete data isolation and security</li>
+                </ul>
+                <div style={{ marginTop: '12px' }}>
+                  <a
+                    href="https://console.cloud.google.com/iam-admin/serviceaccounts"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: '#0066cc', textDecoration: 'underline' }}
+                  >
+                    Create Service Account in Google Cloud →
+                  </a>
+                </div>
+              </div>
+
               <div className="config-step">
                 <h3>Step 1: Admin Email</h3>
                 <p>Enter the Google Workspace admin email for domain-wide delegation</p>
@@ -571,7 +712,7 @@ export function Settings({ organizationName, domain, tenantId }: SettingsProps) 
 
               <div className="config-step">
                 <h3>Step 2: Service Account</h3>
-                <p>Upload your Google Cloud service account JSON file with domain-wide delegation enabled</p>
+                <p>Upload YOUR organization's Google Cloud service account JSON file with domain-wide delegation enabled</p>
 
                 <div className="file-upload">
                   <input
@@ -603,8 +744,7 @@ export function Settings({ organizationName, domain, tenantId }: SettingsProps) 
                           const serviceAccount = JSON.parse(fileContent);
 
                           // Get the auth token from localStorage
-                          const authData = localStorage.getItem('auth');
-                          const token = authData ? JSON.parse(authData).token : null;
+                          const token = localStorage.getItem('helios_token');
 
                           const response = await fetch('http://localhost:3001/api/google-workspace/setup', {
                             method: 'POST',
@@ -613,7 +753,7 @@ export function Settings({ organizationName, domain, tenantId }: SettingsProps) 
                               'Authorization': `Bearer ${token}`
                             },
                             body: JSON.stringify({
-                              tenantId,
+                              organizationId,
                               domain,
                               organizationName,
                               adminEmail,
@@ -624,15 +764,34 @@ export function Settings({ organizationName, domain, tenantId }: SettingsProps) 
                           const data = await response.json();
 
                           if (data.success) {
-                            alert('✅ Google Workspace module enabled successfully!');
+                            alert('✅ Google Workspace module enabled successfully! Starting initial sync...');
                             setShowModuleConfig(false);
-                            // Refresh module status instead of full page reload
+
+                            // Trigger initial sync immediately
+                            const syncResponse = await fetch('http://localhost:3001/api/google-workspace/sync-now', {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                              },
+                              body: JSON.stringify({ organizationId })
+                            });
+
+                            const syncData = await syncResponse.json();
+                            if (syncData.success) {
+                              alert(`✅ Initial sync complete! Found ${syncData.stats?.total_users || 0} users`);
+                            } else {
+                              alert(`⚠️ Module configured but sync failed: ${syncData.message || 'Unknown error'}`);
+                            }
+
+                            // Refresh module status to show updated counts
                             await fetchModuleStatus();
                           } else {
-                            alert(`❌ Configuration failed: ${data.error}`);
+                            alert(`❌ Configuration failed: ${data.error || data.message || 'Unknown error'}`);
                           }
                         } catch (err: any) {
-                          alert(`Error: ${err.message}`);
+                          console.error('Configuration error:', err);
+                          alert(`❌ Configuration failed: ${err.message || 'Failed to configure Google Workspace'}`);
                         } finally {
                           setIsConfiguring(false);
                         }
@@ -660,6 +819,116 @@ export function Settings({ organizationName, domain, tenantId }: SettingsProps) 
             <div className="modal-footer">
               <button className="btn-secondary" onClick={() => setShowModuleConfig(false)}>
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPasswordModal && (
+        <div className="module-config-modal">
+          <div className="modal-overlay" onClick={() => {
+            setShowPasswordModal(false);
+            onPasswordModalChange?.(false);
+          }}></div>
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>🔑 Change Password</h2>
+              <button className="modal-close" onClick={() => {
+                setShowPasswordModal(false);
+                onPasswordModalChange?.(false);
+              }}>×</button>
+            </div>
+
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Current Password</label>
+                <input
+                  type="password"
+                  className="form-input"
+                  value={passwordData.currentPassword}
+                  onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
+                  placeholder="Enter your current password"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>New Password</label>
+                <input
+                  type="password"
+                  className="form-input"
+                  value={passwordData.newPassword}
+                  onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
+                  placeholder="Enter your new password"
+                />
+                <div className="form-hint">Minimum 8 characters</div>
+              </div>
+
+              <div className="form-group">
+                <label>Confirm New Password</label>
+                <input
+                  type="password"
+                  className="form-input"
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+                  placeholder="Re-enter your new password"
+                />
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => {
+                setShowPasswordModal(false);
+                onPasswordModalChange?.(false);
+                setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+              }}>
+                Cancel
+              </button>
+              <button
+                className="btn-primary"
+                onClick={async () => {
+                  if (passwordData.newPassword !== passwordData.confirmPassword) {
+                    alert('Passwords do not match');
+                    return;
+                  }
+                  if (passwordData.newPassword.length < 8) {
+                    alert('Password must be at least 8 characters');
+                    return;
+                  }
+
+                  try {
+                    const token = localStorage.getItem('helios_token');
+                    const user = localStorage.getItem('helios_user');
+                    const userData = user ? JSON.parse(user) : null;
+
+                    const response = await fetch('http://localhost:3001/api/user/change-password', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                      },
+                      body: JSON.stringify({
+                        userId: userData?.id,
+                        currentPassword: passwordData.currentPassword,
+                        newPassword: passwordData.newPassword
+                      })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                      alert('✅ Password changed successfully');
+                      setShowPasswordModal(false);
+                      onPasswordModalChange?.(false);
+                      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                    } else {
+                      alert(`❌ ${data.error || 'Failed to change password'}`);
+                    }
+                  } catch (err: any) {
+                    alert(`Error: ${err.message}`);
+                  }
+                }}
+              >
+                Change Password
               </button>
             </div>
           </div>

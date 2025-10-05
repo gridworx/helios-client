@@ -23,7 +23,7 @@ const validateRequest = (req: Request, res: Response, next: NextFunction) => {
  * Upload service account credentials and setup Domain-Wide Delegation
  */
 router.post('/setup', [
-  body('tenantId').notEmpty().withMessage('Tenant ID is required'),
+  body('organizationId').notEmpty().withMessage('Organization ID is required'),
   body('domain').notEmpty().withMessage('Domain is required'),
   body('organizationName').optional().notEmpty().withMessage('Organization name required if provided'),
   body('adminEmail').optional().isEmail().withMessage('Valid admin email required if provided'),
@@ -33,24 +33,28 @@ router.post('/setup', [
   body('credentials.client_id').notEmpty().withMessage('Client ID is required'),
 ], validateRequest, async (req: Request, res: Response) => {
   try {
-    const { tenantId, domain, organizationName, adminEmail, credentials } = req.body;
+    const { organizationId, domain, organizationName, adminEmail, credentials } = req.body;
 
-    logger.info('Setting up Google Workspace DWD', { tenantId, domain });
+    logger.info('Setting up Google Workspace DWD', { organizationId, domain });
 
-    // First, create or update tenant record (using correct column names)
-    await db.query(`
-      INSERT INTO tenants (id, domain, name, is_active, created_at, updated_at)
-      VALUES ($1, $2, $3, true, NOW(), NOW())
-      ON CONFLICT (domain) DO UPDATE SET
-        name = EXCLUDED.name,
-        updated_at = NOW()
-      RETURNING id
-    `, [tenantId, domain, organizationName || domain]);
+    // Check if organization exists
+    const orgResult = await db.query(
+      'SELECT id FROM organizations WHERE id = $1',
+      [organizationId]
+    );
+
+    if (orgResult.rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Organization not found'
+      });
+    }
 
     const result = await googleWorkspaceService.storeServiceAccountCredentials(
-      tenantId,
+      organizationId,
       domain,
-      credentials
+      credentials,
+      adminEmail
     );
 
     if (result.success) {
@@ -79,16 +83,29 @@ router.post('/setup', [
  * Test Domain-Wide Delegation connection
  */
 router.post('/test-connection', [
-  body('tenantId').notEmpty().withMessage('Tenant ID is required'),
+  body('organizationId').notEmpty().withMessage('Organization ID is required'),
   body('domain').notEmpty().withMessage('Domain is required'),
   body('adminEmail').optional().isEmail().withMessage('Admin email must be valid if provided'),
 ], validateRequest, async (req: Request, res: Response) => {
   try {
-    const { tenantId, domain, adminEmail } = req.body;
+    const { organizationId, domain } = req.body;
+    let { adminEmail } = req.body;
 
-    logger.info('Testing Google Workspace DWD connection', { tenantId, domain });
+    logger.info('Testing Google Workspace DWD connection', { organizationId, domain });
 
-    const result = await googleWorkspaceService.testConnection(tenantId, domain, adminEmail);
+    // If adminEmail not provided, get it from the database
+    if (!adminEmail) {
+      const credResult = await db.query(
+        'SELECT admin_email FROM gw_credentials WHERE organization_id = $1',
+        [organizationId]
+      );
+
+      if (credResult.rows.length > 0) {
+        adminEmail = credResult.rows[0].admin_email;
+      }
+    }
+
+    const result = await googleWorkspaceService.testConnection(organizationId, domain, adminEmail);
 
     res.json(result);
   } catch (error: any) {
@@ -106,19 +123,19 @@ router.post('/test-connection', [
  */
 router.get('/users', async (req: Request, res: Response) => {
   try {
-    const { tenantId, domain, adminEmail, maxResults } = req.query;
+    const { organizationId, domain, adminEmail, maxResults } = req.query;
 
-    if (!tenantId || !domain) {
+    if (!organizationId || !domain) {
       return res.status(400).json({
         success: false,
-        error: 'tenantId and domain are required'
+        error: 'organizationId and domain are required'
       });
     }
 
-    logger.info('Fetching Google Workspace users via DWD', { tenantId, domain });
+    logger.info('Fetching Google Workspace users via DWD', { organizationId, domain });
 
     const result = await googleWorkspaceService.getUsers(
-      tenantId as string,
+      organizationId as string,
       domain as string,
       adminEmail as string,
       maxResults ? parseInt(maxResults as string) : 100
@@ -157,17 +174,17 @@ router.get('/delegation-info', async (req: Request, res: Response) => {
 
 /**
  * POST /api/google-workspace/sync-now
- * Trigger manual sync for a tenant
+ * Trigger manual sync for an organization
  */
 router.post('/sync-now', [
-  body('tenantId').notEmpty().withMessage('Tenant ID is required'),
+  body('organizationId').notEmpty().withMessage('Organization ID is required'),
 ], validateRequest, async (req: Request, res: Response) => {
   try {
-    const { tenantId } = req.body;
+    const { organizationId } = req.body;
 
-    logger.info('Manual sync triggered', { tenantId });
+    logger.info('Manual sync triggered', { organizationId });
 
-    const result = await syncScheduler.manualSync(tenantId);
+    const result = await syncScheduler.manualSync(organizationId);
 
     res.json(result);
   } catch (error: any) {
@@ -180,37 +197,37 @@ router.post('/sync-now', [
 });
 
 /**
- * GET /api/google-workspace/tenant-stats/:tenantId
- * Get dashboard stats for a tenant
+ * GET /api/google-workspace/organization-stats/:organizationId
+ * Get dashboard stats for an organization
  */
-router.get('/tenant-stats/:tenantId', async (req: Request, res: Response) => {
+router.get('/organization-stats/:organizationId', async (req: Request, res: Response) => {
   try {
-    const { tenantId } = req.params;
+    const { organizationId } = req.params;
 
-    const stats = await syncScheduler.getTenantStats(tenantId);
+    const stats = await syncScheduler.getOrganizationStats(organizationId);
 
     res.json({
       success: true,
       data: stats
     });
   } catch (error: any) {
-    logger.error('Failed to get tenant stats', { error: error.message });
+    logger.error('Failed to get organization stats', { error: error.message });
     res.status(500).json({
       success: false,
-      error: 'Failed to get tenant stats'
+      error: 'Failed to get organization stats'
     });
   }
 });
 
 /**
- * GET /api/google-workspace/cached-users/:tenantId
- * Get cached Google Workspace users for a tenant
+ * GET /api/google-workspace/cached-users/:organizationId
+ * Get cached Google Workspace users for an organization
  */
-router.get('/cached-users/:tenantId', async (req: Request, res: Response) => {
+router.get('/cached-users/:organizationId', async (req: Request, res: Response) => {
   try {
-    const { tenantId } = req.params;
+    const { organizationId } = req.params;
 
-    const users = await syncScheduler.getCachedUsers(tenantId);
+    const users = await syncScheduler.getCachedUsers(organizationId);
 
     res.json({
       success: true,
@@ -229,16 +246,16 @@ router.get('/cached-users/:tenantId', async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/google-workspace/org-units/:tenantId
+ * GET /api/google-workspace/org-units/:organizationId
  * Get organizational units from Google Workspace
  */
-router.get('/org-units/:tenantId', async (req: Request, res: Response) => {
+router.get('/org-units/:organizationId', async (req: Request, res: Response) => {
   try {
-    const { tenantId } = req.params;
+    const { organizationId } = req.params;
 
-    logger.info('Fetching Google Workspace organizational units', { tenantId });
+    logger.info('Fetching Google Workspace organizational units', { organizationId });
 
-    const result = await googleWorkspaceService.getOrgUnits(tenantId);
+    const result = await googleWorkspaceService.getOrgUnits(organizationId);
 
     res.json(result);
   } catch (error: any) {
@@ -255,14 +272,14 @@ router.get('/org-units/:tenantId', async (req: Request, res: Response) => {
  * Sync organizational units from Google Workspace to database
  */
 router.post('/sync-org-units', [
-  body('tenantId').notEmpty().withMessage('Tenant ID is required'),
+  body('organizationId').notEmpty().withMessage('Organization ID is required'),
 ], validateRequest, async (req: Request, res: Response) => {
   try {
-    const { tenantId } = req.body;
+    const { organizationId } = req.body;
 
-    logger.info('Syncing Google Workspace org units', { tenantId });
+    logger.info('Syncing Google Workspace org units', { organizationId });
 
-    const result = await googleWorkspaceService.syncOrgUnits(tenantId);
+    const result = await googleWorkspaceService.syncOrgUnits(organizationId);
 
     res.json(result);
   } catch (error: any) {
@@ -275,25 +292,25 @@ router.post('/sync-org-units', [
 });
 
 /**
- * GET /api/google-workspace/module-status/:tenantId
- * Get Google Workspace module status for a tenant
+ * GET /api/google-workspace/module-status/:organizationId
+ * Get Google Workspace module status for an organization
  */
-router.get('/module-status/:tenantId', async (req: Request, res: Response) => {
+router.get('/module-status/:organizationId', async (req: Request, res: Response) => {
   try {
-    const { tenantId } = req.params;
+    const { organizationId } = req.params;
 
-    // Query tenant_modules table for status
+    // Try to get module status from organization_modules table
     const result = await db.query(`
       SELECT
-        module_name,
-        is_enabled,
-        user_count,
-        configuration,
-        last_sync,
-        updated_at
-      FROM tenant_modules
-      WHERE tenant_id = $1 AND module_name = 'google_workspace'
-    `, [tenantId]);
+        om.is_enabled,
+        om.config,
+        om.updated_at,
+        m.name,
+        m.slug
+      FROM organization_modules om
+      JOIN modules m ON m.id = om.module_id
+      WHERE om.organization_id = $1 AND m.slug = 'google-workspace'
+    `, [organizationId]);
 
     if (result.rows.length === 0) {
       // Module not configured yet
@@ -309,14 +326,15 @@ router.get('/module-status/:tenantId', async (req: Request, res: Response) => {
     }
 
     const module = result.rows[0];
+    const config = module.config || {};
 
     res.json({
       success: true,
       data: {
         isEnabled: module.is_enabled,
-        userCount: module.user_count || 0,
-        lastSync: module.last_sync,
-        configuration: module.configuration,
+        userCount: 0, // TODO: Get actual user count from gw_synced_users
+        lastSync: config.lastSync || null,
+        configuration: config,
         updatedAt: module.updated_at
       }
     });
