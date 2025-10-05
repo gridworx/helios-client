@@ -1,7 +1,8 @@
 // Load environment variables FIRST before any imports that use them
 import dotenv from 'dotenv';
 import path from 'path';
-dotenv.config({ path: path.join(__dirname, '..', '.env') });
+// .env is in project root, two levels up from src/
+dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
 
 import express from 'express';
 import cors from 'cors';

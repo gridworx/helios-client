@@ -1,0 +1,231 @@
+/* Helios Theme System - Google Workspace Clean Style */
+
+/* Default fallback - uses helios-purple colors */
+:root {
+  /* Primary gradient colors */
+  --theme-primary-start: #4f46e5;
+  --theme-primary-end: #7c3aed;
+
+  /* Solid primary colors */
+  --theme-primary: #4f46e5;
+  --theme-primary-hover: #4338ca;
+  --theme-primary-light: rgba(79, 70, 229, 0.1);
+  --theme-primary-shadow: rgba(79, 70, 229, 0.4);
+
+  /* Gradients */
+  --theme-gradient: linear-gradient(135deg, var(--theme-primary-start) 0%, var(--theme-primary-end) 100%);
+
+  /* Text on gradient backgrounds */
+  --theme-text-on-gradient: white;
+}
+
+/* Soft Purple variant */
+:root[data-theme="default"] {
+  /* Primary gradient colors */
+  --theme-primary-start: #8b5cf6;
+  --theme-primary-end: #a78bfa;
+
+  /* Solid primary colors */
+  --theme-primary: #8b5cf6;
+  --theme-primary-hover: #7c3aed;
+  --theme-primary-light: rgba(139, 92, 246, 0.1);
+  --theme-primary-shadow: rgba(139, 92, 246, 0.4);
+
+  /* Gradients */
+  --theme-gradient: linear-gradient(135deg, var(--theme-primary-start) 0%, var(--theme-primary-end) 100%);
+
+  /* Text on gradient backgrounds */
+  --theme-text-on-gradient: white;
+}
+
+/* Helios Purple - Original Helios theme */
+:root[data-theme="helios-purple"] {
+  --theme-primary-start: #4f46e5;
+  --theme-primary-end: #7c3aed;
+  --theme-primary: #4f46e5;
+  --theme-primary-hover: #4338ca;
+  --theme-primary-light: rgba(79, 70, 229, 0.1);
+  --theme-primary-shadow: rgba(79, 70, 229, 0.4);
+  --theme-gradient: linear-gradient(135deg, var(--theme-primary-start) 0%, var(--theme-primary-end) 100%);
+  --theme-text-on-gradient: white;
+}
+
+/* Google Workspace Blue */
+:root[data-theme="google-blue"] {
+  --theme-primary-start: #1a73e8;
+  --theme-primary-end: #4285f4;
+  --theme-primary: #1a73e8;
+  --theme-primary-hover: #1765cc;
+  --theme-primary-light: rgba(26, 115, 232, 0.1);
+  --theme-primary-shadow: rgba(26, 115, 232, 0.4);
+  --theme-gradient: linear-gradient(135deg, var(--theme-primary-start) 0%, var(--theme-primary-end) 100%);
+  --theme-text-on-gradient: white;
+}
+
+/* Modern Teal */
+:root[data-theme="modern-teal"] {
+  --theme-primary-start: #0d9488;
+  --theme-primary-end: #14b8a6;
+  --theme-primary: #0d9488;
+  --theme-primary-hover: #0f766e;
+  --theme-primary-light: rgba(13, 148, 136, 0.1);
+  --theme-primary-shadow: rgba(13, 148, 136, 0.4);
+  --theme-gradient: linear-gradient(135deg, var(--theme-primary-start) 0%, var(--theme-primary-end) 100%);
+  --theme-text-on-gradient: white;
+}
+
+/* Corporate Blue - Professional, Trustworthy, and Calm */
+:root[data-theme="corporate-blue"] {
+  /* Primary gradient colors (deeper, more professional blue) */
+  --theme-primary-start: #1A73E8;
+  --theme-primary-end: #3C7DC2;
+
+  /* Solid primary colors */
+  --theme-primary: #1A73E8;
+  --theme-primary-hover: #1765cc;
+  --theme-primary-light: rgba(26, 115, 232, 0.1);
+  --theme-primary-shadow: rgba(26, 115, 232, 0.4);
+
+  /* Gradients */
+  --theme-gradient: linear-gradient(135deg, var(--theme-primary-start) 0%, var(--theme-primary-end) 100%);
+
+  /* Text on gradient backgrounds */
+  --theme-text-on-gradient: white;
+
+  /* Accent for CTAs and interactive elements */
+  --theme-accent: #00C49A;
+  --theme-accent-hover: #00A380;
+
+  /* Theme-specific backgrounds */
+  --color-bg-main: #edf2f7;
+  --color-text-primary: #2d3748;
+}
+
+/* Sophisticated Purple - Modern, Sophisticated, and Focused */
+:root[data-theme="sophisticated-purple"] {
+  /* Primary gradient colors (richer, deeper purple) */
+  --theme-primary-start: #5a3c9b;
+  --theme-primary-end: #7c5cb8;
+
+  /* Solid primary colors */
+  --theme-primary: #5a3c9b;
+  --theme-primary-hover: #4e3489;
+  --theme-primary-light: rgba(90, 60, 155, 0.1);
+  --theme-primary-shadow: rgba(90, 60, 155, 0.4);
+
+  /* Gradients */
+  --theme-gradient: linear-gradient(135deg, var(--theme-primary-start) 0%, var(--theme-primary-end) 100%);
+
+  /* Text on gradient backgrounds */
+  --theme-text-on-gradient: white;
+
+  /* Accent for CTAs and interactive elements */
+  --theme-accent: #FF6B6B;
+  --theme-accent-hover: #E05F5F;
+}
+
+/* Helios Dark Mode - Sleek, Functional, and Tech-Forward */
+:root[data-theme="helios-dark"] {
+  /* Primary colors for accents */
+  --theme-primary-start: #4f46e5;
+  --theme-primary-end: #7c3aed;
+
+  /* Solid primary colors */
+  --theme-primary: #4f46e5;
+  --theme-primary-hover: #4338ca;
+  --theme-primary-light: rgba(79, 70, 229, 0.1);
+  --theme-primary-shadow: rgba(79, 70, 229, 0.4);
+
+  /* Gradients */
+  --theme-gradient: linear-gradient(135deg, var(--theme-primary-start) 0%, var(--theme-primary-end) 100%);
+
+  /* Text on gradient backgrounds */
+  --theme-text-on-gradient: white;
+
+  /* Dark Mode Specific Overrides */
+  --color-bg-main: #1a202c;
+  --color-bg-card: #2d3748;
+  --color-bg-hover: #4a5568;
+
+  --color-text-primary: #e2e8f0;
+  --color-text-secondary: #a0aec0;
+  --color-text-tertiary: #718096;
+
+  --color-border: #4a5568;
+  --color-border-light: #4a5568;
+
+  /* Accent colors */
+  --theme-accent: var(--theme-primary);
+  --theme-accent-hover: var(--theme-primary-hover);
+
+  /* Card System - Dark Mode */
+  --card-bg: rgba(45, 55, 72, 0.95);
+  --card-bg-hover: rgba(74, 85, 104, 0.95);
+  --card-text: rgba(226, 232, 240, 0.9);
+  --card-heading: rgba(226, 232, 240, 1);
+  --card-border: rgba(74, 85, 104, 0.5);
+  --card-shadow: rgba(0, 0, 0, 0.3);
+
+  /* Card on gradient backgrounds (login page in dark mode) */
+  --card-on-gradient-bg: rgba(45, 55, 72, 0.75);
+  --card-on-gradient-text: rgba(226, 232, 240, 0.95);
+  --card-on-gradient-heading: rgba(255, 255, 255, 1);
+  --card-on-gradient-border: rgba(255, 255, 255, 0.25);
+  --card-on-gradient-shadow: rgba(0, 0, 0, 0.5);
+}
+
+/* Shared color system (theme-independent) */
+:root {
+  /* Neutrals */
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+
+  /* Status colors */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+
+  /* Backgrounds */
+  --color-bg-main: #f5f5f5;
+  --color-bg-card: #ffffff;
+  --color-bg-hover: #f9fafb;
+
+  /* Text */
+  --color-text-primary: #1f2937;
+  --color-text-secondary: #6b7280;
+  --color-text-tertiary: #9ca3af;
+
+  /* Borders */
+  --color-border: #e5e7eb;
+  --color-border-light: #f3f4f6;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+  /* Card System - Unified across all components */
+  --card-bg: rgba(255, 255, 255, 0.95);
+  --card-bg-hover: rgba(255, 255, 255, 1);
+  --card-text: rgba(0, 0, 0, 0.87);
+  --card-heading: rgba(0, 0, 0, 0.95);
+  --card-border: rgba(0, 0, 0, 0.08);
+  --card-shadow: rgba(0, 0, 0, 0.08);
+
+  /* Card on gradient backgrounds (like login page) */
+  /* Smokey glassmorphism - dark tinted glass with blur for depth */
+  --card-on-gradient-bg: rgba(0, 0, 0, 0.7);
+  --card-on-gradient-text: rgba(255, 255, 255, 0.95);
+  --card-on-gradient-heading: rgba(255, 255, 255, 1);
+  --card-on-gradient-border: rgba(255, 255, 255, 0.25);
+  --card-on-gradient-shadow: rgba(0, 0, 0, 0.4);
+}

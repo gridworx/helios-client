@@ -14,10 +14,10 @@ interface Asset {
 }
 
 interface AssetManagementProps {
-  tenantId: string;
+  organizationId: string;
 }
 
-export function AssetManagement({ tenantId }: AssetManagementProps) {
+export function AssetManagement({ organizationId }: AssetManagementProps) {
   const [assets, setAssets] = useState<Asset[]>([
     {
       id: '1',

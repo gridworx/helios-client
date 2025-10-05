@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import './App.css'
-import { ClientLogin } from './components/ClientLogin'
+import { LoginPage } from './pages/LoginPage'
 import { ClientUserMenu } from './components/ClientUserMenu'
 import { AccountSetup } from './components/AccountSetup'
 import { Settings } from './components/Settings'
@@ -28,6 +28,7 @@ interface OrganizationStats {
 }
 
 function App() {
+  console.log('[App] Component is rendering');
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState<OrganizationConfig | null>(null);
   const [step, setStep] = useState<'welcome' | 'setup' | 'login' | 'dashboard'>('welcome');
@@ -52,6 +53,11 @@ function App() {
 
   useEffect(() => {
     checkConfiguration();
+
+    // Redirect /login to root since we only have one login page now
+    if (window.location.pathname === '/login') {
+      window.history.replaceState({}, '', '/');
+    }
   }, []);
 
   // Fetch organization name for login screen
@@ -211,7 +217,7 @@ function App() {
 
   if (step === 'login') {
     return (
-      <ClientLogin
+      <LoginPage
         onLoginSuccess={(loginData) => {
           console.log('Setting config from login data:', loginData);
           console.log('Setting user data:', loginData.data.user);

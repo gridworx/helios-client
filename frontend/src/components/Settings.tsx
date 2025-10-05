@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import './Settings.css';
 import { RolesManagement } from './RolesManagement';
-// import { ThemeSelector } from './ThemeSelector';
+import { ThemeSelector } from './ThemeSelector';
 
 interface SettingsProps {
   organizationName: string;
@@ -254,7 +254,7 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                                       const authData = localStorage.getItem('auth');
                                       const token = authData ? JSON.parse(authData).token : null;
 
-                                      const response = await fetch(`http://localhost:3001/api/google-workspace/disable/${tenantId}`, {
+                                      const response = await fetch(`http://localhost:3001/api/google-workspace/disable/${organizationId}`, {
                                         method: 'POST',
                                         headers: {
                                           'Authorization': `Bearer ${token}`
@@ -528,8 +528,8 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                   </div>
                 </div>
 
-                {/* Theme Settings - Temporarily disabled */}
-                {/* {currentUser?.role === 'admin' ? (
+                {/* Theme Settings - Admin Only */}
+                {currentUser?.role === 'admin' ? (
                   <ThemeSelector />
                 ) : (
                   <div className="customization-card">
@@ -540,7 +540,7 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                       <span>Only organization administrators can change the theme. Please contact your admin if you'd like to request a different theme.</span>
                     </div>
                   </div>
-                )} */}
+                )}
               </div>
             </div>
           )}

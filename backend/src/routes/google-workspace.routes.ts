@@ -347,4 +347,50 @@ router.get('/module-status/:organizationId', async (req: Request, res: Response)
   }
 });
 
+/**
+ * GET /api/google-workspace/groups/:organizationId
+ * Get Google Workspace groups
+ */
+router.get('/groups/:organizationId', async (req: Request, res: Response) => {
+  try {
+    const { organizationId } = req.params;
+
+    logger.info('Fetching Google Workspace groups', { organizationId });
+
+    const result = await googleWorkspaceService.getGroups(organizationId);
+
+    res.json(result);
+  } catch (error: any) {
+    logger.error('Failed to fetch groups', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch groups'
+    });
+  }
+});
+
+/**
+ * POST /api/google-workspace/sync-groups
+ * Sync groups from Google Workspace to database
+ */
+router.post('/sync-groups', [
+  body('organizationId').notEmpty().withMessage('Organization ID is required'),
+], validateRequest, async (req: Request, res: Response) => {
+  try {
+    const { organizationId } = req.body;
+
+    logger.info('Syncing Google Workspace groups', { organizationId });
+
+    const result = await googleWorkspaceService.syncGroups(organizationId);
+
+    res.json(result);
+  } catch (error: any) {
+    logger.error('Groups sync failed', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to sync groups'
+    });
+  }
+});
+
 export default router;

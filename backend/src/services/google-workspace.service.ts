@@ -634,6 +634,149 @@ export class GoogleWorkspaceService {
       return { isConfigured: false };
     }
   }
+
+  /**
+   * Get Google Workspace groups
+   */
+  async getGroups(organizationId: string): Promise<any> {
+    try {
+      // Get organization and credentials
+      const credResult = await db.query(
+        'SELECT service_account_key, admin_email, domain FROM gw_credentials WHERE organization_id = $1',
+        [organizationId]
+      );
+
+      if (credResult.rows.length === 0) {
+        return { success: false, error: 'No credentials found for this organization' };
+      }
+
+      const { service_account_key, admin_email, domain } = credResult.rows[0];
+      const credentials = JSON.parse(service_account_key);
+
+      // Create admin client
+      const adminClient = this.createAdminClient(credentials, admin_email);
+
+      // Get groups
+      const response = await adminClient.groups.list({
+        customer: 'my_customer',
+        maxResults: 200
+      });
+
+      const groups = (response.data.groups || []).map((group: any) => ({
+        id: group.id,
+        name: group.name,
+        email: group.email,
+        description: group.description || '',
+        directMembersCount: group.directMembersCount || 0,
+        adminCreated: group.adminCreated || false
+      }));
+
+      logger.info('Retrieved Google Workspace groups', {
+        organizationId,
+        groupCount: groups.length
+      });
+
+      return {
+        success: true,
+        groups
+      };
+
+    } catch (error: any) {
+      logger.error('Failed to fetch groups', {
+        organizationId,
+        error: error.message
+      });
+
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Sync groups from Google Workspace to database
+   */
+  async syncGroups(organizationId: string): Promise<any> {
+    try {
+      // Fetch groups from Google
+      const fetchResult = await this.getGroups(organizationId);
+
+      if (!fetchResult.success) {
+        return fetchResult;
+      }
+
+      const groups = fetchResult.groups;
+
+      // Begin transaction
+      await db.query('BEGIN');
+
+      try {
+        // Clear existing groups for this organization
+        await db.query(
+          'DELETE FROM gw_groups WHERE organization_id = $1',
+          [organizationId]
+        );
+
+        // Insert new groups
+        for (const group of groups) {
+          await db.query(`
+            INSERT INTO gw_groups
+            (id, organization_id, name, email, description, member_count, external_id, last_synced)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+          `, [
+            group.id,
+            organizationId,
+            group.name,
+            group.email,
+            group.description,
+            group.directMembersCount,
+            group.id
+          ]);
+        }
+
+        // Update module sync timestamp
+        const moduleResult = await db.query(
+          `SELECT id FROM modules WHERE slug = 'google-workspace' LIMIT 1`
+        );
+
+        if (moduleResult.rows.length > 0) {
+          const moduleId = moduleResult.rows[0].id;
+
+          await db.query(`
+            UPDATE organization_modules
+            SET last_sync = NOW(),
+                config = config || jsonb_build_object('groups_count', $3)
+            WHERE organization_id = $1 AND module_id = $2
+          `, [organizationId, moduleId, groups.length]);
+        }
+
+        await db.query('COMMIT');
+
+        return {
+          success: true,
+          message: `Successfully synced ${groups.length} groups`,
+          count: groups.length,
+          groups
+        };
+
+      } catch (dbError) {
+        await db.query('ROLLBACK');
+        throw dbError;
+      }
+
+    } catch (error: any) {
+      logger.error('Failed to sync groups', {
+        organizationId,
+        error: error.message
+      });
+
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
 }
 
 export const googleWorkspaceService = new GoogleWorkspaceService();

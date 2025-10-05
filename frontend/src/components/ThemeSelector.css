@@ -41,13 +41,50 @@
 }
 
 .theme-card.active {
-  border-color: var(--color-primary, #4f46e5);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  border-color: var(--theme-primary, #4f46e5);
+  box-shadow: 0 0 0 3px var(--theme-primary-light, rgba(79, 70, 229, 0.1));
 }
 
 .theme-preview {
   height: 80px;
   width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-preview-gradient {
+  width: 100%;
+  height: 100%;
+}
+
+/* Theme-specific preview gradients */
+.theme-preview[data-theme="default"] .theme-preview-gradient {
+  background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+}
+
+.theme-preview[data-theme="helios-purple"] .theme-preview-gradient {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+}
+
+.theme-preview[data-theme="corporate-blue"] .theme-preview-gradient {
+  background: linear-gradient(135deg, #1A73E8 0%, #3C7DC2 100%);
+}
+
+.theme-preview[data-theme="sophisticated-purple"] .theme-preview-gradient {
+  background: linear-gradient(135deg, #5a3c9b 0%, #7c5cb8 100%);
+}
+
+.theme-preview[data-theme="helios-dark"] .theme-preview-gradient {
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  border: 1px solid #4a5568;
+}
+
+.theme-preview[data-theme="google-blue"] .theme-preview-gradient {
+  background: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
+}
+
+.theme-preview[data-theme="modern-teal"] .theme-preview-gradient {
+  background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
 }
 
 .theme-info {

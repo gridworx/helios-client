@@ -1,11 +1,11 @@
-.client-login-container {
+.login-page {
   min-height: 100vh;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
 }
 
-.client-login-card {
+.login-form-section {
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -13,21 +13,21 @@
   background: white;
 }
 
-.client-login-header {
+.login-header {
   text-align: center;
   margin-bottom: 2rem;
 }
 
-.client-login-header h1 {
+.login-header h1 {
   font-size: 2rem;
   color: #1f2937;
   margin-bottom: 0.5rem;
   font-weight: 600;
 }
 
-.client-login-header h2 {
+.login-header h2 {
   font-size: 1.25rem;
-  background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -35,22 +35,22 @@
   font-weight: 600;
 }
 
-.client-login-header p {
+.login-header p {
   color: #6b7280;
   font-size: 0.9375rem;
 }
 
-.client-login-form {
+.login-form {
   max-width: 400px;
   margin: 0 auto;
   width: 100%;
 }
 
-.form-group {
+.form-field {
   margin-bottom: 1.5rem;
 }
 
-.form-group label {
+.form-field label {
   display: block;
   font-size: 0.875rem;
   font-weight: 500;
@@ -58,7 +58,7 @@
   margin-bottom: 0.5rem;
 }
 
-.form-group input {
+.form-field input {
   width: 100%;
   padding: 0.875rem;
   border: 2px solid #e5e7eb;
@@ -67,27 +67,21 @@
   transition: all 0.2s;
 }
 
-.form-group input:focus {
+.form-field input:focus {
   outline: none;
-  border-color: #8b5cf6;
-  box-shadow: 0 0 0 3px rgba(107, 33, 168, 0.1);
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
-.form-group input:disabled {
+.form-field input:disabled {
   background: #f9fafb;
   cursor: not-allowed;
 }
 
-.form-hint {
-  font-size: 0.8125rem;
-  color: #6b7280;
-  margin-top: 0.5rem;
-}
-
-.client-login-btn {
+.login-button {
   width: 100%;
   padding: 1rem;
-  background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
   color: white;
   border: none;
   border-radius: 8px;
@@ -98,18 +92,18 @@
   margin-top: 1rem;
 }
 
-.client-login-btn:hover:not(:disabled) {
+.login-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(107, 33, 168, 0.4);
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
 }
 
-.client-login-btn:disabled {
+.login-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
 }
 
-.client-login-error {
+.login-error {
   background: #fee2e2;
   border: 1px solid #fecaca;
   color: #dc2626;
@@ -120,7 +114,7 @@
   text-align: center;
 }
 
-.client-login-footer {
+.login-footer {
   margin-top: 2rem;
   text-align: center;
 }
@@ -133,7 +127,7 @@
   border-radius: 6px;
 }
 
-.client-login-info {
+.login-info-section {
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -141,52 +135,72 @@
   gap: 2rem;
 }
 
-.info-card {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
+/* Feature cards with semi-transparent background for glassmorphism */
+.feature-card {
+  /* More transparent background - 50% opaque for lighter glass effect */
+  background: rgba(0, 0, 0, 0.5);
+
+  /* Enhanced blur effect for depth */
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+
+  /* Border and shadow */
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 16px;
   padding: 2rem;
-  color: white;
+
+  /* Excellent shadow for depth */
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+
+  /* Smooth transitions */
+  transition: all 0.3s ease;
 }
 
-.info-card h3 {
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.feature-card h3 {
   font-size: 1.25rem;
   margin-bottom: 0.75rem;
   font-weight: 600;
+  /* Pure white for maximum contrast against dark background */
+  color: #ffffff;
 }
 
-.info-card p {
+.feature-card p {
   font-size: 0.9375rem;
   line-height: 1.6;
-  opacity: 0.95;
+  /* Slightly dimmed white for body text, still very readable */
+  color: rgba(255, 255, 255, 0.95);
 }
 
 @media (max-width: 1024px) {
-  .client-login-container {
+  .login-page {
     grid-template-columns: 1fr;
   }
 
-  .client-login-info {
+  .login-info-section {
     display: none;
   }
 
-  .client-login-card {
+  .login-form-section {
     padding: 2rem 1.5rem;
   }
 }
 
 @media (max-width: 480px) {
-  .client-login-header h1 {
+  .login-header h1 {
     font-size: 1.75rem;
   }
 
-  .client-login-header h2 {
+  .login-header h2 {
     font-size: 1.125rem;
   }
 
-  .client-login-card {
+  .login-form-section {
     padding: 2rem 1rem;
   }
 }

@@ -77,6 +77,7 @@ services:
       - "3000:3000"
     environment:
       VITE_API_URL: http://localhost:3001/api
+      VITE_DEFAULT_THEME: ${VITE_DEFAULT_THEME:-helios-purple}
     depends_on:
       - backend
     networks:

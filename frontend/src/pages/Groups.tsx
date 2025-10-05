@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { googleWorkspaceService } from '../services/google-workspace.service';
 import './Pages.css';
 
 interface Group {
@@ -13,37 +14,73 @@ interface Group {
 }
 
 interface GroupsProps {
-  tenantId: string;
+  organizationId: string;
   customLabel?: string;
 }
 
-export function Groups({ tenantId, customLabel }: GroupsProps) {
-  const [groups, setGroups] = useState<Group[]>([
-    // Mock data for now
-    {
-      id: '1',
-      name: 'Engineering Team',
-      description: 'Software development team',
-      email: 'engineering@gridworx.io',
-      memberCount: 12,
-      platform: 'google_workspace',
-      type: 'Security',
-      createdAt: '2025-01-01'
-    },
-    {
-      id: '2',
-      name: 'Sales Team',
-      description: 'Sales and business development',
-      email: 'sales@gridworx.io',
-      memberCount: 8,
-      platform: 'google_workspace',
-      type: 'Email',
-      createdAt: '2025-01-01'
-    }
-  ]);
-
+export function Groups({ organizationId, customLabel }: GroupsProps) {
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [filterPlatform, setFilterPlatform] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+
+  useEffect(() => {
+    fetchGroups();
+  }, [organizationId]);
+
+  const fetchGroups = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const result = await googleWorkspaceService.getGroups(organizationId);
+
+      if (result.success && result.data?.groups) {
+        const formattedGroups = result.data.groups.map((group: any) => ({
+          id: group.id,
+          name: group.name,
+          description: group.description || '',
+          email: group.email,
+          memberCount: group.directMembersCount || 0,
+          platform: 'google_workspace',
+          type: group.adminCreated ? 'Admin' : 'User',
+          createdAt: group.createdAt || new Date().toISOString()
+        }));
+        setGroups(formattedGroups);
+      } else {
+        setGroups([]);
+        if (result.error) {
+          setError(result.error);
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch groups');
+      setGroups([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSyncGroups = async () => {
+    try {
+      setIsSyncing(true);
+      setError(null);
+
+      const result = await googleWorkspaceService.syncGroups(organizationId);
+
+      if (result.success) {
+        await fetchGroups();
+      } else {
+        setError(result.error || 'Failed to sync groups');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to sync groups');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const getPlatformIcon = (platform: string) => {
     const icons: Record<string, { icon: string; color: string }> = {
@@ -61,6 +98,14 @@ export function Groups({ tenantId, customLabel }: GroupsProps) {
     return matchesPlatform && matchesSearch;
   });
 
+  if (isLoading) {
+    return (
+      <div className="page-container">
+        <div className="loading-spinner">Loading groups...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="page-container">
       <div className="page-header">
@@ -72,6 +117,12 @@ export function Groups({ tenantId, customLabel }: GroupsProps) {
           ➕ Create Group
         </button>
       </div>
+
+      {error && (
+        <div className="error-message" style={{ margin: '1rem 0', padding: '1rem', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '8px', color: '#dc2626' }}>
+          {error}
+        </div>
+      )}
 
       <div className="page-controls">
         <div className="search-box">
@@ -94,8 +145,12 @@ export function Groups({ tenantId, customLabel }: GroupsProps) {
           <option value="microsoft_365">Microsoft 365</option>
         </select>
 
-        <button className="btn-secondary">
-          🔄 Sync Groups
+        <button
+          className="btn-secondary"
+          onClick={handleSyncGroups}
+          disabled={isSyncing}
+        >
+          {isSyncing ? '⏳ Syncing...' : '🔄 Sync Groups'}
         </button>
       </div>
 

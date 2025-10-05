@@ -13,10 +13,10 @@ interface User {
 }
 
 interface UserListProps {
-  tenantId: string;
+  organizationId: string;
 }
 
-export function UserList({ tenantId }: UserListProps) {
+export function UserList({ organizationId }: UserListProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +24,7 @@ export function UserList({ tenantId }: UserListProps) {
 
   useEffect(() => {
     fetchUsers();
-  }, [tenantId]);
+  }, [organizationId]);
 
   const fetchUsers = async () => {
     try {

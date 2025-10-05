@@ -5,7 +5,10 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- Create enum types
+-- Create enum types (drop if they exist first to avoid conflicts)
+DROP TYPE IF EXISTS user_role CASCADE;
+DROP TYPE IF EXISTS audit_action CASCADE;
+
 CREATE TYPE user_role AS ENUM ('admin', 'manager', 'user');
 CREATE TYPE audit_action AS ENUM ('create', 'update', 'delete', 'login', 'logout', 'password_change', 'settings_change');
 

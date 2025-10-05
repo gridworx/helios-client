@@ -1,20 +1,19 @@
 import { useState, useEffect } from 'react';
-import { themeService, ThemeName } from '../services/theme.service';
+import { themeService } from '../services/theme.service';
+import type { ThemeName, Theme } from '../services/theme.service';
 import './ThemeSelector.css';
 
 export function ThemeSelector() {
-  const [currentTheme, setCurrentTheme] = useState<ThemeName>('purple');
-  const [themes, setThemes] = useState(themeService.getAllThemes());
+  const [currentTheme, setCurrentTheme] = useState<ThemeName>(themeService.getTheme());
+  const [themes, setThemes] = useState<Theme[]>(themeService.getAllThemes());
 
   useEffect(() => {
-    // Initialize theme after component mounts
-    const theme = themeService.getTheme();
-    setCurrentTheme(theme);
+    setCurrentTheme(themeService.getTheme());
   }, []);
 
-  const handleThemeChange = (theme: ThemeName) => {
-    themeService.setTheme(theme);
-    setCurrentTheme(theme);
+  const handleThemeChange = (themeId: ThemeName) => {
+    themeService.setTheme(themeId);
+    setCurrentTheme(themeId);
   };
 
   return (
@@ -27,24 +26,19 @@ export function ThemeSelector() {
       <div className="theme-grid">
         {themes.map((theme) => (
           <div
-            key={theme.name}
-            className={`theme-card ${currentTheme === theme.name ? 'active' : ''}`}
-            onClick={() => handleThemeChange(theme.name)}
+            key={theme.id}
+            className={`theme-card ${currentTheme === theme.id ? 'active' : ''}`}
+            onClick={() => handleThemeChange(theme.id)}
           >
-            <div
-              className="theme-preview"
-              style={{
-                background: `linear-gradient(135deg, ${theme.primaryColor} 0%, ${theme.secondaryColor} 100%)`
-              }}
-            />
+            <div className="theme-preview" data-theme={theme.id}>
+              <div className="theme-preview-gradient"></div>
+            </div>
             <div className="theme-info">
-              <h4>{theme.displayName}</h4>
+              <h4>{theme.name}</h4>
               <p>{theme.description}</p>
             </div>
-            {currentTheme === theme.name && (
-              <div className="theme-selected">
-                ✓ Active
-              </div>
+            {currentTheme === theme.id && (
+              <span className="theme-selected">✓ Selected</span>
             )}
           </div>
         ))}
@@ -53,7 +47,7 @@ export function ThemeSelector() {
       <div className="theme-note">
         <span className="info-icon">ℹ️</span>
         <span>
-          You can also set a default theme using the <code>VITE_THEME</code> environment variable.
+          Theme changes are saved automatically and will persist across sessions.
         </span>
       </div>
     </div>

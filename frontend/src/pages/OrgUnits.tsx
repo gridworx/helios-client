@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { googleWorkspaceService } from '../services/google-workspace.service';
 import './Pages.css';
 
 interface OrgUnit {
@@ -20,11 +21,11 @@ interface OrgUnit {
 }
 
 interface OrgUnitsProps {
-  tenantId: string;
+  organizationId: string;
   customLabel?: string; // Allow custom label like "Departments"
 }
 
-export function OrgUnits({ tenantId, customLabel }: OrgUnitsProps) {
+export function OrgUnits({ organizationId, customLabel }: OrgUnitsProps) {
   const [orgUnits, setOrgUnits] = useState<OrgUnit[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -36,30 +37,46 @@ export function OrgUnits({ tenantId, customLabel }: OrgUnitsProps) {
 
   useEffect(() => {
     fetchOrgUnits();
-  }, [tenantId]);
+  }, [organizationId]);
 
   const fetchOrgUnits = async () => {
     try {
       setIsLoading(true);
       setSyncError(null);
 
-      // First try to get from database
-      const dbResponse = await fetch(`http://localhost:3001/api/org-units/cached/${tenantId}`);
-      if (dbResponse.ok) {
-        const dbData = await dbResponse.json();
-        if (dbData.success && dbData.data && dbData.data.length > 0) {
-          setOrgUnits(dbData.data);
-          setLastSyncTime(dbData.lastSync);
-        }
-      }
+      const result = await googleWorkspaceService.getOrgUnits(organizationId);
 
-      // If no cached data, try to sync from Google
-      if (orgUnits.length === 0) {
-        await syncOrgUnits();
+      if (result.success && result.data?.orgUnits) {
+        const formattedOrgUnits = result.data.orgUnits.map((unit: any) => ({
+          id: unit.orgUnitId || unit.id,
+          name: unit.name,
+          path: unit.orgUnitPath || unit.path,
+          parentPath: unit.parentOrgUnitPath || unit.parentPath || '/',
+          userCount: unit.userCount || 0,
+          childCount: unit.childCount || 0,
+          platform: 'google_workspace',
+          description: unit.description || '',
+          syncStatus: 'synced' as const,
+          lastSynced: unit.lastSynced || new Date().toISOString()
+        }));
+        setOrgUnits(formattedOrgUnits);
+        setLastSyncTime(new Date().toISOString());
+
+        // Expand root units by default
+        const rootUnits = formattedOrgUnits.filter((u: OrgUnit) => !u.parentPath || u.parentPath === '/');
+        if (rootUnits.length > 0) {
+          setExpandedUnits(new Set(rootUnits.map((u: OrgUnit) => u.id)));
+        }
+      } else {
+        setOrgUnits([]);
+        if (result.error) {
+          setSyncError(result.error);
+        }
       }
     } catch (error: any) {
       console.error('Failed to fetch org units:', error);
       setSyncError('Failed to load organizational units');
+      setOrgUnits([]);
     } finally {
       setIsLoading(false);
     }
@@ -70,30 +87,12 @@ export function OrgUnits({ tenantId, customLabel }: OrgUnitsProps) {
       setIsSyncing(true);
       setSyncError(null);
 
-      const token = localStorage.getItem('helios_client_token');
+      const result = await googleWorkspaceService.syncOrgUnits(organizationId);
 
-      const response = await fetch('http://localhost:3001/api/google-workspace/sync-org-units', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ tenantId })
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setOrgUnits(data.orgUnits || []);
-        setLastSyncTime(new Date().toISOString());
-
-        // Expand root units by default
-        const rootUnits = data.orgUnits?.filter((u: OrgUnit) => !u.parentPath || u.parentPath === '/');
-        if (rootUnits?.length > 0) {
-          setExpandedUnits(new Set(rootUnits.map((u: OrgUnit) => u.id)));
-        }
+      if (result.success) {
+        await fetchOrgUnits();
       } else {
-        setSyncError(data.error || 'Failed to sync organizational units');
+        setSyncError(result.error || 'Failed to sync organizational units');
       }
     } catch (error: any) {
       console.error('Sync failed:', error);

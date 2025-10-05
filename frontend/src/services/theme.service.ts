@@ -1,121 +1,137 @@
-// Theme Service for managing theme selection
+// Theme Service for Helios Client Portal
 
-export type ThemeName = 'purple' | 'blue' | 'green' | 'gray';
+export type ThemeName = 'default' | 'helios-purple' | 'google-blue' | 'modern-teal' | 'corporate-blue' | 'sophisticated-purple' | 'helios-dark';
 
 export interface Theme {
-  name: ThemeName;
-  displayName: string;
+  id: ThemeName;
+  name: string;
   description: string;
-  primaryColor: string;
-  secondaryColor: string;
 }
 
-export const themes: Theme[] = [
+export const availableThemes: Theme[] = [
   {
-    name: 'purple',
-    displayName: 'Purple (Default)',
-    description: 'Original Helios purple gradient theme',
-    primaryColor: '#4f46e5',
-    secondaryColor: '#7c3aed'
+    id: 'helios-purple',
+    name: 'Helios Purple',
+    description: 'Original Helios brand purple (Default)'
   },
   {
-    name: 'blue',
-    displayName: 'Blue',
-    description: 'Professional blue theme',
-    primaryColor: '#1976d2',
-    secondaryColor: '#1565c0'
+    id: 'corporate-blue',
+    name: 'Corporate Blue',
+    description: 'Professional, trustworthy, and calm'
   },
   {
-    name: 'green',
-    displayName: 'Green',
-    description: 'Fresh green theme',
-    primaryColor: '#059669',
-    secondaryColor: '#047857'
+    id: 'sophisticated-purple',
+    name: 'Sophisticated Purple',
+    description: 'Modern, sophisticated, and focused'
   },
   {
-    name: 'gray',
-    displayName: 'Gray',
-    description: 'Minimal professional theme',
-    primaryColor: '#374151',
-    secondaryColor: '#1f2937'
+    id: 'helios-dark',
+    name: 'Dark Mode',
+    description: 'Sleek, functional, and tech-forward'
+  },
+  {
+    id: 'google-blue',
+    name: 'Google Workspace Blue',
+    description: 'Google Workspace inspired blue'
+  },
+  {
+    id: 'modern-teal',
+    name: 'Modern Teal',
+    description: 'Fresh modern teal gradient'
+  },
+  {
+    id: 'default',
+    name: 'Soft Purple',
+    description: 'Lighter, softer purple variant'
   }
 ];
 
 class ThemeService {
-  private currentTheme: ThemeName = 'purple';
+  private currentTheme: ThemeName;
+  private initialized: boolean = false;
+  private readonly DEFAULT_THEME: ThemeName;
 
   constructor() {
-    // Load theme from environment variable or localStorage
-    this.loadTheme();
+    // Get default theme from env variable (single source of truth)
+    const envTheme = import.meta.env.VITE_DEFAULT_THEME as ThemeName;
+    this.DEFAULT_THEME = this.isValidTheme(envTheme) ? envTheme : 'helios-purple';
+    this.currentTheme = this.DEFAULT_THEME;
   }
 
   private loadTheme(): void {
     try {
-      // First check environment variable (if available)
-      const envTheme = import.meta.env?.VITE_THEME as ThemeName | undefined;
+      // Check localStorage for saved theme (only if available)
+      if (typeof localStorage !== 'undefined') {
+        const savedTheme = localStorage.getItem('helios_theme') as ThemeName | null;
 
-      // Then check localStorage
-      const storedTheme = localStorage.getItem('helios_theme') as ThemeName | null;
-
-      // Priority: env variable > localStorage > default
-      if (envTheme && this.isValidTheme(envTheme)) {
-        this.currentTheme = envTheme;
-      } else if (storedTheme && this.isValidTheme(storedTheme)) {
-        this.currentTheme = storedTheme;
+        if (savedTheme && this.isValidTheme(savedTheme)) {
+          this.currentTheme = savedTheme;
+        } else {
+          this.currentTheme = this.DEFAULT_THEME;
+        }
       } else {
-        this.currentTheme = 'purple';
+        this.currentTheme = this.DEFAULT_THEME;
       }
 
       this.applyTheme(this.currentTheme);
     } catch (error) {
       console.error('Error loading theme:', error);
-      this.currentTheme = 'purple';
-      // Try to apply default theme even if there was an error
-      this.applyTheme(this.currentTheme);
+      this.currentTheme = this.DEFAULT_THEME;
+      this.applyTheme(this.DEFAULT_THEME);
     }
   }
 
   private isValidTheme(theme: string): theme is ThemeName {
-    return ['purple', 'blue', 'green', 'gray'].includes(theme);
+    return ['default', 'helios-purple', 'google-blue', 'modern-teal', 'corporate-blue', 'sophisticated-purple', 'helios-dark'].includes(theme);
   }
 
   public setTheme(theme: ThemeName): void {
-    // Check if user is admin (extra security check)
-    const userStr = localStorage.getItem('helios_user');
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        if (user.role !== 'admin') {
-          console.warn('Only administrators can change themes');
+    // Security check - only admins can change themes
+    if (typeof localStorage !== 'undefined') {
+      const userStr = localStorage.getItem('helios_user');
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          if (user.role !== 'admin') {
+            console.warn('Only administrators can change themes');
+            return;
+          }
+        } catch (e) {
+          console.error('Error parsing user data');
           return;
         }
-      } catch (e) {
-        console.error('Error parsing user data');
       }
     }
 
     if (!this.isValidTheme(theme)) {
-      console.warn(`Invalid theme: ${theme}. Using default.`);
-      theme = 'purple';
+      console.warn(`Invalid theme: ${theme}. Using helios-purple.`);
+      theme = 'helios-purple';
     }
 
     this.currentTheme = theme;
-    localStorage.setItem('helios_theme', theme);
+
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('helios_theme', theme);
+    }
+
     this.applyTheme(theme);
   }
 
   private applyTheme(theme: ThemeName): void {
     try {
-      if (document.documentElement) {
+      if (typeof document !== 'undefined' && document.documentElement) {
         document.documentElement.setAttribute('data-theme', theme);
-      }
+        console.log('[ThemeService] Applied theme:', theme);
+        console.log('[ThemeService] data-theme attribute:', document.documentElement.getAttribute('data-theme'));
 
-      // Also update meta theme-color for mobile browsers
-      const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-      const themeConfig = themes.find(t => t.name === theme);
-
-      if (metaThemeColor && themeConfig) {
-        metaThemeColor.setAttribute('content', themeConfig.primaryColor);
+        // Debug: Log computed CSS variables
+        const styles = getComputedStyle(document.documentElement);
+        console.log('[ThemeService] Theme variables:', {
+          'primary-start': styles.getPropertyValue('--theme-primary-start'),
+          'primary-end': styles.getPropertyValue('--theme-primary-end'),
+          'gradient': styles.getPropertyValue('--theme-gradient'),
+          'text-on-gradient': styles.getPropertyValue('--theme-text-on-gradient')
+        });
       }
     } catch (error) {
       console.error('Error applying theme:', error);
@@ -126,17 +142,19 @@ class ThemeService {
     return this.currentTheme;
   }
 
-  public getThemeConfig(): Theme | undefined {
-    return themes.find(t => t.name === this.currentTheme);
+  public getThemeInfo(): Theme | undefined {
+    return availableThemes.find(t => t.id === this.currentTheme);
   }
 
   public getAllThemes(): Theme[] {
-    return themes;
+    return availableThemes;
   }
 
-  // Initialize theme on app load
   public init(): void {
-    this.loadTheme();
+    if (!this.initialized) {
+      this.initialized = true;
+      this.loadTheme();
+    }
   }
 }
 

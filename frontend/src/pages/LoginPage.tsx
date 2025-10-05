@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import './ClientLogin.css';
+import './LoginPage.css';
 
-interface ClientLoginProps {
+interface LoginPageProps {
   onLoginSuccess: (organizationData: any) => void;
   organizationDomain?: string;
   organizationName?: string;
 }
 
-export function ClientLogin({ onLoginSuccess, organizationDomain, organizationName }: ClientLoginProps) {
+export function LoginPage({ onLoginSuccess, organizationDomain, organizationName }: LoginPageProps) {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -66,22 +66,22 @@ export function ClientLogin({ onLoginSuccess, organizationDomain, organizationNa
   };
 
   return (
-    <div className="client-login-container">
-      <div className="client-login-card">
-        <div className="client-login-header">
+    <div className="login-page">
+      <div className="login-form-section">
+        <div className="login-header">
           <h1>🚀 Helios Admin Portal</h1>
           <h2>{organizationName || 'Your Organization'}</h2>
           <p>Administrative Dashboard</p>
         </div>
 
-        <form className="client-login-form" onSubmit={handleSubmit}>
+        <form className="login-form" onSubmit={handleSubmit}>
           {error && (
-            <div className="client-login-error">
+            <div className="login-error">
               ⚠️ {error}
             </div>
           )}
 
-          <div className="form-group">
+          <div className="form-field">
             <label htmlFor="email">Email Address</label>
             <input
               id="email"
@@ -95,7 +95,7 @@ export function ClientLogin({ onLoginSuccess, organizationDomain, organizationNa
             />
           </div>
 
-          <div className="form-group">
+          <div className="form-field">
             <label htmlFor="password">Password</label>
             <input
               id="password"
@@ -110,13 +110,13 @@ export function ClientLogin({ onLoginSuccess, organizationDomain, organizationNa
 
           <button
             type="submit"
-            className="client-login-btn"
+            className="login-button"
             disabled={loading}
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
 
-          <div className="client-login-footer">
+          <div className="login-footer">
             <div className="security-note">
               🔒 Own your API keys, delegate admin access securely
             </div>
@@ -124,22 +124,22 @@ export function ClientLogin({ onLoginSuccess, organizationDomain, organizationNa
         </form>
       </div>
 
-      <div className="client-login-info">
-        <div className="info-card">
+      <div className="login-info-section">
+        <div className="feature-card">
           <h3>🔐 You Own Your Data</h3>
           <p>
             Keep your API keys and service accounts in your infrastructure.
             Helios provides secure administrative access without vendor lock-in.
           </p>
         </div>
-        <div className="info-card">
+        <div className="feature-card">
           <h3>👥 Centralized Administration</h3>
           <p>
             Manage users, permissions, and configurations across Google Workspace,
             Microsoft 365, and other SaaS platforms from one dashboard.
           </p>
         </div>
-        <div className="info-card">
+        <div className="feature-card">
           <h3>⚡ Workflow Automation</h3>
           <p>
             Automate user onboarding, offboarding, and role changes across
