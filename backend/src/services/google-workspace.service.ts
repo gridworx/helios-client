@@ -480,6 +480,18 @@ export class GoogleWorkspaceService {
 
       const orgUnits = response.data.organizationUnits || [];
 
+      // Get user counts from database for each org unit
+      const userCountsResult = await db.query(`
+        SELECT org_unit_path, COUNT(*) as user_count
+        FROM gw_synced_users
+        WHERE organization_id = $1
+        GROUP BY org_unit_path
+      `, [organizationId]);
+
+      const userCounts = new Map(
+        userCountsResult.rows.map((row: any) => [row.org_unit_path, parseInt(row.user_count)])
+      );
+
       logger.info('Retrieved organizational units', {
         organizationId,
         domain,
@@ -488,14 +500,17 @@ export class GoogleWorkspaceService {
 
       return {
         success: true,
-        orgUnits: orgUnits.map((unit: any) => ({
-          id: unit.orgUnitId,
-          name: unit.name,
-          path: unit.orgUnitPath,
-          parentPath: unit.parentOrgUnitPath || null,
-          description: unit.description || '',
-          blockInheritance: unit.blockInheritance || false
-        }))
+        data: {
+          orgUnits: orgUnits.map((unit: any) => ({
+            id: unit.orgUnitId,
+            name: unit.name,
+            path: unit.orgUnitPath,
+            parentPath: unit.parentOrgUnitPath || null,
+            description: unit.description || '',
+            blockInheritance: unit.blockInheritance || false,
+            userCount: userCounts.get(unit.orgUnitPath) || 0
+          }))
+        }
       };
 
     } catch (error: any) {
@@ -523,7 +538,7 @@ export class GoogleWorkspaceService {
         return fetchResult;
       }
 
-      const orgUnits = fetchResult.orgUnits;
+      const orgUnits = fetchResult.data.orgUnits;
 
       // Begin transaction
       await db.query('BEGIN');
@@ -539,16 +554,15 @@ export class GoogleWorkspaceService {
         for (const unit of orgUnits) {
           await db.query(`
             INSERT INTO gw_org_units
-            (id, organization_id, name, path, parent_path, description, external_id, last_synced)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+            (organization_id, google_id, name, path, parent_id, description, last_sync_at)
+            VALUES ($1, $2, $3, $4, $5, $6, NOW())
           `, [
-            unit.id,
             organizationId,
+            unit.id,
             unit.name,
             unit.path,
-            unit.parentPath,
-            unit.description,
-            unit.id
+            unit.parentPath || null,
+            unit.description || null
           ]);
         }
 
@@ -563,8 +577,8 @@ export class GoogleWorkspaceService {
           // Update sync timestamp
           await db.query(`
             UPDATE organization_modules
-            SET last_sync = NOW(),
-                config = config || jsonb_build_object('org_units_count', $3)
+            SET last_sync_at = NOW(),
+                config = config || jsonb_build_object('org_units_count', $3::integer)
             WHERE organization_id = $1 AND module_id = $2
           `, [organizationId, moduleId, orgUnits.length]);
         }
@@ -678,12 +692,75 @@ export class GoogleWorkspaceService {
 
       return {
         success: true,
-        groups
+        data: {
+          groups
+        }
       };
 
     } catch (error: any) {
       logger.error('Failed to fetch groups', {
         organizationId,
+        error: error.message
+      });
+
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Get members of a specific group
+   */
+  async getGroupMembers(organizationId: string, groupId: string): Promise<any> {
+    try {
+      // Get credentials
+      const credResult = await db.query(
+        'SELECT service_account_key, admin_email FROM gw_credentials WHERE organization_id = $1',
+        [organizationId]
+      );
+
+      if (credResult.rows.length === 0) {
+        return { success: false, error: 'No credentials found for this organization' };
+      }
+
+      const { service_account_key, admin_email } = credResult.rows[0];
+      const credentials = JSON.parse(service_account_key);
+
+      // Create admin client
+      const adminClient = this.createAdminClient(credentials, admin_email);
+
+      // Get group members
+      const response = await adminClient.members.list({
+        groupKey: groupId
+      });
+
+      const members = (response.data.members || []).map((member: any) => ({
+        id: member.id,
+        email: member.email,
+        role: member.role,
+        type: member.type,
+        status: member.status
+      }));
+
+      logger.info('Retrieved group members', {
+        organizationId,
+        groupId,
+        memberCount: members.length
+      });
+
+      return {
+        success: true,
+        data: {
+          members
+        }
+      };
+
+    } catch (error: any) {
+      logger.error('Failed to fetch group members', {
+        organizationId,
+        groupId,
         error: error.message
       });
 
@@ -706,7 +783,7 @@ export class GoogleWorkspaceService {
         return fetchResult;
       }
 
-      const groups = fetchResult.groups;
+      const groups = fetchResult.data.groups;
 
       // Begin transaction
       await db.query('BEGIN');
@@ -722,16 +799,15 @@ export class GoogleWorkspaceService {
         for (const group of groups) {
           await db.query(`
             INSERT INTO gw_groups
-            (id, organization_id, name, email, description, member_count, external_id, last_synced)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+            (organization_id, google_id, name, email, description, member_count, last_sync_at)
+            VALUES ($1, $2, $3, $4, $5, $6, NOW())
           `, [
-            group.id,
             organizationId,
+            group.id,
             group.name,
             group.email,
             group.description,
-            group.directMembersCount,
-            group.id
+            group.directMembersCount || 0
           ]);
         }
 
@@ -745,8 +821,8 @@ export class GoogleWorkspaceService {
 
           await db.query(`
             UPDATE organization_modules
-            SET last_sync = NOW(),
-                config = config || jsonb_build_object('groups_count', $3)
+            SET last_sync_at = NOW(),
+                config = config || jsonb_build_object('groups_count', $3::integer)
             WHERE organization_id = $1 AND module_id = $2
           `, [organizationId, moduleId, groups.length]);
         }

@@ -7,6 +7,7 @@ import { Settings } from './components/Settings'
 import { Administrators } from './components/Administrators'
 import { Users } from './pages/Users'
 import { Groups } from './pages/Groups'
+import { GroupDetail } from './pages/GroupDetail'
 import { OrgUnits } from './pages/OrgUnits'
 import { AssetManagement } from './pages/AssetManagement'
 
@@ -48,6 +49,7 @@ function App() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentPage, setCurrentPage] = useState('dashboard');
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [loginOrgName, setLoginOrgName] = useState<string>('');
 
@@ -888,8 +890,19 @@ function App() {
             <Administrators />
           )}
 
-          {currentPage === 'groups' && (
-            <Groups organizationId={config?.organizationId || ''} />
+          {currentPage === 'groups' && !selectedGroupId && (
+            <Groups
+              organizationId={config?.organizationId || ''}
+              onSelectGroup={(groupId: string) => setSelectedGroupId(groupId)}
+            />
+          )}
+
+          {currentPage === 'groups' && selectedGroupId && (
+            <GroupDetail
+              organizationId={config?.organizationId || ''}
+              groupId={selectedGroupId}
+              onBack={() => setSelectedGroupId(null)}
+            />
           )}
 
           {currentPage === 'orgUnits' && (

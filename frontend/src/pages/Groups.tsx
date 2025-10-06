@@ -16,9 +16,10 @@ interface Group {
 interface GroupsProps {
   organizationId: string;
   customLabel?: string;
+  onSelectGroup?: (groupId: string) => void;
 }
 
-export function Groups({ organizationId, customLabel }: GroupsProps) {
+export function Groups({ organizationId, customLabel, onSelectGroup }: GroupsProps) {
   const [groups, setGroups] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -175,7 +176,12 @@ export function Groups({ organizationId, customLabel }: GroupsProps) {
             {filteredGroups.map(group => {
               const platform = getPlatformIcon(group.platform);
               return (
-                <div key={group.id} className="grid-row">
+                <div
+                  key={group.id}
+                  className="grid-row"
+                  onClick={() => onSelectGroup && onSelectGroup(group.id)}
+                  style={{ cursor: onSelectGroup ? 'pointer' : 'default' }}
+                >
                   <div className="col-wide">
                     <div className="item-info">
                       <div className="item-icon">👥</div>

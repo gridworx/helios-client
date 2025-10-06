@@ -393,4 +393,37 @@ router.post('/sync-groups', [
   }
 });
 
+/**
+ * GET /api/google-workspace/groups/:groupId/members
+ * Get members of a specific group
+ */
+router.get('/groups/:groupId/members', async (req: Request, res: Response) => {
+  try {
+    const { groupId } = req.params;
+    const { organizationId } = req.query;
+
+    if (!organizationId) {
+      return res.status(400).json({
+        success: false,
+        error: 'organizationId is required'
+      });
+    }
+
+    logger.info('Fetching group members', { groupId, organizationId });
+
+    const result = await googleWorkspaceService.getGroupMembers(
+      organizationId as string,
+      groupId
+    );
+
+    res.json(result);
+  } catch (error: any) {
+    logger.error('Failed to fetch group members', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch group members'
+    });
+  }
+});
+
 export default router;
