@@ -131,6 +131,71 @@ router.post('/login',
 );
 
 /**
+ * GET /api/auth/verify
+ * Verify JWT token validity
+ */
+router.get('/verify', asyncHandler(async (req: Request, res: Response) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({
+      success: false,
+      error: 'No token provided'
+    });
+  }
+
+  const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+
+    // Verify user still exists and is active
+    const result = await db.query(
+      `SELECT id, email, first_name, last_name, role, is_active, organization_id
+       FROM organization_users
+       WHERE id = $1`,
+      [decoded.userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    const user = result.rows[0];
+
+    if (!user.is_active) {
+      return res.status(401).json({
+        success: false,
+        error: 'Account is disabled'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          role: user.role,
+          organizationId: user.organization_id
+        }
+      }
+    });
+  } catch (error: any) {
+    logger.warn('Token verification failed', { error: error.message });
+    return res.status(401).json({
+      success: false,
+      error: 'Invalid or expired token'
+    });
+  }
+}));
+
+/**
  * POST /api/auth/logout
  */
 router.post('/logout', asyncHandler(async (req: Request, res: Response) => {
