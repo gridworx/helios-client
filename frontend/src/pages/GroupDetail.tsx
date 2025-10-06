@@ -22,11 +22,27 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('members');
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [newMemberEmail, setNewMemberEmail] = useState('');
+  const [newMemberRole, setNewMemberRole] = useState('MEMBER');
+  const [isAddingMember, setIsAddingMember] = useState(false);
+  const [removingMember, setRemovingMember] = useState<string | null>(null);
+  const [isEditingSettings, setIsEditingSettings] = useState(false);
+  const [editedName, setEditedName] = useState('');
+  const [editedDescription, setEditedDescription] = useState('');
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   useEffect(() => {
     fetchGroupDetails();
     fetchGroupMembers();
   }, [groupId, organizationId]);
+
+  useEffect(() => {
+    if (group) {
+      setEditedName(group.name || '');
+      setEditedDescription(group.description || '');
+    }
+  }, [group]);
 
   const fetchGroupDetails = async () => {
     try {
@@ -77,6 +93,118 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
       setError(err.message || 'Failed to fetch group members');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAddMember = async () => {
+    if (!newMemberEmail) {
+      setError('Please enter an email address');
+      return;
+    }
+
+    try {
+      setIsAddingMember(true);
+      setError(null);
+
+      const response = await fetch(
+        `http://localhost:3001/api/google-workspace/groups/${groupId}/members`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
+          },
+          body: JSON.stringify({
+            organizationId,
+            email: newMemberEmail,
+            role: newMemberRole
+          })
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+        setShowAddMemberModal(false);
+        setNewMemberEmail('');
+        setNewMemberRole('MEMBER');
+        await fetchGroupMembers(); // Refresh member list
+      } else {
+        setError(result.error || 'Failed to add member');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to add member');
+    } finally {
+      setIsAddingMember(false);
+    }
+  };
+
+  const handleRemoveMember = async (memberEmail: string) => {
+    if (!confirm(`Are you sure you want to remove ${memberEmail} from this group?`)) {
+      return;
+    }
+
+    try {
+      setRemovingMember(memberEmail);
+      setError(null);
+
+      const response = await fetch(
+        `http://localhost:3001/api/google-workspace/groups/${groupId}/members/${encodeURIComponent(memberEmail)}?organizationId=${organizationId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
+          }
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+        await fetchGroupMembers(); // Refresh member list
+      } else {
+        setError(result.error || 'Failed to remove member');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to remove member');
+    } finally {
+      setRemovingMember(null);
+    }
+  };
+
+  const handleUpdateGroup = async () => {
+    try {
+      setIsSavingSettings(true);
+      setError(null);
+
+      const response = await fetch(
+        `http://localhost:3001/api/google-workspace/groups/${groupId}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
+          },
+          body: JSON.stringify({
+            organizationId,
+            name: editedName,
+            description: editedDescription
+          })
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+        setIsEditingSettings(false);
+        await fetchGroupDetails(); // Refresh group details
+      } else {
+        setError(result.error || 'Failed to update group');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to update group');
+    } finally {
+      setIsSavingSettings(false);
     }
   };
 
@@ -202,7 +330,10 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
                   placeholder="Search members..."
                 />
               </div>
-              <button className="btn-primary">
+              <button
+                className="btn-primary"
+                onClick={() => setShowAddMemberModal(true)}
+              >
                 ➕ Add Member
               </button>
             </div>
@@ -257,7 +388,14 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
                         <span className="type-badge">{member.status || 'ACTIVE'}</span>
                       </div>
                       <div className="col-small">
-                        <button className="btn-icon danger" title="Remove member">🗑️</button>
+                        <button
+                          className="btn-icon danger"
+                          title="Remove member"
+                          onClick={() => handleRemoveMember(member.email)}
+                          disabled={removingMember === member.email}
+                        >
+                          {removingMember === member.email ? '⏳' : '🗑️'}
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -268,10 +406,124 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
         )}
 
         {activeTab === 'settings' && (
-          <div className="empty-state">
-            <span className="empty-icon">⚙️</span>
-            <h3>Group Settings</h3>
-            <p>Group settings will be available here</p>
+          <div style={{ maxWidth: '600px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+              <h2>Group Settings</h2>
+              {!isEditingSettings ? (
+                <button
+                  className="btn-secondary"
+                  onClick={() => setIsEditingSettings(true)}
+                >
+                  ✏️ Edit Settings
+                </button>
+              ) : (
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    className="btn-secondary"
+                    onClick={() => {
+                      setIsEditingSettings(false);
+                      setEditedName(group?.name || '');
+                      setEditedDescription(group?.description || '');
+                      setError(null);
+                    }}
+                    disabled={isSavingSettings}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="btn-primary"
+                    onClick={handleUpdateGroup}
+                    disabled={isSavingSettings}
+                  >
+                    {isSavingSettings ? '⏳ Saving...' : '💾 Save Changes'}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: '#374151' }}>
+                Group Name
+              </label>
+              <input
+                type="text"
+                value={editedName}
+                onChange={(e) => setEditedName(e.target.value)}
+                disabled={!isEditingSettings || isSavingSettings}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  backgroundColor: !isEditingSettings ? '#f9fafb' : 'white'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: '#374151' }}>
+                Description
+              </label>
+              <textarea
+                value={editedDescription}
+                onChange={(e) => setEditedDescription(e.target.value)}
+                disabled={!isEditingSettings || isSavingSettings}
+                rows={4}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  resize: 'vertical',
+                  backgroundColor: !isEditingSettings ? '#f9fafb' : 'white'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: '#374151' }}>
+                Group Email
+              </label>
+              <input
+                type="text"
+                value={group?.email || ''}
+                disabled
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  backgroundColor: '#f9fafb',
+                  color: '#6b7280'
+                }}
+              />
+              <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '0.5rem' }}>
+                Email address cannot be changed
+              </p>
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: '#374151' }}>
+                Group ID
+              </label>
+              <input
+                type="text"
+                value={group?.id || ''}
+                disabled
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  backgroundColor: '#f9fafb',
+                  color: '#6b7280'
+                }}
+              />
+            </div>
           </div>
         )}
 
@@ -283,6 +535,109 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
           </div>
         )}
       </div>
+
+      {/* Add Member Modal */}
+      {showAddMemberModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}
+          onClick={() => setShowAddMemberModal(false)}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '2rem',
+              width: '90%',
+              maxWidth: '500px',
+              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Add Member to Group</h2>
+
+            {error && (
+              <div className="error-message" style={{ margin: '1rem 0', padding: '1rem', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '8px', color: '#dc2626' }}>
+                {error}
+              </div>
+            )}
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: '#374151' }}>
+                Email Address
+              </label>
+              <input
+                type="email"
+                value={newMemberEmail}
+                onChange={(e) => setNewMemberEmail(e.target.value)}
+                placeholder="user@example.com"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '1rem'
+                }}
+                disabled={isAddingMember}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: '#374151' }}>
+                Role
+              </label>
+              <select
+                value={newMemberRole}
+                onChange={(e) => setNewMemberRole(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '1rem'
+                }}
+                disabled={isAddingMember}
+              >
+                <option value="MEMBER">Member</option>
+                <option value="MANAGER">Manager</option>
+                <option value="OWNER">Owner</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+              <button
+                className="btn-secondary"
+                onClick={() => {
+                  setShowAddMemberModal(false);
+                  setNewMemberEmail('');
+                  setNewMemberRole('MEMBER');
+                  setError(null);
+                }}
+                disabled={isAddingMember}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-primary"
+                onClick={handleAddMember}
+                disabled={isAddingMember || !newMemberEmail}
+              >
+                {isAddingMember ? '⏳ Adding...' : '➕ Add Member'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

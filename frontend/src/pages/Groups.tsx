@@ -26,6 +26,11 @@ export function Groups({ organizationId, customLabel, onSelectGroup }: GroupsPro
   const [isSyncing, setIsSyncing] = useState(false);
   const [filterPlatform, setFilterPlatform] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newGroupEmail, setNewGroupEmail] = useState('');
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupDescription, setNewGroupDescription] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     fetchGroups();
@@ -83,6 +88,51 @@ export function Groups({ organizationId, customLabel, onSelectGroup }: GroupsPro
     }
   };
 
+  const handleCreateGroup = async () => {
+    if (!newGroupEmail || !newGroupName) {
+      setError('Please provide both email and group name');
+      return;
+    }
+
+    try {
+      setIsCreating(true);
+      setError(null);
+
+      const response = await fetch(
+        `http://localhost:3001/api/google-workspace/groups`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
+          },
+          body: JSON.stringify({
+            organizationId,
+            email: newGroupEmail,
+            name: newGroupName,
+            description: newGroupDescription
+          })
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+        setShowCreateModal(false);
+        setNewGroupEmail('');
+        setNewGroupName('');
+        setNewGroupDescription('');
+        await fetchGroups(); // Refresh groups list
+      } else {
+        setError(result.error || 'Failed to create group');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to create group');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   const getPlatformIcon = (platform: string) => {
     const icons: Record<string, { icon: string; color: string }> = {
       google_workspace: { icon: 'G', color: '#4285F4' },
@@ -114,7 +164,10 @@ export function Groups({ organizationId, customLabel, onSelectGroup }: GroupsPro
           <h1>Groups</h1>
           <p>Manage groups and distribution lists from connected platforms</p>
         </div>
-        <button className="btn-primary">
+        <button
+          className="btn-primary"
+          onClick={() => setShowCreateModal(true)}
+        >
           ➕ Create Group
         </button>
       </div>
@@ -221,6 +274,129 @@ export function Groups({ organizationId, customLabel, onSelectGroup }: GroupsPro
           </div>
         )}
       </div>
+
+      {/* Create Group Modal */}
+      {showCreateModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}
+          onClick={() => setShowCreateModal(false)}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '2rem',
+              width: '90%',
+              maxWidth: '500px',
+              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Create New Group</h2>
+
+            {error && (
+              <div className="error-message" style={{ margin: '1rem 0', padding: '1rem', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '8px', color: '#dc2626' }}>
+                {error}
+              </div>
+            )}
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: '#374151' }}>
+                Group Email <span style={{ color: '#dc2626' }}>*</span>
+              </label>
+              <input
+                type="email"
+                value={newGroupEmail}
+                onChange={(e) => setNewGroupEmail(e.target.value)}
+                placeholder="group@example.com"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '1rem'
+                }}
+                disabled={isCreating}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: '#374151' }}>
+                Group Name <span style={{ color: '#dc2626' }}>*</span>
+              </label>
+              <input
+                type="text"
+                value={newGroupName}
+                onChange={(e) => setNewGroupName(e.target.value)}
+                placeholder="My Team"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '1rem'
+                }}
+                disabled={isCreating}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: '#374151' }}>
+                Description (Optional)
+              </label>
+              <textarea
+                value={newGroupDescription}
+                onChange={(e) => setNewGroupDescription(e.target.value)}
+                placeholder="Group description..."
+                rows={3}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  resize: 'vertical'
+                }}
+                disabled={isCreating}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+              <button
+                className="btn-secondary"
+                onClick={() => {
+                  setShowCreateModal(false);
+                  setNewGroupEmail('');
+                  setNewGroupName('');
+                  setNewGroupDescription('');
+                  setError(null);
+                }}
+                disabled={isCreating}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-primary"
+                onClick={handleCreateGroup}
+                disabled={isCreating || !newGroupEmail || !newGroupName}
+              >
+                {isCreating ? '⏳ Creating...' : '➕ Create Group'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -426,4 +426,133 @@ router.get('/groups/:groupId/members', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * POST /api/google-workspace/groups/:groupId/members
+ * Add a member to a group
+ */
+router.post('/groups/:groupId/members', [
+  body('organizationId').notEmpty().withMessage('Organization ID is required'),
+  body('email').isEmail().withMessage('Valid email is required'),
+  body('role').optional().isIn(['MEMBER', 'MANAGER', 'OWNER']).withMessage('Invalid role')
+], validateRequest, async (req: Request, res: Response) => {
+  try {
+    const { groupId } = req.params;
+    const { organizationId, email, role } = req.body;
+
+    logger.info('Adding member to group', { groupId, email, role });
+
+    const result = await googleWorkspaceService.addGroupMember(
+      organizationId,
+      groupId,
+      email,
+      role || 'MEMBER'
+    );
+
+    res.json(result);
+  } catch (error: any) {
+    logger.error('Failed to add group member', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to add member to group'
+    });
+  }
+});
+
+/**
+ * DELETE /api/google-workspace/groups/:groupId/members/:memberEmail
+ * Remove a member from a group
+ */
+router.delete('/groups/:groupId/members/:memberEmail', async (req: Request, res: Response) => {
+  try {
+    const { groupId, memberEmail } = req.params;
+    const { organizationId } = req.query;
+
+    if (!organizationId) {
+      return res.status(400).json({
+        success: false,
+        error: 'organizationId is required'
+      });
+    }
+
+    logger.info('Removing member from group', { groupId, memberEmail });
+
+    const result = await googleWorkspaceService.removeGroupMember(
+      organizationId as string,
+      groupId,
+      memberEmail
+    );
+
+    res.json(result);
+  } catch (error: any) {
+    logger.error('Failed to remove group member', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to remove member from group'
+    });
+  }
+});
+
+/**
+ * POST /api/google-workspace/groups
+ * Create a new group
+ */
+router.post('/groups', [
+  body('organizationId').notEmpty().withMessage('Organization ID is required'),
+  body('email').isEmail().withMessage('Valid email is required'),
+  body('name').notEmpty().withMessage('Group name is required'),
+  body('description').optional().isString()
+], validateRequest, async (req: Request, res: Response) => {
+  try {
+    const { organizationId, email, name, description } = req.body;
+
+    logger.info('Creating new group', { email, name });
+
+    const result = await googleWorkspaceService.createGroup(
+      organizationId,
+      email,
+      name,
+      description || ''
+    );
+
+    res.json(result);
+  } catch (error: any) {
+    logger.error('Failed to create group', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create group'
+    });
+  }
+});
+
+/**
+ * PATCH /api/google-workspace/groups/:groupId
+ * Update group settings
+ */
+router.patch('/groups/:groupId', [
+  body('organizationId').notEmpty().withMessage('Organization ID is required'),
+  body('name').optional().isString(),
+  body('description').optional().isString()
+], validateRequest, async (req: Request, res: Response) => {
+  try {
+    const { groupId } = req.params;
+    const { organizationId, name, description } = req.body;
+
+    logger.info('Updating group', { groupId, name, description });
+
+    const result = await googleWorkspaceService.updateGroup(
+      organizationId,
+      groupId,
+      { name, description }
+    );
+
+    res.json(result);
+  } catch (error: any) {
+    logger.error('Failed to update group', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update group'
+    });
+  }
+});
+
 export default router;

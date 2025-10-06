@@ -711,6 +711,230 @@ export class GoogleWorkspaceService {
   }
 
   /**
+   * Add a member to a group
+   */
+  async addGroupMember(organizationId: string, groupId: string, email: string, role: string = 'MEMBER'): Promise<any> {
+    try {
+      const credResult = await db.query(
+        'SELECT service_account_key, admin_email FROM gw_credentials WHERE organization_id = $1',
+        [organizationId]
+      );
+
+      if (credResult.rows.length === 0) {
+        return { success: false, error: 'No credentials found for this organization' };
+      }
+
+      const { service_account_key, admin_email } = credResult.rows[0];
+      const credentials = JSON.parse(service_account_key);
+
+      const adminClient = this.createAdminClient(credentials, admin_email);
+
+      await adminClient.members.insert({
+        groupKey: groupId,
+        requestBody: {
+          email,
+          role
+        }
+      });
+
+      logger.info('Added member to group', {
+        organizationId,
+        groupId,
+        email,
+        role
+      });
+
+      return {
+        success: true,
+        message: `Successfully added ${email} to the group`
+      };
+
+    } catch (error: any) {
+      logger.error('Failed to add group member', {
+        organizationId,
+        groupId,
+        email,
+        error: error.message
+      });
+
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Remove a member from a group
+   */
+  async removeGroupMember(organizationId: string, groupId: string, memberEmail: string): Promise<any> {
+    try {
+      const credResult = await db.query(
+        'SELECT service_account_key, admin_email FROM gw_credentials WHERE organization_id = $1',
+        [organizationId]
+      );
+
+      if (credResult.rows.length === 0) {
+        return { success: false, error: 'No credentials found for this organization' };
+      }
+
+      const { service_account_key, admin_email } = credResult.rows[0];
+      const credentials = JSON.parse(service_account_key);
+
+      const adminClient = this.createAdminClient(credentials, admin_email);
+
+      await adminClient.members.delete({
+        groupKey: groupId,
+        memberKey: memberEmail
+      });
+
+      logger.info('Removed member from group', {
+        organizationId,
+        groupId,
+        memberEmail
+      });
+
+      return {
+        success: true,
+        message: `Successfully removed ${memberEmail} from the group`
+      };
+
+    } catch (error: any) {
+      logger.error('Failed to remove group member', {
+        organizationId,
+        groupId,
+        memberEmail,
+        error: error.message
+      });
+
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Create a new group
+   */
+  async createGroup(organizationId: string, email: string, name: string, description: string): Promise<any> {
+    try {
+      const credResult = await db.query(
+        'SELECT service_account_key, admin_email FROM gw_credentials WHERE organization_id = $1',
+        [organizationId]
+      );
+
+      if (credResult.rows.length === 0) {
+        return { success: false, error: 'No credentials found for this organization' };
+      }
+
+      const { service_account_key, admin_email } = credResult.rows[0];
+      const credentials = JSON.parse(service_account_key);
+
+      const adminClient = this.createAdminClient(credentials, admin_email);
+
+      const response = await adminClient.groups.insert({
+        requestBody: {
+          email,
+          name,
+          description
+        }
+      });
+
+      logger.info('Created new group', {
+        organizationId,
+        groupId: response.data.id,
+        email,
+        name
+      });
+
+      return {
+        success: true,
+        message: `Successfully created group ${name}`,
+        data: {
+          group: {
+            id: response.data.id,
+            email: response.data.email,
+            name: response.data.name,
+            description: response.data.description
+          }
+        }
+      };
+
+    } catch (error: any) {
+      logger.error('Failed to create group', {
+        organizationId,
+        email,
+        name,
+        error: error.message
+      });
+
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Update group settings
+   */
+  async updateGroup(organizationId: string, groupId: string, updates: { name?: string; description?: string }): Promise<any> {
+    try {
+      const credResult = await db.query(
+        'SELECT service_account_key, admin_email FROM gw_credentials WHERE organization_id = $1',
+        [organizationId]
+      );
+
+      if (credResult.rows.length === 0) {
+        return { success: false, error: 'No credentials found for this organization' };
+      }
+
+      const { service_account_key, admin_email } = credResult.rows[0];
+      const credentials = JSON.parse(service_account_key);
+
+      const adminClient = this.createAdminClient(credentials, admin_email);
+
+      const response = await adminClient.groups.patch({
+        groupKey: groupId,
+        requestBody: updates
+      });
+
+      logger.info('Updated group', {
+        organizationId,
+        groupId,
+        updates
+      });
+
+      return {
+        success: true,
+        message: 'Successfully updated group',
+        data: {
+          group: {
+            id: response.data.id,
+            email: response.data.email,
+            name: response.data.name,
+            description: response.data.description
+          }
+        }
+      };
+
+    } catch (error: any) {
+      logger.error('Failed to update group', {
+        organizationId,
+        groupId,
+        updates,
+        error: error.message
+      });
+
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
    * Get members of a specific group
    */
   async getGroupMembers(organizationId: string, groupId: string): Promise<any> {
