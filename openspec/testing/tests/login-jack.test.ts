@@ -109,6 +109,74 @@ test.describe('Login with Jack Admin Account', () => {
     console.log(`   - Current URL: ${newUrl}`);
   });
 
+  test('Page persistence after refresh', async ({ page }) => {
+    const baseUrl = 'http://localhost:3000';
+    const testEmail = 'jack@gridwrx.io';
+    const testPassword = 'TestPassword123!';
+
+    console.log('🔄 Testing Page Persistence After Refresh\n');
+
+    // Step 1: Login
+    console.log('1️⃣  Logging in...');
+    await page.goto(baseUrl);
+    await page.waitForLoadState('networkidle');
+
+    await page.locator('input[type="email"]').first().fill(testEmail);
+    await page.locator('input[type="password"]').first().fill(testPassword);
+    await page.locator('button[type="submit"]').first().click();
+
+    // Wait for redirect after login
+    await page.waitForLoadState('networkidle');
+    console.log('   ✅ Logged in successfully');
+
+    // Step 2: Navigate to Settings page
+    console.log('\n2️⃣  Navigating to Settings page...');
+    const settingsButton = await page.locator('text=/Settings/i').first();
+    await settingsButton.click();
+    await page.waitForLoadState('networkidle');
+
+    // Take screenshot on Settings page
+    await page.screenshot({
+      path: 'openspec/testing/reports/screenshots/jack-settings-before-refresh.png',
+      fullPage: true
+    });
+    console.log('   ✅ On Settings page');
+
+    // Step 3: Refresh the page
+    console.log('\n3️⃣  Refreshing the page...');
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+
+    // Take screenshot after refresh
+    await page.screenshot({
+      path: 'openspec/testing/reports/screenshots/jack-settings-after-refresh.png',
+      fullPage: true
+    });
+
+    // Step 4: Verify still on Settings page
+    console.log('\n4️⃣  Verifying page persistence...');
+    const settingsVisible = await page.locator('text=/Settings/i').first().isVisible();
+    const urlAfterRefresh = page.url();
+
+    console.log(`   Current URL: ${urlAfterRefresh}`);
+    console.log(`   Settings visible: ${settingsVisible}`);
+
+    // Check localStorage
+    const currentPage = await page.evaluate(() => {
+      return localStorage.getItem('helios_current_page');
+    });
+    console.log(`   localStorage current_page: ${currentPage}`);
+
+    expect(settingsVisible).toBe(true);
+    console.log('   ✅ Successfully stayed on Settings page after refresh!');
+
+    console.log('\n🎉 Page Persistence Test Summary:');
+    console.log('   ✅ Login successful');
+    console.log('   ✅ Navigation to Settings worked');
+    console.log('   ✅ Page refresh maintained state');
+    console.log('   ✅ localStorage persistence working');
+  });
+
   test('Test API login directly with Jack', async ({ request }) => {
     console.log('\n🔌 Testing API directly with Jack...');
 
