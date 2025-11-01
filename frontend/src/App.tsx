@@ -48,7 +48,10 @@ function App() {
   const [syncLoading, setSyncLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [currentPage, setCurrentPage] = useState('dashboard');
+  const [currentPage, setCurrentPage] = useState(() => {
+    // Restore current page from localStorage on mount
+    return localStorage.getItem('helios_current_page') || 'dashboard';
+  });
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [loginOrgName, setLoginOrgName] = useState<string>('');
@@ -81,6 +84,13 @@ function App() {
       fetchOrgInfo();
     }
   }, [step, loginOrgName]);
+
+  // Save current page to localStorage whenever it changes
+  useEffect(() => {
+    if (currentPage) {
+      localStorage.setItem('helios_current_page', currentPage);
+    }
+  }, [currentPage]);
 
   const checkConfiguration = async () => {
     try {
