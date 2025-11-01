@@ -1,0 +1,300 @@
+{
+  "config": {
+    "configFile": "D:\\personal-projects\\helios\\helios-client\\playwright.config.ts",
+    "rootDir": "D:/personal-projects/helios/helios-client/openspec",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 2
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        {
+          "outputFolder": "./openspec/testing/reports/html",
+          "open": "never"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "./openspec/testing/reports/results.json"
+        }
+      ],
+      [
+        "junit",
+        {
+          "outputFile": "./openspec/testing/reports/junit.xml"
+        }
+      ],
+      [
+        "list",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "D:/personal-projects/helios/helios-client/openspec/testing/reports/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 2
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "D:/personal-projects/helios/helios-client/openspec",
+        "testIgnore": [],
+        "testMatch": [
+          "**/tests/**/*.test.ts",
+          "**/tests/**/*.spec.ts"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "D:/personal-projects/helios/helios-client/openspec/testing/reports/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 2
+        },
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "D:/personal-projects/helios/helios-client/openspec",
+        "testIgnore": [],
+        "testMatch": [
+          "**/tests/**/*.test.ts",
+          "**/tests/**/*.spec.ts"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "D:/personal-projects/helios/helios-client/openspec/testing/reports/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 2
+        },
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "D:/personal-projects/helios/helios-client/openspec",
+        "testIgnore": [],
+        "testMatch": [
+          "**/tests/**/*.test.ts",
+          "**/tests/**/*.spec.ts"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "D:/personal-projects/helios/helios-client/openspec/testing/reports/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 2
+        },
+        "id": "Mobile Chrome",
+        "name": "Mobile Chrome",
+        "testDir": "D:/personal-projects/helios/helios-client/openspec",
+        "testIgnore": [],
+        "testMatch": [
+          "**/tests/**/*.test.ts",
+          "**/tests/**/*.spec.ts"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "D:/personal-projects/helios/helios-client/openspec/testing/reports/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 2
+        },
+        "id": "Mobile Safari",
+        "name": "Mobile Safari",
+        "testDir": "D:/personal-projects/helios/helios-client/openspec",
+        "testIgnore": [],
+        "testMatch": [
+          "**/tests/**/*.test.ts",
+          "**/tests/**/*.spec.ts"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "D:/personal-projects/helios/helios-client/openspec/testing/reports/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 2
+        },
+        "id": "Microsoft Edge",
+        "name": "Microsoft Edge",
+        "testDir": "D:/personal-projects/helios/helios-client/openspec",
+        "testIgnore": [],
+        "testMatch": [
+          "**/tests/**/*.test.ts",
+          "**/tests/**/*.spec.ts"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "D:/personal-projects/helios/helios-client/openspec/testing/reports/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 2
+        },
+        "id": "Google Chrome",
+        "name": "Google Chrome",
+        "testDir": "D:/personal-projects/helios/helios-client/openspec",
+        "testIgnore": [],
+        "testMatch": [
+          "**/tests/**/*.test.ts",
+          "**/tests/**/*.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.56.1",
+    "workers": 2,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "testing\\tests\\simple-login.test.ts",
+      "file": "testing/tests/simple-login.test.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Simple Login Test",
+          "file": "testing/tests/simple-login.test.ts",
+          "line": 3,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Login page loads and shows form elements",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4924,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Current URL: http://localhost:3000/\n"
+                        },
+                        {
+                          "text": "Found email input with selector: input[type=\"email\"]\n"
+                        },
+                        {
+                          "text": "Found password input with selector: input[type=\"password\"]\n"
+                        },
+                        {
+                          "text": "Found login button with selector: button[type=\"submit\"]\n"
+                        },
+                        {
+                          "text": "Login form found! Attempting to fill and submit...\n"
+                        },
+                        {
+                          "text": "Final URL: http://localhost:3000/\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-01T00:05:47.912Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "8e61bfe5ca7144588098-3f0fd182d75dab9bcf7c",
+              "file": "testing/tests/simple-login.test.ts",
+              "line": 4,
+              "column": 7
+            },
+            {
+              "title": "Check page title and basic structure",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 4107,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Page title: client-portal\n"
+                        },
+                        {
+                          "text": "Page structure: { hasHeader: \u001b[33mfalse\u001b[39m, hasMain: \u001b[33mtrue\u001b[39m, hasFooter: \u001b[33mfalse\u001b[39m }\n"
+                        },
+                        {
+                          "text": "Found 1 interactive elements\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-01T00:05:47.930Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "8e61bfe5ca7144588098-8ff0d0f650076aad427e",
+              "file": "testing/tests/simple-login.test.ts",
+              "line": 118,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-11-01T00:05:46.235Z",
+    "duration": 8367.072,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

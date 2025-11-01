@@ -1,0 +1,23 @@
+<testsuites id="" name="" tests="2" failures="0" skipped="0" errors="0" time="8.367072">
+<testsuite name="testing\tests\simple-login.test.ts" timestamp="2025-11-01T00:05:46.492Z" hostname="chromium" tests="2" failures="0" skipped="0" time="9.031" errors="0">
+<testcase name="Simple Login Test › Login page loads and shows form elements" classname="testing\tests\simple-login.test.ts" time="4.924">
+<system-out>
+<![CDATA[Current URL: http://localhost:3000/
+Found email input with selector: input[type="email"]
+Found password input with selector: input[type="password"]
+Found login button with selector: button[type="submit"]
+Login form found! Attempting to fill and submit...
+Final URL: http://localhost:3000/
+]]>
+</system-out>
+</testcase>
+<testcase name="Simple Login Test › Check page title and basic structure" classname="testing\tests\simple-login.test.ts" time="4.107">
+<system-out>
+<![CDATA[Page title: client-portal
+Page structure: { hasHeader: [33mfalse[39m, hasMain: [33mtrue[39m, hasFooter: [33mfalse[39m }
+Found 1 interactive elements
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>
