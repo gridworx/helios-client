@@ -121,7 +121,23 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
   };
 
   const handleDeleteUser = async () => {
-    if (!confirm(`Are you sure you want to delete ${user.firstName} ${user.lastName}?\n\nThis will soft-delete the user (can be restored within 30 days).`)) return;
+    const warningMessage = user.googleWorkspaceId
+      ? `Delete ${user.firstName} ${user.lastName}?\n\n` +
+        `This will:\n` +
+        `✓ Soft-delete in Helios (restorable within 30 days)\n` +
+        `✓ SUSPEND in Google Workspace (immediate effect)\n\n` +
+        `⚠️ Important:\n` +
+        `• This does NOT delete Google Workspace data\n` +
+        `• User's email, Drive files, Calendar remain intact\n` +
+        `• To fully remove, delete from Google Admin Console\n` +
+        `• Consider transferring data before deletion\n\n` +
+        `Continue with suspension?`
+      : `Delete ${user.firstName} ${user.lastName}?\n\n` +
+        `This will soft-delete the user in Helios.\n` +
+        `User can be restored within 30 days.\n\n` +
+        `Continue?`;
+
+    if (!confirm(warningMessage)) return;
 
     try {
       const token = localStorage.getItem('helios_token');
@@ -129,12 +145,19 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
         `http://localhost:3001/api/organization/users/${user.id}`,
         {
           method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            suspendInGoogle: user.googleWorkspaceId ? true : false
+          })
         }
       );
 
       if (response.ok) {
-        alert('User deleted successfully');
+        const data = await response.json();
+        alert(data.message || 'User deleted successfully');
         onUserUpdated?.();
         onClose();
       } else {

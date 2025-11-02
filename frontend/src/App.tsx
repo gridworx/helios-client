@@ -26,6 +26,7 @@ interface OrganizationStats {
   activeUsers: number;
   suspendedUsers: number;
   adminUsers: number;
+  totalGroups: number;
   lastSync: string | null;
   syncStatus: string;
   errorMessage: string | null;
@@ -708,11 +709,9 @@ function AppContent() {
               {isEntityAvailable(ENTITIES.ACCESS_GROUP) && (
                 <>
                   <span className="stat-separator">•</span>
-                  <span className="stat-item">0 {labels[ENTITIES.ACCESS_GROUP]?.plural || 'Groups'}</span>
+                  <span className="stat-item">{stats?.totalGroups || 0} {labels[ENTITIES.ACCESS_GROUP]?.plural || 'Groups'}</span>
                 </>
               )}
-              <span className="stat-separator">•</span>
-              <span className="stat-item">0 Workflows</span>
             </div>
           </div>
           <button className="icon-btn" title="Notifications">🔔</button>

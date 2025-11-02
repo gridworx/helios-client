@@ -76,11 +76,52 @@ export function ApiKeyWizard({ organizationId, onClose, onSuccess }: ApiKeyWizar
   };
 
   const handlePermissionToggle = (permission: string) => {
+    let newPermissions: string[];
+
+    if (config.permissions.includes(permission)) {
+      // Removing permission
+      newPermissions = config.permissions.filter((p) => p !== permission);
+
+      // If removing read, also remove write and delete
+      if (permission === 'read:users') {
+        newPermissions = newPermissions.filter((p) => p !== 'write:users' && p !== 'delete:users');
+      }
+      if (permission === 'read:groups') {
+        newPermissions = newPermissions.filter((p) => p !== 'write:groups' && p !== 'delete:groups');
+      }
+      if (permission === 'write:users') {
+        newPermissions = newPermissions.filter((p) => p !== 'delete:users');
+      }
+      if (permission === 'write:groups') {
+        newPermissions = newPermissions.filter((p) => p !== 'delete:groups');
+      }
+    } else {
+      // Adding permission
+      newPermissions = [...config.permissions, permission];
+
+      // Auto-enable dependencies
+      if (permission === 'write:users' && !newPermissions.includes('read:users')) {
+        newPermissions.push('read:users');
+      }
+      if (permission === 'delete:users') {
+        if (!newPermissions.includes('read:users')) newPermissions.push('read:users');
+        if (!newPermissions.includes('write:users')) newPermissions.push('write:users');
+      }
+      if (permission === 'write:groups' && !newPermissions.includes('read:groups')) {
+        newPermissions.push('read:groups');
+      }
+      if (permission === 'delete:groups') {
+        if (!newPermissions.includes('read:groups')) newPermissions.push('read:groups');
+        if (!newPermissions.includes('write:groups')) newPermissions.push('write:groups');
+      }
+      if (permission === 'write:organization' && !newPermissions.includes('read:organization')) {
+        newPermissions.push('read:organization');
+      }
+    }
+
     setConfig({
       ...config,
-      permissions: config.permissions.includes(permission)
-        ? config.permissions.filter((p) => p !== permission)
-        : [...config.permissions, permission],
+      permissions: newPermissions,
     });
   };
 

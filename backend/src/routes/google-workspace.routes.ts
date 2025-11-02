@@ -19,7 +19,7 @@ const validateRequest = (req: Request, res: Response, next: NextFunction) => {
 };
 
 /**
- * POST /api/plugins/google-workspace/setup
+ * POST /api/google-workspace/setup
  * Upload service account credentials and setup Domain-Wide Delegation
  */
 router.post('/setup', [
@@ -79,8 +79,8 @@ router.post('/setup', [
 });
 
 /**
- * POST /api/plugins/google-workspace/test-connection
- * Test Domain-Wide Delegation connection
+ * POST /api/google-workspace/test-connection
+ * Test Domain-Wide Delegation connection with stored credentials
  */
 router.post('/test-connection', [
   body('organizationId').notEmpty().withMessage('Organization ID is required'),
@@ -118,7 +118,39 @@ router.post('/test-connection', [
 });
 
 /**
- * GET /api/plugins/google-workspace/users
+ * POST /api/google-workspace/test-credentials
+ * Test Domain-Wide Delegation connection with inline credentials (for wizard)
+ */
+router.post('/test-credentials', [
+  body('serviceAccount').isObject().withMessage('Service account credentials are required'),
+  body('serviceAccount.client_email').isEmail().withMessage('Valid service account email is required'),
+  body('serviceAccount.private_key').notEmpty().withMessage('Private key is required'),
+  body('domain').notEmpty().withMessage('Domain is required'),
+  body('adminEmail').isEmail().withMessage('Valid admin email is required'),
+], validateRequest, async (req: Request, res: Response) => {
+  try {
+    const { serviceAccount, domain, adminEmail } = req.body;
+
+    logger.info('Testing Google Workspace DWD with inline credentials', { domain });
+
+    const result = await googleWorkspaceService.testConnectionWithCredentials(
+      serviceAccount,
+      domain,
+      adminEmail
+    );
+
+    res.json(result);
+  } catch (error: any) {
+    logger.error('Google Workspace credential test failed', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error during credential test'
+    });
+  }
+});
+
+/**
+ * GET /api/google-workspace/users
  * Get Google Workspace users via Domain-Wide Delegation
  */
 router.get('/users', async (req: Request, res: Response) => {
@@ -305,11 +337,11 @@ router.get('/module-status/:organizationId', async (req: Request, res: Response)
         om.is_enabled,
         om.config,
         om.updated_at,
-        m.name,
-        m.slug
+        am.module_name as name,
+        am.module_key as slug
       FROM organization_modules om
-      JOIN modules m ON m.id = om.module_id
-      WHERE om.organization_id = $1 AND m.slug = 'google-workspace'
+      JOIN available_modules am ON am.id = om.module_id
+      WHERE om.organization_id = $1 AND am.module_key = 'google_workspace'
     `, [organizationId]);
 
     if (result.rows.length === 0) {
@@ -328,13 +360,42 @@ router.get('/module-status/:organizationId', async (req: Request, res: Response)
     const module = result.rows[0];
     const config = module.config || {};
 
+    // Get actual user count from gw_synced_users
+    const userCountResult = await db.query(
+      'SELECT COUNT(*) as count FROM gw_synced_users WHERE organization_id = $1',
+      [organizationId]
+    );
+    const userCount = parseInt(userCountResult.rows[0]?.count || '0');
+
+    // Get Google Workspace credentials to show configuration details
+    const credentialsResult = await db.query(
+      'SELECT service_account_json, admin_email FROM gw_credentials WHERE organization_id = $1',
+      [organizationId]
+    );
+
+    let configurationDetails = config;
+    if (credentialsResult.rows.length > 0) {
+      try {
+        const serviceAccount = credentialsResult.rows[0].service_account_json;
+        configurationDetails = {
+          ...config,
+          projectId: serviceAccount.project_id,
+          clientEmail: serviceAccount.client_email,
+          adminEmail: credentialsResult.rows[0].admin_email
+        };
+      } catch (error) {
+        // If parsing fails, just use existing config
+        configurationDetails = config;
+      }
+    }
+
     res.json({
       success: true,
       data: {
         isEnabled: module.is_enabled,
-        userCount: 0, // TODO: Get actual user count from gw_synced_users
+        userCount: userCount,
         lastSync: config.lastSync || null,
-        configuration: config,
+        configuration: configurationDetails,
         updatedAt: module.updated_at
       }
     });
@@ -551,6 +612,53 @@ router.patch('/groups/:groupId', [
     res.status(500).json({
       success: false,
       error: 'Failed to update group'
+    });
+  }
+});
+
+/**
+ * POST /api/google-workspace/disable/:organizationId
+ * Disable Google Workspace module for an organization
+ */
+router.post('/disable/:organizationId', async (req: Request, res: Response) => {
+  try {
+    const { organizationId } = req.params;
+
+    logger.info('Disabling Google Workspace module', { organizationId });
+
+    // Get Google Workspace module ID
+    const moduleResult = await db.query(
+      `SELECT id FROM modules WHERE slug = 'google-workspace' LIMIT 1`
+    );
+
+    if (moduleResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Google Workspace module not found'
+      });
+    }
+
+    const moduleId = moduleResult.rows[0].id;
+
+    // Disable the module for this organization
+    await db.query(`
+      UPDATE organization_modules
+      SET is_enabled = false,
+          updated_at = NOW()
+      WHERE organization_id = $1 AND module_id = $2
+    `, [organizationId, moduleId]);
+
+    logger.info('Google Workspace module disabled', { organizationId });
+
+    res.json({
+      success: true,
+      message: 'Google Workspace module has been disabled'
+    });
+  } catch (error: any) {
+    logger.error('Failed to disable Google Workspace module', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to disable Google Workspace module'
     });
   }
 });
