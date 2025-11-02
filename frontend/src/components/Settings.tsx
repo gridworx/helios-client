@@ -323,10 +323,27 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                       <span className="feature-tag">Domain-Wide Delegation</span>
                       <span className="feature-tag">Automation</span>
                     </div>
-                    {googleWorkspaceStatus.isEnabled && googleWorkspaceStatus.lastSync && (
-                      <p style={{ fontSize: '0.875rem', color: '#666', marginTop: '8px' }}>
-                        Last synced: {new Date(googleWorkspaceStatus.lastSync).toLocaleString()}
-                      </p>
+                    {googleWorkspaceStatus.isEnabled && (
+                      <div style={{ marginTop: '12px', padding: '12px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '6px' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#15803d', fontWeight: '600', marginBottom: '6px' }}>
+                          Configuration Details:
+                        </div>
+                        {googleWorkspaceStatus.configuration?.projectId && (
+                          <div style={{ fontSize: '0.75rem', color: '#166534', marginBottom: '4px' }}>
+                            <strong>Project ID:</strong> <code style={{ background: '#dcfce7', padding: '2px 6px', borderRadius: '3px' }}>{googleWorkspaceStatus.configuration.projectId}</code>
+                          </div>
+                        )}
+                        {googleWorkspaceStatus.configuration?.clientEmail && (
+                          <div style={{ fontSize: '0.75rem', color: '#166534', marginBottom: '4px' }}>
+                            <strong>Service Account:</strong> <code style={{ background: '#dcfce7', padding: '2px 6px', borderRadius: '3px', fontSize: '0.7rem' }}>{googleWorkspaceStatus.configuration.clientEmail}</code>
+                          </div>
+                        )}
+                        {googleWorkspaceStatus.lastSync && (
+                          <div style={{ fontSize: '0.75rem', color: '#166534', marginTop: '6px' }}>
+                            <strong>Last synced:</strong> {new Date(googleWorkspaceStatus.lastSync).toLocaleString()}
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
