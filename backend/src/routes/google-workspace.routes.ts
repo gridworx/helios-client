@@ -369,14 +369,14 @@ router.get('/module-status/:organizationId', async (req: Request, res: Response)
 
     // Get Google Workspace credentials to show configuration details
     const credentialsResult = await db.query(
-      'SELECT service_account_json, admin_email FROM gw_credentials WHERE organization_id = $1',
+      'SELECT service_account_key, admin_email FROM gw_credentials WHERE organization_id = $1',
       [organizationId]
     );
 
     let configurationDetails = config;
     if (credentialsResult.rows.length > 0) {
       try {
-        const serviceAccount = credentialsResult.rows[0].service_account_json;
+        const serviceAccount = JSON.parse(credentialsResult.rows[0].service_account_key);
         configurationDetails = {
           ...config,
           projectId: serviceAccount.project_id,
