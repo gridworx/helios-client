@@ -1,11 +1,14 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { db } from '../database/connection';
 import { logger } from '../utils/logger';
 import { authService } from '../services/auth.service';
 import { authenticateToken } from '../middleware/auth';
+import { PasswordSetupService } from '../services/password-setup.service';
 
 const router = Router();
+
 
 // Check if organization is set up
 router.get('/setup/status', async (req: Request, res: Response) => {
@@ -214,6 +217,15 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
     // Get organizationId from authenticated user or query parameter (fallback to database)
     let organizationId = req.user?.organizationId || req.query.organizationId;
 
+    // Get status filter from query params (active, pending, deleted, all)
+    const statusFilter = (req.query.status as string)?.toLowerCase() || 'all';
+
+    // Get user type filter from query params (staff, guest, contact)
+    const userType = req.query.userType as string;
+
+    // Get guest filter from query params (deprecated - use userType instead)
+    const guestOnly = req.query.guestOnly === 'true';
+
     // If no organizationId, get the only organization (single-tenant)
     if (!organizationId) {
       const orgResult = await db.query('SELECT id FROM organizations LIMIT 1');
@@ -227,7 +239,7 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
       }
     }
 
-    logger.info('Fetching users for organization', { organizationId });
+    logger.info('Fetching users for organization', { organizationId, statusFilter, guestOnly });
 
     // Check if Google Workspace is enabled
     const moduleCheckResult = await db.query(`
@@ -240,9 +252,111 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
     const googleWorkspaceEnabled = moduleCheckResult.rows.length > 0 && moduleCheckResult.rows[0].is_enabled;
 
     let users = [];
+    const userEmailMap = new Map(); // Track users by email to avoid duplicates
 
+    // Build status filter condition
+    let statusCondition = '';
+    if (statusFilter === 'active') {
+      statusCondition = "AND (ou.user_status = 'active' OR ou.is_active = true) AND ou.deleted_at IS NULL";
+    } else if (statusFilter === 'pending') {
+      statusCondition = "AND (ou.user_status = 'pending' OR (ou.is_active = false AND ou.last_login IS NULL)) AND ou.deleted_at IS NULL";
+    } else if (statusFilter === 'deleted') {
+      statusCondition = "AND ou.deleted_at IS NOT NULL";
+    } else {
+      // 'all' or unrecognized - don't filter by status (but exclude soft-deleted by default)
+      statusCondition = "AND ou.deleted_at IS NULL";
+    }
+
+    // Add user type filter condition
+    if (userType) {
+      // Map 'guests' to 'guest' for frontend compatibility
+      const dbUserType = userType === 'guests' ? 'guest' : userType === 'contacts' ? 'contact' : userType;
+      statusCondition += ` AND ou.user_type = '${dbUserType}'`;
+    } else if (guestOnly) {
+      // Fallback to old guest filter for backwards compatibility
+      statusCondition += " AND ou.is_guest = true";
+    }
+
+    // Always fetch local organization users first
+    logger.info('Fetching users from local database');
+    const localUsersResult = await db.query(`
+      SELECT
+        ou.id,
+        ou.email,
+        ou.first_name as firstName,
+        ou.last_name as lastName,
+        ou.role,
+        ou.is_active as isActive,
+        ou.user_status as userStatus,
+        ou.deleted_at as deletedAt,
+        ou.is_guest as isGuest,
+        ou.user_type as userType,
+        ou.guest_expires_at as guestExpiresAt,
+        ou.guest_invited_by as guestInvitedBy,
+        ou.guest_invited_at as guestInvitedAt,
+        ou.company,
+        ou.contact_tags as contactTags,
+        ou.added_by as addedBy,
+        ou.added_at as addedAt,
+        ou.created_at as createdAt,
+        ou.updated_at as updatedAt,
+        ou.status,
+        ou.job_title as jobTitle,
+        ou.department,
+        ou.department_id as departmentId,
+        d.name as departmentName,
+        d.org_unit_path as orgUnitPath,
+        ou.organizational_unit as organizationalUnit,
+        ou.location,
+        ou.reporting_manager_id as reportingManagerId,
+        ou.employee_id as employeeId,
+        ou.employee_type as employeeType,
+        ou.cost_center as costCenter,
+        ou.start_date as startDate,
+        ou.end_date as endDate,
+        ou.bio,
+        ou.mobile_phone as mobilePhone,
+        ou.work_phone as workPhone,
+        ou.work_phone_extension as workPhoneExtension,
+        ou.timezone,
+        ou.preferred_language as preferredLanguage,
+        ou.google_workspace_id as "googleWorkspaceId",
+        ou.microsoft_365_id as "microsoft365Id",
+        ou.github_username as githubUsername,
+        ou.slack_user_id as slackUserId,
+        ou.jumpcloud_user_id as jumpcloudUserId,
+        ou.associate_id as associateId,
+        ou.avatar_url as avatarUrl,
+        ou.google_workspace_sync_status as googleWorkspaceSyncStatus,
+        ou.google_workspace_last_sync as googleWorkspaceLastSync,
+        ou.microsoft_365_sync_status as microsoft365SyncStatus,
+        ou.microsoft_365_last_sync as microsoft365LastSync,
+        ou.last_login as lastLogin
+      FROM organization_users ou
+      LEFT JOIN departments d ON ou.department_id = d.id
+      WHERE ou.organization_id = $1 ${statusCondition}
+      ORDER BY ou.first_name, ou.last_name, ou.email
+    `, [organizationId]);
+
+    // Add local users to the map
+    localUsersResult.rows.forEach((user: any) => {
+      // Determine platforms based on platform IDs
+      const platforms = [];
+      if (user.googleWorkspaceId) platforms.push('google_workspace');
+      if (user.microsoft365Id) platforms.push('microsoft_365');
+      if (platforms.length === 0) platforms.push('local'); // Only local if no platform IDs
+
+      const userData = {
+        ...user,
+        displayName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+        platforms: platforms,
+        source: user.googleWorkspaceId ? 'google_workspace' : (user.microsoft365Id ? 'microsoft_365' : 'local')
+      };
+      userEmailMap.set(user.email.toLowerCase(), userData);
+    });
+
+    // If Google Workspace is enabled, also fetch synced users
     if (googleWorkspaceEnabled) {
-      // Get users from Google Workspace synced data
       logger.info('Fetching users from Google Workspace cache');
       const gwUsersResult = await db.query(`
         SELECT
@@ -264,61 +378,52 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
         ORDER BY full_name, email
       `, [organizationId]);
 
-      users = gwUsersResult.rows.map((user: any) => {
-        // In the future, we could check if user exists in multiple platforms
+      gwUsersResult.rows.forEach((user: any) => {
+        const email = user.email.toLowerCase();
         const platforms = ['google_workspace'];
 
-        // Example: If Microsoft 365 is also enabled and user exists there
-        // if (microsoftEnabled && userExistsInMicrosoft(user.email)) {
-        //   platforms.push('microsoft_365');
-        // }
-
-        return {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstname || user.email.split('@')[0],
-          lastName: user.lastname || '',
-          displayName: user.displayname || `${user.firstname || ''} ${user.lastname || ''}`.trim(),
-          role: user.is_admin ? 'admin' : 'user',
-          isActive: !user.is_suspended,
-          platforms: platforms,
-          department: user.department,
-          jobTitle: user.job_title,
-          lastLogin: user.last_login_time,
-          createdAt: user.creation_time,
-          source: 'google_workspace'
-        };
+        // If user already exists locally, add google_workspace to their platforms
+        if (userEmailMap.has(email)) {
+          const existingUser = userEmailMap.get(email);
+          existingUser.platforms.push('google_workspace');
+          existingUser.googleWorkspaceData = {
+            googleId: user.external_id,
+            department: user.department,
+            jobTitle: user.job_title,
+            lastLogin: user.last_login_time,
+            isSuspended: user.is_suspended
+          };
+        } else {
+          // Add as Google Workspace only user
+          userEmailMap.set(email, {
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName || user.email.split('@')[0],
+            lastName: user.lastName || '',
+            displayName: user.displayName || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+            role: user.is_admin ? 'admin' : 'user',
+            isActive: !user.is_suspended,
+            platforms: platforms,
+            department: user.department,
+            jobTitle: user.job_title,
+            lastLogin: user.last_login_time,
+            createdAt: user.creation_time,
+            source: 'google_workspace'
+          });
+        }
       });
-    } else {
-      // Get users from local organization_users table
-      logger.info('Fetching users from local database');
-      const localUsersResult = await db.query(`
-        SELECT
-          id,
-          email,
-          first_name as firstName,
-          last_name as lastName,
-          role,
-          is_active as isActive,
-          created_at as createdAt,
-          updated_at as updatedAt
-        FROM organization_users
-        WHERE organization_id = $1
-        ORDER BY first_name, last_name, email
-      `, [organizationId]);
-
-      users = localUsersResult.rows.map((user: any) => ({
-        ...user,
-        displayName: `${user.firstname || ''} ${user.lastname || ''}`.trim(),
-        platforms: ['local'],
-        source: 'local'
-      }));
     }
+
+    // Convert map to array
+    users = Array.from(userEmailMap.values());
 
     logger.info('Users fetched', {
       organizationId,
       count: users.length,
-      source: googleWorkspaceEnabled ? 'google_workspace' : 'local'
+      sources: {
+        local: localUsersResult.rows.length,
+        googleWorkspace: googleWorkspaceEnabled ? users.filter(u => u.platforms.includes('google_workspace')).length : 0
+      }
     });
 
     res.json({
@@ -334,6 +439,1065 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch users'
+    });
+  }
+});
+
+/**
+ * GET /api/organization/users/count
+ * Get count of users by user type
+ */
+router.get('/users/count', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    // Get organizationId from authenticated user or query parameter (fallback to database)
+    let organizationId = req.user?.organizationId || req.query.organizationId;
+
+    // Get user type filter from query params
+    const userType = req.query.userType as string;
+
+    // If no organizationId, get the only organization (single-tenant)
+    if (!organizationId) {
+      const orgResult = await db.query('SELECT id FROM organizations LIMIT 1');
+      if (orgResult.rows.length > 0) {
+        organizationId = orgResult.rows[0].id;
+      } else {
+        return res.status(404).json({
+          success: false,
+          error: 'No organization found'
+        });
+      }
+    }
+
+    // Map frontend values to database values
+    const dbUserType = userType === 'guests' ? 'guest' : userType === 'contacts' ? 'contact' : userType;
+
+    logger.info('Fetching user count', { organizationId, userType, dbUserType });
+
+    // Count users by type (exclude soft-deleted)
+    const result = await db.query(
+      `SELECT COUNT(*) as count FROM organization_users
+       WHERE organization_id = $1 AND user_type = $2 AND deleted_at IS NULL`,
+      [organizationId, dbUserType]
+    );
+
+    const count = parseInt(result.rows[0].count) || 0;
+
+    res.json({
+      success: true,
+      data: { count }
+    });
+  } catch (error: any) {
+    logger.error('Failed to count users', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to count users'
+    });
+  }
+});
+
+/**
+ * GET /api/organization/users/:userId
+ * Get a single organization user by ID
+ */
+router.get('/users/:userId', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+
+    // Get organizationId from authenticated user
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Organization ID not found'
+      });
+    }
+
+    logger.info('Fetching user by ID', { userId, organizationId });
+
+    // Fetch user from database
+    const result = await db.query(`
+      SELECT
+        ou.id,
+        ou.email,
+        ou.first_name as firstName,
+        ou.last_name as lastName,
+        ou.role,
+        ou.is_active as isActive,
+        ou.created_at as createdAt,
+        ou.updated_at as updatedAt,
+        ou.status,
+        ou.job_title as jobTitle,
+        ou.professional_designations as professionalDesignations,
+        ou.pronouns,
+        ou.department,
+        ou.department_id as departmentId,
+        d.name as departmentName,
+        d.org_unit_path as orgUnitPath,
+        ou.organizational_unit as organizationalUnit,
+        ou.location,
+        ou.reporting_manager_id as reportingManagerId,
+        ou.employee_id as employeeId,
+        ou.employee_type as employeeType,
+        ou.cost_center as costCenter,
+        ou.start_date as startDate,
+        ou.end_date as endDate,
+        ou.bio,
+        ou.mobile_phone as mobilePhone,
+        ou.work_phone as workPhone,
+        ou.work_phone_extension as workPhoneExtension,
+        ou.timezone,
+        ou.preferred_language as preferredLanguage,
+        ou.google_workspace_id as "googleWorkspaceId",
+        ou.microsoft_365_id as "microsoft365Id",
+        ou.github_username as githubUsername,
+        ou.slack_user_id as slackUserId,
+        ou.jumpcloud_user_id as jumpcloudUserId,
+        ou.associate_id as associateId,
+        ou.avatar_url as avatarUrl,
+        ou.google_workspace_sync_status as googleWorkspaceSyncStatus,
+        ou.google_workspace_last_sync as googleWorkspaceLastSync,
+        ou.microsoft_365_sync_status as microsoft365SyncStatus,
+        ou.microsoft_365_last_sync as microsoft365LastSync,
+        ou.last_login as lastLogin,
+        ou.alternate_email as alternateEmail
+      FROM organization_users ou
+      LEFT JOIN departments d ON ou.department_id = d.id
+      WHERE ou.id = $1 AND ou.organization_id = $2
+    `, [userId, organizationId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    const user = result.rows[0];
+    user.displayName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+
+    res.json({
+      success: true,
+      data: user
+    });
+  } catch (error: any) {
+    logger.error('Failed to fetch user', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch user'
+    });
+  }
+});
+
+/**
+ * POST /api/organization/users
+ * Create a new organization user (manual account creation)
+ */
+router.post('/users', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const {
+      email,
+      password,
+      firstName,
+      lastName,
+      role,
+      alternateEmail,
+      passwordSetupMethod, // 'admin_set' or 'email_link'
+      expiryHours,
+      // Extended profile fields
+      jobTitle,
+      professionalDesignations,
+      pronouns,
+      department,
+      departmentId,
+      organizationalUnit,
+      orgUnitId,
+      location,
+      reportingManagerId,
+      employeeId,
+      employeeType,
+      costCenter,
+      startDate,
+      endDate,
+      bio,
+      // Contact information
+      mobilePhone,
+      workPhone,
+      workPhoneExtension,
+      timezone,
+      preferredLanguage,
+      // Platform integration
+      googleWorkspaceId,
+      microsoft365Id,
+      githubUsername,
+      slackUserId,
+      jumpcloudUserId,
+      associateId,
+      // Avatar
+      avatarUrl
+    } = req.body;
+
+    // Validate required fields
+    const method = passwordSetupMethod || 'admin_set';
+
+    if (!email || !firstName || !lastName) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email, first name, and last name are required'
+      });
+    }
+
+    // If admin sets password, password is required
+    // If email link method, alternate email is required
+    if (method === 'admin_set' && !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Password is required when admin sets password'
+      });
+    }
+
+    if (method === 'email_link' && !alternateEmail) {
+      return res.status(400).json({
+        success: false,
+        error: 'Alternate email is required for password setup link'
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid email format'
+      });
+    }
+
+    // Validate password strength if admin is setting it
+    if (method === 'admin_set' && password && password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        error: 'Password must be at least 8 characters long'
+      });
+    }
+
+    // Validate alternate email format if provided
+    if (alternateEmail && !emailRegex.test(alternateEmail)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid alternate email format'
+      });
+    }
+
+    // Validate role
+    const validRoles = ['admin', 'manager', 'user'];
+    const userRole = role || 'user';
+    if (!validRoles.includes(userRole)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid role. Must be admin, manager, or user'
+      });
+    }
+
+    // Get organizationId from authenticated user
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Organization ID not found'
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = await db.query(
+      'SELECT id FROM organization_users WHERE email = $1 AND organization_id = $2',
+      [email.toLowerCase(), organizationId]
+    );
+
+    if (existingUser.rows.length > 0) {
+      return res.status(409).json({
+        success: false,
+        error: 'User with this email already exists'
+      });
+    }
+
+    // Hash password if admin is setting it, otherwise use a random placeholder
+    let passwordHash = null;
+    if (method === 'admin_set' && password) {
+      passwordHash = await bcrypt.hash(password, 12);
+    } else {
+      // Generate a random password that will never be used (user will set their own)
+      passwordHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
+    }
+
+    // Determine user status
+    const userStatus = method === 'email_link' ? 'invited' : 'active';
+
+    // Create user
+    const result = await db.query(
+      `INSERT INTO organization_users (
+        email, password_hash, first_name, last_name,
+        role, organization_id, is_active, email_verified,
+        alternate_email, password_setup_method, status,
+        job_title, professional_designations, pronouns, department, department_id, organizational_unit, location,
+        reporting_manager_id, employee_id, employee_type, cost_center,
+        start_date, end_date, bio,
+        mobile_phone, work_phone, work_phone_extension, timezone, preferred_language,
+        google_workspace_id, microsoft_365_id, github_username, slack_user_id,
+        jumpcloud_user_id, associate_id,
+        avatar_url,
+        created_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, NOW())
+      RETURNING id, email, first_name, last_name, role, is_active, alternate_email, status, job_title, department, department_id, location, created_at`,
+      [
+        email.toLowerCase(),
+        passwordHash,
+        firstName,
+        lastName,
+        userRole,
+        organizationId,
+        method === 'admin_set', // is_active
+        alternateEmail || null,
+        method,
+        userStatus,
+        jobTitle || null,
+        professionalDesignations || null,
+        pronouns || null,
+        department || null,
+        departmentId || null,
+        organizationalUnit || null,
+        location || null,
+        reportingManagerId || null,
+        employeeId || null,
+        employeeType || 'Full Time',
+        costCenter || null,
+        startDate || null,
+        endDate || null,
+        bio || null,
+        mobilePhone || null,
+        workPhone || null,
+        workPhoneExtension || null,
+        timezone || 'UTC',
+        preferredLanguage || 'en',
+        googleWorkspaceId || null,
+        microsoft365Id || null,
+        githubUsername || null,
+        slackUserId || null,
+        jumpcloudUserId || null,
+        associateId || null,
+        avatarUrl || null
+      ]
+    );
+
+    const newUser = result.rows[0];
+
+    // Log the user creation
+    await db.query(
+      `INSERT INTO audit_logs (user_id, organization_id, action, resource, resource_id, ip_address, user_agent)
+       VALUES ($1, $2, 'create', 'organization_user', $3, $4, $5)`,
+      [req.user?.userId, organizationId, newUser.id, req.ip, req.get('User-Agent') || 'Unknown']
+    );
+
+    // Send password setup email if method is email_link
+    let emailSent = false;
+    if (method === 'email_link' && alternateEmail) {
+      const hours = expiryHours || 48;
+      emailSent = await PasswordSetupService.sendPasswordSetupEmail(
+        newUser.id,
+        organizationId,
+        alternateEmail,
+        hours
+      );
+    }
+
+    logger.info('User created successfully', {
+      userId: newUser.id,
+      email: newUser.email,
+      role: newUser.role,
+      createdBy: req.user?.userId,
+      passwordSetupMethod: method,
+      emailSent: method === 'email_link' ? emailSent : null
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'User created successfully',
+      data: {
+        user: {
+          id: newUser.id,
+          email: newUser.email,
+          firstName: newUser.first_name,
+          lastName: newUser.last_name,
+          role: newUser.role,
+          isActive: newUser.is_active,
+          createdAt: newUser.created_at
+        }
+      }
+    });
+  } catch (error: any) {
+    logger.error('Failed to create user', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create user'
+    });
+  }
+});
+
+/**
+ * PUT /api/organization/users/:userId
+ * Update an existing organization user
+ */
+router.put('/users/:userId', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const {
+      email,
+      firstName,
+      lastName,
+      role,
+      isActive,
+      // Extended profile fields
+      jobTitle,
+      department,
+      organizationalUnit,
+      location,
+      reportingManagerId,
+      employeeId,
+      employeeType,
+      costCenter,
+      startDate,
+      endDate,
+      bio,
+      // Contact information
+      mobilePhone,
+      workPhone,
+      workPhoneExtension,
+      timezone,
+      preferredLanguage,
+      // Platform integration
+      googleWorkspaceId,
+      microsoft365Id,
+      githubUsername,
+      slackUserId,
+      jumpcloudUserId,
+      associateId,
+      // Avatar
+      avatarUrl
+    } = req.body;
+
+    // Get organizationId from authenticated user
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Organization ID not found'
+      });
+    }
+
+    // Check if user exists
+    const existingUser = await db.query(
+      'SELECT id FROM organization_users WHERE id = $1 AND organization_id = $2',
+      [userId, organizationId]
+    );
+
+    if (existingUser.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    // Update user
+    const result = await db.query(
+      `UPDATE organization_users SET
+        email = COALESCE($1, email),
+        first_name = COALESCE($2, first_name),
+        last_name = COALESCE($3, last_name),
+        role = COALESCE($4, role),
+        is_active = COALESCE($5, is_active),
+        job_title = COALESCE($6, job_title),
+        department = COALESCE($7, department),
+        organizational_unit = COALESCE($8, organizational_unit),
+        location = COALESCE($9, location),
+        reporting_manager_id = $10,
+        employee_id = COALESCE($11, employee_id),
+        employee_type = COALESCE($12, employee_type),
+        cost_center = COALESCE($13, cost_center),
+        start_date = $14,
+        end_date = $15,
+        bio = $16,
+        mobile_phone = COALESCE($17, mobile_phone),
+        work_phone = COALESCE($18, work_phone),
+        work_phone_extension = COALESCE($19, work_phone_extension),
+        timezone = COALESCE($20, timezone),
+        preferred_language = COALESCE($21, preferred_language),
+        google_workspace_id = COALESCE($22, google_workspace_id),
+        microsoft_365_id = COALESCE($23, microsoft_365_id),
+        github_username = COALESCE($24, github_username),
+        slack_user_id = COALESCE($25, slack_user_id),
+        jumpcloud_user_id = COALESCE($26, jumpcloud_user_id),
+        associate_id = COALESCE($27, associate_id),
+        avatar_url = COALESCE($28, avatar_url),
+        updated_at = NOW()
+      WHERE id = $29 AND organization_id = $30
+      RETURNING id, email, first_name, last_name, role, is_active, updated_at`,
+      [
+        email,
+        firstName,
+        lastName,
+        role,
+        isActive,
+        jobTitle,
+        department,
+        organizationalUnit,
+        location,
+        reportingManagerId,
+        employeeId,
+        employeeType,
+        costCenter,
+        startDate,
+        endDate,
+        bio,
+        mobilePhone,
+        workPhone,
+        workPhoneExtension,
+        timezone,
+        preferredLanguage,
+        googleWorkspaceId,
+        microsoft365Id,
+        githubUsername,
+        slackUserId,
+        jumpcloudUserId,
+        associateId,
+        avatarUrl,
+        userId,
+        organizationId
+      ]
+    );
+
+    const updatedUser = result.rows[0];
+
+    // Log the user update
+    await db.query(
+      `INSERT INTO audit_logs (user_id, organization_id, action, resource, resource_id, ip_address, user_agent)
+       VALUES ($1, $2, 'update', 'organization_user', $3, $4, $5)`,
+      [req.user?.userId, organizationId, userId, req.ip, req.get('User-Agent') || 'Unknown']
+    );
+
+    logger.info('User updated successfully', {
+      userId: updatedUser.id,
+      email: updatedUser.email,
+      updatedBy: req.user?.userId
+    });
+
+    res.json({
+      success: true,
+      message: 'User updated successfully',
+      data: {
+        user: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          firstName: updatedUser.first_name,
+          lastName: updatedUser.last_name,
+          role: updatedUser.role,
+          isActive: updatedUser.is_active,
+          updatedAt: updatedUser.updated_at
+        }
+      }
+    });
+  } catch (error: any) {
+    logger.error('Failed to update user', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update user'
+    });
+  }
+});
+
+/**
+ * DELETE /api/organization/users/:userId
+ * Soft delete an organization user (can be restored within 30 days)
+ */
+router.delete('/users/:userId', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+
+    // Get organizationId from authenticated user
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Organization ID not found'
+      });
+    }
+
+    // Check if requesting user is admin
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only administrators can delete users'
+      });
+    }
+
+    // Prevent self-deletion
+    if (userId === req.user?.userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'You cannot delete yourself'
+      });
+    }
+
+    // Check if user exists and get their info for the audit log
+    const userResult = await db.query(
+      'SELECT id, email, role, user_status FROM organization_users WHERE id = $1 AND organization_id = $2',
+      [userId, organizationId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    const userToDelete = userResult.rows[0];
+
+    // If deleting an admin, ensure there's at least one other admin
+    if (userToDelete.role === 'admin') {
+      const adminCount = await db.query(`
+        SELECT COUNT(*) as count
+        FROM organization_users
+        WHERE organization_id = $1 AND role = 'admin' AND deleted_at IS NULL
+      `, [organizationId]);
+
+      if (parseInt(adminCount.rows[0].count) <= 1) {
+        return res.status(400).json({
+          success: false,
+          error: 'Cannot delete the last administrator'
+        });
+      }
+    }
+
+    // Get user's Google Workspace ID before deletion
+    const userInfo = await db.query(
+      'SELECT google_workspace_id FROM organization_users WHERE id = $1',
+      [userId]
+    );
+    const googleWorkspaceId = userInfo.rows[0]?.google_workspace_id;
+
+    // Soft delete user by setting deleted_at timestamp
+    await db.query(
+      `UPDATE organization_users
+       SET deleted_at = NOW(), user_status = 'deleted', is_active = false
+       WHERE id = $1 AND organization_id = $2`,
+      [userId, organizationId]
+    );
+
+    // If user is synced from Google Workspace, suspend them there too
+    let googleSyncMessage = '';
+    if (googleWorkspaceId && req.body?.suspendInGoogle !== false) {
+      const { googleWorkspaceService } = await import('../services/google-workspace.service');
+      const suspendResult = await googleWorkspaceService.suspendUser(organizationId, googleWorkspaceId);
+
+      if (suspendResult.success) {
+        googleSyncMessage = ' and suspended in Google Workspace';
+        logger.info('User suspended in Google Workspace', { googleWorkspaceId });
+      } else {
+        googleSyncMessage = ' (Note: Could not suspend in Google Workspace - ' + suspendResult.error + ')';
+        logger.warn('Could not suspend user in Google Workspace', {
+          googleWorkspaceId,
+          error: suspendResult.error
+        });
+      }
+    }
+
+    // Log the user deletion using the new activity_logs table
+    await db.query(
+      `SELECT log_activity(
+        $1::uuid,
+        $2::varchar,
+        $3::uuid,
+        $4::uuid,
+        $5::varchar,
+        $6::varchar,
+        $7::text
+      )`,
+      [
+        organizationId,
+        'user_deleted',
+        userId,
+        req.user?.userId,
+        'user',
+        userId,
+        `User ${userToDelete.email} was soft deleted${googleSyncMessage}`
+      ]
+    );
+
+    logger.info('User soft deleted successfully', {
+      userId: userToDelete.id,
+      email: userToDelete.email,
+      deletedBy: req.user?.userId,
+      googleSynced: !!googleSyncMessage
+    });
+
+    res.json({
+      success: true,
+      message: `User deleted successfully (can be restored within 30 days)${googleSyncMessage}`
+    });
+  } catch (error: any) {
+    logger.error('Failed to delete user', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete user'
+    });
+  }
+});
+
+/**
+ * PATCH /api/organization/users/:userId/status
+ * Change user status (active, pending, suspended)
+ */
+router.patch('/users/:userId/status', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const { status } = req.body;
+
+    // Validate status
+    const validStatuses = ['active', 'pending', 'suspended'];
+    if (!status || !validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid status. Must be active, pending, or suspended'
+      });
+    }
+
+    // Get organizationId from authenticated user
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Organization ID not found'
+      });
+    }
+
+    // Check if requesting user is admin or manager
+    if (req.user?.role !== 'admin' && req.user?.role !== 'manager') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only administrators and managers can change user status'
+      });
+    }
+
+    // Get current user info
+    const userResult = await db.query(
+      'SELECT id, email, user_status FROM organization_users WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL',
+      [userId, organizationId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    const oldStatus = userResult.rows[0].user_status;
+
+    // Update user status
+    const isActive = status === 'active';
+    await db.query(
+      `UPDATE organization_users
+       SET user_status = $1, is_active = $2, updated_at = NOW()
+       WHERE id = $3 AND organization_id = $4`,
+      [status, isActive, userId, organizationId]
+    );
+
+    // Log the status change
+    await db.query(
+      `SELECT log_activity(
+        $1::uuid,
+        $2::varchar,
+        $3::uuid,
+        $4::uuid,
+        $5::varchar,
+        $6::varchar,
+        $7::text,
+        $8::jsonb
+      )`,
+      [
+        organizationId,
+        'user_status_changed',
+        userId,
+        req.user?.userId,
+        'user',
+        userId,
+        `User status changed from ${oldStatus} to ${status}`,
+        JSON.stringify({ old_status: oldStatus, new_status: status })
+      ]
+    );
+
+    logger.info('User status changed', {
+      userId,
+      oldStatus,
+      newStatus: status,
+      changedBy: req.user?.userId
+    });
+
+    res.json({
+      success: true,
+      message: 'User status updated successfully',
+      data: {
+        userId,
+        status,
+        isActive
+      }
+    });
+  } catch (error: any) {
+    logger.error('Failed to update user status', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update user status'
+    });
+  }
+});
+
+/**
+ * PATCH /api/organization/users/:userId/restore
+ * Restore a soft-deleted user
+ */
+router.patch('/users/:userId/restore', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+
+    // Get organizationId from authenticated user
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Organization ID not found'
+      });
+    }
+
+    // Check if requesting user is admin
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only administrators can restore users'
+      });
+    }
+
+    // Check if user exists and is deleted
+    const userResult = await db.query(
+      'SELECT id, email, deleted_at FROM organization_users WHERE id = $1 AND organization_id = $2',
+      [userId, organizationId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    const user = userResult.rows[0];
+
+    if (!user.deleted_at) {
+      return res.status(400).json({
+        success: false,
+        error: 'User is not deleted'
+      });
+    }
+
+    // Check if deletion was more than 30 days ago
+    const deletedDate = new Date(user.deleted_at);
+    const daysSinceDeleted = Math.floor((Date.now() - deletedDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (daysSinceDeleted > 30) {
+      return res.status(400).json({
+        success: false,
+        error: 'User was deleted more than 30 days ago and cannot be restored'
+      });
+    }
+
+    // Restore user by clearing deleted_at and setting status to active
+    await db.query(
+      `UPDATE organization_users
+       SET deleted_at = NULL, user_status = 'active', is_active = true, updated_at = NOW()
+       WHERE id = $1 AND organization_id = $2`,
+      [userId, organizationId]
+    );
+
+    // Log the user restoration
+    await db.query(
+      `SELECT log_activity(
+        $1::uuid,
+        $2::varchar,
+        $3::uuid,
+        $4::uuid,
+        $5::varchar,
+        $6::varchar,
+        $7::text
+      )`,
+      [
+        organizationId,
+        'user_restored',
+        userId,
+        req.user?.userId,
+        'user',
+        userId,
+        `User ${user.email} was restored after ${daysSinceDeleted} days`
+      ]
+    );
+
+    logger.info('User restored successfully', {
+      userId: user.id,
+      email: user.email,
+      restoredBy: req.user?.userId,
+      daysSinceDeleted
+    });
+
+    res.json({
+      success: true,
+      message: 'User restored successfully',
+      data: {
+        userId: user.id,
+        email: user.email,
+        daysSinceDeleted
+      }
+    });
+  } catch (error: any) {
+    logger.error('Failed to restore user', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to restore user'
+    });
+  }
+});
+
+/**
+ * GET /api/organization/users/:userId/activity
+ * Get activity log for a specific user
+ */
+router.get('/users/:userId/activity', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const limit = parseInt(req.query.limit as string) || 50;
+    const offset = parseInt(req.query.offset as string) || 0;
+
+    // Get organizationId from authenticated user
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Organization ID not found'
+      });
+    }
+
+    // Fetch activity logs for this user
+    const result = await db.query(`
+      SELECT
+        al.id,
+        al.action,
+        al.description,
+        al.metadata,
+        al.ip_address as ipAddress,
+        al.created_at as timestamp,
+        actor.email as actorEmail,
+        actor.first_name as actorFirstName,
+        actor.last_name as actorLastName
+      FROM activity_logs al
+      LEFT JOIN organization_users actor ON al.actor_id = actor.id
+      WHERE al.organization_id = $1 AND al.user_id = $2
+      ORDER BY al.created_at DESC
+      LIMIT $3 OFFSET $4
+    `, [organizationId, userId, limit, offset]);
+
+    // Get total count
+    const countResult = await db.query(`
+      SELECT COUNT(*) as total
+      FROM activity_logs
+      WHERE organization_id = $1 AND user_id = $2
+    `, [organizationId, userId]);
+
+    const total = parseInt(countResult.rows[0].total);
+
+    logger.info('Activity logs fetched', {
+      userId,
+      count: result.rows.length,
+      total
+    });
+
+    res.json({
+      success: true,
+      data: result.rows,
+      meta: {
+        total,
+        limit,
+        offset,
+        hasMore: offset + result.rows.length < total
+      }
+    });
+  } catch (error: any) {
+    logger.error('Failed to fetch activity logs', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch activity logs'
+    });
+  }
+});
+
+/**
+ * GET /api/organization/users/:userId/groups
+ * Get groups for a specific user
+ */
+router.get('/users/:userId/groups', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+
+    // Get organizationId from authenticated user
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Organization ID not found'
+      });
+    }
+
+    // Fetch groups for this user from gw_groups table
+    const result = await db.query(`
+      SELECT DISTINCT
+        g.id,
+        g.google_id as externalId,
+        g.name,
+        g.email,
+        g.description,
+        g.member_count as memberCount,
+        'google_workspace' as source
+      FROM gw_groups g
+      JOIN gw_group_members gm ON g.id = gm.group_id
+      WHERE g.organization_id = $1
+        AND gm.member_email = (
+          SELECT email FROM organization_users WHERE id = $2
+        )
+      ORDER BY g.name
+    `, [organizationId, userId]);
+
+    logger.info('User groups fetched', {
+      userId,
+      count: result.rows.length
+    });
+
+    res.json({
+      success: true,
+      data: result.rows,
+      meta: {
+        total: result.rows.length
+      }
+    });
+  } catch (error: any) {
+    logger.error('Failed to fetch user groups', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch user groups'
     });
   }
 });
@@ -370,6 +1534,19 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
     const googleWorkspaceEnabled = moduleCheckResult.rows.length > 0 && moduleCheckResult.rows[0].is_enabled;
     const lastSync = moduleCheckResult.rows.length > 0 ? moduleCheckResult.rows[0].last_sync_at : null;
 
+    // Always get stats from local users first
+    const localStatsResult = await db.query(`
+      SELECT
+        COUNT(*) as total_users,
+        COUNT(CASE WHEN is_active = true THEN 1 END) as active_users,
+        COUNT(CASE WHEN is_active = false THEN 1 END) as inactive_users,
+        COUNT(CASE WHEN role = 'admin' THEN 1 END) as admin_users
+      FROM organization_users
+      WHERE organization_id = $1
+    `, [organizationId]);
+
+    const localStats = localStatsResult.rows[0];
+
     let stats: {
       totalUsers: number;
       activeUsers: number;
@@ -378,19 +1555,31 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
       totalGroups: number;
       lastSync: Date | null;
       source: string;
+      localUsers?: number;
+      googleWorkspaceUsers?: number;
     } = {
-      totalUsers: 0,
-      activeUsers: 0,
-      suspendedUsers: 0,
-      adminUsers: 0,
+      totalUsers: parseInt(localStats.total_users) || 0,
+      activeUsers: parseInt(localStats.active_users) || 0,
+      suspendedUsers: parseInt(localStats.inactive_users) || 0,
+      adminUsers: parseInt(localStats.admin_users) || 0,
       totalGroups: 0,
       lastSync: null,
-      source: 'local'
+      source: googleWorkspaceEnabled ? 'combined' : 'local',
+      localUsers: parseInt(localStats.total_users) || 0
     };
 
+    // Get group count
+    const groupCountResult = await db.query(`
+      SELECT COUNT(*) as total_groups
+      FROM gw_groups
+      WHERE organization_id = $1
+    `, [organizationId]);
+
+    stats.totalGroups = parseInt(groupCountResult.rows[0].total_groups) || 0;
+
+    // If Google Workspace is enabled, also get those stats
     if (googleWorkspaceEnabled) {
-      // Get stats from Google Workspace synced data
-      const userStatsResult = await db.query(`
+      const gwStatsResult = await db.query(`
         SELECT
           COUNT(*) as total_users,
           COUNT(CASE WHEN is_suspended = false THEN 1 END) as active_users,
@@ -400,40 +1589,25 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
         WHERE organization_id = $1
       `, [organizationId]);
 
-      const userStats = userStatsResult.rows[0];
+      const gwStats = gwStatsResult.rows[0];
+      const gwTotal = parseInt(gwStats.total_users) || 0;
 
-      // TODO: Add groups count when groups table is implemented
-      stats = {
-        totalUsers: parseInt(userStats.total_users) || 0,
-        activeUsers: parseInt(userStats.active_users) || 0,
-        suspendedUsers: parseInt(userStats.suspended_users) || 0,
-        adminUsers: parseInt(userStats.admin_users) || 0,
-        totalGroups: 0, // TODO: implement groups sync
-        lastSync: lastSync,
-        source: 'google_workspace'
-      };
-    } else {
-      // Get stats from local users
-      const localStatsResult = await db.query(`
-        SELECT
-          COUNT(*) as total_users,
-          COUNT(CASE WHEN is_active = true THEN 1 END) as active_users,
-          COUNT(CASE WHEN is_active = false THEN 1 END) as inactive_users,
-          COUNT(CASE WHEN role = 'admin' THEN 1 END) as admin_users
-        FROM organization_users
-        WHERE organization_id = $1
+      // Add Google Workspace user count
+      stats.googleWorkspaceUsers = gwTotal;
+
+      // For combined stats, we count unique users by email
+      // Users in both systems count once, so we need to deduplicate
+      const combinedCountResult = await db.query(`
+        SELECT COUNT(DISTINCT email) as unique_users
+        FROM (
+          SELECT email FROM organization_users WHERE organization_id = $1 AND deleted_at IS NULL
+          UNION
+          SELECT email FROM gw_synced_users WHERE organization_id = $1
+        ) combined
       `, [organizationId]);
 
-      const localStats = localStatsResult.rows[0];
-      stats = {
-        totalUsers: parseInt(localStats.total_users) || 0,
-        activeUsers: parseInt(localStats.active_users) || 0,
-        suspendedUsers: parseInt(localStats.inactive_users) || 0,
-        adminUsers: parseInt(localStats.admin_users) || 0,
-        totalGroups: 0,
-        lastSync: null,
-        source: 'local'
-      };
+      stats.totalUsers = parseInt(combinedCountResult.rows[0].unique_users) || 0;
+      stats.lastSync = lastSync;
     }
 
     res.json({

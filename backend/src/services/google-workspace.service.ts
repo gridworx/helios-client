@@ -113,6 +113,17 @@ export class GoogleWorkspaceService {
   }
 
   /**
+   * Test connection with inline credentials (wrapper for testConnectionWithDelegation)
+   */
+  async testConnectionWithCredentials(
+    serviceAccount: ServiceAccountCredentials,
+    domain: string,
+    adminEmail: string
+  ): Promise<ConnectionTestResult> {
+    return this.testConnectionWithDelegation(serviceAccount, adminEmail, domain);
+  }
+
+  /**
    * Store service account credentials for an organization with Domain-Wide Delegation
    */
   async storeServiceAccountCredentials(
@@ -1013,14 +1024,41 @@ export class GoogleWorkspaceService {
       await db.query('BEGIN');
 
       try {
-        // Clear existing groups for this organization
+        // Clear existing Google Workspace groups for this organization
+        // Note: Only delete groups from google_workspace platform
+        await db.query(
+          'DELETE FROM access_groups WHERE organization_id = $1 AND platform = $2',
+          [organizationId, 'google_workspace']
+        );
+
+        // Also maintain gw_groups for backward compatibility (will be deprecated)
         await db.query(
           'DELETE FROM gw_groups WHERE organization_id = $1',
           [organizationId]
         );
 
-        // Insert new groups
+        // Insert new groups into access_groups table
         for (const group of groups) {
+          // Insert into new canonical access_groups table
+          await db.query(`
+            INSERT INTO access_groups
+            (organization_id, name, email, description, platform, group_type, external_id, synced_at, metadata)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8)
+          `, [
+            organizationId,
+            group.name,
+            group.email,
+            group.description || '',
+            'google_workspace',
+            'google_group',
+            group.id,
+            JSON.stringify({
+              directMembersCount: group.directMembersCount || 0,
+              adminCreated: group.adminCreated || false
+            })
+          ]);
+
+          // Also insert into gw_groups for backward compatibility
           await db.query(`
             INSERT INTO gw_groups
             (organization_id, google_id, name, email, description, member_count, last_sync_at)
@@ -1075,6 +1113,111 @@ export class GoogleWorkspaceService {
         success: false,
         error: error.message
       };
+    }
+  }
+
+  /**
+   * Suspend a user in Google Workspace
+   */
+  async suspendUser(organizationId: string, googleWorkspaceId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        return { success: false, error: 'Google Workspace not configured' };
+      }
+
+      const adminEmail = await this.getAdminEmail(organizationId);
+      if (!adminEmail) {
+        return { success: false, error: 'Admin email not configured' };
+      }
+
+      const jwtClient = new JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: ['https://www.googleapis.com/auth/admin.directory.user'],
+        subject: adminEmail
+      });
+
+      const admin = google.admin({ version: 'directory_v1', auth: jwtClient });
+
+      // Suspend the user
+      await admin.users.update({
+        userKey: googleWorkspaceId,
+        requestBody: {
+          suspended: true
+        }
+      });
+
+      logger.info('User suspended in Google Workspace', { googleWorkspaceId });
+
+      return { success: true };
+    } catch (error: any) {
+      logger.error('Failed to suspend user in Google Workspace', {
+        googleWorkspaceId,
+        error: error.message
+      });
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get groups that a user belongs to
+   */
+  async getUserGroups(organizationId: string, googleWorkspaceId: string): Promise<any> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        throw new Error('Google Workspace not configured');
+      }
+
+      const adminEmail = await this.getAdminEmail(organizationId);
+      if (!adminEmail) {
+        throw new Error('Admin email not configured');
+      }
+
+      const jwtClient = new JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: ['https://www.googleapis.com/auth/admin.directory.group.readonly'],
+        subject: adminEmail
+      });
+
+      const admin = google.admin({ version: 'directory_v1', auth: jwtClient });
+
+      // Get all groups for the user
+      const response = await admin.groups.list({
+        userKey: googleWorkspaceId
+      });
+
+      return {
+        success: true,
+        data: response.data.groups || []
+      };
+    } catch (error: any) {
+      logger.error('Failed to get user groups', {
+        googleWorkspaceId,
+        error: error.message
+      });
+      return {
+        success: false,
+        error: error.message,
+        data: []
+      };
+    }
+  }
+
+  /**
+   * Get admin email from credentials
+   */
+  private async getAdminEmail(organizationId: string): Promise<string | null> {
+    try {
+      const result = await db.query(
+        'SELECT admin_email FROM gw_credentials WHERE organization_id = $1',
+        [organizationId]
+      );
+      return result.rows[0]?.admin_email || null;
+    } catch (error) {
+      return null;
     }
   }
 }

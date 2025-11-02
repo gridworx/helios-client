@@ -413,18 +413,11 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
 
               <div className="security-section">
                 <div className="security-card">
-                  <h3><Key size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />API Keys</h3>
-                  <p>Generate API keys for external access and MSP delegation</p>
-                  <button className="btn-primary">+ Create API Key</button>
-                </div>
-
-                <div className="security-card">
-                  <h3><Lock size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />Change Password</h3>
-                  <p>Update your account password</p>
+                  <h3><Lock size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />Password Management</h3>
+                  <p>Update your account password and manage password policies</p>
                   <button
                     className="btn-primary"
                     onClick={() => {
-                      // Will implement password change modal
                       setShowPasswordModal(true);
                     }}
                   >
@@ -433,22 +426,36 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                 </div>
 
                 <div className="security-card">
-                  <h3><Shield size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />Authentication</h3>
+                  <h3><Shield size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />Authentication Methods</h3>
                   <p>Configure login methods and session settings</p>
                   <div className="auth-options">
                     <label className="checkbox-label">
                       <input type="checkbox" checked readOnly />
                       <span>Email/Password Login</span>
                     </label>
-                    <label className="checkbox-label">
-                      <input type="checkbox" />
-                      <span>Single Sign-On (SSO)</span>
+                    <label className="checkbox-label" title="Coming in v1.1">
+                      <input type="checkbox" disabled />
+                      <span style={{ color: '#9ca3af' }}>Single Sign-On (SSO) - Coming Soon</span>
                     </label>
-                    <label className="checkbox-label">
-                      <input type="checkbox" />
-                      <span>Two-Factor Authentication</span>
+                    <label className="checkbox-label" title="Coming in v1.1">
+                      <input type="checkbox" disabled />
+                      <span style={{ color: '#9ca3af' }}>Two-Factor Authentication - Coming Soon</span>
                     </label>
                   </div>
+                </div>
+
+                <div className="security-card">
+                  <h3><Key size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />API Keys & Integrations</h3>
+                  <p>Manage organization-wide API keys for external access and integrations</p>
+                  <button
+                    className="btn-secondary"
+                    onClick={() => setActiveTab('integrations')}
+                  >
+                    Go to Integrations →
+                  </button>
+                  <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '8px' }}>
+                    API key management is available in the Integrations tab
+                  </p>
                 </div>
               </div>
             </div>
