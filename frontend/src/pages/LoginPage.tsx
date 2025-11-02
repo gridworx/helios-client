@@ -53,7 +53,6 @@ export function LoginPage({ onLoginSuccess, organizationDomain, organizationName
           }));
         }
 
-        console.log('Login successful, calling onLoginSuccess with:', data);
         onLoginSuccess(data);
       } else {
         setError(data.error || 'Login failed');

@@ -121,17 +121,6 @@ class ThemeService {
     try {
       if (typeof document !== 'undefined' && document.documentElement) {
         document.documentElement.setAttribute('data-theme', theme);
-        console.log('[ThemeService] Applied theme:', theme);
-        console.log('[ThemeService] data-theme attribute:', document.documentElement.getAttribute('data-theme'));
-
-        // Debug: Log computed CSS variables
-        const styles = getComputedStyle(document.documentElement);
-        console.log('[ThemeService] Theme variables:', {
-          'primary-start': styles.getPropertyValue('--theme-primary-start'),
-          'primary-end': styles.getPropertyValue('--theme-primary-end'),
-          'gradient': styles.getPropertyValue('--theme-gradient'),
-          'text-on-gradient': styles.getPropertyValue('--theme-text-on-gradient')
-        });
       }
     } catch (error) {
       console.error('Error applying theme:', error);

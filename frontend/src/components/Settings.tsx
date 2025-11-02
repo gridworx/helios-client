@@ -2,6 +2,12 @@ import { useState, useEffect } from 'react';
 import './Settings.css';
 import { RolesManagement } from './RolesManagement';
 import { ThemeSelector } from './ThemeSelector';
+import GoogleWorkspaceWizard from './modules/GoogleWorkspaceWizard';
+import { ApiKeyList } from './integrations/ApiKeyList';
+import { ApiKeyWizard } from './integrations/ApiKeyWizard';
+import { ApiKeyShowOnce } from './integrations/ApiKeyShowOnce';
+import { useTabPersistence } from '../hooks/useTabPersistence';
+import { Package, Building2, Shield, Lock, Palette, Settings as SettingsIcon, Key, Search as SearchIcon, RefreshCw, BarChart3, Wrench, Tag, Info } from 'lucide-react';
 
 interface SettingsProps {
   organizationName: string;
@@ -21,7 +27,7 @@ interface ModuleStatus {
 }
 
 export function Settings({ organizationName, domain, organizationId, showPasswordModal: externalShowPasswordModal, onPasswordModalChange, currentUser }: SettingsProps) {
-  const [activeTab, setActiveTab] = useState('modules');
+  const [activeTab, setActiveTab] = useTabPersistence<'modules' | 'organization' | 'roles' | 'security' | 'customization' | 'integrations' | 'advanced'>('helios_settings_tab', 'modules');
   const [showModuleConfig, setShowModuleConfig] = useState(false);
   const [configuringModule, setConfiguringModule] = useState<string | null>(null);
   const [adminEmail, setAdminEmail] = useState('');
@@ -58,6 +64,8 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
     workflows: 'Workflows',
     templates: 'Templates'
   });
+  const [showApiKeyWizard, setShowApiKeyWizard] = useState(false);
+  const [newApiKeyData, setNewApiKeyData] = useState<any>(null);
 
   // Fetch module status on component mount
   useEffect(() => {
@@ -94,42 +102,49 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
               className={`settings-nav-item ${activeTab === 'modules' ? 'active' : ''}`}
               onClick={() => setActiveTab('modules')}
             >
-              <span className="nav-icon">🔧</span>
+              <Package className="nav-icon" size={16} />
               <span>Modules</span>
             </button>
             <button
               className={`settings-nav-item ${activeTab === 'organization' ? 'active' : ''}`}
               onClick={() => setActiveTab('organization')}
             >
-              <span className="nav-icon">🏢</span>
+              <Building2 className="nav-icon" size={16} />
               <span>Organization</span>
             </button>
             <button
               className={`settings-nav-item ${activeTab === 'roles' ? 'active' : ''}`}
               onClick={() => setActiveTab('roles')}
             >
-              <span className="nav-icon">🎭</span>
+              <Shield className="nav-icon" size={16} />
               <span>Roles</span>
             </button>
             <button
               className={`settings-nav-item ${activeTab === 'security' ? 'active' : ''}`}
               onClick={() => setActiveTab('security')}
             >
-              <span className="nav-icon">🔒</span>
+              <Lock className="nav-icon" size={16} />
               <span>Security</span>
             </button>
             <button
               className={`settings-nav-item ${activeTab === 'customization' ? 'active' : ''}`}
               onClick={() => setActiveTab('customization')}
             >
-              <span className="nav-icon">🎨</span>
+              <Palette className="nav-icon" size={16} />
               <span>Customization</span>
+            </button>
+            <button
+              className={`settings-nav-item ${activeTab === 'integrations' ? 'active' : ''}`}
+              onClick={() => setActiveTab('integrations')}
+            >
+              <Key className="nav-icon" size={16} />
+              <span>Integrations</span>
             </button>
             <button
               className={`settings-nav-item ${activeTab === 'advanced' ? 'active' : ''}`}
               onClick={() => setActiveTab('advanced')}
             >
-              <span className="nav-icon">⚙️</span>
+              <SettingsIcon className="nav-icon" size={16} />
               <span>Advanced</span>
             </button>
           </nav>
@@ -147,7 +162,7 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                 <div className="module-card">
                   <div className="module-header">
                     <div className="module-info">
-                      <div className="module-icon">🔧</div>
+                      <div className="module-icon"><Package size={24} /></div>
                       <div className="module-details">
                         <h3>Google Workspace</h3>
                         <p>Manage users, groups, and settings</p>
@@ -163,9 +178,25 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                         <span className="status-badge" style={{ backgroundColor: '#f0f0f0', color: '#666' }}>Loading...</span>
                       ) : (
                         <>
-                          <span className={`status-badge ${googleWorkspaceStatus.isEnabled ? 'enabled' : 'disabled'}`}>
-                            {googleWorkspaceStatus.isEnabled ? 'Enabled' : 'Disabled'}
-                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {/* Connection Status Indicator */}
+                            {googleWorkspaceStatus.isEnabled && (
+                              <div
+                                style={{
+                                  width: '10px',
+                                  height: '10px',
+                                  borderRadius: '50%',
+                                  backgroundColor: googleWorkspaceStatus.configuration ? '#4CAF50' : '#ff9800',
+                                  animation: googleWorkspaceStatus.configuration ? 'none' : 'pulse 2s infinite',
+                                  boxShadow: googleWorkspaceStatus.configuration ? '0 0 5px rgba(76,175,80,0.5)' : '0 0 5px rgba(255,152,0,0.5)'
+                                }}
+                                title={googleWorkspaceStatus.configuration ? 'Connected' : 'Not configured'}
+                              />
+                            )}
+                            <span className={`status-badge ${googleWorkspaceStatus.isEnabled ? 'enabled' : 'disabled'}`}>
+                              {googleWorkspaceStatus.isEnabled ? 'Enabled' : 'Disabled'}
+                            </span>
+                          </div>
                           {!googleWorkspaceStatus.isEnabled && (
                             <button
                               className="enable-btn"
@@ -181,7 +212,7 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                             <>
                               <button
                                 className="test-btn"
-                                style={{ marginLeft: '8px', padding: '6px 12px', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.875rem' }}
+                                style={{ marginLeft: '8px', padding: '6px 12px', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '6px' }}
                                 onClick={async () => {
                                   try {
                                     const token = localStorage.getItem('helios_token');
@@ -196,20 +227,20 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
 
                                     const data = await response.json();
                                     if (data.success) {
-                                      alert(`✅ Connection successful!\n\nProject: ${data.details?.projectId}\nDomain: ${data.details?.domain}\nUsers accessible: ${data.details?.userCount || 0}`);
+                                      alert(`Connection successful!\n\nProject: ${data.details?.projectId}\nDomain: ${data.details?.domain}\nUsers accessible: ${data.details?.userCount || 0}`);
                                     } else {
-                                      alert(`❌ Connection failed: ${data.message || data.error}`);
+                                      alert(`Connection failed: ${data.message || data.error}`);
                                     }
                                   } catch (error: any) {
-                                    alert(`❌ Test failed: ${error.message}`);
+                                    alert(`Test failed: ${error.message}`);
                                   }
                                 }}
                               >
-                                🔍 Test
+                                <SearchIcon size={14} /> Test
                               </button>
                               <button
                                 className="sync-btn"
-                                style={{ marginLeft: '8px', padding: '6px 12px', background: '#2196F3', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.875rem' }}
+                                style={{ marginLeft: '8px', padding: '6px 12px', background: '#2196F3', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '6px' }}
                                 onClick={async () => {
                                   try {
                                     const token = localStorage.getItem('helios_token');
@@ -224,17 +255,17 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
 
                                     const data = await response.json();
                                     if (data.success) {
-                                      alert(`✅ Sync complete!\n\nTotal users: ${data.stats?.total_users || 0}\nActive: ${data.stats?.active_users || 0}\nSuspended: ${data.stats?.suspended_users || 0}\nAdmins: ${data.stats?.admin_users || 0}`);
+                                      alert(`Sync complete!\n\nTotal users: ${data.stats?.total_users || 0}\nActive: ${data.stats?.active_users || 0}\nSuspended: ${data.stats?.suspended_users || 0}\nAdmins: ${data.stats?.admin_users || 0}`);
                                       await fetchModuleStatus(); // Refresh the display
                                     } else {
-                                      alert(`❌ Sync failed: ${data.message}`);
+                                      alert(`Sync failed: ${data.message}`);
                                     }
                                   } catch (error: any) {
-                                    alert(`❌ Sync failed: ${error.message}`);
+                                    alert(`Sync failed: ${error.message}`);
                                   }
                                 }}
                               >
-                                🔄 Sync
+                                <RefreshCw size={14} /> Sync
                               </button>
                               <button
                                 className="configure-btn"
@@ -303,7 +334,7 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                 <div className="module-card">
                   <div className="module-header">
                     <div className="module-info">
-                      <div className="module-icon">🏢</div>
+                      <div className="module-icon"><Building2 size={24} /></div>
                       <div className="module-details">
                         <h3>Microsoft 365</h3>
                         <p>Manage Azure AD, Teams, and Exchange</p>
@@ -360,7 +391,7 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                 <div className="form-group">
                   <label>Organization Logo</label>
                   <div className="logo-upload">
-                    <div className="logo-preview">🏢</div>
+                    <div className="logo-preview"><Building2 size={32} /></div>
                     <button className="upload-btn">Upload Logo</button>
                     <div className="form-hint">Recommended: 200x200px PNG or SVG</div>
                   </div>
@@ -382,13 +413,13 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
 
               <div className="security-section">
                 <div className="security-card">
-                  <h3>🔐 API Keys</h3>
+                  <h3><Key size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />API Keys</h3>
                   <p>Generate API keys for external access and MSP delegation</p>
                   <button className="btn-primary">+ Create API Key</button>
                 </div>
 
                 <div className="security-card">
-                  <h3>🔑 Change Password</h3>
+                  <h3><Lock size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />Change Password</h3>
                   <p>Update your account password</p>
                   <button
                     className="btn-primary"
@@ -402,7 +433,7 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                 </div>
 
                 <div className="security-card">
-                  <h3>🔒 Authentication</h3>
+                  <h3><Shield size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />Authentication</h3>
                   <p>Configure login methods and session settings</p>
                   <div className="auth-options">
                     <label className="checkbox-label">
@@ -432,7 +463,7 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
 
               <div className="customization-section">
                 <div className="customization-card">
-                  <h3>🏷️ Navigation Labels</h3>
+                  <h3><Tag size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />Navigation Labels</h3>
                   <p>Customize how items appear in your navigation menu</p>
 
                   <div className="label-grid">
@@ -521,7 +552,7 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                     <button className="btn-primary" onClick={() => {
                       // Save custom labels to localStorage or backend
                       localStorage.setItem('helios_custom_labels', JSON.stringify(customLabels));
-                      alert('✅ Custom labels saved successfully!');
+                      alert('Custom labels saved successfully!');
                     }}>
                       Save Changes
                     </button>
@@ -533,14 +564,30 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                   <ThemeSelector />
                 ) : (
                   <div className="customization-card">
-                    <h3>🎨 Theme Settings</h3>
+                    <h3><Palette size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />Theme Settings</h3>
                     <p>Theme customization is restricted to administrators</p>
                     <div className="info-box">
-                      <span className="info-icon">ℹ️</span>
+                      <Info size={16} style={{ verticalAlign: 'middle', marginRight: '8px' }} />
                       <span>Only organization administrators can change the theme. Please contact your admin if you'd like to request a different theme.</span>
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'integrations' && (
+            <div className="settings-section">
+              <div className="section-header">
+                <h2>Integrations</h2>
+                <p>Manage API keys and external integrations</p>
+              </div>
+
+              <div className="integrations-section">
+                <ApiKeyList
+                  organizationId={organizationId}
+                  onCreateKey={() => setShowApiKeyWizard(true)}
+                />
               </div>
             </div>
           )}
@@ -554,7 +601,7 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
 
               <div className="advanced-section">
                 <div className="advanced-card">
-                  <h3>📊 Data Synchronization</h3>
+                  <h3><BarChart3 size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />Data Synchronization</h3>
                   <p>Configure how data syncs between Helios and connected platforms</p>
 
                   <div className="sync-settings">
@@ -647,7 +694,7 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                 </div>
 
                 <div className="advanced-card">
-                  <h3>🔧 Platform Behavior</h3>
+                  <h3><Wrench size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />Platform Behavior</h3>
                   <p>Configure platform-specific behavior</p>
                   <div className="platform-note">
                     <strong>Note:</strong> These settings only apply when Google Workspace or Microsoft 365 is connected.
@@ -661,168 +708,13 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
       </div>
 
       {showModuleConfig && configuringModule === 'google-workspace' && (
-        <div className="module-config-modal">
-          <div className="modal-overlay" onClick={() => setShowModuleConfig(false)}></div>
-          <div className="modal-content">
-            <div className="modal-header">
-              <h2>🔧 Configure Google Workspace</h2>
-              <button className="modal-close" onClick={() => setShowModuleConfig(false)}>×</button>
-            </div>
-
-            <div className="modal-body">
-              <div className="security-notice" style={{
-                background: '#fff3cd',
-                border: '1px solid #ffc107',
-                borderRadius: '8px',
-                padding: '16px',
-                marginBottom: '24px'
-              }}>
-                <h4 style={{ color: '#856404', marginTop: 0 }}>🔒 Security Notice</h4>
-                <p style={{ color: '#856404', marginBottom: '8px' }}>
-                  <strong>You must use YOUR OWN Google Cloud service account.</strong>
-                </p>
-                <ul style={{ color: '#856404', marginBottom: 0, paddingLeft: '20px' }}>
-                  <li>Create a service account in YOUR Google Cloud project</li>
-                  <li>Never share service accounts between organizations</li>
-                  <li>This ensures complete data isolation and security</li>
-                </ul>
-                <div style={{ marginTop: '12px' }}>
-                  <a
-                    href="https://console.cloud.google.com/iam-admin/serviceaccounts"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ color: '#0066cc', textDecoration: 'underline' }}
-                  >
-                    Create Service Account in Google Cloud →
-                  </a>
-                </div>
-              </div>
-
-              <div className="config-step">
-                <h3>Step 1: Admin Email</h3>
-                <p>Enter the Google Workspace admin email for domain-wide delegation</p>
-                <input
-                  type="email"
-                  className="form-input"
-                  placeholder="admin@yourdomain.com"
-                  value={adminEmail}
-                  onChange={(e) => setAdminEmail(e.target.value)}
-                />
-              </div>
-
-              <div className="config-step">
-                <h3>Step 2: Service Account</h3>
-                <p>Upload YOUR organization's Google Cloud service account JSON file with domain-wide delegation enabled</p>
-
-                <div className="file-upload">
-                  <input
-                    type="file"
-                    accept=".json"
-                    id="service-account-upload"
-                    style={{ display: 'none' }}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setServiceAccountFile(file);
-                      }
-                    }}
-                  />
-                  <label htmlFor="service-account-upload" className="upload-button">
-                    {serviceAccountFile ? serviceAccountFile.name : '📁 Choose Service Account JSON'}
-                  </label>
-                </div>
-
-                {serviceAccountFile && adminEmail && (
-                  <div className="config-actions">
-                    <button
-                      className="configure-btn"
-                      disabled={isConfiguring}
-                      onClick={async () => {
-                        setIsConfiguring(true);
-                        try {
-                          const fileContent = await serviceAccountFile.text();
-                          const serviceAccount = JSON.parse(fileContent);
-
-                          // Get the auth token from localStorage
-                          const token = localStorage.getItem('helios_token');
-
-                          const response = await fetch('http://localhost:3001/api/google-workspace/setup', {
-                            method: 'POST',
-                            headers: {
-                              'Content-Type': 'application/json',
-                              'Authorization': `Bearer ${token}`
-                            },
-                            body: JSON.stringify({
-                              organizationId,
-                              domain,
-                              organizationName,
-                              adminEmail,
-                              credentials: serviceAccount
-                            })
-                          });
-
-                          const data = await response.json();
-
-                          if (data.success) {
-                            alert('✅ Google Workspace module enabled successfully! Starting initial sync...');
-                            setShowModuleConfig(false);
-
-                            // Trigger initial sync immediately
-                            const syncResponse = await fetch('http://localhost:3001/api/google-workspace/sync-now', {
-                              method: 'POST',
-                              headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`
-                              },
-                              body: JSON.stringify({ organizationId })
-                            });
-
-                            const syncData = await syncResponse.json();
-                            if (syncData.success) {
-                              alert(`✅ Initial sync complete! Found ${syncData.stats?.total_users || 0} users`);
-                            } else {
-                              alert(`⚠️ Module configured but sync failed: ${syncData.message || 'Unknown error'}`);
-                            }
-
-                            // Refresh module status to show updated counts
-                            await fetchModuleStatus();
-                          } else {
-                            alert(`❌ Configuration failed: ${data.error || data.message || 'Unknown error'}`);
-                          }
-                        } catch (err: any) {
-                          console.error('Configuration error:', err);
-                          alert(`❌ Configuration failed: ${err.message || 'Failed to configure Google Workspace'}`);
-                        } finally {
-                          setIsConfiguring(false);
-                        }
-                      }}
-                    >
-                      {isConfiguring ? 'Configuring...' : '🚀 Configure Google Workspace'}
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="info-box">
-                <strong>📋 How to get the service account:</strong>
-                <ol>
-                  <li>Go to <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer">Google Cloud Console</a></li>
-                  <li>Create or select a project</li>
-                  <li>Enable Admin SDK API</li>
-                  <li>Create Service Account with Domain-Wide Delegation</li>
-                  <li>Download JSON key file</li>
-                  <li>Configure DWD in Google Admin Console</li>
-                </ol>
-              </div>
-            </div>
-
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setShowModuleConfig(false)}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+        <GoogleWorkspaceWizard
+          onClose={() => setShowModuleConfig(false)}
+          onSuccess={async () => {
+            setShowModuleConfig(false);
+            await fetchModuleStatus();
+          }}
+        />
       )}
 
       {showPasswordModal && (
@@ -833,7 +725,7 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
           }}></div>
           <div className="modal-content">
             <div className="modal-header">
-              <h2>🔑 Change Password</h2>
+              <h2><Key size={20} style={{ verticalAlign: 'middle', marginRight: '8px' }} />Change Password</h2>
               <button className="modal-close" onClick={() => {
                 setShowPasswordModal(false);
                 onPasswordModalChange?.(false);
@@ -916,12 +808,12 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
 
                     const data = await response.json();
                     if (data.success) {
-                      alert('✅ Password changed successfully');
+                      alert('Password changed successfully');
                       setShowPasswordModal(false);
                       onPasswordModalChange?.(false);
                       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
                     } else {
-                      alert(`❌ ${data.error || 'Failed to change password'}`);
+                      alert(`${data.error || 'Failed to change password'}`);
                     }
                   } catch (err: any) {
                     alert(`Error: ${err.message}`);
@@ -933,6 +825,24 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
             </div>
           </div>
         </div>
+      )}
+
+      {showApiKeyWizard && (
+        <ApiKeyWizard
+          organizationId={organizationId}
+          onClose={() => setShowApiKeyWizard(false)}
+          onSuccess={(keyData) => {
+            setShowApiKeyWizard(false);
+            setNewApiKeyData(keyData);
+          }}
+        />
+      )}
+
+      {newApiKeyData && (
+        <ApiKeyShowOnce
+          keyData={newApiKeyData}
+          onClose={() => setNewApiKeyData(null)}
+        />
       )}
     </div>
   );

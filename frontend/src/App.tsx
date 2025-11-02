@@ -10,6 +10,9 @@ import { Groups } from './pages/Groups'
 import { GroupDetail } from './pages/GroupDetail'
 import { OrgUnits } from './pages/OrgUnits'
 import { AssetManagement } from './pages/AssetManagement'
+import { Workspaces } from './pages/Workspaces'
+import { LabelsProvider, useLabels } from './contexts/LabelsContext'
+import { ENTITIES } from './config/entities'
 
 interface OrganizationConfig {
   organizationId: string;
@@ -28,11 +31,14 @@ interface OrganizationStats {
   errorMessage: string | null;
 }
 
-function App() {
-  console.log('[App] Component is rendering');
+function AppContent() {
+
+  // Custom labels from LabelsContext
+  const { labels, isEntityAvailable, refreshLabels, isLoading: labelsLoading } = useLabels();
+
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState<OrganizationConfig | null>(null);
-  const [step, setStep] = useState<'welcome' | 'setup' | 'login' | 'dashboard'>('welcome');
+  const [step, setStep] = useState<'welcome' | 'setup' | 'login' | 'dashboard' | null>(null);
   const [setupStep, setSetupStep] = useState(1);
   const [setupData, setSetupData] = useState({
     organizationName: '',
@@ -78,7 +84,6 @@ function App() {
             }
           }
         } catch (err) {
-          console.log('Could not fetch organization info');
         }
       };
       fetchOrgInfo();
@@ -159,7 +164,9 @@ function App() {
 
     } catch (err) {
       console.error('Config check failed:', err);
-      setStep('welcome');
+      // On error, default to setup page rather than welcome
+      // This prevents the flash of welcome page on network errors
+      setStep('setup');
     } finally {
       setLoading(false);
     }
@@ -205,7 +212,7 @@ function App() {
     }
   };
 
-  if (loading) {
+  if (loading || step === null) {
     return (
       <div className="app">
         <div className="loading">
@@ -231,8 +238,6 @@ function App() {
     return (
       <LoginPage
         onLoginSuccess={(loginData) => {
-          console.log('Setting config from login data:', loginData);
-          console.log('Setting user data:', loginData.data.user);
           setCurrentUser(loginData.data.user);
 
           // Use organization info from login response (backend now includes it)
@@ -245,13 +250,16 @@ function App() {
             });
           }
 
-          console.log('Setting step to dashboard');
-          setStep('dashboard');
 
-          // Fetch organization stats after login
-          if (loginData.data.organization) {
-            fetchOrganizationStats(loginData.data.organization.id);
-          }
+          // Refresh labels now that we have a token (before showing dashboard!)
+          refreshLabels().then(() => {
+            setStep('dashboard');
+
+            // Fetch organization stats after dashboard shown
+            if (loginData.data.organization) {
+              fetchOrganizationStats(loginData.data.organization.id);
+            }
+          });
         }}
         organizationName={loginOrgName || 'Your Organization'}
       />
@@ -391,12 +399,10 @@ function App() {
                   <button
                     className="btn-primary"
                     onClick={() => {
-                      console.log('Next button clicked');
                       if (!setupData.organizationName || !setupData.domain || !setupData.adminEmail) {
                         setSetupError('Please fill in all fields');
                         return;
                       }
-                      console.log('Validation passed, moving to step 2');
                       setSetupError(null);
                       setSetupStep(2);
                     }}
@@ -673,7 +679,6 @@ function App() {
     );
   }
 
-  console.log('Rendering dashboard with:', { step, config, currentUser });
 
   return (
     <div className="app">
@@ -699,9 +704,13 @@ function App() {
           <div className="welcome-stats">
             <span className="welcome-text">Welcome, {currentUser?.firstName || 'User'}!</span>
             <div className="quick-stats">
-              <span className="stat-item">{stats?.totalUsers || 0} Users</span>
-              <span className="stat-separator">•</span>
-              <span className="stat-item">0 Groups</span>
+              <span className="stat-item">{stats?.totalUsers || 0} {labels[ENTITIES.USER]?.plural || 'Users'}</span>
+              {isEntityAvailable(ENTITIES.ACCESS_GROUP) && (
+                <>
+                  <span className="stat-separator">•</span>
+                  <span className="stat-item">0 {labels[ENTITIES.ACCESS_GROUP]?.plural || 'Groups'}</span>
+                </>
+              )}
               <span className="stat-separator">•</span>
               <span className="stat-item">0 Workflows</span>
             </div>
@@ -772,28 +781,54 @@ function App() {
               <span>Home</span>
             </button>
 
-            <div className="nav-section">
+            <div className="nav-section" data-labels-loaded={labelsLoading ? 'false' : 'true'}>
               <div className="nav-section-title">Directory</div>
+
+              {/* Debug info for tests */}
+              <div style={{ display: 'none' }} data-debug-access-group-available={String(isEntityAvailable(ENTITIES.ACCESS_GROUP))} />
+
+              {/* Users - Always available (core entity) */}
               <button
                 className={`nav-item ${currentPage === 'users' ? 'active' : ''}`}
                 onClick={() => setCurrentPage('users')}
+                data-testid="nav-users"
               >
                 <span className="nav-icon">👥</span>
-                <span>Users</span>
+                <span>{labels[ENTITIES.USER]?.plural || 'Users'}</span>
               </button>
-              <button
-                className={`nav-item ${currentPage === 'groups' ? 'active' : ''}`}
-                onClick={() => setCurrentPage('groups')}
-              >
-                <span className="nav-icon">👨‍👩‍👧‍👦</span>
-                <span>Groups</span>
-              </button>
+
+              {/* Access Groups - Only if GWS or M365 enabled */}
+              {isEntityAvailable(ENTITIES.ACCESS_GROUP) && (
+                <button
+                  className={`nav-item ${currentPage === 'groups' ? 'active' : ''}`}
+                  onClick={() => setCurrentPage('groups')}
+                  data-testid="nav-access-groups"
+                >
+                  <span className="nav-icon">👨‍👩‍👧‍👦</span>
+                  <span>{labels[ENTITIES.ACCESS_GROUP]?.plural || 'Groups'}</span>
+                </button>
+              )}
+
+              {/* Workspaces - Only if M365 or Google Chat enabled */}
+              {isEntityAvailable(ENTITIES.WORKSPACE) && (
+                <button
+                  className={`nav-item ${currentPage === 'workspaces' ? 'active' : ''}`}
+                  onClick={() => setCurrentPage('workspaces')}
+                  data-testid="nav-workspaces"
+                >
+                  <span className="nav-icon">💬</span>
+                  <span>{labels[ENTITIES.WORKSPACE]?.plural || 'Teams'}</span>
+                </button>
+              )}
+
+              {/* Org Units - Always available (core + enhanced by GWS) */}
               <button
                 className={`nav-item ${currentPage === 'orgUnits' ? 'active' : ''}`}
                 onClick={() => setCurrentPage('orgUnits')}
+                data-testid="nav-org-units"
               >
                 <span className="nav-icon">🏢</span>
-                <span>Org Units</span>
+                <span>{labels[ENTITIES.POLICY_CONTAINER]?.plural || 'Org Units'}</span>
               </button>
             </div>
 
@@ -915,6 +950,10 @@ function App() {
             />
           )}
 
+          {currentPage === 'workspaces' && (
+            <Workspaces organizationId={config?.organizationId || ''} />
+          )}
+
           {currentPage === 'orgUnits' && (
             <OrgUnits organizationId={config?.organizationId || ''} />
           )}
@@ -923,7 +962,7 @@ function App() {
             <AssetManagement organizationId={config?.organizationId || ''} />
           )}
 
-          {currentPage !== 'dashboard' && currentPage !== 'settings' && currentPage !== 'users' && currentPage !== 'groups' && currentPage !== 'orgUnits' && currentPage !== 'assets' && (
+          {currentPage !== 'dashboard' && currentPage !== 'settings' && currentPage !== 'users' && currentPage !== 'groups' && currentPage !== 'workspaces' && currentPage !== 'orgUnits' && currentPage !== 'assets' && (
             <div className="page-placeholder">
               <div className="placeholder-content">
                 <div className="placeholder-icon">🚧</div>
@@ -957,6 +996,15 @@ function App() {
         </p>
       </footer>
     </div>
+  );
+}
+
+// Main App wrapper with LabelsProvider
+function App() {
+  return (
+    <LabelsProvider>
+      <AppContent />
+    </LabelsProvider>
   );
 }
 
