@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import './UserList.css';
 import { UserSlideOut } from './UserSlideOut';
+import { MoreVertical, Eye, PauseCircle, PlayCircle, Lock, Copy, Trash2, CheckCircle, Users, RefreshCw, UserPlus, Loader } from 'lucide-react';
+import { PlatformIcon } from './ui/PlatformIcon';
 
 interface User {
   id: string;
@@ -61,9 +63,11 @@ interface UserListProps {
   userType: 'staff' | 'guests' | 'contacts';
   onCountChange?: () => void;
   searchQuery?: string;
+  statusFilter?: string;
+  onStatusCountsChange?: (counts: any) => void;
 }
 
-export function UserList({ organizationId, userType, onCountChange, searchQuery = '' }: UserListProps) {
+export function UserList({ organizationId, userType, onCountChange, searchQuery = '', statusFilter, onStatusCountsChange }: UserListProps) {
   // Component for managing organization users
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -87,10 +91,22 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const [isBulkOperating, setIsBulkOperating] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [googleAction, setGoogleAction] = useState<'keep' | 'suspend' | 'delete'>('delete');
+  const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   useEffect(() => {
     fetchUsers();
-  }, [organizationId, userType]);
+  }, [organizationId, userType, statusFilter]);
+
+  useEffect(() => {
+    // Reset to page 1 when filters change
+    setCurrentPage(1);
+  }, [statusFilter, searchQuery, userType]);
 
   const fetchUsers = async () => {
     try {
@@ -105,9 +121,56 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
       // Fetch from database with user type filter
       try {
         const token = localStorage.getItem('helios_token');
-        const queryParams = new URLSearchParams({
-          userType: userType
+
+        // Convert plural userType to singular for API
+        // UI uses: staff, guests, contacts
+        // API expects: staff, guest, contact
+        const apiUserType = userType === 'guests' ? 'guest' : userType === 'contacts' ? 'contact' : userType;
+
+        // First, fetch ALL users for this type to calculate status counts accurately
+        const allUsersParams = new URLSearchParams({
+          userType: apiUserType,
+          includeDeleted: 'true'  // Include deleted users for accurate counts
         });
+
+        const allUsersResponse = await fetch(`http://localhost:3001/api/organization/users?${allUsersParams}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        let allUsersForCounts = [];
+        if (allUsersResponse.ok) {
+          const allData = await allUsersResponse.json();
+          if (allData.success && allData.data) {
+            allUsersForCounts = allData.data;
+          }
+        }
+
+        // Calculate status counts from ALL users (not filtered)
+        const counts = {
+          all: allUsersForCounts.length,
+          active: allUsersForCounts.filter((u: any) => u.userStatus === 'active').length,
+          pending: allUsersForCounts.filter((u: any) => u.userStatus === 'staged').length,
+          suspended: allUsersForCounts.filter((u: any) => u.userStatus === 'suspended').length,
+          expired: allUsersForCounts.filter((u: any) => u.userStatus === 'expired').length,
+          deleted: allUsersForCounts.filter((u: any) => u.userStatus === 'deleted').length
+        };
+
+        if (onStatusCountsChange) {
+          onStatusCountsChange(counts);
+        }
+
+        // Now fetch filtered users for display
+        const queryParams = new URLSearchParams({
+          userType: apiUserType
+        });
+
+        // Add status filter if provided
+        if (statusFilter && statusFilter !== 'all') {
+          queryParams.append('status', statusFilter);
+        }
+
         const response = await fetch(`http://localhost:3001/api/organization/users?${queryParams}`, {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -117,6 +180,7 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.data) {
+
             const formattedUsers = data.data.map((user: any) => ({
               id: user.id,
               email: user.email,
@@ -156,7 +220,7 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
               microsoft365LastSync: user.microsoft365LastSync || user.microsoft_365_last_sync,
               createdAt: user.createdAt || user.created_at,
               updatedAt: user.updatedAt || user.updated_at,
-              status: user.status,
+              status: user.userStatus || (user.isActive ? "active" : "inactive"),
               source: user.source,
               // User type fields
               userType: user.userType || user.user_type,
@@ -196,19 +260,27 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
   };
 
   const handleDeleteUser = async (user: User) => {
-    if (!confirm(`Are you sure you want to permanently delete ${user.firstName} ${user.lastName}?\n\nThis action cannot be undone.`)) {
-      return;
-    }
+    setUserToDelete(user);
+    setGoogleAction('delete'); // Reset to default
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!userToDelete) return;
 
     try {
       setIsDeleting(true);
       const token = localStorage.getItem('helios_token');
 
-      const response = await fetch(`http://localhost:3001/api/organization/users/${user.id}`, {
+      const response = await fetch(`http://localhost:3001/api/organization/users/${userToDelete.id}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          googleAction: userToDelete.googleWorkspaceId ? googleAction : undefined
+        })
       });
 
       const data = await response.json();
@@ -217,7 +289,9 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
         throw new Error(data.error || 'Failed to delete user');
       }
 
-      // Refresh user list
+      // Close modal and refresh user list
+      setShowDeleteModal(false);
+      setUserToDelete(null);
       await fetchUsers();
     } catch (err: any) {
       alert(`Error deleting user: ${err.message}`);
@@ -423,6 +497,48 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
     }
   };
 
+  const handleQuickSuspend = async (user: User) => {
+    const token = localStorage.getItem('helios_token');
+    try {
+      await fetch(`http://localhost:3001/api/organization/users/${user.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'suspended' })
+      });
+      await fetchUsers();
+      setActionMenuOpen(null);
+    } catch (err: any) {
+      alert(`Error suspending user: ${err.message}`);
+    }
+  };
+
+  const handleQuickRestore = async (user: User) => {
+    const token = localStorage.getItem('helios_token');
+    try {
+      await fetch(`http://localhost:3001/api/organization/users/${user.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'active' })
+      });
+      await fetchUsers();
+      setActionMenuOpen(null);
+    } catch (err: any) {
+      alert(`Error restoring user: ${err.message}`);
+    }
+  };
+
+  const handleQuickBlock = async (user: User) => {
+    // TODO: Open block user modal
+    alert('Block user feature - opening modal...');
+    setActionMenuOpen(null);
+  };
+
+  const handleCopyEmail = (user: User) => {
+    navigator.clipboard?.writeText(user.email);
+    alert('Email copied to clipboard');
+    setActionMenuOpen(null);
+  };
+
   const getPlatformIcon = (platform: string) => {
     const icons: Record<string, { icon: string; color: string; title: string }> = {
       google_workspace: { icon: 'G', color: '#4285F4', title: 'Google Workspace' },
@@ -460,7 +576,8 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
         { key: 'role', label: 'Role', className: 'col-role' },
         { key: 'platforms', label: 'Integrations', className: 'col-platforms' },
         { key: 'status', label: 'Status', className: 'col-status' },
-        { key: 'lastLogin', label: 'Last Login', className: 'col-last-login' }
+        { key: 'lastLogin', label: 'Last Login', className: 'col-last-login' },
+        { key: 'actions', label: '', className: 'col-actions' }
       ];
     } else if (userType === 'guests') {
       return [
@@ -471,7 +588,8 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
         { key: 'role', label: 'Access Level', className: 'col-role' },
         { key: 'expires', label: 'Expires', className: 'col-expires' },
         { key: 'status', label: 'Status', className: 'col-status' },
-        { key: 'lastLogin', label: 'Last Login', className: 'col-last-login' }
+        { key: 'lastLogin', label: 'Last Login', className: 'col-last-login' },
+        { key: 'actions', label: '', className: 'col-actions' }
       ];
     } else { // contacts
       return [
@@ -481,7 +599,8 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
         { key: 'company', label: 'Company', className: 'col-company' },
         { key: 'phone', label: 'Phone', className: 'col-phone' },
         { key: 'title', label: 'Title', className: 'col-title' },
-        { key: 'addedDate', label: 'Added Date', className: 'col-added-date' }
+        { key: 'addedDate', label: 'Added Date', className: 'col-added-date' },
+        { key: 'actions', label: '', className: 'col-actions' }
       ];
     }
   };
@@ -510,7 +629,7 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
         return (
           <div className={column.className}>
             <div className="user-info">
-              <div className="user-avatar" style={{ background: `linear-gradient(135deg, #667eea 0%, #764ba2 100%)` }}>
+              <div className="user-avatar" style={{ backgroundColor: "#e5e7eb", color: "#6b7280" }}>
                 {initials}
               </div>
               <span className="user-name">{user.firstName} {user.lastName}</span>
@@ -574,27 +693,44 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
 
         return (
           <div className={column.className}>
-            <div className="platform-icons">
-              <div
-                className="platform-icon"
-                style={{
-                  backgroundColor: primaryIcon.color,
-                  border: '2px solid white'
-                }}
-                title={tooltipText}
-              >
-                {primaryIcon.icon}
-              </div>
+            <div className="platform-icons" title={tooltipText}>
+              <PlatformIcon 
+                platform={primaryPlatform === 'google_workspace' ? 'google' : primaryPlatform === 'microsoft_365' ? 'microsoft' : primaryPlatform === 'local' ? 'helios' : primaryPlatform} 
+                size={24} 
+              />
             </div>
           </div>
         );
 
       case 'status':
+        let statusClass = 'active';
+        let statusText = 'Active';
+
+        if (user.status === 'blocked') {
+          statusClass = 'blocked';
+          statusText = 'Blocked';
+        } else if (user.status === 'suspended') {
+          statusClass = 'suspended';
+          statusText = 'Suspended';
+        } else if (user.status === 'staged') {
+          statusClass = 'staged';
+          statusText = 'Staged';
+        } else if (user.status === 'deleted') {
+          statusClass = 'deleted';
+          statusText = 'Deleted';
+        } else if (user.status === 'active') {
+   statusClass = 'active';
+   statusText = 'Active';
+ } else if (!user.isActive) {
+          statusClass = 'inactive';
+          statusText = 'Inactive';
+        }
+
         return (
           <div className={column.className}>
-            <span className={`status-indicator ${user.isActive ? 'active' : 'inactive'}`}>
-              <span className={`status-dot ${user.isActive ? 'active' : 'inactive'}`}></span>
-              {user.isActive ? 'Active' : 'Inactive'}
+            <span className={`status-indicator ${statusClass}`}>
+              <span className={`status-dot ${statusClass}`}></span>
+              {statusText}
             </span>
           </div>
         );
@@ -666,6 +802,56 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
           </div>
         );
 
+      case 'actions':
+        return (
+          <div className={column.className} onClick={(e) => e.stopPropagation()}>
+            <button
+              className="btn-ellipsis"
+              onClick={(e) => {
+                e.stopPropagation();
+                setActionMenuOpen(actionMenuOpen === user.id ? null : user.id);
+              }}
+            >
+              <MoreVertical size={16} />
+            </button>
+
+            {actionMenuOpen === user.id && (
+              <div className="action-menu">
+                <button onClick={() => { setSelectedUser(user); setShowViewModal(true); setActionMenuOpen(null); }}>
+                  <Eye size={14} /> View Details
+                </button>
+                <div className="menu-divider"></div>
+
+                {user.isActive ? (
+                  <button onClick={() => handleQuickSuspend(user)}>
+                    <PauseCircle size={14} /> Suspend
+                  </button>
+                ) : (
+                  <button onClick={() => handleQuickRestore(user)}>
+                    <PlayCircle size={14} /> Restore
+                  </button>
+                )}
+
+                <button onClick={() => handleQuickBlock(user)}>
+                  <Lock size={14} /> Block Account
+                </button>
+
+                <div className="menu-divider"></div>
+
+                <button onClick={() => handleCopyEmail(user)}>
+                  <Copy size={14} /> Copy Email
+                </button>
+
+                <div className="menu-divider"></div>
+
+                <button className="menu-item-danger" onClick={() => handleDeleteUser(user)}>
+                  <Trash2 size={14} /> Delete...
+                </button>
+              </div>
+            )}
+          </div>
+        );
+
       default:
         return <div className={column.className}>-</div>;
     }
@@ -697,6 +883,50 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
       (user.company && user.company.toLowerCase().includes(query))
     );
   }
+
+  // Pagination calculations
+  const totalUsers = filteredUsers.length;
+  const totalPages = Math.ceil(totalUsers / rowsPerPage);
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const endIndex = startIndex + rowsPerPage;
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+  // Page number helpers
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxPagesToShow = 5;
+
+    if (totalPages <= maxPagesToShow) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Always show first page
+      pages.push(1);
+
+      if (currentPage > 3) {
+        pages.push('...');
+      }
+
+      // Show pages around current page
+      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+        if (!pages.includes(i)) {
+          pages.push(i);
+        }
+      }
+
+      if (currentPage < totalPages - 2) {
+        pages.push('...');
+      }
+
+      // Always show last page
+      if (!pages.includes(totalPages)) {
+        pages.push(totalPages);
+      }
+    }
+
+    return pages;
+  };
 
   const uniquePlatforms = Array.from(new Set(users.flatMap(u => u.platforms)));
 
@@ -739,10 +969,10 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
             </select>
           </div>
           <button className="btn-sync" onClick={fetchUsers}>
-            🔄 Sync Users
+            <RefreshCw size={14} /> Sync
           </button>
           <button className="btn-add-user" onClick={() => window.location.pathname = '/add-user'}>
-            ➕ Add User
+            <UserPlus size={14} /> Add User
           </button>
         </div>
       </div>
@@ -772,21 +1002,21 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
               onClick={handleBulkActivate}
               disabled={isBulkOperating}
             >
-              ✅ Activate
+              <CheckCircle size={14} /> Activate
             </button>
             <button
               className="btn-bulk-action btn-suspend"
               onClick={handleBulkSuspend}
               disabled={isBulkOperating}
             >
-              ⏸️ Suspend
+              <PauseCircle size={14} /> Suspend
             </button>
             <button
               className="btn-bulk-action btn-delete-bulk"
               onClick={handleBulkDelete}
               disabled={isBulkOperating}
             >
-              🗑️ Delete
+              <Trash2 size={14} /> Delete
             </button>
           </div>
         </div>
@@ -821,7 +1051,7 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
         {filteredUsers.length === 0 ? (
           <div className="no-users">
             <div className="empty-state">
-              <span className="empty-icon">👥</span>
+              <span className="empty-icon"><Users size={48} /></span>
               <h3>No users found</h3>
               <p>
                 {filterPlatform !== 'all'
@@ -833,7 +1063,7 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
           </div>
         ) : (
           <div className="table-body">
-            {filteredUsers.map(user => (
+            {paginatedUsers.map(user => (
               <div
                 key={user.id}
                 className={`table-row ${selectedUserIds.has(user.id) ? 'selected' : ''} clickable`}
@@ -849,6 +1079,84 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
           </div>
         )}
       </div>
+
+      {/* Pagination Controls - JumpCloud Style */}
+      {totalUsers > 0 && (
+        <div className="pagination-container">
+          <div className="pagination-left">
+            <span className="pagination-label">Rows per page:</span>
+            <select
+              value={rowsPerPage}
+              onChange={(e) => {
+                setRowsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="pagination-select"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
+
+          <div className="pagination-center">
+            <span className="pagination-info">
+              {startIndex + 1}-{Math.min(endIndex, totalUsers)} of {totalUsers}
+            </span>
+          </div>
+
+          <div className="pagination-right">
+            <button
+              className="pagination-btn"
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              title="First page"
+            >
+              «
+            </button>
+            <button
+              className="pagination-btn"
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              title="Previous page"
+            >
+              ‹
+            </button>
+
+            {getPageNumbers().map((page, index) => (
+              page === '...' ? (
+                <span key={`ellipsis-${index}`} className="pagination-ellipsis">...</span>
+              ) : (
+                <button
+                  key={page}
+                  className={`pagination-btn ${currentPage === page ? 'active' : ''}`}
+                  onClick={() => setCurrentPage(page as number)}
+                >
+                  {page}
+                </button>
+              )
+            ))}
+
+            <button
+              className="pagination-btn"
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              title="Next page"
+            >
+              ›
+            </button>
+            <button
+              className="pagination-btn"
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              title="Last page"
+            >
+              »
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="user-list-footer">
         <div className="sync-info">
@@ -1143,7 +1451,7 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
                 onClick={handleCreateUser}
                 disabled={isCreating || !newUserEmail || !newUserFirstName || !newUserLastName || (passwordMethod === 'email_link' && !alternateEmail) || (passwordMethod === 'admin_set' && !newUserPassword)}
               >
-                {isCreating ? '⏳ Creating...' : '➕ Add User'}
+                {isCreating ? <><Loader size={14} className="spinning" /> Creating...</> : <><UserPlus size={14} /> Add User</>}
               </button>
             </div>
           </div>
@@ -1163,6 +1471,84 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
             fetchUsers();
           }}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && userToDelete && (
+        <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Delete User: {userToDelete.firstName} {userToDelete.lastName}</h2>
+
+            {userToDelete.googleWorkspaceId ? (
+              <>
+                <p>This user is synced from Google Workspace.</p>
+                <p><strong>What should happen in Google Workspace?</strong></p>
+
+                <div className="delete-options">
+                  <label className={`delete-option ${googleAction === 'keep' ? 'selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="googleAction"
+                      value="keep"
+                      checked={googleAction === 'keep'}
+                      onChange={(e) => setGoogleAction(e.target.value as 'keep')}
+                    />
+                    <div className="option-content">
+                      <strong>Keep Google account active</strong>
+                      <p>User can still access Gmail, Drive, Calendar. You will continue to be billed.</p>
+                    </div>
+                  </label>
+
+                  <label className={`delete-option ${googleAction === 'suspend' ? 'selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="googleAction"
+                      value="suspend"
+                      checked={googleAction === 'suspend'}
+                      onChange={(e) => setGoogleAction(e.target.value as 'suspend')}
+                    />
+                    <div className="option-content">
+                      <strong>Suspend Google account</strong>
+                      <p className="warning-text">User cannot login BUT you are STILL billed for this license!</p>
+                    </div>
+                  </label>
+
+                  <label className={`delete-option ${googleAction === 'delete' ? 'selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="googleAction"
+                      value="delete"
+                      checked={googleAction === 'delete'}
+                      onChange={(e) => setGoogleAction(e.target.value as 'delete')}
+                    />
+                    <div className="option-content">
+                      <strong>Permanently delete from Google Workspace (Recommended)</strong>
+                      <p className="success-text">License will be freed immediately.</p>
+                      <p className="warning-text">All data will be permanently deleted.</p>
+                    </div>
+                  </label>
+                </div>
+
+                {googleAction === 'delete' && (
+                  <div className="warning-box">
+                    <p><strong>Warning:</strong> Permanent deletion cannot be undone. Consider transferring important data first.</p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <p>This will soft-delete the user in Helios. They can be restored within 30 days.</p>
+            )}
+
+            <div className="modal-buttons">
+              <button className="btn-secondary" onClick={() => setShowDeleteModal(false)} disabled={isDeleting}>
+                Cancel
+              </button>
+              <button className="btn-danger" onClick={confirmDelete} disabled={isDeleting}>
+                {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

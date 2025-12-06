@@ -143,7 +143,7 @@
 
 .status-reopened {
   background: #ede9fe;
-  color: #8b5cf6;
+  color: var(--theme-primary);
 }
 
 .priority-urgent {
@@ -238,13 +238,13 @@
 }
 
 .btn-small.btn-primary {
-  background: #8b5cf6;
+  background: var(--theme-primary);
   color: white;
-  border-color: #8b5cf6;
+  border-color: var(--theme-primary);
 }
 
 .btn-small.btn-primary:hover {
-  background: #7c3aed;
+  background: var(--theme-primary-hover);
 }
 
 .btn-small .icon {
@@ -321,7 +321,7 @@
 
 .note-composer textarea:focus {
   outline: none;
-  border-color: #8b5cf6;
+  border-color: var(--theme-primary);
 }
 
 .composer-actions {

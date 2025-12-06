@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import { db } from '../database/connection';
 import { logger } from '../utils/logger';
 import { asyncHandler } from '../middleware/errorHandler';
+import { PasswordSetupService } from '../services/password-setup.service';
 
 const router = Router();
 
@@ -216,5 +217,163 @@ router.post('/logout', asyncHandler(async (req: Request, res: Response) => {
     message: 'Logged out successfully'
   });
 }));
+
+/**
+ * GET /api/auth/verify-setup-token
+ * Verify a password setup token's validity
+ */
+router.get('/verify-setup-token', asyncHandler(async (req: Request, res: Response) => {
+  const token = req.query.token as string;
+
+  if (!token) {
+    return res.status(400).json({
+      success: false,
+      error: 'Token is required'
+    });
+  }
+
+  const verification = await PasswordSetupService.verifyToken(token);
+
+  if (!verification.valid) {
+    return res.status(400).json({
+      success: false,
+      error: verification.error || 'Invalid token'
+    });
+  }
+
+  // Get user info for display (without sensitive data)
+  const userResult = await db.query(
+    'SELECT email, first_name, last_name FROM organization_users WHERE id = $1',
+    [verification.userId]
+  );
+
+  if (userResult.rows.length === 0) {
+    return res.status(404).json({
+      success: false,
+      error: 'User not found'
+    });
+  }
+
+  const user = userResult.rows[0];
+
+  res.json({
+    success: true,
+    data: {
+      email: user.email,
+      firstName: user.first_name,
+      lastName: user.last_name
+    }
+  });
+}));
+
+/**
+ * POST /api/auth/setup-password
+ * Set password using a valid setup token
+ */
+router.post('/setup-password',
+  [
+    body('token').notEmpty().withMessage('Token is required'),
+    body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters long')
+  ],
+  asyncHandler(async (req: Request, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { token, password } = req.body;
+
+    // Verify token
+    const verification = await PasswordSetupService.verifyToken(token);
+
+    if (!verification.valid) {
+      return res.status(400).json({
+        success: false,
+        error: verification.error || 'Invalid or expired token'
+      });
+    }
+
+    const userId = verification.userId!;
+
+    // Hash the new password
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    // Update user password and activate account
+    await db.query(
+      `UPDATE organization_users
+       SET password_hash = $1, status = 'active', is_active = true
+       WHERE id = $2`,
+      [passwordHash, userId]
+    );
+
+    // Mark token as used
+    await PasswordSetupService.markTokenAsUsed(token);
+
+    // Get updated user info
+    const userResult = await db.query(
+      `SELECT id, email, first_name, last_name, role, organization_id
+       FROM organization_users
+       WHERE id = $1`,
+      [userId]
+    );
+
+    const user = userResult.rows[0];
+
+    // Generate JWT tokens for auto-login
+    const accessToken = jwt.sign(
+      { userId: user.id, email: user.email, role: user.role, organizationId: user.organization_id, type: 'access' },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    const refreshToken = jwt.sign(
+      { userId: user.id, email: user.email, role: user.role, organizationId: user.organization_id, type: 'refresh' },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    // Get organization details
+    const orgResult = await db.query(
+      'SELECT id, name, domain FROM organizations WHERE id = $1',
+      [user.organization_id]
+    );
+
+    const organization = orgResult.rows[0];
+
+    logger.info('Password setup completed', {
+      userId: user.id,
+      email: user.email
+    });
+
+    res.json({
+      success: true,
+      message: 'Password set successfully',
+      data: {
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          role: user.role,
+          organizationId: user.organization_id
+        },
+        organization: {
+          id: organization.id,
+          name: organization.name,
+          domain: organization.domain
+        },
+        tokens: {
+          accessToken,
+          refreshToken,
+          expiresIn: 86400
+        }
+      }
+    });
+  })
+);
 
 export default router;

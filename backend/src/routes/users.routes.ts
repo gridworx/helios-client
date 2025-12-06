@@ -8,7 +8,7 @@ const router = Router();
 
 /**
  * GET /api/users
- * Get all users for the tenant with platform indicators
+ * Get all users for the organization with platform indicators
  */
 router.get('/', requireAuth, async (req, res) => {
   try {

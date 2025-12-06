@@ -1,3 +1,22 @@
+<!-- OPENSPEC:START -->
+# OpenSpec Instructions
+
+These instructions are for AI assistants working in this project.
+
+Always open `@/openspec/AGENTS.md` when the request:
+- Mentions planning or proposals (words like proposal, spec, change, plan)
+- Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
+- Sounds ambiguous and you need the authoritative spec before coding
+
+Use `@/openspec/AGENTS.md` to learn:
+- How to create and apply change proposals
+- Spec format and conventions
+- Project structure and guidelines
+
+Keep this managed block so 'openspec update' can refresh the instructions.
+
+<!-- OPENSPEC:END -->
+
 # 🤖 CLAUDE.md - AI Development Instructions for Helios Client Portal
 
 **Project:** Helios Client Portal - Single Organization Management System
@@ -15,40 +34,63 @@
 - ✅ Organization admins and users only
 - ✅ Self-service for end users
 
+## ⚠️ Common Pitfall: "Tenant" vs "Organization" Terminology
+
+**CRITICAL:** You may see some older code or comments mentioning "tenant". **Ignore these - they are legacy artifacts.**
+
+### Use This (Correct):
+- ✅ `organization`, `organizationId`, `organization_id`
+- ✅ Database table: `organizations`
+- ✅ Foreign keys: `organization_id`
+- ✅ Variables: `organizationId`, `orgId`
+
+### Never Use This (Legacy):
+- ❌ `tenant`, `tenantId`, `tenant_id`
+- ❌ Database table: `tenants` (doesn't exist!)
+- ❌ Any multi-tenant terminology
+
+The codebase previously experimented with multi-tenant architecture but was changed to single-organization design. Some variable names still reference "tenant" but they actually work with the `organizations` table.
+
+**If you see a file referencing a `tenants` table, it's broken dead code that should be deleted.**
+
 ## 📁 Project Structure
 
 ```
 helios-client/
 ├── CLAUDE.md                    ← THIS FILE
+├── README.md                    ← Project overview
 ├── PROJECT-TRACKER.md           ← Progress tracking
-├── docker-compose.yml           ← Local development containers
-├── .env.example                 ← Environment variables template
+├── ARCHITECTURE.md              ← System architecture
+├── DESIGN-SYSTEM.md             ← UI/UX design system
+├── docker-compose.yml           ← Local development
+├── .env.example                 ← Configuration template
+│
+├── docs/                        ← Organized documentation
+│   ├── guides/                 ← Setup and user guides
+│   ├── architecture/           ← Technical architecture
+│   ├── features/               ← Feature documentation
+│   └── archive/                ← Historical notes
 │
 ├── frontend/                    ← React TypeScript application
 │   ├── src/
 │   │   ├── components/         ← Reusable components
 │   │   ├── pages/             ← Page components
 │   │   ├── contexts/          ← React contexts
-│   │   ├── hooks/             ← Custom hooks
 │   │   ├── services/          ← API service layer
-│   │   └── utils/             ← Utilities
-│   ├── package.json
-│   └── vite.config.ts
+│   │   └── config/            ← Configuration
+│   └── package.json
 │
 ├── backend/                     ← Node.js Express API
 │   ├── src/
 │   │   ├── routes/            ← API endpoints
 │   │   ├── services/          ← Business logic
 │   │   ├── middleware/        ← Auth, validation
-│   │   ├── database/          ← Database connection
-│   │   └── utils/             ← Utilities
-│   ├── package.json
-│   └── tsconfig.json
+│   │   └── database/          ← DB connection & migrations
+│   └── package.json
 │
-└── database/                    ← PostgreSQL schema
-    ├── schema.sql              ← Database initialization
-    ├── migrations/             ← Schema migrations
-    └── seeds/                  ← Test data (dev only)
+└── database/                    ← PostgreSQL migrations
+    ├── README.md               ← Database documentation
+    └── migrations/             ← Schema migrations (001-024)
 ```
 
 ## 🏗️ Database Schema (Single Organization)
@@ -98,8 +140,29 @@ gw_synced_users (            -- Cached from Google Workspace
 - Clean, modern interface inspired by JumpCloud
 - Collapsible sidebar navigation
 - Responsive design for desktop, tablet, mobile
-- Professional color scheme (blues, grays)
+- Professional color scheme (purple primary, neutral grays)
 - NO developer/technical aesthetics
+- **IMPORTANT:** Follow DESIGN-SYSTEM.md for all UI components
+
+### Design System
+**All new components and updates MUST follow the design system documented in `DESIGN-SYSTEM.md`**
+
+Key design principles:
+- ✅ **Lucide React icons** (16px, monochrome, stroke-based)
+- ✅ **Purple primary color** (#8b5cf6) for interactive elements
+- ✅ **Subtle neutral grays** for structure and text
+- ✅ **NO emojis** in production UI
+- ✅ **Consistent spacing** using defined scale (4px-48px)
+- ✅ **Professional typography** (11px-28px scale)
+- ✅ **48px fixed table row heights**
+- ✅ **Subtle hover states** (#f9fafb backgrounds)
+
+**Before making UI changes:**
+1. Read DESIGN-SYSTEM.md
+2. Use Lucide icons, not emojis
+3. Apply color palette from design system
+4. Use consistent spacing and typography scales
+5. Test responsive breakpoints
 
 ### Key Pages
 1. **Setup Flow** (First time only)

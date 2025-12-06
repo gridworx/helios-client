@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx ts-node:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker exec:*)",
+      "Bash(npm install:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Read(//d/tmp/**)",
+      "Bash(curl:*)",
+      "Bash(dir:*)",
+      "Bash(cat:*)",
+      "Bash(docker cp:*)",
+      "Bash(npx playwright test:*)",
+      "Bash(docker-compose restart:*)",
+      "Bash(node:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker-compose down:*)",
+      "Bash(docker-compose up:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

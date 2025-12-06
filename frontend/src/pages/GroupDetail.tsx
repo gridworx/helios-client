@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTabPersistence } from '../hooks/useTabPersistence';
 import './Pages.css';
 
 interface GroupMember {
@@ -16,12 +17,11 @@ interface GroupDetailProps {
 }
 
 export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProps) {
-
+  const [activeTab, setActiveTab] = useTabPersistence('helios_group_detail_tab', 'members');
   const [group, setGroup] = useState<any>(null);
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('members');
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [newMemberEmail, setNewMemberEmail] = useState('');
   const [newMemberRole, setNewMemberRole] = useState('MEMBER');

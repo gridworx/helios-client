@@ -213,7 +213,7 @@ export function ApiKeyList({ organizationId, onCreateKey }: ApiKeyListProps) {
 
       {keys.length === 0 ? (
         <div className="empty-state">
-          <Key size={48} style={{ color: '#8b5cf6', opacity: 0.5 }} />
+          <Key size={48} style={{ color: 'var(--theme-primary)', opacity: 0.5 }} />
           <h4>No API keys found</h4>
           <p>Create your first API key to enable programmatic access</p>
           <button className="btn-primary" onClick={onCreateKey}>

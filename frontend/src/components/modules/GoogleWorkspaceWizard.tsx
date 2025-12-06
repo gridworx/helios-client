@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './GoogleWorkspaceWizard.css';
 
 interface ServiceAccountData {
@@ -31,6 +31,31 @@ const GoogleWorkspaceWizard: React.FC<GoogleWorkspaceWizardProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+  const [existingConfig, setExistingConfig] = useState<boolean>(false);
+  const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
+
+  // Check if configuration already exists
+  useEffect(() => {
+    const checkExistingConfig = async () => {
+      try {
+        const orgData = localStorage.getItem('helios_organization');
+        const organizationId = orgData ? JSON.parse(orgData).organizationId : null;
+
+        if (organizationId) {
+          const response = await fetch(`http://localhost:3001/api/google-workspace/module-status/${organizationId}`);
+          const result = await response.json();
+
+          if (result.success && result.data.isEnabled && result.data.configuration) {
+            setExistingConfig(true);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to check existing configuration:', err);
+      }
+    };
+
+    checkExistingConfig();
+  }, []);
 
   const steps = [
     { id: 1, title: 'Upload Service Account', description: 'Upload your Google Cloud service account JSON key file' },
@@ -88,11 +113,11 @@ const GoogleWorkspaceWizard: React.FC<GoogleWorkspaceWizardProps> = ({
     setError('');
 
     try {
-      const response = await fetch('/api/modules/google-workspace/test', {
+      const response = await fetch('http://localhost:3001/api/google-workspace/test-credentials', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
         },
         body: JSON.stringify({
           serviceAccount: serviceAccountData,
@@ -107,7 +132,7 @@ const GoogleWorkspaceWizard: React.FC<GoogleWorkspaceWizardProps> = ({
         setTestStatus('success');
       } else {
         setTestStatus('error');
-        setError(result.error || 'Connection test failed');
+        setError(result.error || result.message || 'Connection test failed');
       }
     } catch (err) {
       setTestStatus('error');
@@ -115,21 +140,33 @@ const GoogleWorkspaceWizard: React.FC<GoogleWorkspaceWizardProps> = ({
     }
   };
 
-  const handleSaveConfiguration = async () => {
+  const handleSaveConfiguration = async (forceOverwrite = false) => {
+    // Check if config exists and we haven't asked for confirmation yet
+    if (existingConfig && !forceOverwrite && !showOverwriteDialog) {
+      setShowOverwriteDialog(true);
+      return;
+    }
+
     setIsLoading(true);
     setError('');
+    setShowOverwriteDialog(false);
 
     try {
-      const response = await fetch('/api/modules/google-workspace/configure', {
+      const orgData = localStorage.getItem('helios_organization');
+      const parsedOrgData = orgData ? JSON.parse(orgData) : {};
+
+      const response = await fetch('http://localhost:3001/api/google-workspace/setup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
         },
         body: JSON.stringify({
-          serviceAccount: serviceAccountData,
+          credentials: serviceAccountData,
           adminEmail,
-          domain
+          domain,
+          organizationId: parsedOrgData.organizationId || parsedOrgData.id || null,
+          organizationName: parsedOrgData.organizationName || parsedOrgData.name || ''
         })
       });
 
@@ -339,12 +376,60 @@ const GoogleWorkspaceWizard: React.FC<GoogleWorkspaceWizardProps> = ({
               <div className="gw-wizard-final-actions">
                 <button
                   className="gw-wizard-save-button"
-                  onClick={handleSaveConfiguration}
+                  onClick={() => handleSaveConfiguration()}
                   disabled={isLoading}
                 >
                   {isLoading ? 'Saving...' : 'Complete Setup'}
                 </button>
               </div>
+
+              {showOverwriteDialog && (
+                <div style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  background: 'white',
+                  border: '2px solid #ff9800',
+                  borderRadius: '8px',
+                  padding: '20px',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+                  zIndex: 1000,
+                  maxWidth: '400px'
+                }}>
+                  <h3 style={{ marginTop: 0, color: '#ff9800' }}>⚠️ Configuration Already Exists</h3>
+                  <p>Google Workspace is already configured for this organization. Do you want to overwrite the existing configuration?</p>
+                  <p style={{ fontSize: '0.9em', color: '#666' }}>This will replace your current service account and settings.</p>
+                  <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
+                    <button
+                      onClick={() => setShowOverwriteDialog(false)}
+                      style={{
+                        padding: '8px 16px',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px',
+                        background: 'white',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => handleSaveConfiguration(true)}
+                      style={{
+                        padding: '8px 16px',
+                        border: 'none',
+                        borderRadius: '4px',
+                        background: '#ff9800',
+                        color: 'white',
+                        cursor: 'pointer',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      Yes, Overwrite
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -17,7 +17,7 @@
   width: 32px;
   height: 32px;
   border: 3px solid #f3f4f6;
-  border-top-color: #8b5cf6;
+  border-top-color: var(--theme-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-bottom: 16px;
@@ -86,12 +86,12 @@
 }
 
 .filter-select:hover {
-  border-color: #8b5cf6;
+  border-color: var(--theme-primary);
 }
 
 .filter-select:focus {
   outline: none;
-  border-color: #8b5cf6;
+  border-color: var(--theme-primary);
   box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
 }
 
@@ -140,7 +140,7 @@
 }
 
 .api-key-card:hover {
-  border-color: #8b5cf6;
+  border-color: var(--theme-primary);
   box-shadow: 0 2px 8px rgba(139, 92, 246, 0.1);
 }
 
@@ -215,9 +215,9 @@
 }
 
 .btn-secondary-sm:hover {
-  border-color: #8b5cf6;
+  border-color: var(--theme-primary);
   background: #faf5ff;
-  color: #8b5cf6;
+  color: var(--theme-primary);
 }
 
 .btn-danger-sm {
@@ -301,7 +301,7 @@
 .permission-tag.more {
   background: #faf5ff;
   border-color: #e9d5ff;
-  color: #8b5cf6;
+  color: var(--theme-primary);
 }
 
 /* Responsive adjustments */

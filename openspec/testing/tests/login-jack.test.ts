@@ -1,10 +1,21 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Login with Jack Admin Account', () => {
+  // Clean up browser state before each test
+  test.beforeEach(async ({ page }) => {
+    await page.goto('http://localhost:3000');
+    await page.evaluate(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+    });
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+  });
+
   test('Complete login flow with Jack', async ({ page }) => {
     const baseUrl = 'http://localhost:3000';
-    const testEmail = 'jack@gridwrx.io';
-    const testPassword = 'TestPassword123!';
+    const testEmail = 'jack@gridworx.io';
+    const testPassword = 'P@ssw0rd123!';
 
     console.log('🔧 Test Configuration:');
     console.log(`   Frontend: ${baseUrl}`);
@@ -24,9 +35,12 @@ test.describe('Login with Jack Admin Account', () => {
 
     // Find and fill login form
     console.log('\n📝 Finding login form elements...');
-    const emailInput = await page.locator('input[type="email"]').first();
-    const passwordInput = await page.locator('input[type="password"]').first();
-    const submitButton = await page.locator('button[type="submit"]').first();
+    const emailInput = page.locator('input[type="email"]').first();
+    const passwordInput = page.locator('input[type="password"]').first();
+    const submitButton = page.locator('button[type="submit"]').first();
+
+    // Wait for login form to be visible (handles race condition)
+    await emailInput.waitFor({ state: 'visible', timeout: 15000 });
 
     const emailVisible = await emailInput.isVisible();
     const passwordVisible = await passwordInput.isVisible();
@@ -109,8 +123,8 @@ test.describe('Login with Jack Admin Account', () => {
 
   test('Page persistence after refresh', async ({ page }) => {
     const baseUrl = 'http://localhost:3000';
-    const testEmail = 'jack@gridwrx.io';
-    const testPassword = 'TestPassword123!';
+    const testEmail = 'jack@gridworx.io';
+    const testPassword = 'P@ssw0rd123!';
 
     console.log('🔄 Testing Page Persistence After Refresh\n');
 
@@ -180,8 +194,8 @@ test.describe('Login with Jack Admin Account', () => {
 
     const response = await request.post('http://localhost:3001/api/auth/login', {
       data: {
-        email: 'jack@gridwrx.io',
-        password: 'TestPassword123!'
+        email: 'jack@gridworx.io',
+        password: 'P@ssw0rd123!'
       }
     });
 
@@ -193,7 +207,7 @@ test.describe('Login with Jack Admin Account', () => {
     expect(body.success).toBe(true);
     expect(body.data.tokens.accessToken).toBeTruthy();
     expect(body.data.tokens.refreshToken).toBeTruthy();
-    expect(body.data.user.email).toBe('jack@gridwrx.io');
+    expect(body.data.user.email).toBe('jack@gridworx.io');
     expect(body.data.user.firstName).toBe('Jack');
     expect(body.data.user.lastName).toBe('Dribber');
     expect(body.data.user.role).toBe('admin');

@@ -13,6 +13,16 @@ declare global {
         email: string;
         role: string;
         organizationId: string;
+        firstName?: string;
+        lastName?: string;
+        // API Key context
+        keyType?: 'service' | 'vendor';
+        apiKeyId?: string;
+        apiKeyName?: string;
+        serviceName?: string;
+        serviceEmail?: string;
+        serviceOwner?: string;
+        vendorName?: string;
       };
     }
   }
@@ -58,7 +68,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
     userId: decoded.userId,
     email: decoded.email,
     role: decoded.role,
-    organizationId: decoded.organizationId || decoded.tenantId // Support both for migration
+    organizationId: decoded.organizationId
   };
 
   next();
@@ -109,7 +119,7 @@ export const optionalAuth = (req: Request, res: Response, next: NextFunction) =>
           userId: decoded.userId,
           email: decoded.email,
           role: decoded.role,
-          organizationId: decoded.organizationId || decoded.tenantId // Support both for migration
+          organizationId: decoded.organizationId
         };
       }
     } catch (error) {
@@ -127,18 +137,51 @@ export const requireAuth = authenticateToken;
 
 /**
  * Middleware to require specific permission/role
+ * This middleware also handles authentication, so no need to call requireAuth separately
  */
 export const requirePermission = (permission: string) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.user) {
+    // First, authenticate the token
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
         success: false,
-        error: 'Authentication required'
+        error: 'Authentication required',
+        message: 'No valid authorization token provided'
       });
     }
 
-    // For now, check if user is admin for any permission
-    // Later can expand to more granular permissions
+    const token = authHeader.substring(7);
+
+    let decoded: any;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (error) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid token',
+        message: 'The provided token is invalid or expired'
+      });
+    }
+
+    if (!decoded || decoded.type !== 'access') {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid token',
+        message: 'The provided token is invalid or expired'
+      });
+    }
+
+    // Attach user info to request
+    req.user = {
+      userId: decoded.userId,
+      email: decoded.email,
+      role: decoded.role,
+      organizationId: decoded.organizationId
+    };
+
+    // Now check permission
     if (permission === 'admin' && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,

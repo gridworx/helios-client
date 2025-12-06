@@ -86,14 +86,16 @@
 .grid-header {
   display: grid;
   grid-template-columns: 2fr 1fr 100px 100px 1.5fr 120px;
-  padding: 16px 20px;
-  background: #f5f5f5;
-  border-bottom: 1px solid #e0e0e0;
-  font-size: 13px;
+  padding: 0 20px;
+  height: 44px;
+  background: #fafbfc;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 11px;
   font-weight: 600;
-  color: #666;
+  color: #6b7280;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
+  align-items: center;
 }
 
 .grid-body {
@@ -104,7 +106,9 @@
 .grid-row {
   display: grid;
   grid-template-columns: 2fr 1fr 100px 100px 1.5fr 120px;
-  padding: 16px 20px;
+  padding: 0 20px;
+  height: 56px;
+  min-height: 56px;
   border-bottom: 1px solid #f0f0f0;
   align-items: center;
   transition: background 0.2s;
@@ -240,10 +244,12 @@
 }
 
 .empty-icon {
-  font-size: 48px;
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 16px;
   opacity: 0.5;
+  color: #6b7280;
 }
 
 .empty-state h3 {

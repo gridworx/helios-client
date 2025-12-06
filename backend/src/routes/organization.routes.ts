@@ -6,6 +6,8 @@ import { logger } from '../utils/logger';
 import { authService } from '../services/auth.service';
 import { authenticateToken } from '../middleware/auth';
 import { PasswordSetupService } from '../services/password-setup.service';
+import { syncScheduler } from '../services/sync-scheduler.service';
+import { googleWorkspaceService } from '../services/google-workspace.service';
 
 const router = Router();
 
@@ -217,16 +219,19 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
     // Get organizationId from authenticated user or query parameter (fallback to database)
     let organizationId = req.user?.organizationId || req.query.organizationId;
 
-    // Get status filter from query params (active, pending, deleted, all)
+    // Get status filter from query params (active, staged, deleted, suspended, all)
     const statusFilter = (req.query.status as string)?.toLowerCase() || 'all';
 
     // Get user type filter from query params (staff, guest, contact)
     const userType = req.query.userType as string;
 
+    // Get includeDeleted flag for counting purposes
+    const includeDeleted = req.query.includeDeleted === 'true';
+
     // Get guest filter from query params (deprecated - use userType instead)
     const guestOnly = req.query.guestOnly === 'true';
 
-    // If no organizationId, get the only organization (single-tenant)
+    // If no organizationId, get the only organization (single-organization)
     if (!organizationId) {
       const orgResult = await db.query('SELECT id FROM organizations LIMIT 1');
       if (orgResult.rows.length > 0) {
@@ -239,7 +244,7 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
       }
     }
 
-    logger.info('Fetching users for organization', { organizationId, statusFilter, guestOnly });
+    logger.info('Fetching users for organization', { organizationId, statusFilter, guestOnly, includeDeleted });
 
     // Check if Google Workspace is enabled
     const moduleCheckResult = await db.query(`
@@ -256,15 +261,20 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
 
     // Build status filter condition
     let statusCondition = '';
-    if (statusFilter === 'active') {
-      statusCondition = "AND (ou.user_status = 'active' OR ou.is_active = true) AND ou.deleted_at IS NULL";
-    } else if (statusFilter === 'pending') {
-      statusCondition = "AND (ou.user_status = 'pending' OR (ou.is_active = false AND ou.last_login IS NULL)) AND ou.deleted_at IS NULL";
+    if (includeDeleted) {
+      // When includeDeleted is true, don't filter by deletion status at all
+      statusCondition = '';
+    } else if (statusFilter === 'active') {
+      statusCondition = "AND ou.user_status = 'active'";
+    } else if (statusFilter === 'pending' || statusFilter === 'staged') {
+      statusCondition = "AND ou.user_status = 'staged'";
+    } else if (statusFilter === 'suspended') {
+      statusCondition = "AND ou.user_status = 'suspended'";
     } else if (statusFilter === 'deleted') {
-      statusCondition = "AND ou.deleted_at IS NOT NULL";
+      statusCondition = "AND ou.user_status = 'deleted'";
     } else {
-      // 'all' or unrecognized - don't filter by status (but exclude soft-deleted by default)
-      statusCondition = "AND ou.deleted_at IS NULL";
+      // 'all' means ALL users - no filter at all
+      statusCondition = '';
     }
 
     // Add user type filter condition
@@ -300,7 +310,6 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
         ou.added_at as addedAt,
         ou.created_at as createdAt,
         ou.updated_at as updatedAt,
-        ou.status,
         ou.job_title as jobTitle,
         ou.department,
         ou.department_id as departmentId,
@@ -308,7 +317,7 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
         d.org_unit_path as orgUnitPath,
         ou.organizational_unit as organizationalUnit,
         ou.location,
-        ou.reporting_manager_id as reportingManagerId,
+        ou.manager_id as reportingManagerId,
         ou.employee_id as employeeId,
         ou.employee_type as employeeType,
         ou.cost_center as costCenter,
@@ -455,7 +464,7 @@ router.get('/users/count', authenticateToken, async (req: Request, res: Response
     // Get user type filter from query params
     const userType = req.query.userType as string;
 
-    // If no organizationId, get the only organization (single-tenant)
+    // If no organizationId, get the only organization (single-organization)
     if (!organizationId) {
       const orgResult = await db.query('SELECT id FROM organizations LIMIT 1');
       if (orgResult.rows.length > 0) {
@@ -525,7 +534,7 @@ router.get('/users/:userId', authenticateToken, async (req: Request, res: Respon
         ou.is_active as isActive,
         ou.created_at as createdAt,
         ou.updated_at as updatedAt,
-        ou.status,
+        ou.user_status as userStatus,
         ou.job_title as jobTitle,
         ou.professional_designations as professionalDesignations,
         ou.pronouns,
@@ -535,7 +544,7 @@ router.get('/users/:userId', authenticateToken, async (req: Request, res: Respon
         d.org_unit_path as orgUnitPath,
         ou.organizational_unit as organizationalUnit,
         ou.location,
-        ou.reporting_manager_id as reportingManagerId,
+        ou.manager_id as reportingManagerId,
         ou.employee_id as employeeId,
         ou.employee_type as employeeType,
         ou.cost_center as costCenter,
@@ -736,9 +745,9 @@ router.post('/users', authenticateToken, async (req: Request, res: Response) => 
       `INSERT INTO organization_users (
         email, password_hash, first_name, last_name,
         role, organization_id, is_active, email_verified,
-        alternate_email, password_setup_method, status,
+        alternate_email, password_setup_method, user_status,
         job_title, professional_designations, pronouns, department, department_id, organizational_unit, location,
-        reporting_manager_id, employee_id, employee_type, cost_center,
+        manager_id, employee_id, employee_type, cost_center,
         start_date, end_date, bio,
         mobile_phone, work_phone, work_phone_extension, timezone, preferred_language,
         google_workspace_id, microsoft_365_id, github_username, slack_user_id,
@@ -747,7 +756,7 @@ router.post('/users', authenticateToken, async (req: Request, res: Response) => 
         created_at
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, NOW())
-      RETURNING id, email, first_name, last_name, role, is_active, alternate_email, status, job_title, department, department_id, location, created_at`,
+      RETURNING id, email, first_name, last_name, role, is_active, alternate_email, user_status as userStatus, job_title, department, department_id, location, created_at`,
       [
         email.toLowerCase(),
         passwordHash,
@@ -918,7 +927,7 @@ router.put('/users/:userId', authenticateToken, async (req: Request, res: Respon
         department = COALESCE($7, department),
         organizational_unit = COALESCE($8, organizational_unit),
         location = COALESCE($9, location),
-        reporting_manager_id = $10,
+        manager_id = $10,
         employee_id = COALESCE($11, employee_id),
         employee_type = COALESCE($12, employee_type),
         cost_center = COALESCE($13, cost_center),
@@ -975,6 +984,60 @@ router.put('/users/:userId', authenticateToken, async (req: Request, res: Respon
     );
 
     const updatedUser = result.rows[0];
+
+    // Sync to Google Workspace if the user is linked
+    const userDetailsResult = await db.query(
+      'SELECT google_workspace_id, email FROM organization_users WHERE id = $1',
+      [userId]
+    );
+
+    if (userDetailsResult.rows[0]?.google_workspace_id) {
+      const googleWorkspaceId = userDetailsResult.rows[0].google_workspace_id;
+
+      // Get manager email if managerId is provided
+      let managerEmail = undefined;
+      if (req.body.managerId !== undefined) {
+        if (req.body.managerId) {
+          const managerResult = await db.query(
+            'SELECT email FROM organization_users WHERE id = $1',
+            [req.body.managerId]
+          );
+          managerEmail = managerResult.rows[0]?.email;
+        } else {
+          managerEmail = null; // Clear manager
+        }
+      }
+
+      // Build phones array if provided
+      const phones = [];
+      if (mobilePhone) phones.push({ type: 'mobile', value: mobilePhone });
+      if (workPhone) phones.push({ type: 'work', value: workPhone });
+
+      // Push updates to Google Workspace
+      const syncResult = await googleWorkspaceService.updateUser(
+        organizationId,
+        googleWorkspaceId,
+        {
+          firstName,
+          lastName,
+          jobTitle,
+          department,
+          managerEmail,
+          organizationalUnit,
+          phones: phones.length > 0 ? phones : undefined
+        }
+      );
+
+      if (!syncResult.success) {
+        logger.warn('Failed to sync user update to Google Workspace', {
+          userId,
+          error: syncResult.error
+        });
+        // Continue - don't fail the whole request if Google sync fails
+      } else {
+        logger.info('User synced to Google Workspace', { userId, googleWorkspaceId });
+      }
+    }
 
     // Log the user update
     await db.query(
@@ -1092,21 +1155,36 @@ router.delete('/users/:userId', authenticateToken, async (req: Request, res: Res
       [userId, organizationId]
     );
 
-    // If user is synced from Google Workspace, suspend them there too
+    // Handle Google Workspace user deletion
     let googleSyncMessage = '';
-    if (googleWorkspaceId && req.body?.suspendInGoogle !== false) {
-      const { googleWorkspaceService } = await import('../services/google-workspace.service');
-      const suspendResult = await googleWorkspaceService.suspendUser(organizationId, googleWorkspaceId);
+    if (googleWorkspaceId) {
+      const googleAction = req.body?.googleAction || 'keep'; // 'keep' | 'suspend' | 'delete'
 
-      if (suspendResult.success) {
-        googleSyncMessage = ' and suspended in Google Workspace';
-        logger.info('User suspended in Google Workspace', { googleWorkspaceId });
+      if (googleAction === 'delete') {
+        // Permanently delete from Google Workspace (frees license)
+        const { googleWorkspaceService } = await import('../services/google-workspace.service');
+        const deleteResult = await googleWorkspaceService.deleteUser(organizationId, googleWorkspaceId);
+        if (deleteResult.success) {
+          googleSyncMessage = ' and permanently deleted from Google Workspace';
+          logger.info('User deleted from Google Workspace', { googleWorkspaceId });
+        } else {
+          googleSyncMessage = ' (Note: Could not delete from Google Workspace - ' + deleteResult.error + ')';
+          logger.warn('Could not delete user from Google Workspace', { googleWorkspaceId, error: deleteResult.error });
+        }
+      } else if (googleAction === 'suspend') {
+        // Suspend in Google Workspace (STILL BILLED!)
+        const { googleWorkspaceService } = await import('../services/google-workspace.service');
+        const suspendResult = await googleWorkspaceService.suspendUser(organizationId, googleWorkspaceId);
+        if (suspendResult.success) {
+          googleSyncMessage = ' and suspended in Google Workspace (note: you are still billed for this license)';
+          logger.info('User suspended in Google Workspace', { googleWorkspaceId });
+        } else {
+          googleSyncMessage = ' (Note: Could not suspend in Google Workspace - ' + suspendResult.error + ')';
+          logger.warn('Could not suspend user in Google Workspace', { googleWorkspaceId, error: suspendResult.error });
+        }
       } else {
-        googleSyncMessage = ' (Note: Could not suspend in Google Workspace - ' + suspendResult.error + ')';
-        logger.warn('Could not suspend user in Google Workspace', {
-          googleWorkspaceId,
-          error: suspendResult.error
-        });
+        // Keep Google account active
+        googleSyncMessage = ' (Google Workspace account remains active)';
       }
     }
 
@@ -1154,7 +1232,7 @@ router.delete('/users/:userId', authenticateToken, async (req: Request, res: Res
 
 /**
  * PATCH /api/organization/users/:userId/status
- * Change user status (active, pending, suspended)
+ * Change user status (active, staged, suspended)
  */
 router.patch('/users/:userId/status', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -1162,11 +1240,11 @@ router.patch('/users/:userId/status', authenticateToken, async (req: Request, re
     const { status } = req.body;
 
     // Validate status
-    const validStatuses = ['active', 'pending', 'suspended'];
+    const validStatuses = ['active', 'staged', 'suspended'];
     if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
-        error: 'Invalid status. Must be active, pending, or suspended'
+        error: 'Invalid status. Must be active, staged, or suspended'
       });
     }
 
@@ -1502,13 +1580,13 @@ router.get('/users/:userId/groups', authenticateToken, async (req: Request, res:
   }
 });
 
-// Get organization statistics
+// Get organization statistics (Platform-specific)
 router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
   try {
     // Get organizationId from authenticated user or query parameter (fallback to database)
     let organizationId = req.user?.organizationId || req.query.organizationId;
 
-    // If no organizationId, get the only organization (single-tenant)
+    // If no organizationId, get the only organization (single-organization)
     if (!organizationId) {
       const orgResult = await db.query('SELECT id FROM organizations LIMIT 1');
       if (orgResult.rows.length > 0) {
@@ -1521,94 +1599,10 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
       }
     }
 
-    logger.info('Fetching organization stats', { organizationId });
+    logger.info('Fetching platform-specific organization stats', { organizationId });
 
-    // Check if Google Workspace is enabled
-    const moduleCheckResult = await db.query(`
-      SELECT om.is_enabled, om.last_sync_at
-      FROM organization_modules om
-      JOIN modules m ON m.id = om.module_id
-      WHERE om.organization_id = $1 AND m.slug = 'google-workspace'
-    `, [organizationId]);
-
-    const googleWorkspaceEnabled = moduleCheckResult.rows.length > 0 && moduleCheckResult.rows[0].is_enabled;
-    const lastSync = moduleCheckResult.rows.length > 0 ? moduleCheckResult.rows[0].last_sync_at : null;
-
-    // Always get stats from local users first
-    const localStatsResult = await db.query(`
-      SELECT
-        COUNT(*) as total_users,
-        COUNT(CASE WHEN is_active = true THEN 1 END) as active_users,
-        COUNT(CASE WHEN is_active = false THEN 1 END) as inactive_users,
-        COUNT(CASE WHEN role = 'admin' THEN 1 END) as admin_users
-      FROM organization_users
-      WHERE organization_id = $1
-    `, [organizationId]);
-
-    const localStats = localStatsResult.rows[0];
-
-    let stats: {
-      totalUsers: number;
-      activeUsers: number;
-      suspendedUsers: number;
-      adminUsers: number;
-      totalGroups: number;
-      lastSync: Date | null;
-      source: string;
-      localUsers?: number;
-      googleWorkspaceUsers?: number;
-    } = {
-      totalUsers: parseInt(localStats.total_users) || 0,
-      activeUsers: parseInt(localStats.active_users) || 0,
-      suspendedUsers: parseInt(localStats.inactive_users) || 0,
-      adminUsers: parseInt(localStats.admin_users) || 0,
-      totalGroups: 0,
-      lastSync: null,
-      source: googleWorkspaceEnabled ? 'combined' : 'local',
-      localUsers: parseInt(localStats.total_users) || 0
-    };
-
-    // Get group count
-    const groupCountResult = await db.query(`
-      SELECT COUNT(*) as total_groups
-      FROM gw_groups
-      WHERE organization_id = $1
-    `, [organizationId]);
-
-    stats.totalGroups = parseInt(groupCountResult.rows[0].total_groups) || 0;
-
-    // If Google Workspace is enabled, also get those stats
-    if (googleWorkspaceEnabled) {
-      const gwStatsResult = await db.query(`
-        SELECT
-          COUNT(*) as total_users,
-          COUNT(CASE WHEN is_suspended = false THEN 1 END) as active_users,
-          COUNT(CASE WHEN is_suspended = true THEN 1 END) as suspended_users,
-          COUNT(CASE WHEN is_admin = true THEN 1 END) as admin_users
-        FROM gw_synced_users
-        WHERE organization_id = $1
-      `, [organizationId]);
-
-      const gwStats = gwStatsResult.rows[0];
-      const gwTotal = parseInt(gwStats.total_users) || 0;
-
-      // Add Google Workspace user count
-      stats.googleWorkspaceUsers = gwTotal;
-
-      // For combined stats, we count unique users by email
-      // Users in both systems count once, so we need to deduplicate
-      const combinedCountResult = await db.query(`
-        SELECT COUNT(DISTINCT email) as unique_users
-        FROM (
-          SELECT email FROM organization_users WHERE organization_id = $1 AND deleted_at IS NULL
-          UNION
-          SELECT email FROM gw_synced_users WHERE organization_id = $1
-        ) combined
-      `, [organizationId]);
-
-      stats.totalUsers = parseInt(combinedCountResult.rows[0].unique_users) || 0;
-      stats.lastSync = lastSync;
-    }
+    // Use the sync-scheduler service to get platform-specific stats
+    const stats = await syncScheduler.getOrganizationStats(organizationId as string);
 
     res.json({
       success: true,
@@ -1629,7 +1623,7 @@ router.get('/admins', authenticateToken, async (req: Request, res: Response) => 
     // Get organizationId from authenticated user
     let organizationId = req.user?.organizationId;
 
-    // If no organizationId, get the only organization (single-tenant)
+    // If no organizationId, get the only organization (single-organization)
     if (!organizationId) {
       const orgResult = await db.query('SELECT id FROM organizations LIMIT 1');
       if (orgResult.rows.length > 0) {
@@ -1797,6 +1791,231 @@ router.post('/admins/demote/:userId', authenticateToken, async (req: Request, re
     res.status(500).json({
       success: false,
       error: 'Failed to demote administrator'
+    });
+  }
+});
+
+/**
+ * POST /api/organization/users/:userId/block
+ * Block user account (security lockout while maintaining delegation capability)
+ */
+router.post('/users/:userId/block', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const { reason, delegateTo, emailForwarding, dataTransfer } = req.body;
+
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      return res.status(401).json({ success: false, error: 'Organization ID not found' });
+    }
+
+    // Check admin permissions
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Admin access required' });
+    }
+
+    // Get user details
+    const userResult = await db.query(
+      'SELECT * FROM organization_users WHERE id = $1 AND organization_id = $2',
+      [userId, organizationId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    const user = userResult.rows[0];
+
+    if (!user.google_workspace_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot block local-only user. Use suspend instead.'
+      });
+    }
+
+    // Get fresh auth token for proxy calls
+    const authToken = req.headers.authorization;
+
+    // Execute block operations
+    const blockResult = {
+      passwordReset: false,
+      sessionsSignedOut: false,
+      aspsRevoked: 0,
+      tokensRevoked: 0,
+      delegationEnabled: false,
+      emailForwardingEnabled: false,
+      dataTransferInitiated: false
+    };
+
+    // 1. Generate random password
+    const randomPassword = crypto.randomBytes(32).toString('base64').substring(0, 64);
+
+    const passwordResponse = await fetch(`http://localhost:3001/api/google/admin/directory/v1/users/${user.email}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': authToken,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        password: randomPassword,
+        changePasswordAtNextLogin: false
+      })
+    });
+
+    blockResult.passwordReset = passwordResponse.ok;
+
+    // 2. Sign out all sessions
+    const signOutResponse = await fetch(`http://localhost:3001/api/google/admin/directory/v1/users/${user.email}/signOut`, {
+      method: 'POST',
+      headers: { 'Authorization': authToken }
+    });
+
+    blockResult.sessionsSignedOut = signOutResponse.ok;
+
+    // 3. Revoke all ASPs
+    try {
+      const aspsResponse = await fetch(`http://localhost:3001/api/google/admin/directory/v1/users/${user.email}/asps`, {
+        headers: { 'Authorization': authToken }
+      });
+
+      if (aspsResponse.ok) {
+        const aspsData: any = await aspsResponse.json();
+        const asps = aspsData.items || [];
+
+        for (const asp of asps) {
+          await fetch(`http://localhost:3001/api/google/admin/directory/v1/users/${user.email}/asps/${asp.codeId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': authToken }
+          });
+          blockResult.aspsRevoked++;
+        }
+      }
+    } catch (error) {
+      logger.warn('Failed to revoke ASPs', { error });
+    }
+
+    // 4. Revoke all OAuth tokens
+    try {
+      const tokensResponse = await fetch(`http://localhost:3001/api/google/admin/directory/v1/users/${user.email}/tokens`, {
+        headers: { 'Authorization': authToken }
+      });
+
+      if (tokensResponse.ok) {
+        const tokensData: any = await tokensResponse.json();
+        const tokens = tokensData.items || [];
+
+        for (const token of tokens) {
+          await fetch(`http://localhost:3001/api/google/admin/directory/v1/users/${user.email}/tokens/${token.clientId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': authToken }
+          });
+          blockResult.tokensRevoked++;
+        }
+      }
+    } catch (error) {
+      logger.warn('Failed to revoke OAuth tokens', { error });
+    }
+
+    // 5. Set up delegation if requested
+    if (delegateTo) {
+      const delegateResponse = await fetch(`http://localhost:3001/api/google/gmail/v1/users/${user.email}/settings/delegates`, {
+        method: 'POST',
+        headers: {
+          'Authorization': authToken,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ delegateEmail: delegateTo })
+      });
+
+      blockResult.delegationEnabled = delegateResponse.ok;
+    }
+
+    // 6. Set up email forwarding if requested
+    if (emailForwarding?.enabled && emailForwarding?.forwardTo) {
+      // Call hidden forwarding group function
+      const { createHiddenForwardingGroup } = await import('../services/email-forwarding.service');
+      const forwardingResult = await createHiddenForwardingGroup(
+        user,
+        emailForwarding,
+        authToken || '',
+        organizationId
+      );
+
+      blockResult.emailForwardingEnabled = forwardingResult.success;
+    }
+
+    // 7. Transfer data if requested
+    if (dataTransfer?.enabled && dataTransfer?.transferTo && dataTransfer?.items) {
+      const { initiateDataTransfer } = await import('../services/data-transfer.service');
+      const transferResult = await initiateDataTransfer(
+        user,
+        dataTransfer,
+        authToken || ''
+      );
+
+      blockResult.dataTransferInitiated = transferResult.success;
+    }
+
+    // 8. Update Helios database
+    await db.query(`
+      UPDATE organization_users
+      SET
+        user_status = 'blocked',
+        is_active = false,
+        blocked_at = NOW(),
+        blocked_by = $1,
+        blocked_reason = $2,
+        updated_at = NOW()
+      WHERE id = $3
+    `, [req.user?.userId, reason || 'Security lockout', userId]);
+
+    // 9. Create security event
+    await db.query(`
+      INSERT INTO security_events (
+        organization_id,
+        event_type,
+        severity,
+        user_id,
+        user_email,
+        title,
+        description,
+        details,
+        source
+      ) VALUES ($1, 'user_blocked', 'warning', $2, $3, $4, $5, $6, 'helios')
+    `, [
+      organizationId,
+      userId,
+      user.email,
+      `User account blocked: ${user.first_name} ${user.last_name}`,
+      `Account blocked by ${req.user?.email}. Reason: ${reason || 'Security lockout'}`,
+      JSON.stringify({
+        blockedBy: req.user?.email,
+        reason,
+        delegateTo,
+        emailForwardingEnabled: blockResult.emailForwardingEnabled,
+        dataTransferInitiated: blockResult.dataTransferInitiated
+      })
+    ]);
+
+    logger.info('User account blocked', {
+      userId,
+      userEmail: user.email,
+      blockedBy: req.user?.email,
+      delegationEnabled: blockResult.delegationEnabled
+    });
+
+    res.json({
+      success: true,
+      message: 'User account blocked successfully',
+      data: blockResult
+    });
+
+  } catch (error: any) {
+    logger.error('Failed to block user', { error: error.message, stack: error.stack });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to block user',
+      message: error.message
     });
   }
 });

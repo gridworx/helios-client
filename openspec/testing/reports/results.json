@@ -174,114 +174,1820 @@
   },
   "suites": [
     {
-      "title": "testing\\tests\\simple-login.test.ts",
-      "file": "testing/tests/simple-login.test.ts",
+      "title": "testing\\tests\\core\\auth.test.ts",
+      "file": "testing/tests/core/auth.test.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "Simple Login Test",
-          "file": "testing/tests/simple-login.test.ts",
-          "line": 3,
+          "title": "Feature: Authentication",
+          "file": "testing/tests/core/auth.test.ts",
+          "line": 10,
           "column": 6,
-          "specs": [
+          "specs": [],
+          "suites": [
             {
-              "title": "Login page loads and shows form elements",
-              "ok": true,
-              "tags": [],
-              "tests": [
+              "title": "Requirement: User Login",
+              "file": "testing/tests/core/auth.test.ts",
+              "line": 23,
+              "column": 8,
+              "specs": [
                 {
-                  "timeout": 60000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
+                  "title": "Scenario: Valid login with correct credentials",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
                     {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 4924,
-                      "errors": [],
-                      "stdout": [
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
                         {
-                          "text": "Current URL: http://localhost:3000/\n"
-                        },
-                        {
-                          "text": "Found email input with selector: input[type=\"email\"]\n"
-                        },
-                        {
-                          "text": "Found password input with selector: input[type=\"password\"]\n"
-                        },
-                        {
-                          "text": "Found login button with selector: button[type=\"submit\"]\n"
-                        },
-                        {
-                          "text": "Login form found! Attempting to fill and submit...\n"
-                        },
-                        {
-                          "text": "Final URL: http://localhost:3000/\n"
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 6881,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:42:17.608Z",
+                          "annotations": [],
+                          "attachments": []
                         }
                       ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-11-01T00:05:47.912Z",
-                      "annotations": [],
-                      "attachments": []
+                      "status": "expected"
                     }
                   ],
-                  "status": "expected"
+                  "id": "72bbd6538038f990acee-2406375ba3c05753eace",
+                  "file": "testing/tests/core/auth.test.ts",
+                  "line": 25,
+                  "column": 9
+                },
+                {
+                  "title": "Scenario: Invalid login with wrong password",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 6395,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:42:17.606Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "72bbd6538038f990acee-efa1453b7006cb234c9f",
+                  "file": "testing/tests/core/auth.test.ts",
+                  "line": 64,
+                  "column": 9
+                },
+                {
+                  "title": "Scenario: Invalid login with non-existent email",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 3479,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:42:24.875Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "72bbd6538038f990acee-2f6290e38193e5cf1b15",
+                  "file": "testing/tests/core/auth.test.ts",
+                  "line": 101,
+                  "column": 9
                 }
-              ],
-              "id": "8e61bfe5ca7144588098-3f0fd182d75dab9bcf7c",
-              "file": "testing/tests/simple-login.test.ts",
-              "line": 4,
-              "column": 7
+              ]
             },
             {
-              "title": "Check page title and basic structure",
-              "ok": true,
-              "tags": [],
-              "tests": [
+              "title": "Requirement: Session Management",
+              "file": "testing/tests/core/auth.test.ts",
+              "line": 130,
+              "column": 8,
+              "specs": [
                 {
-                  "timeout": 60000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
+                  "title": "Scenario: Session persists after page refresh",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
                     {
-                      "workerIndex": 1,
-                      "parallelIndex": 1,
-                      "status": "passed",
-                      "duration": 4107,
-                      "errors": [],
-                      "stdout": [
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
                         {
-                          "text": "Page title: client-portal\n"
-                        },
-                        {
-                          "text": "Page structure: { hasHeader: \u001b[33mfalse\u001b[39m, hasMain: \u001b[33mtrue\u001b[39m, hasFooter: \u001b[33mfalse\u001b[39m }\n"
-                        },
-                        {
-                          "text": "Found 1 interactive elements\n"
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 6414,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:42:25.375Z",
+                          "annotations": [],
+                          "attachments": []
                         }
                       ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-11-01T00:05:47.930Z",
-                      "annotations": [],
-                      "attachments": []
+                      "status": "expected"
                     }
                   ],
-                  "status": "expected"
+                  "id": "72bbd6538038f990acee-ea157f0a8d5b76655093",
+                  "file": "testing/tests/core/auth.test.ts",
+                  "line": 132,
+                  "column": 9
+                },
+                {
+                  "title": "Scenario: Navigation state persists after refresh",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 6385,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:42:28.375Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "72bbd6538038f990acee-7eef61a9b960b401ee6b",
+                  "file": "testing/tests/core/auth.test.ts",
+                  "line": 166,
+                  "column": 9
                 }
-              ],
-              "id": "8e61bfe5ca7144588098-8ff0d0f650076aad427e",
-              "file": "testing/tests/simple-login.test.ts",
-              "line": 118,
-              "column": 7
+              ]
+            },
+            {
+              "title": "Requirement: API Authentication",
+              "file": "testing/tests/core/auth.test.ts",
+              "line": 200,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "Scenario: Direct API login returns valid tokens",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 2831,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:42:31.809Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "72bbd6538038f990acee-6a6388241ec05a3a09b0",
+                  "file": "testing/tests/core/auth.test.ts",
+                  "line": 202,
+                  "column": 9
+                },
+                {
+                  "title": "Scenario: Token verification succeeds with valid token",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 2876,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:42:34.659Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "72bbd6538038f990acee-ca1ade2d2003de795d0f",
+                  "file": "testing/tests/core/auth.test.ts",
+                  "line": 226,
+                  "column": 9
+                },
+                {
+                  "title": "Scenario: Token verification fails with invalid token",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 2700,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:42:34.795Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "72bbd6538038f990acee-32a8af6f973f8dd3ebb2",
+                  "file": "testing/tests/core/auth.test.ts",
+                  "line": 253,
+                  "column": 9
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "testing\\tests\\core\\dashboard.test.ts",
+      "file": "testing/tests/core/dashboard.test.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Feature: Dashboard",
+          "file": "testing/tests/core/dashboard.test.ts",
+          "line": 10,
+          "column": 6,
+          "specs": [],
+          "suites": [
+            {
+              "title": "Requirement: Dashboard Loading",
+              "file": "testing/tests/core/dashboard.test.ts",
+              "line": 16,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "Scenario: Dashboard loads after login",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 4187,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:42:37.522Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "a22bb49f1469d226c8ce-68c5787ede882138f7d3",
+                  "file": "testing/tests/core/dashboard.test.ts",
+                  "line": 18,
+                  "column": 9
+                },
+                {
+                  "title": "Scenario: Dashboard shows organization name",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 4113,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:42:37.560Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "a22bb49f1469d226c8ce-c896bce746ec4e7de615",
+                  "file": "testing/tests/core/dashboard.test.ts",
+                  "line": 32,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Requirement: Dashboard Statistics",
+              "file": "testing/tests/core/dashboard.test.ts",
+              "line": 46,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "Scenario: Dashboard displays user statistics",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 6408,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:42:41.690Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "a22bb49f1469d226c8ce-d953ddc062d164c1c7e1",
+                  "file": "testing/tests/core/dashboard.test.ts",
+                  "line": 48,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Requirement: Dashboard Navigation",
+              "file": "testing/tests/core/dashboard.test.ts",
+              "line": 65,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "Scenario: Sidebar navigation is visible",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 4591,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:42:41.727Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "a22bb49f1469d226c8ce-325a48a681c0bb6ef479",
+                  "file": "testing/tests/core/dashboard.test.ts",
+                  "line": 67,
+                  "column": 9
+                },
+                {
+                  "title": "Scenario: Can navigate to Users page",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 3891,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:42:46.339Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "a22bb49f1469d226c8ce-4fb56801778b26400474",
+                  "file": "testing/tests/core/dashboard.test.ts",
+                  "line": 83,
+                  "column": 9
+                },
+                {
+                  "title": "Scenario: Can navigate to Groups page",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 4860,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:42:48.116Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "a22bb49f1469d226c8ce-c4666cb6876adaaa18e0",
+                  "file": "testing/tests/core/dashboard.test.ts",
+                  "line": 101,
+                  "column": 9
+                },
+                {
+                  "title": "Scenario: Can navigate to Settings page",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 4729,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:42:50.264Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "a22bb49f1469d226c8ce-70582fce0cdf59b9c46b",
+                  "file": "testing/tests/core/dashboard.test.ts",
+                  "line": 114,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Requirement: Module Status",
+              "file": "testing/tests/core/dashboard.test.ts",
+              "line": 132,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "Scenario: Dashboard shows module integration status",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 5407,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:42:52.993Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "a22bb49f1469d226c8ce-1aafa46f0816f5769148",
+                  "file": "testing/tests/core/dashboard.test.ts",
+                  "line": 134,
+                  "column": 9
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "testing\\tests\\directory\\groups.test.ts",
+      "file": "testing/tests/directory/groups.test.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Feature: Group Management",
+          "file": "testing/tests/directory/groups.test.ts",
+          "line": 10,
+          "column": 6,
+          "specs": [],
+          "suites": [
+            {
+              "title": "Requirement: Group List Display",
+              "file": "testing/tests/directory/groups.test.ts",
+              "line": 19,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "Scenario: Group list displays groups",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 6890,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:42:55.016Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "8d7056dce42292414f1f-7076b17d347a5f0572f5",
+                  "file": "testing/tests/directory/groups.test.ts",
+                  "line": 21,
+                  "column": 9
+                },
+                {
+                  "title": "Scenario: Group list shows group details",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 5112,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:42:58.425Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "8d7056dce42292414f1f-8e9fe97e402b10cb5c5e",
+                  "file": "testing/tests/directory/groups.test.ts",
+                  "line": 35,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Requirement: Group Search",
+              "file": "testing/tests/directory/groups.test.ts",
+              "line": 53,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "Scenario: Search groups by name",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 5244,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:43:01.925Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "8d7056dce42292414f1f-9c20873fa975f42e7c1c",
+                  "file": "testing/tests/directory/groups.test.ts",
+                  "line": 55,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Requirement: Group Detail View",
+              "file": "testing/tests/directory/groups.test.ts",
+              "line": 72,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "Scenario: Can view group details",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 5485,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:43:03.554Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "8d7056dce42292414f1f-9aac36008b37596fa46b",
+                  "file": "testing/tests/directory/groups.test.ts",
+                  "line": 74,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Requirement: Group Member Display",
+              "file": "testing/tests/directory/groups.test.ts",
+              "line": 92,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "Scenario: Group shows member count",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 5370,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:43:07.187Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "8d7056dce42292414f1f-b209de0181bc3e0bdb9f",
+                  "file": "testing/tests/directory/groups.test.ts",
+                  "line": 94,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Requirement: Platform Indicator",
+              "file": "testing/tests/directory/groups.test.ts",
+              "line": 109,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "Scenario: Groups show platform source indicator",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 5635,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:43:09.060Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "8d7056dce42292414f1f-79b49978b12081db93e2",
+                  "file": "testing/tests/directory/groups.test.ts",
+                  "line": 111,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Requirement: Group Actions",
+              "file": "testing/tests/directory/groups.test.ts",
+              "line": 128,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "Scenario: Group list has action buttons",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 4846,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:43:12.573Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "8d7056dce42292414f1f-9673e24009f3807e7948",
+                  "file": "testing/tests/directory/groups.test.ts",
+                  "line": 130,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Requirement: Sync with Google Workspace",
+              "file": "testing/tests/directory/groups.test.ts",
+              "line": 141,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "Scenario: Groups can be synced from Google Workspace",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 5453,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:43:14.712Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "8d7056dce42292414f1f-e94e37104afd41cd1c3a",
+                  "file": "testing/tests/directory/groups.test.ts",
+                  "line": 143,
+                  "column": 9
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "testing\\tests\\directory\\users.test.ts",
+      "file": "testing/tests/directory/users.test.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Feature: User Directory",
+          "file": "testing/tests/directory/users.test.ts",
+          "line": 10,
+          "column": 6,
+          "specs": [],
+          "suites": [
+            {
+              "title": "Requirement: User List Display",
+              "file": "testing/tests/directory/users.test.ts",
+              "line": 19,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "Scenario: User list displays users",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 6975,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:43:17.443Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "2ffe5d798eb4e2bdc88e-2d3505a5a89126e55823",
+                  "file": "testing/tests/directory/users.test.ts",
+                  "line": 21,
+                  "column": 9
+                },
+                {
+                  "title": "Scenario: User list shows user details",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 5835,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:43:20.186Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "2ffe5d798eb4e2bdc88e-8ac0043b240f2ecd8a90",
+                  "file": "testing/tests/directory/users.test.ts",
+                  "line": 41,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Requirement: User Type Filtering",
+              "file": "testing/tests/directory/users.test.ts",
+              "line": 56,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "Scenario: Filter users by Staff type",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 5262,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:43:24.433Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "2ffe5d798eb4e2bdc88e-878d5131ad1de5255c1f",
+                  "file": "testing/tests/directory/users.test.ts",
+                  "line": 58,
+                  "column": 9
+                },
+                {
+                  "title": "Scenario: Filter users by Guests type",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 5857,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:43:26.040Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "2ffe5d798eb4e2bdc88e-df38d4a1d684d2b94dfc",
+                  "file": "testing/tests/directory/users.test.ts",
+                  "line": 75,
+                  "column": 9
+                },
+                {
+                  "title": "Scenario: Filter users by Contacts type",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 5249,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:43:29.711Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "2ffe5d798eb4e2bdc88e-c3ccfc5466b3c6e627e5",
+                  "file": "testing/tests/directory/users.test.ts",
+                  "line": 92,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Requirement: User Status Filtering",
+              "file": "testing/tests/directory/users.test.ts",
+              "line": 110,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "Scenario: Filter users by Active status",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 6036,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:43:31.937Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "2ffe5d798eb4e2bdc88e-b8ca18abbd58bf4d42f6",
+                  "file": "testing/tests/directory/users.test.ts",
+                  "line": 112,
+                  "column": 9
+                },
+                {
+                  "title": "Scenario: Filter users by Suspended status",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 5550,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:43:34.979Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "2ffe5d798eb4e2bdc88e-3bc5019614187459b92e",
+                  "file": "testing/tests/directory/users.test.ts",
+                  "line": 129,
+                  "column": 9
+                },
+                {
+                  "title": "Scenario: Filter users by Staged status",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 5156,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:43:37.990Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "2ffe5d798eb4e2bdc88e-b97a70791a3f56443ebc",
+                  "file": "testing/tests/directory/users.test.ts",
+                  "line": 146,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Requirement: User Search",
+              "file": "testing/tests/directory/users.test.ts",
+              "line": 164,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "Scenario: Search users by name",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 6195,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:43:40.546Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "2ffe5d798eb4e2bdc88e-64657fd7f43212d74835",
+                  "file": "testing/tests/directory/users.test.ts",
+                  "line": 166,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Requirement: User Count Display",
+              "file": "testing/tests/directory/users.test.ts",
+              "line": 186,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "Scenario: User counts are displayed per type",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 5497,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:43:43.178Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "2ffe5d798eb4e2bdc88e-fb9d50313e6cfa3f9cce",
+                  "file": "testing/tests/directory/users.test.ts",
+                  "line": 188,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Requirement: User Actions",
+              "file": "testing/tests/directory/users.test.ts",
+              "line": 203,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "Scenario: User row can be clicked for details",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 5028,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:43:46.757Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "2ffe5d798eb4e2bdc88e-8ccac558354532717181",
+                  "file": "testing/tests/directory/users.test.ts",
+                  "line": 205,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Requirement: Google Workspace User Indicator",
+              "file": "testing/tests/directory/users.test.ts",
+              "line": 222,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "Scenario: User with Google Workspace ID shows indicator",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 5714,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:43:48.692Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "2ffe5d798eb4e2bdc88e-b9d62e1ab585a9b7be55",
+                  "file": "testing/tests/directory/users.test.ts",
+                  "line": 224,
+                  "column": 9
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "testing\\tests\\settings\\modules.test.ts",
+      "file": "testing/tests/settings/modules.test.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Feature: Settings - Modules",
+          "file": "testing/tests/settings/modules.test.ts",
+          "line": 10,
+          "column": 6,
+          "specs": [],
+          "suites": [
+            {
+              "title": "Requirement: Settings Page Navigation",
+              "file": "testing/tests/settings/modules.test.ts",
+              "line": 19,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "Scenario: Settings page loads with tabs",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 5199,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:43:51.809Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "c91cfe844bb9e4663602-2a488d8d8567a576b6a1",
+                  "file": "testing/tests/settings/modules.test.ts",
+                  "line": 21,
+                  "column": 9
+                },
+                {
+                  "title": "Scenario: Can navigate to Modules tab",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 4948,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:43:54.427Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "c91cfe844bb9e4663602-0ed62c783fc24e252f48",
+                  "file": "testing/tests/settings/modules.test.ts",
+                  "line": 36,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Requirement: Module Display",
+              "file": "testing/tests/settings/modules.test.ts",
+              "line": 54,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "Scenario: Modules tab shows available integrations",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 5239,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:43:57.026Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "c91cfe844bb9e4663602-38a44075cc46e61c0240",
+                  "file": "testing/tests/settings/modules.test.ts",
+                  "line": 56,
+                  "column": 9
+                },
+                {
+                  "title": "Scenario: Module shows enabled/disabled status",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 5554,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:43:59.390Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "c91cfe844bb9e4663602-8e6c569b83d4bcf13d5b",
+                  "file": "testing/tests/settings/modules.test.ts",
+                  "line": 78,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Requirement: Google Workspace Module",
+              "file": "testing/tests/settings/modules.test.ts",
+              "line": 104,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "Scenario: Google Workspace module shows configuration details",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 5415,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:44:02.281Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "c91cfe844bb9e4663602-629cb2ac3daa5c214ac0",
+                  "file": "testing/tests/settings/modules.test.ts",
+                  "line": 106,
+                  "column": 9
+                },
+                {
+                  "title": "Scenario: Google Workspace module shows sync status",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 5251,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:44:04.959Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "c91cfe844bb9e4663602-23906ab16c963c392a86",
+                  "file": "testing/tests/settings/modules.test.ts",
+                  "line": 128,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Requirement: Settings Tabs",
+              "file": "testing/tests/settings/modules.test.ts",
+              "line": 150,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "Scenario: Can navigate to Organization tab",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 5209,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:44:07.714Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "c91cfe844bb9e4663602-c683f9e23ca9094dff9a",
+                  "file": "testing/tests/settings/modules.test.ts",
+                  "line": 152,
+                  "column": 9
+                },
+                {
+                  "title": "Scenario: Can navigate to Security tab",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 5519,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:44:10.227Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "c91cfe844bb9e4663602-68bd315ec2163abf8e8a",
+                  "file": "testing/tests/settings/modules.test.ts",
+                  "line": 168,
+                  "column": 9
+                },
+                {
+                  "title": "Scenario: Can navigate to Integrations tab",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 4564,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-02T20:44:12.938Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "c91cfe844bb9e4663602-6cdbe132e1e3da2c21d7",
+                  "file": "testing/tests/settings/modules.test.ts",
+                  "line": 184,
+                  "column": 9
+                }
+              ]
             }
           ]
         }
@@ -290,9 +1996,9 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2025-11-01T00:05:46.235Z",
-    "duration": 8367.072,
-    "expected": 2,
+    "startTime": "2025-12-02T20:42:16.168Z",
+    "duration": 121479.762,
+    "expected": 45,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0

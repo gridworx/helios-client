@@ -6,8 +6,10 @@ import GoogleWorkspaceWizard from './modules/GoogleWorkspaceWizard';
 import { ApiKeyList } from './integrations/ApiKeyList';
 import { ApiKeyWizard } from './integrations/ApiKeyWizard';
 import { ApiKeyShowOnce } from './integrations/ApiKeyShowOnce';
+import SecurityEvents from '../pages/SecurityEvents';
+import AuditLogs from '../pages/AuditLogs';
 import { useTabPersistence } from '../hooks/useTabPersistence';
-import { Package, Building2, Shield, Lock, Palette, Settings as SettingsIcon, Key, Search as SearchIcon, RefreshCw, BarChart3, Wrench, Tag, Info } from 'lucide-react';
+import { Package, Building2, Shield, Lock, Palette, Settings as SettingsIcon, Key, Search as SearchIcon, RefreshCw, BarChart3, Info, ShieldAlert, Activity, MoreVertical, Power } from 'lucide-react';
 
 interface SettingsProps {
   organizationName: string;
@@ -28,6 +30,7 @@ interface ModuleStatus {
 
 export function Settings({ organizationName, domain, organizationId, showPasswordModal: externalShowPasswordModal, onPasswordModalChange, currentUser }: SettingsProps) {
   const [activeTab, setActiveTab] = useTabPersistence<'modules' | 'organization' | 'roles' | 'security' | 'customization' | 'integrations' | 'advanced'>('helios_settings_tab', 'modules');
+  const [securitySubTab, setSecuritySubTab] = useState<'settings' | 'events' | 'audit'>('settings');
   const [showModuleConfig, setShowModuleConfig] = useState(false);
   const [configuringModule, setConfiguringModule] = useState<string | null>(null);
   const [adminEmail, setAdminEmail] = useState('');
@@ -56,16 +59,10 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
     configuration: null
   });
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
-  const [customLabels, setCustomLabels] = useState({
-    users: 'Users',
-    groups: 'Groups',
-    orgUnits: 'Org Units',
-    devices: 'Devices',
-    workflows: 'Workflows',
-    templates: 'Templates'
-  });
+  
   const [showApiKeyWizard, setShowApiKeyWizard] = useState(false);
   const [newApiKeyData, setNewApiKeyData] = useState<any>(null);
+  const [showModuleMenu, setShowModuleMenu] = useState(false);
 
   // Fetch module status on component mount
   useEffect(() => {
@@ -209,10 +206,37 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                             </button>
                           )}
                           {googleWorkspaceStatus.isEnabled && (
-                            <>
+                            <div className="module-actions">
                               <button
-                                className="test-btn"
-                                style={{ marginLeft: '8px', padding: '6px 12px', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                className="btn btn-info"
+                                onClick={async () => {
+                                  try {
+                                    const token = localStorage.getItem('helios_token');
+                                    const response = await fetch('http://localhost:3001/api/google-workspace/sync-now', {
+                                      method: 'POST',
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${token}`
+                                      },
+                                      body: JSON.stringify({ organizationId })
+                                    });
+
+                                    const data = await response.json();
+                                    if (data.success) {
+                                      alert(`Sync complete!\n\nTotal users: ${data.stats?.total_users || 0}\nActive: ${data.stats?.active_users || 0}\nSuspended: ${data.stats?.suspended_users || 0}\nAdmins: ${data.stats?.admin_users || 0}`);
+                                      await fetchModuleStatus();
+                                    } else {
+                                      alert(`Sync failed: ${data.message}`);
+                                    }
+                                  } catch (error: any) {
+                                    alert(`Sync failed: ${error.message}`);
+                                  }
+                                }}
+                              >
+                                <RefreshCw size={14} /> Sync Now
+                              </button>
+                              <button
+                                className="btn btn-success"
                                 onClick={async () => {
                                   try {
                                     const token = localStorage.getItem('helios_token');
@@ -239,77 +263,57 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                                 <SearchIcon size={14} /> Test
                               </button>
                               <button
-                                className="sync-btn"
-                                style={{ marginLeft: '8px', padding: '6px 12px', background: '#2196F3', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '6px' }}
-                                onClick={async () => {
-                                  try {
-                                    const token = localStorage.getItem('helios_token');
-                                    const response = await fetch('http://localhost:3001/api/google-workspace/sync-now', {
-                                      method: 'POST',
-                                      headers: {
-                                        'Content-Type': 'application/json',
-                                        'Authorization': `Bearer ${token}`
-                                      },
-                                      body: JSON.stringify({ organizationId })
-                                    });
-
-                                    const data = await response.json();
-                                    if (data.success) {
-                                      alert(`Sync complete!\n\nTotal users: ${data.stats?.total_users || 0}\nActive: ${data.stats?.active_users || 0}\nSuspended: ${data.stats?.suspended_users || 0}\nAdmins: ${data.stats?.admin_users || 0}`);
-                                      await fetchModuleStatus(); // Refresh the display
-                                    } else {
-                                      alert(`Sync failed: ${data.message}`);
-                                    }
-                                  } catch (error: any) {
-                                    alert(`Sync failed: ${error.message}`);
-                                  }
-                                }}
-                              >
-                                <RefreshCw size={14} /> Sync
-                              </button>
-                              <button
-                                className="configure-btn"
+                                className="btn btn-secondary"
                                 onClick={() => {
                                   setConfiguringModule('google-workspace');
                                   setShowModuleConfig(true);
                                 }}
-                                style={{ marginLeft: '8px' }}
                               >
-                                Reconfigure
+                                <SettingsIcon size={14} /> Configure
                               </button>
-                              <button
-                                className="disable-btn"
-                                onClick={async () => {
-                                  if (confirm('Are you sure you want to disable Google Workspace? This will stop all synchronization.')) {
-                                    try {
-                                      const authData = localStorage.getItem('auth');
-                                      const token = authData ? JSON.parse(authData).token : null;
+                              <div className="module-more-menu">
+                                <button
+                                  className="module-more-btn"
+                                  onClick={() => setShowModuleMenu(!showModuleMenu)}
+                                >
+                                  <MoreVertical size={16} />
+                                </button>
+                                {showModuleMenu && (
+                                  <div className="module-more-dropdown">
+                                    <button
+                                      className="danger"
+                                      onClick={async () => {
+                                        setShowModuleMenu(false);
+                                        if (confirm('Are you sure you want to disable Google Workspace? This will stop all synchronization.')) {
+                                          try {
+                                            const token = localStorage.getItem('helios_token');
+                                            const response = await fetch(`http://localhost:3001/api/google-workspace/disable/${organizationId}`, {
+                                              method: 'POST',
+                                              headers: {
+                                                'Authorization': `Bearer ${token}`
+                                              }
+                                            });
 
-                                      const response = await fetch(`http://localhost:3001/api/google-workspace/disable/${organizationId}`, {
-                                        method: 'POST',
-                                        headers: {
-                                          'Authorization': `Bearer ${token}`
+                                            const data = await response.json();
+                                            if (data.success) {
+                                              alert('Google Workspace has been disabled');
+                                              fetchModuleStatus();
+                                            } else {
+                                              alert(`Failed to disable: ${data.message}`);
+                                            }
+                                          } catch (error) {
+                                            alert('Error disabling Google Workspace');
+                                            console.error(error);
+                                          }
                                         }
-                                      });
-
-                                      const data = await response.json();
-                                      if (data.success) {
-                                        alert('Google Workspace has been disabled');
-                                        fetchModuleStatus();
-                                      } else {
-                                        alert(`Failed to disable: ${data.message}`);
-                                      }
-                                    } catch (error) {
-                                      alert('Error disabling Google Workspace');
-                                      console.error(error);
-                                    }
-                                  }
-                                }}
-                                style={{ marginLeft: '8px' }}
-                              >
-                                Disable
-                              </button>
-                            </>
+                                      }}
+                                    >
+                                      <Power size={14} /> Disable Module
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           )}
                         </>
                       )}
@@ -424,57 +428,132 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
           {activeTab === 'security' && (
             <div className="settings-section">
               <div className="section-header">
-                <h2>Security Settings</h2>
-                <p>Manage API keys, authentication, and security policies</p>
+                <h2>Security</h2>
+                <p>Manage authentication, monitor events, and review activity logs</p>
               </div>
 
-              <div className="security-section">
-                <div className="security-card">
-                  <h3><Lock size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />Password Management</h3>
-                  <p>Update your account password and manage password policies</p>
-                  <button
-                    className="btn-primary"
-                    onClick={() => {
-                      setShowPasswordModal(true);
-                    }}
-                  >
-                    Change Password
-                  </button>
-                </div>
+              {/* Security Sub-Navigation */}
+              <div className="sub-nav-tabs" style={{ display: 'flex', gap: '8px', marginBottom: '24px', borderBottom: '1px solid #e5e7eb', paddingBottom: '0' }}>
+                <button
+                  className={`sub-nav-tab ${securitySubTab === 'settings' ? 'active' : ''}`}
+                  onClick={() => setSecuritySubTab('settings')}
+                  style={{
+                    padding: '12px 16px',
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: securitySubTab === 'settings' ? '600' : '500',
+                    color: securitySubTab === 'settings' ? 'var(--theme-primary)' : '#6b7280',
+                    borderBottom: securitySubTab === 'settings' ? '2px solid var(--theme-primary)' : '2px solid transparent',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <Lock size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+                  Security Settings
+                </button>
+                <button
+                  className={`sub-nav-tab ${securitySubTab === 'events' ? 'active' : ''}`}
+                  onClick={() => setSecuritySubTab('events')}
+                  style={{
+                    padding: '12px 16px',
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: securitySubTab === 'events' ? '600' : '500',
+                    color: securitySubTab === 'events' ? 'var(--theme-primary)' : '#6b7280',
+                    borderBottom: securitySubTab === 'events' ? '2px solid var(--theme-primary)' : '2px solid transparent',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <ShieldAlert size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+                  Security Events
+                </button>
+                <button
+                  className={`sub-nav-tab ${securitySubTab === 'audit' ? 'active' : ''}`}
+                  onClick={() => setSecuritySubTab('audit')}
+                  style={{
+                    padding: '12px 16px',
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: securitySubTab === 'audit' ? '600' : '500',
+                    color: securitySubTab === 'audit' ? 'var(--theme-primary)' : '#6b7280',
+                    borderBottom: securitySubTab === 'audit' ? '2px solid var(--theme-primary)' : '2px solid transparent',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <Activity size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+                  Audit Logs
+                </button>
+              </div>
 
-                <div className="security-card">
-                  <h3><Shield size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />Authentication Methods</h3>
-                  <p>Configure login methods and session settings</p>
-                  <div className="auth-options">
-                    <label className="checkbox-label">
-                      <input type="checkbox" checked readOnly />
-                      <span>Email/Password Login</span>
-                    </label>
-                    <label className="checkbox-label" title="Coming in v1.1">
-                      <input type="checkbox" disabled />
-                      <span style={{ color: '#9ca3af' }}>Single Sign-On (SSO) - Coming Soon</span>
-                    </label>
-                    <label className="checkbox-label" title="Coming in v1.1">
-                      <input type="checkbox" disabled />
-                      <span style={{ color: '#9ca3af' }}>Two-Factor Authentication - Coming Soon</span>
-                    </label>
+              {/* Security Settings Content */}
+              {securitySubTab === 'settings' && (
+                <div className="security-section">
+                  <div className="security-card">
+                    <h3><Lock size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />Password Management</h3>
+                    <p>Update your account password and manage password policies</p>
+                    <button
+                      className="btn-primary"
+                      onClick={() => {
+                        setShowPasswordModal(true);
+                      }}
+                    >
+                      Change Password
+                    </button>
+                  </div>
+
+                  <div className="security-card">
+                    <h3><Shield size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />Authentication Methods</h3>
+                    <p>Configure login methods and session settings</p>
+                    <div className="auth-options">
+                      <label className="checkbox-label">
+                        <input type="checkbox" checked readOnly />
+                        <span>Email/Password Login</span>
+                      </label>
+                      <label className="checkbox-label" title="Coming in v1.1">
+                        <input type="checkbox" disabled />
+                        <span style={{ color: '#9ca3af' }}>Single Sign-On (SSO) - Coming Soon</span>
+                      </label>
+                      <label className="checkbox-label" title="Coming in v1.1">
+                        <input type="checkbox" disabled />
+                        <span style={{ color: '#9ca3af' }}>Two-Factor Authentication - Coming Soon</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="security-card">
+                    <h3><Key size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />API Keys & Integrations</h3>
+                    <p>Manage organization-wide API keys for external access and integrations</p>
+                    <button
+                      className="btn-secondary"
+                      onClick={() => setActiveTab('integrations')}
+                    >
+                      Go to Integrations →
+                    </button>
+                    <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '8px' }}>
+                      API key management is available in the Integrations tab
+                    </p>
                   </div>
                 </div>
+              )}
 
-                <div className="security-card">
-                  <h3><Key size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />API Keys & Integrations</h3>
-                  <p>Manage organization-wide API keys for external access and integrations</p>
-                  <button
-                    className="btn-secondary"
-                    onClick={() => setActiveTab('integrations')}
-                  >
-                    Go to Integrations →
-                  </button>
-                  <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '8px' }}>
-                    API key management is available in the Integrations tab
-                  </p>
+              {/* Security Events Content */}
+              {securitySubTab === 'events' && (
+                <div style={{ padding: '0' }}>
+                  <SecurityEvents />
                 </div>
-              </div>
+              )}
+
+              {/* Audit Logs Content */}
+              {securitySubTab === 'audit' && (
+                <div style={{ padding: '0' }}>
+                  <AuditLogs />
+                </div>
+              )}
             </div>
           )}
 
@@ -482,107 +561,10 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
             <div className="settings-section">
               <div className="section-header">
                 <h2>Customization</h2>
-                <p>Customize labels and terminology to match your organization's preferences</p>
+                <p>Customize the look and feel of your organization's portal</p>
               </div>
 
               <div className="customization-section">
-                <div className="customization-card">
-                  <h3><Tag size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />Navigation Labels</h3>
-                  <p>Customize how items appear in your navigation menu</p>
-
-                  <div className="label-grid">
-                    <div className="label-item">
-                      <label>Users Label</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={customLabels.users}
-                        onChange={(e) => setCustomLabels({...customLabels, users: e.target.value})}
-                        placeholder="e.g., Users, Employees, Members"
-                      />
-                    </div>
-
-                    <div className="label-item">
-                      <label>Groups Label</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={customLabels.groups}
-                        onChange={(e) => setCustomLabels({...customLabels, groups: e.target.value})}
-                        placeholder="e.g., Groups, Teams, Divisions"
-                      />
-                    </div>
-
-                    <div className="label-item">
-                      <label>Org Units Label</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={customLabels.orgUnits}
-                        onChange={(e) => setCustomLabels({...customLabels, orgUnits: e.target.value})}
-                        placeholder="e.g., Org Units, Departments, Divisions"
-                      />
-                      <div className="form-hint">This will update how organizational units are displayed throughout the platform</div>
-                    </div>
-
-                    <div className="label-item">
-                      <label>Devices Label</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={customLabels.devices}
-                        onChange={(e) => setCustomLabels({...customLabels, devices: e.target.value})}
-                        placeholder="e.g., Devices, Assets, Equipment"
-                      />
-                    </div>
-
-                    <div className="label-item">
-                      <label>Workflows Label</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={customLabels.workflows}
-                        onChange={(e) => setCustomLabels({...customLabels, workflows: e.target.value})}
-                        placeholder="e.g., Workflows, Automations, Processes"
-                      />
-                    </div>
-
-                    <div className="label-item">
-                      <label>Templates Label</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={customLabels.templates}
-                        onChange={(e) => setCustomLabels({...customLabels, templates: e.target.value})}
-                        placeholder="e.g., Templates, Blueprints, Standards"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="customization-actions">
-                    <button className="btn-secondary" onClick={() => {
-                      // Reset to defaults
-                      setCustomLabels({
-                        users: 'Users',
-                        groups: 'Groups',
-                        orgUnits: 'Org Units',
-                        devices: 'Devices',
-                        workflows: 'Workflows',
-                        templates: 'Templates'
-                      });
-                    }}>
-                      Reset to Defaults
-                    </button>
-                    <button className="btn-primary" onClick={() => {
-                      // Save custom labels to localStorage or backend
-                      localStorage.setItem('helios_custom_labels', JSON.stringify(customLabels));
-                      alert('Custom labels saved successfully!');
-                    }}>
-                      Save Changes
-                    </button>
-                  </div>
-                </div>
-
                 {/* Theme Settings - Admin Only */}
                 {currentUser?.role === 'admin' ? (
                   <ThemeSelector />
@@ -630,7 +612,6 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
 
                   <div className="sync-settings">
                     <div className="sync-setting-group">
-                      <h4>Sync Intervals</h4>
                       <div className="sync-options">
                         <label>Automatic Sync Interval:</label>
                         <select className="form-select" defaultValue="900">
@@ -638,91 +619,26 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                           <option value="900">Every 15 minutes (Recommended)</option>
                           <option value="1800">Every 30 minutes</option>
                           <option value="3600">Every 1 hour</option>
-                          <option value="7200">Every 2 hours</option>
                           <option value="14400">Every 4 hours</option>
-                          <option value="28800">Every 8 hours</option>
                           <option value="86400">Once per day</option>
                         </select>
                         <div className="form-hint">
-                          How often to automatically sync data from connected platforms. Shorter intervals provide fresher data but use more resources.
+                          How often to automatically sync data from connected platforms.
                         </div>
                       </div>
 
-                      <div className="sync-options">
+                      <div className="sync-options" style={{ marginTop: '16px' }}>
                         <label className="checkbox-label">
                           <input type="checkbox" defaultChecked />
                           <span>Enable automatic synchronization</span>
                         </label>
                       </div>
-
-                      <div className="sync-options">
-                        <label className="checkbox-label">
-                          <input type="checkbox" defaultChecked />
-                          <span>Sync immediately after configuration changes</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="sync-setting-group">
-                      <h4>Organizational Units</h4>
-                      <div className="sync-options">
-                        <label>Conflict Resolution:</label>
-                        <select className="form-select">
-                          <option value="platform_wins">Platform Wins (Google/Microsoft data overwrites local)</option>
-                          <option value="local_wins">Local Wins (Local changes override platform)</option>
-                          <option value="manual">Manual Resolution (Ask each time)</option>
-                        </select>
-                        <div className="form-hint">
-                          Determines what happens when the same data is modified in both Helios and the connected platform
-                        </div>
-                      </div>
-
-                      <div className="sync-options">
-                        <label>Sync Direction:</label>
-                        <select className="form-select">
-                          <option value="bidirectional">Bidirectional (Sync both ways)</option>
-                          <option value="from_platform">From Platform Only (Read-only)</option>
-                          <option value="to_platform">To Platform Only (Push changes)</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="sync-setting-group">
-                      <h4>Users</h4>
-                      <div className="sync-options">
-                        <label>Conflict Resolution:</label>
-                        <select className="form-select">
-                          <option value="platform_wins">Platform Wins</option>
-                          <option value="local_wins">Local Wins</option>
-                          <option value="manual">Manual Resolution</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="sync-setting-group">
-                      <h4>Groups</h4>
-                      <div className="sync-options">
-                        <label>Conflict Resolution:</label>
-                        <select className="form-select">
-                          <option value="platform_wins">Platform Wins</option>
-                          <option value="local_wins">Local Wins</option>
-                          <option value="manual">Manual Resolution</option>
-                        </select>
-                      </div>
                     </div>
                   </div>
 
-                  <button className="btn-primary" style={{ marginTop: '16px' }}>
-                    Save Sync Settings
-                  </button>
-                </div>
-
-                <div className="advanced-card">
-                  <h3><Wrench size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />Platform Behavior</h3>
-                  <p>Configure platform-specific behavior</p>
-                  <div className="platform-note">
-                    <strong>Note:</strong> These settings only apply when Google Workspace or Microsoft 365 is connected.
-                    If you're only using one platform, conflict resolution is not applicable.
+                  <div className="info-box" style={{ marginTop: '16px' }}>
+                    <Info size={16} style={{ verticalAlign: 'middle', marginRight: '8px' }} />
+                    <span>Sync settings are applied per-module. Configure individual module sync from the Modules tab.</span>
                   </div>
                 </div>
               </div>

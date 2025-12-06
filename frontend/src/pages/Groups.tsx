@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
 import { googleWorkspaceService } from '../services/google-workspace.service';
+import { useEntityLabels } from '../contexts/LabelsContext';
+import { ENTITIES } from '../config/entities';
+import { Search, RefreshCw, Plus, Users, Eye, Edit2, Trash2 } from 'lucide-react';
+import { PlatformIcon } from '../components/ui/PlatformIcon';
 import './Pages.css';
 
 interface Group {
@@ -20,6 +24,7 @@ interface GroupsProps {
 }
 
 export function Groups({ organizationId, customLabel, onSelectGroup }: GroupsProps) {
+  const labels = useEntityLabels(ENTITIES.ACCESS_GROUP);
   const [groups, setGroups] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,18 +46,24 @@ export function Groups({ organizationId, customLabel, onSelectGroup }: GroupsPro
       setIsLoading(true);
       setError(null);
 
-      const result = await googleWorkspaceService.getGroups(organizationId);
+      // Fetch from new access_groups API
+      const token = localStorage.getItem('helios_token');
+      const response = await fetch(`http://localhost:3001/api/organization/access-groups`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
 
-      if (result.success && result.data?.groups) {
-        const formattedGroups = result.data.groups.map((group: any) => ({
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        const formattedGroups = result.data.map((group: any) => ({
           id: group.id,
           name: group.name,
           description: group.description || '',
           email: group.email,
-          memberCount: group.directMembersCount || 0,
-          platform: 'google_workspace',
-          type: group.adminCreated ? 'Admin' : 'User',
-          createdAt: group.createdAt || new Date().toISOString()
+          memberCount: parseInt(group.member_count) || group.directMembersCount || 0,
+          platform: group.platform || 'google_workspace',
+          type: group.group_type || (group.adminCreated ? 'Admin' : 'User'),
+          createdAt: group.created_at || group.createdAt || new Date().toISOString()
         }));
         setGroups(formattedGroups);
       } else {
@@ -133,14 +144,7 @@ export function Groups({ organizationId, customLabel, onSelectGroup }: GroupsPro
     }
   };
 
-  const getPlatformIcon = (platform: string) => {
-    const icons: Record<string, { icon: string; color: string }> = {
-      google_workspace: { icon: 'G', color: '#4285F4' },
-      microsoft_365: { icon: 'M', color: '#0078D4' },
-      default: { icon: '?', color: '#666' }
-    };
-    return icons[platform] || icons.default;
-  };
+  
 
   const filteredGroups = groups.filter(group => {
     const matchesPlatform = filterPlatform === 'all' || group.platform === filterPlatform;
@@ -161,14 +165,14 @@ export function Groups({ organizationId, customLabel, onSelectGroup }: GroupsPro
     <div className="page-container">
       <div className="page-header">
         <div>
-          <h1>Groups</h1>
+          <h1>{labels.plural}</h1>
           <p>Manage groups and distribution lists from connected platforms</p>
         </div>
         <button
           className="btn-primary"
           onClick={() => setShowCreateModal(true)}
         >
-          ➕ Create Group
+          <Plus size={14} /> Create Group
         </button>
       </div>
 
@@ -180,7 +184,7 @@ export function Groups({ organizationId, customLabel, onSelectGroup }: GroupsPro
 
       <div className="page-controls">
         <div className="search-box">
-          <span className="search-icon">🔍</span>
+          <Search className="search-icon" size={18} />
           <input
             type="text"
             placeholder="Search groups..."
@@ -204,40 +208,39 @@ export function Groups({ organizationId, customLabel, onSelectGroup }: GroupsPro
           onClick={handleSyncGroups}
           disabled={isSyncing}
         >
-          {isSyncing ? '⏳ Syncing...' : '🔄 Sync Groups'}
+          <RefreshCw size={14} className={isSyncing ? 'spinning' : ''} />
+          {isSyncing ? 'Syncing...' : 'Sync Groups'}
         </button>
       </div>
 
       <div className="data-grid">
-        <div className="grid-header">
+        <div className="grid-header" style={{ gridTemplateColumns: '2fr 1fr 80px 1.5fr 120px' }}>
           <div className="col-wide">Group Name</div>
           <div className="col-medium">Members</div>
           <div className="col-small">Platform</div>
-          <div className="col-small">Type</div>
           <div className="col-medium">Email</div>
           <div className="col-small">Actions</div>
         </div>
 
         {filteredGroups.length === 0 ? (
           <div className="empty-state">
-            <span className="empty-icon">👥</span>
+            <Users className="empty-icon" size={48} strokeWidth={1.5} />
             <h3>No groups found</h3>
             <p>Start by syncing groups from your connected platforms</p>
           </div>
         ) : (
           <div className="grid-body">
             {filteredGroups.map(group => {
-              const platform = getPlatformIcon(group.platform);
               return (
                 <div
                   key={group.id}
                   className="grid-row"
                   onClick={() => onSelectGroup && onSelectGroup(group.id)}
-                  style={{ cursor: onSelectGroup ? 'pointer' : 'default' }}
+                  style={{ cursor: onSelectGroup ? 'pointer' : 'default', gridTemplateColumns: '2fr 1fr 80px 1.5fr 120px' }}
                 >
                   <div className="col-wide">
                     <div className="item-info">
-                      <div className="item-icon">👥</div>
+                      <Users className="item-icon" size={20} />
                       <div>
                         <div className="item-name">{group.name}</div>
                         <div className="item-description">{group.description}</div>
@@ -248,24 +251,19 @@ export function Groups({ organizationId, customLabel, onSelectGroup }: GroupsPro
                     <span className="member-count">{group.memberCount} members</span>
                   </div>
                   <div className="col-small">
-                    <div
-                      className="platform-badge"
-                      style={{ backgroundColor: platform.color }}
-                    >
-                      {platform.icon}
-                    </div>
-                  </div>
-                  <div className="col-small">
-                    <span className="type-badge">{group.type}</span>
+                    <PlatformIcon 
+                      platform={group.platform === 'google_workspace' ? 'google' : group.platform === 'microsoft_365' ? 'microsoft' : 'helios'} 
+                      size={28} 
+                    />
                   </div>
                   <div className="col-medium">
                     <span className="email-text">{group.email}</span>
                   </div>
                   <div className="col-small">
                     <div className="action-buttons">
-                      <button className="btn-icon" title="View members">👁️</button>
-                      <button className="btn-icon" title="Edit group">✏️</button>
-                      <button className="btn-icon danger" title="Delete group">🗑️</button>
+                      <button className="btn-icon" title="View members"><Eye size={16} /></button>
+                      <button className="btn-icon" title="Edit group"><Edit2 size={16} /></button>
+                      <button className="btn-icon danger" title="Delete group"><Trash2 size={16} /></button>
                     </div>
                   </div>
                 </div>
@@ -391,7 +389,8 @@ export function Groups({ organizationId, customLabel, onSelectGroup }: GroupsPro
                 onClick={handleCreateGroup}
                 disabled={isCreating || !newGroupEmail || !newGroupName}
               >
-                {isCreating ? '⏳ Creating...' : '➕ Create Group'}
+                <Plus size={14} />
+                {isCreating ? 'Creating...' : 'Create Group'}
               </button>
             </div>
           </div>

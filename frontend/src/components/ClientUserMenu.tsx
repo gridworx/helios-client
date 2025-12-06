@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { Terminal, Key, Users, Lock, Settings as SettingsIcon, LogOut, Book, User, ChevronDown } from 'lucide-react';
 import './ClientUserMenu.css';
 
 interface ClientUserMenuProps {
@@ -9,9 +10,10 @@ interface ClientUserMenuProps {
   onChangePassword?: () => void;
   onNavigateToSettings?: () => void;
   onNavigateToAdministrators?: () => void;
+  onNavigateToConsole?: () => void;
 }
 
-export function ClientUserMenu({ userName, userEmail, userRole, onLogout, onChangePassword, onNavigateToSettings, onNavigateToAdministrators }: ClientUserMenuProps) {
+export function ClientUserMenu({ userName, userEmail, userRole, onLogout, onChangePassword, onNavigateToSettings, onNavigateToAdministrators, onNavigateToConsole }: ClientUserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -53,7 +55,7 @@ export function ClientUserMenu({ userName, userEmail, userRole, onLogout, onChan
         aria-label="User menu"
       >
         <div className="user-avatar">{getInitials()}</div>
-        <span className="menu-arrow">▼</span>
+        <ChevronDown size={14} className="menu-arrow" />
       </button>
 
       {isOpen && (
@@ -78,7 +80,7 @@ export function ClientUserMenu({ userName, userEmail, userRole, onLogout, onChan
                 onNavigateToSettings();
               }
             }}>
-              <span className="menu-icon">🔑</span>
+              <Key size={14} className="menu-icon-svg" />
               <span>Change Password</span>
             </button>
             <button className="menu-item" onClick={() => {
@@ -87,12 +89,28 @@ export function ClientUserMenu({ userName, userEmail, userRole, onLogout, onChan
                 onNavigateToAdministrators();
               }
             }}>
-              <span className="menu-icon">👥</span>
+              <Users size={14} className="menu-icon-svg" />
               <span>Administrators</span>
             </button>
             <button className="menu-item" onClick={() => alert('API Keys coming soon!')}>
-              <span className="menu-icon">🔐</span>
+              <Lock size={14} className="menu-icon-svg" />
               <span>My API Keys</span>
+            </button>
+            <button className="menu-item" onClick={() => {
+              setIsOpen(false);
+              window.open('http://localhost:3001/api/docs', '_blank');
+            }}>
+              <Book size={14} className="menu-icon-svg" />
+              <span>API Documentation</span>
+            </button>
+            <button className="menu-item" onClick={() => {
+              setIsOpen(false);
+              if (onNavigateToConsole) {
+                onNavigateToConsole();
+              }
+            }}>
+              <Terminal size={14} className="menu-icon-svg" />
+              <span>Developer Console</span>
             </button>
             <button className="menu-item" onClick={() => {
               setIsOpen(false);
@@ -102,7 +120,7 @@ export function ClientUserMenu({ userName, userEmail, userRole, onLogout, onChan
                 alert('Settings coming soon!');
               }
             }}>
-              <span className="menu-icon">⚙️</span>
+              <SettingsIcon size={14} className="menu-icon-svg" />
               <span>Settings</span>
             </button>
           </div>
@@ -111,14 +129,14 @@ export function ClientUserMenu({ userName, userEmail, userRole, onLogout, onChan
 
           <div className="menu-items">
             <button className="menu-item danger" onClick={handleLogout}>
-              <span className="menu-icon">🚪</span>
+              <LogOut size={14} className="menu-icon-svg" />
               <span>Sign Out</span>
             </button>
           </div>
 
           <div className="menu-footer">
             <div className="footer-text">
-              🔒 Secure administrative access
+              Secure administrative access
             </div>
           </div>
         </div>

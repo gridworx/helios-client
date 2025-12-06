@@ -1,0 +1,359 @@
+/* Users Page - JumpCloud Inspired */
+.users-page {
+  padding: 0;
+  background: white;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Page Title */
+.page-title {
+  padding: 20px 24px 12px 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.page-title h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: #1a1a1a;
+  letter-spacing: -0.01em;
+}
+
+/* Statistics Dashboard */
+.users-stats-bar {
+  display: flex;
+  gap: 16px;
+  padding: 20px 24px;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 20px;
+  background: #f9fafb;
+  border-radius: 8px;
+  min-width: 120px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Type Tabs (Staff / Guests / Contacts) */
+.type-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.type-tab {
+  padding: 14px 20px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+}
+
+.type-tab:hover {
+  color: #374151;
+  background: rgba(139, 92, 246, 0.05);
+}
+
+.type-tab.active {
+  color: var(--theme-primary);
+  border-bottom-color: var(--theme-primary);
+  background: rgba(139, 92, 246, 0.08);
+  font-weight: 600;
+}
+
+.btn-settings {
+  padding: 8px;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  margin-left: auto;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.btn-settings:hover {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+/* Status Tabs (All / Active / Pending / Suspended) */
+.status-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 16px 24px;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.status-tab {
+  padding: 6px 14px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.status-tab:hover {
+  border-color: #d1d5db;
+  background: #f9fafb;
+  color: #374151;
+}
+
+.status-tab.active {
+  background: #f5f3ff;
+  border-color: var(--theme-primary);
+  color: var(--theme-primary);
+}
+
+/* Actions Bar */
+.actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  background: white;
+}
+
+.btn-add-user-primary {
+  padding: 7px 14px;
+  background: var(--theme-primary);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.btn-add-user-primary:hover {
+  background: var(--theme-primary-hover);
+}
+
+.actions-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* Search Box in Actions Bar */
+.search-box {
+  display: none; /* Hidden to avoid duplicate - using universal search */
+  position: relative;
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  pointer-events: none;
+  width: 16px;
+  height: 16px;
+}
+
+.search-input {
+  width: 220px;
+  padding: 7px 10px 7px 32px;
+  border: 1px solid #e5e7eb;
+  border-radius: 5px;
+  font-size: 13px;
+  outline: none;
+  transition: all 0.2s;
+  background: #fafbfc;
+  color: #374151;
+}
+
+.search-input::placeholder {
+  color: #9ca3af;
+}
+
+.search-input:focus {
+  border-color: var(--theme-primary);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.08);
+}
+
+/* Icon Buttons */
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #6b7280;
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.btn-icon:hover {
+  border-color: #9ca3af;
+  background: #f9fafb;
+}
+
+/* Secondary Buttons */
+.btn-secondary {
+  padding: 7px 12px;
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.btn-secondary:hover {
+  border-color: #9ca3af;
+  background: #f9fafb;
+}
+
+.btn-secondary svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Filter Pill Buttons - Smaller size like status tabs */
+.btn-filter-pill {
+  padding: 6px 14px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.btn-filter-pill:hover {
+  border-color: #d1d5db;
+  background: #f9fafb;
+  color: #374151;
+}
+
+.btn-filter-pill svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Content Card */
+.users-content-card {
+  flex: 1;
+  background: white;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .actions-bar {
+    flex-wrap: wrap;
+  }
+
+  .actions-right {
+    width: 100%;
+    margin-left: 0;
+    margin-top: 8px;
+  }
+
+  .search-box {
+    flex: 1;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-title {
+    padding: 16px 16px 10px 16px;
+  }
+
+  .type-tabs {
+    padding: 0 16px;
+    overflow-x: auto;
+  }
+
+  .status-tabs {
+    padding: 12px 16px;
+    overflow-x: auto;
+  }
+
+  .actions-bar {
+    padding: 12px 16px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-add-user-primary {
+    width: 100%;
+  }
+
+  .actions-right {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .search-box {
+    order: -1;
+    width: 100%;
+    margin-bottom: 8px;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+}

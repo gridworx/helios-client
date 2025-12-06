@@ -1,27 +1,28 @@
-import { PluginManager } from '../core/plugins/PluginManager';
+/**
+ * Express Request type extensions
+ */
 
 declare global {
   namespace Express {
     interface Request {
       user?: {
-        id: string;
+        userId: string;
         email: string;
-        firstName: string;
-        lastName: string;
         role: string;
         organizationId: string;
-        department?: string;
+        firstName?: string;
+        lastName?: string;
+        // API Key context
+        keyType?: 'service' | 'vendor';
+        apiKeyId?: string;
+        apiKeyName?: string;
+        serviceName?: string;
+        serviceEmail?: string;
+        serviceOwner?: string;
+        vendorName?: string;
       };
-      organization?: {
-        id: string;
-        name: string;
-        domain: string;
-        isSetupComplete: boolean;
-      };
-    }
-
-    interface Locals {
-      pluginManager: PluginManager;
     }
   }
 }
+
+export {};

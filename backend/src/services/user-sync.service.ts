@@ -4,7 +4,7 @@ import { googleWorkspaceService } from './google-workspace.service';
 
 export interface UnifiedUser {
   id: string;
-  tenantId: string;
+  organizationId: string;
   email: string;
   firstName?: string;
   lastName?: string;
@@ -32,21 +32,21 @@ export class UserSyncService {
   /**
    * Sync users from Google Workspace to unified users table
    */
-  async syncGoogleWorkspaceUsers(tenantId: string, domain: string, adminEmail?: string): Promise<{
+  async syncGoogleWorkspaceUsers(organizationId: string, domain: string, adminEmail?: string): Promise<{
     success: boolean;
     usersCreated: number;
     usersUpdated: number;
     usersDisabled: number;
     error?: string;
   }> {
-    const syncLogId = await this.createSyncLog(tenantId, 'google_workspace', 'full');
+    const syncLogId = await this.createSyncLog(organizationId, 'google_workspace', 'full');
     const startTime = Date.now();
 
     try {
-      logger.info('Starting Google Workspace user sync', { tenantId, domain });
+      logger.info('Starting Google Workspace user sync', { organizationId, domain });
 
       // Fetch users from Google Workspace
-      const result = await googleWorkspaceService.getUsers(tenantId, domain, adminEmail);
+      const result = await googleWorkspaceService.getUsers(organizationId, domain, adminEmail);
 
       if (!result.success || !result.users) {
         throw new Error(result.error || 'Failed to fetch users from Google Workspace');
@@ -65,30 +65,55 @@ export class UserSyncService {
         for (const googleUser of googleUsers) {
           // Check if user already exists
           const existingUser = await db.query(
-            'SELECT id FROM users WHERE tenant_id = $1 AND email = $2',
-            [tenantId, googleUser.primaryEmail.toLowerCase()]
+            'SELECT id FROM organization_users WHERE organization_id = $1 AND email = $2',
+            [organizationId, googleUser.primaryEmail.toLowerCase()]
           );
 
           let userId: string;
 
+          // Extract extended properties
+          const department = googleUser.organizations?.[0]?.department || '';
+          const jobTitle = googleUser.organizations?.[0]?.title || '';
+          const managerEmail = googleUser.relations?.find((r: any) => r.type === 'manager')?.value || null;
+          const mobilePhone = googleUser.phones?.find((p: any) => p.type === 'mobile')?.value || '';
+          const workPhone = googleUser.phones?.find((p: any) => p.type === 'work')?.value || '';
+
+          // Look up manager ID if manager email exists
+          let managerId = null;
+          if (managerEmail) {
+            const managerResult = await db.query(
+              'SELECT id FROM organization_users WHERE organization_id = $1 AND email = $2',
+              [organizationId, managerEmail.toLowerCase()]
+            );
+            if (managerResult.rows.length > 0) {
+              managerId = managerResult.rows[0].id;
+            }
+          }
+
           if (existingUser.rows.length === 0) {
             // Create new user
             const newUser = await db.query(`
-              INSERT INTO users (
-                tenant_id, email, first_name, last_name, full_name,
-                display_name, is_active, is_suspended, is_admin
-              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+              INSERT INTO organization_users (
+                organization_id, email, first_name, last_name,
+                role, job_title, department, manager_id,
+                organizational_unit, mobile_phone, work_phone,
+                google_workspace_id, is_active, created_at
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
               RETURNING id
             `, [
-              tenantId,
+              organizationId,
               googleUser.primaryEmail.toLowerCase(),
               googleUser.name?.givenName || '',
               googleUser.name?.familyName || '',
-              googleUser.name?.fullName || '',
-              googleUser.name?.fullName || googleUser.primaryEmail.split('@')[0],
-              !googleUser.suspended,
-              googleUser.suspended || false,
-              googleUser.isAdmin || false
+              googleUser.isAdmin ? 'admin' : 'user',
+              jobTitle,
+              department,
+              managerId,
+              googleUser.orgUnitPath || '/',
+              mobilePhone,
+              workPhone,
+              googleUser.id,
+              !googleUser.suspended
             ]);
 
             userId = newUser.rows[0].id;
@@ -99,84 +124,55 @@ export class UserSyncService {
             userId = existingUser.rows[0].id;
 
             await db.query(`
-              UPDATE users SET
+              UPDATE organization_users SET
                 first_name = $3,
                 last_name = $4,
-                full_name = $5,
-                display_name = $6,
-                is_active = $7,
-                is_suspended = $8,
-                is_admin = $9,
+                role = $5,
+                job_title = $6,
+                department = $7,
+                manager_id = $8,
+                organizational_unit = $9,
+                mobile_phone = $10,
+                work_phone = $11,
+                google_workspace_id = $12,
+                is_active = $13,
                 updated_at = NOW()
-              WHERE id = $1 AND tenant_id = $2
+              WHERE id = $1 AND organization_id = $2
             `, [
               userId,
-              tenantId,
+              organizationId,
               googleUser.name?.givenName || '',
               googleUser.name?.familyName || '',
-              googleUser.name?.fullName || '',
-              googleUser.name?.fullName || googleUser.primaryEmail.split('@')[0],
-              !googleUser.suspended,
-              googleUser.suspended || false,
-              googleUser.isAdmin || false
+              googleUser.isAdmin ? 'admin' : 'user',
+              jobTitle,
+              department,
+              managerId,
+              googleUser.orgUnitPath || '/',
+              mobilePhone,
+              workPhone,
+              googleUser.id,
+              !googleUser.suspended
             ]);
 
             usersUpdated++;
             logger.info('Updated user', { userId, email: googleUser.primaryEmail });
           }
-
-          // Update or create platform entry
-          await db.query(`
-            INSERT INTO user_platforms (
-              user_id, platform, platform_user_id, platform_email,
-              is_active, is_admin, is_suspended, platform_data, last_synced_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
-            ON CONFLICT (user_id, platform)
-            DO UPDATE SET
-              platform_user_id = EXCLUDED.platform_user_id,
-              platform_email = EXCLUDED.platform_email,
-              is_active = EXCLUDED.is_active,
-              is_admin = EXCLUDED.is_admin,
-              is_suspended = EXCLUDED.is_suspended,
-              platform_data = EXCLUDED.platform_data,
-              last_synced_at = NOW(),
-              updated_at = NOW()
-          `, [
-            userId,
-            'google_workspace',
-            googleUser.id,
-            googleUser.primaryEmail,
-            !googleUser.suspended,
-            googleUser.isAdmin || false,
-            googleUser.suspended || false,
-            JSON.stringify({
-              orgUnitPath: googleUser.orgUnitPath,
-              isDelegatedAdmin: googleUser.isDelegatedAdmin,
-              creationTime: googleUser.creationTime,
-              lastLoginTime: googleUser.lastLoginTime
-            })
-          ]);
         }
 
         // Find and disable users that no longer exist in Google Workspace
         const allLocalUsers = await db.query(`
-          SELECT u.id, u.email
-          FROM users u
-          JOIN user_platforms up ON u.id = up.user_id
-          WHERE u.tenant_id = $1 AND up.platform = 'google_workspace' AND u.is_active = true
-        `, [tenantId]);
+          SELECT id, email
+          FROM organization_users
+          WHERE organization_id = $1 AND google_workspace_id IS NOT NULL AND is_active = true
+        `, [organizationId]);
 
         const googleEmails = new Set(googleUsers.map(u => u.primaryEmail.toLowerCase()));
 
         for (const localUser of allLocalUsers.rows) {
           if (!googleEmails.has(localUser.email)) {
             await db.query(
-              'UPDATE users SET is_active = false, updated_at = NOW() WHERE id = $1',
+              'UPDATE organization_users SET is_active = false, updated_at = NOW() WHERE id = $1',
               [localUser.id]
-            );
-            await db.query(
-              'UPDATE user_platforms SET is_active = false, updated_at = NOW() WHERE user_id = $1 AND platform = $2',
-              [localUser.id, 'google_workspace']
             );
             usersDisabled++;
             logger.info('Disabled user not found in Google Workspace', { email: localUser.email });
@@ -196,10 +192,10 @@ export class UserSyncService {
         });
 
         // Update module user count
-        await this.updateModuleUserCount(tenantId, 'google_workspace');
+        await this.updateModuleUserCount(organizationId, 'google_workspace');
 
         logger.info('Google Workspace user sync completed', {
-          tenantId,
+          organizationId,
           usersCreated,
           usersUpdated,
           usersDisabled
@@ -219,7 +215,7 @@ export class UserSyncService {
 
     } catch (error: any) {
       logger.error('Google Workspace user sync failed', {
-        tenantId,
+        organizationId,
         error: error.message
       });
 
@@ -239,9 +235,9 @@ export class UserSyncService {
   }
 
   /**
-   * Get all users for a tenant with platform indicators
+   * Get all users for an organization with platform indicators
    */
-  async getUnifiedUsers(tenantId: string, options?: {
+  async getUnifiedUsers(organizationId: string, options?: {
     platform?: string;
     isActive?: boolean;
     limit?: number;
@@ -250,44 +246,53 @@ export class UserSyncService {
     try {
       let query = `
         SELECT
-          u.*,
-          COALESCE(
-            json_agg(
-              json_build_object(
-                'platform', up.platform,
-                'platformUserId', up.platform_user_id,
-                'isActive', up.is_active,
-                'isAdmin', up.is_admin,
-                'isSuspended', up.is_suspended,
-                'lastSynced', up.last_synced_at
-              ) ORDER BY up.platform
-            ) FILTER (WHERE up.id IS NOT NULL),
-            '[]'::json
-          ) as platforms
-        FROM users u
-        LEFT JOIN user_platforms up ON u.id = up.user_id
-        WHERE u.tenant_id = $1
+          ou.id,
+          ou.organization_id,
+          ou.email,
+          ou.first_name,
+          ou.last_name,
+          CONCAT(ou.first_name, ' ', ou.last_name) as full_name,
+          ou.job_title,
+          ou.department,
+          ou.work_phone as phone,
+          ou.mobile_phone as mobile,
+          ou.is_active,
+          ou.role = 'admin' as is_admin,
+          ou.google_workspace_id,
+          CASE
+            WHEN ou.google_workspace_id IS NOT NULL THEN
+              json_build_array(
+                json_build_object(
+                  'platform', 'google_workspace',
+                  'platformUserId', ou.google_workspace_id,
+                  'isActive', ou.is_active,
+                  'isAdmin', ou.role = 'admin',
+                  'isSuspended', NOT ou.is_active,
+                  'lastSynced', ou.updated_at
+                )
+              )
+            ELSE '[]'::json
+          END as platforms
+        FROM organization_users ou
+        WHERE ou.organization_id = $1
       `;
 
-      const params: any[] = [tenantId];
+      const params: any[] = [organizationId];
       let paramIndex = 2;
 
       if (options?.platform) {
-        query += ` AND EXISTS (
-          SELECT 1 FROM user_platforms up2
-          WHERE up2.user_id = u.id AND up2.platform = $${paramIndex}
-        )`;
-        params.push(options.platform);
-        paramIndex++;
+        if (options.platform === 'google_workspace') {
+          query += ` AND ou.google_workspace_id IS NOT NULL`;
+        }
       }
 
       if (options?.isActive !== undefined) {
-        query += ` AND u.is_active = $${paramIndex}`;
+        query += ` AND ou.is_active = $${paramIndex}`;
         params.push(options.isActive);
         paramIndex++;
       }
 
-      query += ' GROUP BY u.id ORDER BY u.email';
+      query += ' ORDER BY ou.email';
 
       if (options?.limit) {
         query += ` LIMIT $${paramIndex}`;
@@ -304,25 +309,25 @@ export class UserSyncService {
 
       return result.rows.map((row: any) => ({
         id: row.id,
-        tenantId: row.tenant_id,
+        organizationId: row.organization_id,
         email: row.email,
         firstName: row.first_name,
         lastName: row.last_name,
         fullName: row.full_name,
-        displayName: row.display_name,
-        avatarUrl: row.avatar_url,
+        displayName: row.full_name || row.email.split('@')[0],
+        avatarUrl: null,
         jobTitle: row.job_title,
         department: row.department,
         phone: row.phone,
         mobile: row.mobile,
         isActive: row.is_active,
-        isSuspended: row.is_suspended,
+        isSuspended: !row.is_active,
         isAdmin: row.is_admin,
         platforms: row.platforms
       }));
 
     } catch (error: any) {
-      logger.error('Failed to get unified users', { tenantId, error: error.message });
+      logger.error('Failed to get unified users', { organizationId, error: error.message });
       throw error;
     }
   }
@@ -330,12 +335,12 @@ export class UserSyncService {
   /**
    * Create a sync log entry
    */
-  private async createSyncLog(tenantId: string, platform: string, syncType: string): Promise<string> {
+  private async createSyncLog(organizationId: string, platform: string, syncType: string): Promise<string> {
     const result = await db.query(`
-      INSERT INTO user_sync_logs (tenant_id, platform, sync_type, status, started_at)
+      INSERT INTO user_sync_logs (organization_id, platform, sync_type, status, started_at)
       VALUES ($1, $2, $3, 'started', NOW())
       RETURNING id
-    `, [tenantId, platform, syncType]);
+    `, [organizationId, platform, syncType]);
 
     return result.rows[0].id;
   }
@@ -368,25 +373,24 @@ export class UserSyncService {
   }
 
   /**
-   * Update user count in tenant_modules
+   * Update user count in organization_modules
    */
-  private async updateModuleUserCount(tenantId: string, platform: string) {
+  private async updateModuleUserCount(organizationId: string, platform: string) {
     const result = await db.query(`
-      SELECT COUNT(DISTINCT u.id) as count
-      FROM users u
-      JOIN user_platforms up ON u.id = up.user_id
-      WHERE u.tenant_id = $1 AND up.platform = $2 AND u.is_active = true
-    `, [tenantId, platform]);
+      SELECT COUNT(DISTINCT id) as count
+      FROM organization_users
+      WHERE organization_id = $1 AND google_workspace_id IS NOT NULL AND is_active = true
+    `, [organizationId]);
 
     const userCount = result.rows[0].count;
 
     await db.query(`
-      UPDATE tenant_modules
+      UPDATE organization_modules
       SET user_count = $3, last_sync = NOW(), updated_at = NOW()
-      WHERE tenant_id = $1 AND module_name = $2
-    `, [tenantId, platform, userCount]);
+      WHERE organization_id = $1 AND module_name = $2
+    `, [organizationId, platform, userCount]);
 
-    logger.info('Updated module user count', { tenantId, platform, userCount });
+    logger.info('Updated module user count', { organizationId, platform, userCount });
   }
 }
 

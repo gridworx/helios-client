@@ -1,23 +1,102 @@
-<testsuites id="" name="" tests="2" failures="0" skipped="0" errors="0" time="8.367072">
-<testsuite name="testing\tests\simple-login.test.ts" timestamp="2025-11-01T00:05:46.492Z" hostname="chromium" tests="2" failures="0" skipped="0" time="9.031" errors="0">
-<testcase name="Simple Login Test › Login page loads and shows form elements" classname="testing\tests\simple-login.test.ts" time="4.924">
-<system-out>
-<![CDATA[Current URL: http://localhost:3000/
-Found email input with selector: input[type="email"]
-Found password input with selector: input[type="password"]
-Found login button with selector: button[type="submit"]
-Login form found! Attempting to fill and submit...
-Final URL: http://localhost:3000/
-]]>
-</system-out>
+<testsuites id="" name="" tests="45" failures="0" skipped="0" errors="0" time="121.47976200000001">
+<testsuite name="testing\tests\core\auth.test.ts" timestamp="2025-12-02T20:42:16.305Z" hostname="chromium" tests="8" failures="0" skipped="0" time="37.961" errors="0">
+<testcase name="Feature: Authentication › Requirement: User Login › Scenario: Valid login with correct credentials" classname="testing\tests\core\auth.test.ts" time="6.881">
 </testcase>
-<testcase name="Simple Login Test › Check page title and basic structure" classname="testing\tests\simple-login.test.ts" time="4.107">
-<system-out>
-<![CDATA[Page title: client-portal
-Page structure: { hasHeader: [33mfalse[39m, hasMain: [33mtrue[39m, hasFooter: [33mfalse[39m }
-Found 1 interactive elements
-]]>
-</system-out>
+<testcase name="Feature: Authentication › Requirement: User Login › Scenario: Invalid login with wrong password" classname="testing\tests\core\auth.test.ts" time="6.395">
+</testcase>
+<testcase name="Feature: Authentication › Requirement: User Login › Scenario: Invalid login with non-existent email" classname="testing\tests\core\auth.test.ts" time="3.479">
+</testcase>
+<testcase name="Feature: Authentication › Requirement: Session Management › Scenario: Session persists after page refresh" classname="testing\tests\core\auth.test.ts" time="6.414">
+</testcase>
+<testcase name="Feature: Authentication › Requirement: Session Management › Scenario: Navigation state persists after refresh" classname="testing\tests\core\auth.test.ts" time="6.385">
+</testcase>
+<testcase name="Feature: Authentication › Requirement: API Authentication › Scenario: Direct API login returns valid tokens" classname="testing\tests\core\auth.test.ts" time="2.831">
+</testcase>
+<testcase name="Feature: Authentication › Requirement: API Authentication › Scenario: Token verification succeeds with valid token" classname="testing\tests\core\auth.test.ts" time="2.876">
+</testcase>
+<testcase name="Feature: Authentication › Requirement: API Authentication › Scenario: Token verification fails with invalid token" classname="testing\tests\core\auth.test.ts" time="2.7">
+</testcase>
+</testsuite>
+<testsuite name="testing\tests\core\dashboard.test.ts" timestamp="2025-12-02T20:42:16.305Z" hostname="chromium" tests="8" failures="0" skipped="0" time="38.186" errors="0">
+<testcase name="Feature: Dashboard › Requirement: Dashboard Loading › Scenario: Dashboard loads after login" classname="testing\tests\core\dashboard.test.ts" time="4.187">
+</testcase>
+<testcase name="Feature: Dashboard › Requirement: Dashboard Loading › Scenario: Dashboard shows organization name" classname="testing\tests\core\dashboard.test.ts" time="4.113">
+</testcase>
+<testcase name="Feature: Dashboard › Requirement: Dashboard Statistics › Scenario: Dashboard displays user statistics" classname="testing\tests\core\dashboard.test.ts" time="6.408">
+</testcase>
+<testcase name="Feature: Dashboard › Requirement: Dashboard Navigation › Scenario: Sidebar navigation is visible" classname="testing\tests\core\dashboard.test.ts" time="4.591">
+</testcase>
+<testcase name="Feature: Dashboard › Requirement: Dashboard Navigation › Scenario: Can navigate to Users page" classname="testing\tests\core\dashboard.test.ts" time="3.891">
+</testcase>
+<testcase name="Feature: Dashboard › Requirement: Dashboard Navigation › Scenario: Can navigate to Groups page" classname="testing\tests\core\dashboard.test.ts" time="4.86">
+</testcase>
+<testcase name="Feature: Dashboard › Requirement: Dashboard Navigation › Scenario: Can navigate to Settings page" classname="testing\tests\core\dashboard.test.ts" time="4.729">
+</testcase>
+<testcase name="Feature: Dashboard › Requirement: Module Status › Scenario: Dashboard shows module integration status" classname="testing\tests\core\dashboard.test.ts" time="5.407">
+</testcase>
+</testsuite>
+<testsuite name="testing\tests\directory\groups.test.ts" timestamp="2025-12-02T20:42:16.305Z" hostname="chromium" tests="8" failures="0" skipped="0" time="44.035" errors="0">
+<testcase name="Feature: Group Management › Requirement: Group List Display › Scenario: Group list displays groups" classname="testing\tests\directory\groups.test.ts" time="6.89">
+</testcase>
+<testcase name="Feature: Group Management › Requirement: Group List Display › Scenario: Group list shows group details" classname="testing\tests\directory\groups.test.ts" time="5.112">
+</testcase>
+<testcase name="Feature: Group Management › Requirement: Group Search › Scenario: Search groups by name" classname="testing\tests\directory\groups.test.ts" time="5.244">
+</testcase>
+<testcase name="Feature: Group Management › Requirement: Group Detail View › Scenario: Can view group details" classname="testing\tests\directory\groups.test.ts" time="5.485">
+</testcase>
+<testcase name="Feature: Group Management › Requirement: Group Member Display › Scenario: Group shows member count" classname="testing\tests\directory\groups.test.ts" time="5.37">
+</testcase>
+<testcase name="Feature: Group Management › Requirement: Platform Indicator › Scenario: Groups show platform source indicator" classname="testing\tests\directory\groups.test.ts" time="5.635">
+</testcase>
+<testcase name="Feature: Group Management › Requirement: Group Actions › Scenario: Group list has action buttons" classname="testing\tests\directory\groups.test.ts" time="4.846">
+</testcase>
+<testcase name="Feature: Group Management › Requirement: Sync with Google Workspace › Scenario: Groups can be synced from Google Workspace" classname="testing\tests\directory\groups.test.ts" time="5.453">
+</testcase>
+</testsuite>
+<testsuite name="testing\tests\directory\users.test.ts" timestamp="2025-12-02T20:42:16.305Z" hostname="chromium" tests="12" failures="0" skipped="0" time="68.354" errors="0">
+<testcase name="Feature: User Directory › Requirement: User List Display › Scenario: User list displays users" classname="testing\tests\directory\users.test.ts" time="6.975">
+</testcase>
+<testcase name="Feature: User Directory › Requirement: User List Display › Scenario: User list shows user details" classname="testing\tests\directory\users.test.ts" time="5.835">
+</testcase>
+<testcase name="Feature: User Directory › Requirement: User Type Filtering › Scenario: Filter users by Staff type" classname="testing\tests\directory\users.test.ts" time="5.262">
+</testcase>
+<testcase name="Feature: User Directory › Requirement: User Type Filtering › Scenario: Filter users by Guests type" classname="testing\tests\directory\users.test.ts" time="5.857">
+</testcase>
+<testcase name="Feature: User Directory › Requirement: User Type Filtering › Scenario: Filter users by Contacts type" classname="testing\tests\directory\users.test.ts" time="5.249">
+</testcase>
+<testcase name="Feature: User Directory › Requirement: User Status Filtering › Scenario: Filter users by Active status" classname="testing\tests\directory\users.test.ts" time="6.036">
+</testcase>
+<testcase name="Feature: User Directory › Requirement: User Status Filtering › Scenario: Filter users by Suspended status" classname="testing\tests\directory\users.test.ts" time="5.55">
+</testcase>
+<testcase name="Feature: User Directory › Requirement: User Status Filtering › Scenario: Filter users by Staged status" classname="testing\tests\directory\users.test.ts" time="5.156">
+</testcase>
+<testcase name="Feature: User Directory › Requirement: User Search › Scenario: Search users by name" classname="testing\tests\directory\users.test.ts" time="6.195">
+</testcase>
+<testcase name="Feature: User Directory › Requirement: User Count Display › Scenario: User counts are displayed per type" classname="testing\tests\directory\users.test.ts" time="5.497">
+</testcase>
+<testcase name="Feature: User Directory › Requirement: User Actions › Scenario: User row can be clicked for details" classname="testing\tests\directory\users.test.ts" time="5.028">
+</testcase>
+<testcase name="Feature: User Directory › Requirement: Google Workspace User Indicator › Scenario: User with Google Workspace ID shows indicator" classname="testing\tests\directory\users.test.ts" time="5.714">
+</testcase>
+</testsuite>
+<testsuite name="testing\tests\settings\modules.test.ts" timestamp="2025-12-02T20:42:16.305Z" hostname="chromium" tests="9" failures="0" skipped="0" time="46.898" errors="0">
+<testcase name="Feature: Settings - Modules › Requirement: Settings Page Navigation › Scenario: Settings page loads with tabs" classname="testing\tests\settings\modules.test.ts" time="5.199">
+</testcase>
+<testcase name="Feature: Settings - Modules › Requirement: Settings Page Navigation › Scenario: Can navigate to Modules tab" classname="testing\tests\settings\modules.test.ts" time="4.948">
+</testcase>
+<testcase name="Feature: Settings - Modules › Requirement: Module Display › Scenario: Modules tab shows available integrations" classname="testing\tests\settings\modules.test.ts" time="5.239">
+</testcase>
+<testcase name="Feature: Settings - Modules › Requirement: Module Display › Scenario: Module shows enabled/disabled status" classname="testing\tests\settings\modules.test.ts" time="5.554">
+</testcase>
+<testcase name="Feature: Settings - Modules › Requirement: Google Workspace Module › Scenario: Google Workspace module shows configuration details" classname="testing\tests\settings\modules.test.ts" time="5.415">
+</testcase>
+<testcase name="Feature: Settings - Modules › Requirement: Google Workspace Module › Scenario: Google Workspace module shows sync status" classname="testing\tests\settings\modules.test.ts" time="5.251">
+</testcase>
+<testcase name="Feature: Settings - Modules › Requirement: Settings Tabs › Scenario: Can navigate to Organization tab" classname="testing\tests\settings\modules.test.ts" time="5.209">
+</testcase>
+<testcase name="Feature: Settings - Modules › Requirement: Settings Tabs › Scenario: Can navigate to Security tab" classname="testing\tests\settings\modules.test.ts" time="5.519">
+</testcase>
+<testcase name="Feature: Settings - Modules › Requirement: Settings Tabs › Scenario: Can navigate to Integrations tab" classname="testing\tests\settings\modules.test.ts" time="4.564">
 </testcase>
 </testsuite>
 </testsuites>

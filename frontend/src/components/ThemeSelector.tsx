@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Check, Info } from 'lucide-react';
 import { themeService } from '../services/theme.service';
 import type { ThemeName, Theme } from '../services/theme.service';
 import './ThemeSelector.css';
@@ -38,14 +39,14 @@ export function ThemeSelector() {
               <p>{theme.description}</p>
             </div>
             {currentTheme === theme.id && (
-              <span className="theme-selected">✓ Selected</span>
+              <span className="theme-selected"><Check size={14} /> Selected</span>
             )}
           </div>
         ))}
       </div>
 
       <div className="theme-note">
-        <span className="info-icon">ℹ️</span>
+        <Info size={16} className="info-icon" />
         <span>
           Theme changes are saved automatically and will persist across sessions.
         </span>

@@ -38,7 +38,7 @@
 
 .ticket-item.selected {
   background: #ede9fe;
-  border-left: 3px solid #8b5cf6;
+  border-left: 3px solid var(--theme-primary);
   padding-left: 21px;
 }
 
@@ -73,7 +73,7 @@
 }
 
 .status-reopened {
-  color: #8b5cf6;
+  color: var(--theme-primary);
 }
 
 .ticket-priority {
@@ -140,7 +140,7 @@
 }
 
 .meta-icon.assigned {
-  color: #8b5cf6;
+  color: var(--theme-primary);
 }
 
 .ticket-tags {

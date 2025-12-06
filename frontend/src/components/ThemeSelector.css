@@ -59,11 +59,11 @@
 
 /* Theme-specific preview gradients */
 .theme-preview[data-theme="default"] .theme-preview-gradient {
-  background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-end) 100%);
 }
 
 .theme-preview[data-theme="helios-purple"] .theme-preview-gradient {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, var(--theme-primary-hover) 100%);
 }
 
 .theme-preview[data-theme="corporate-blue"] .theme-preview-gradient {

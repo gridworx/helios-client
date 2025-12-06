@@ -5,12 +5,27 @@ test.describe('Groups Feature', () => {
   const testEmail = 'jack@gridwrx.io';
   const testPassword = 'TestPassword123!';
 
+  // Clean up browser state before each test
+  test.beforeEach(async ({ page, context }) => {
+    // Clear cookies first
+    await context.clearCookies();
+
+    await page.goto(baseUrl);
+    await page.evaluate(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+    });
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+  });
+
   // Helper to login
   async function login(page) {
-    await page.goto(baseUrl);
-    await page.waitForLoadState('networkidle');
+    // Wait for login form to be visible
+    const emailInput = page.locator('input[type="email"]').first();
+    await emailInput.waitFor({ state: 'visible', timeout: 15000 });
 
-    await page.locator('input[type="email"]').first().fill(testEmail);
+    await emailInput.fill(testEmail);
     await page.locator('input[type="password"]').first().fill(testPassword);
     await page.locator('button[type="submit"]').first().click();
 

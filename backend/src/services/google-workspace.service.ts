@@ -30,6 +30,13 @@ export interface WorkspaceUser {
   orgUnitPath: string;
   creationTime: string;
   lastLoginTime?: string;
+  // Extended properties
+  organizations?: any[];
+  phones?: any[];
+  relations?: any[];
+  department?: string;
+  jobTitle?: string;
+  managerEmail?: string;
 }
 
 export interface ConnectionTestResult {
@@ -363,10 +370,14 @@ export class GoogleWorkspaceService {
       const adminClient = this.createAdminClient(credentials, testAdminEmail);
 
       // Get users with Domain-Wide Delegation
+      // IMPORTANT: Filter out deleted users from Google Workspace
+      // Fetch ALL fields including organizations, phones, and relations
       const response = await adminClient.users.list({
         customer: 'my_customer',
         maxResults,
-        orderBy: 'email'
+        orderBy: 'email',
+        showDeleted: 'false',  // Exclude deleted users (use showDeleted, not query)
+        projection: 'full'  // Get all user fields including custom schemas
       });
 
       const users: WorkspaceUser[] = (response.data.users || []).map((user: any) => ({
@@ -382,7 +393,14 @@ export class GoogleWorkspaceService {
         suspended: user.suspended || false,
         orgUnitPath: user.orgUnitPath || '/',
         creationTime: user.creationTime || '',
-        lastLoginTime: user.lastLoginTime || undefined
+        lastLoginTime: user.lastLoginTime || undefined,
+        // Extended properties
+        organizations: user.organizations || [],
+        phones: user.phones || [],
+        relations: user.relations || [],
+        department: user.organizations?.[0]?.department || '',
+        jobTitle: user.organizations?.[0]?.title || '',
+        managerEmail: user.relations?.find((r: any) => r.type === 'manager')?.value || ''
       }));
 
       logger.info('Retrieved Google Workspace users via DWD', {
@@ -1040,10 +1058,11 @@ export class GoogleWorkspaceService {
         // Insert new groups into access_groups table
         for (const group of groups) {
           // Insert into new canonical access_groups table
-          await db.query(`
+          const groupInsertResult = await db.query(`
             INSERT INTO access_groups
             (organization_id, name, email, description, platform, group_type, external_id, synced_at, metadata)
             VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8)
+            RETURNING id
           `, [
             organizationId,
             group.name,
@@ -1058,6 +1077,8 @@ export class GoogleWorkspaceService {
             })
           ]);
 
+          const accessGroupId = groupInsertResult.rows[0].id;
+
           // Also insert into gw_groups for backward compatibility
           await db.query(`
             INSERT INTO gw_groups
@@ -1071,6 +1092,58 @@ export class GoogleWorkspaceService {
             group.description,
             group.directMembersCount || 0
           ]);
+
+          // Sync group members
+          try {
+            const membersResult = await this.getGroupMembers(organizationId, group.id);
+            if (membersResult.success && membersResult.data?.members) {
+              // Clear existing members for this group
+              await db.query(
+                'DELETE FROM access_group_members WHERE access_group_id = $1',
+                [accessGroupId]
+              );
+
+              // Insert group members
+              for (const member of membersResult.data.members) {
+                // Look up user by email in organization_users
+                const userResult = await db.query(
+                  'SELECT id FROM organization_users WHERE organization_id = $1 AND email = $2',
+                  [organizationId, member.email.toLowerCase()]
+                );
+
+                if (userResult.rows.length > 0) {
+                  const userId = userResult.rows[0].id;
+
+                  // Insert into access_group_members
+                  await db.query(`
+                    INSERT INTO access_group_members
+                    (access_group_id, user_id, member_type, joined_at, is_active)
+                    VALUES ($1, $2, $3, NOW(), true)
+                    ON CONFLICT (access_group_id, user_id) DO UPDATE
+                    SET member_type = $3, is_active = true, updated_at = NOW()
+                  `, [
+                    accessGroupId,
+                    userId,
+                    member.role === 'OWNER' ? 'owner' : member.role === 'MANAGER' ? 'manager' : 'member'
+                  ]);
+                }
+              }
+              logger.info('Synced group members', {
+                organizationId,
+                groupId: group.id,
+                groupName: group.name,
+                memberCount: membersResult.data.members.length
+              });
+            }
+          } catch (memberError: any) {
+            logger.warn('Failed to sync members for group', {
+              organizationId,
+              groupId: group.id,
+              groupName: group.name,
+              error: memberError.message
+            });
+            // Don't fail the entire sync if member sync fails for one group
+          }
         }
 
         // Update module sync timestamp
@@ -1161,6 +1234,49 @@ export class GoogleWorkspaceService {
   }
 
   /**
+   * Permanently delete a user from Google Workspace
+   *
+   * WARNING: This permanently deletes the user and frees the license.
+   * All user data (Gmail, Drive, Calendar) is scheduled for deletion.
+   */
+  async deleteUser(organizationId: string, googleWorkspaceId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        return { success: false, error: 'Google Workspace not configured' };
+      }
+
+      const adminEmail = await this.getAdminEmail(organizationId);
+      if (!adminEmail) {
+        return { success: false, error: 'Admin email not configured' };
+      }
+
+      const jwtClient = new JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: ['https://www.googleapis.com/auth/admin.directory.user'],
+        subject: adminEmail
+      });
+
+      const admin = google.admin({ version: 'directory_v1', auth: jwtClient });
+
+      // Permanently delete the user
+      await admin.users.delete({
+        userKey: googleWorkspaceId
+      });
+
+      logger.info('User permanently deleted from Google Workspace', { googleWorkspaceId });
+      return { success: true };
+    } catch (error: any) {
+      logger.error('Failed to delete user from Google Workspace', {
+        googleWorkspaceId,
+        error: error.message
+      });
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
    * Get groups that a user belongs to
    */
   async getUserGroups(organizationId: string, googleWorkspaceId: string): Promise<any> {
@@ -1203,6 +1319,202 @@ export class GoogleWorkspaceService {
         error: error.message,
         data: []
       };
+    }
+  }
+
+  /**
+   * Update user in Google Workspace
+   * Pushes local changes to Google
+   */
+  async updateUser(
+    organizationId: string,
+    googleWorkspaceId: string,
+    updates: {
+      firstName?: string;
+      lastName?: string;
+      jobTitle?: string;
+      department?: string;
+      managerId?: string;
+      managerEmail?: string;
+      organizationalUnit?: string;
+      phones?: { type: string; value: string }[];
+    }
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        return { success: false, error: 'Google Workspace not configured' };
+      }
+
+      const adminEmail = await this.getAdminEmail(organizationId);
+      if (!adminEmail) {
+        return { success: false, error: 'Admin email not configured' };
+      }
+
+      const jwtClient = new JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: ['https://www.googleapis.com/auth/admin.directory.user'],
+        subject: adminEmail
+      });
+
+      const admin = google.admin({ version: 'directory_v1', auth: jwtClient });
+
+      // Build the update request body
+      const requestBody: any = {};
+
+      // Update name if provided
+      if (updates.firstName || updates.lastName) {
+        requestBody.name = {
+          givenName: updates.firstName,
+          familyName: updates.lastName
+        };
+      }
+
+      // Update organization info (job title, department)
+      if (updates.jobTitle || updates.department) {
+        requestBody.organizations = [{
+          title: updates.jobTitle,
+          department: updates.department,
+          primary: true
+        }];
+      }
+
+      // Update manager relationship
+      if (updates.managerEmail !== undefined) {
+        requestBody.relations = updates.managerEmail ? [{
+          value: updates.managerEmail,
+          type: 'manager'
+        }] : [];
+      }
+
+      // Update organizational unit
+      if (updates.organizationalUnit) {
+        requestBody.orgUnitPath = updates.organizationalUnit;
+      }
+
+      // Update phone numbers
+      if (updates.phones && updates.phones.length > 0) {
+        requestBody.phones = updates.phones.map(phone => ({
+          value: phone.value,
+          type: phone.type === 'mobile' ? 'mobile' : 'work',
+          primary: phone.type === 'work'
+        }));
+      }
+
+      // Update the user in Google Workspace
+      await admin.users.update({
+        userKey: googleWorkspaceId,
+        requestBody
+      });
+
+      logger.info('User updated in Google Workspace', { googleWorkspaceId, updates });
+      return { success: true };
+    } catch (error: any) {
+      logger.error('Failed to update user in Google Workspace', {
+        googleWorkspaceId,
+        error: error.message
+      });
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Add user to group in Google Workspace
+   */
+  async addUserToGroup(
+    organizationId: string,
+    userEmail: string,
+    groupId: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        return { success: false, error: 'Google Workspace not configured' };
+      }
+
+      const adminEmail = await this.getAdminEmail(organizationId);
+      if (!adminEmail) {
+        return { success: false, error: 'Admin email not configured' };
+      }
+
+      const jwtClient = new JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: ['https://www.googleapis.com/auth/admin.directory.group.member'],
+        subject: adminEmail
+      });
+
+      const admin = google.admin({ version: 'directory_v1', auth: jwtClient });
+
+      // Add member to group
+      await admin.members.insert({
+        groupKey: groupId,
+        requestBody: {
+          email: userEmail,
+          role: 'MEMBER'
+        }
+      });
+
+      logger.info('User added to group in Google Workspace', { userEmail, groupId });
+      return { success: true };
+    } catch (error: any) {
+      // Check if user is already a member
+      if (error.message?.includes('Member already exists')) {
+        return { success: true }; // Not an error if already a member
+      }
+      logger.error('Failed to add user to group in Google Workspace', {
+        userEmail,
+        groupId,
+        error: error.message
+      });
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Remove user from group in Google Workspace
+   */
+  async removeUserFromGroup(
+    organizationId: string,
+    userEmail: string,
+    groupId: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        return { success: false, error: 'Google Workspace not configured' };
+      }
+
+      const adminEmail = await this.getAdminEmail(organizationId);
+      if (!adminEmail) {
+        return { success: false, error: 'Admin email not configured' };
+      }
+
+      const jwtClient = new JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: ['https://www.googleapis.com/auth/admin.directory.group.member'],
+        subject: adminEmail
+      });
+
+      const admin = google.admin({ version: 'directory_v1', auth: jwtClient });
+
+      // Remove member from group
+      await admin.members.delete({
+        groupKey: groupId,
+        memberKey: userEmail
+      });
+
+      logger.info('User removed from group in Google Workspace', { userEmail, groupId });
+      return { success: true };
+    } catch (error: any) {
+      logger.error('Failed to remove user from group in Google Workspace', {
+        userEmail,
+        groupId,
+        error: error.message
+      });
+      return { success: false, error: error.message };
     }
   }
 

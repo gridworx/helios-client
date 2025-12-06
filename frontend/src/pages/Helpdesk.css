@@ -53,7 +53,7 @@
   height: 48px;
   background: white;
   border-radius: 8px;
-  color: #8b5cf6;
+  color: var(--theme-primary);
 }
 
 .stat-icon svg {
@@ -120,7 +120,7 @@
 
 .view-tabs .tab.active {
   background: #ede9fe;
-  color: #8b5cf6;
+  color: var(--theme-primary);
 }
 
 .panel-filters {
@@ -157,7 +157,7 @@
 
 .search-box input:focus {
   outline: none;
-  border-color: #8b5cf6;
+  border-color: var(--theme-primary);
 }
 
 .filter-group {
@@ -184,7 +184,7 @@
 
 .filter-group select:focus {
   outline: none;
-  border-color: #8b5cf6;
+  border-color: var(--theme-primary);
 }
 
 .loading-spinner {
@@ -232,12 +232,12 @@
 }
 
 .btn-primary {
-  background: #8b5cf6;
+  background: var(--theme-primary);
   color: white;
 }
 
 .btn-primary:hover {
-  background: #7c3aed;
+  background: var(--theme-primary-hover);
 }
 
 .btn-secondary {

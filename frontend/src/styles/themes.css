@@ -4,7 +4,7 @@
 :root {
   /* Primary gradient colors */
   --theme-primary-start: #4f46e5;
-  --theme-primary-end: #7c3aed;
+  --theme-primary-end: var(--theme-primary-hover);
 
   /* Solid primary colors */
   --theme-primary: #4f46e5;
@@ -22,12 +22,12 @@
 /* Soft Purple variant */
 :root[data-theme="default"] {
   /* Primary gradient colors */
-  --theme-primary-start: #8b5cf6;
-  --theme-primary-end: #a78bfa;
+  --theme-primary-start: var(--theme-primary);
+  --theme-primary-end: var(--theme-primary-end);
 
   /* Solid primary colors */
-  --theme-primary: #8b5cf6;
-  --theme-primary-hover: #7c3aed;
+  --theme-primary: var(--theme-primary);
+  --theme-primary-hover: var(--theme-primary-hover);
   --theme-primary-light: rgba(139, 92, 246, 0.1);
   --theme-primary-shadow: rgba(139, 92, 246, 0.4);
 
@@ -41,7 +41,7 @@
 /* Helios Purple - Original Helios theme */
 :root[data-theme="helios-purple"] {
   --theme-primary-start: #4f46e5;
-  --theme-primary-end: #7c3aed;
+  --theme-primary-end: var(--theme-primary-hover);
   --theme-primary: #4f46e5;
   --theme-primary-hover: #4338ca;
   --theme-primary-light: rgba(79, 70, 229, 0.1);
@@ -128,7 +128,7 @@
 :root[data-theme="helios-dark"] {
   /* Primary colors for accents */
   --theme-primary-start: #4f46e5;
-  --theme-primary-end: #7c3aed;
+  --theme-primary-end: var(--theme-primary-hover);
 
   /* Solid primary colors */
   --theme-primary: #4f46e5;

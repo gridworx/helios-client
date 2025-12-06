@@ -63,8 +63,8 @@
 
 .settings-nav-item.active {
   background: #eff6ff;
-  color: #8b5cf6;
-  border-left-color: #8b5cf6;
+  color: var(--theme-primary);
+  border-left-color: var(--theme-primary);
 }
 
 .settings-nav-item .nav-icon {
@@ -187,7 +187,7 @@
 
 .enable-btn {
   padding: 0.5rem 1.5rem;
-  background: #8b5cf6;
+  background: var(--theme-primary);
   color: white;
   border: none;
   border-radius: 6px;
@@ -278,7 +278,7 @@
 
 .form-input:focus {
   outline: none;
-  border-color: #8b5cf6;
+  border-color: var(--theme-primary);
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
@@ -313,7 +313,7 @@
 
 .upload-btn {
   padding: 0.625rem 1.25rem;
-  background: #8b5cf6;
+  background: var(--theme-primary);
   color: white;
   border: none;
   border-radius: 6px;
@@ -386,7 +386,7 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-end) 100%);
   color: white;
   display: flex;
   align-items: center;
@@ -466,7 +466,7 @@
 .checkbox-label input[type="checkbox"] {
   width: 16px;
   height: 16px;
-  accent-color: #8b5cf6;
+  accent-color: var(--theme-primary);
 }
 
 /* Modal Styles */
@@ -591,7 +591,7 @@
 .configure-btn {
   width: 100%;
   padding: 0.875rem 1.5rem;
-  background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-end) 100%);
   color: white;
   border: none;
   border-radius: 8px;
@@ -663,5 +663,156 @@
 
   .settings-nav-item {
     white-space: nowrap;
+  }
+}
+
+/* Module Action Buttons - Consistent Layout */
+.module-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.module-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  min-width: 100px;
+  padding: 0 16px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+}
+
+.module-actions .btn-primary {
+  background: var(--theme-primary);
+  color: white;
+}
+
+.module-actions .btn-primary:hover {
+  background: var(--theme-primary-hover);
+}
+
+.module-actions .btn-success {
+  background: #10b981;
+  color: white;
+}
+
+.module-actions .btn-success:hover {
+  background: #059669;
+}
+
+.module-actions .btn-info {
+  background: #3b82f6;
+  color: white;
+}
+
+.module-actions .btn-info:hover {
+  background: #2563eb;
+}
+
+.module-actions .btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.module-actions .btn-secondary:hover {
+  background: #e5e7eb;
+}
+
+.module-actions .btn-danger {
+  background: white;
+  color: #dc2626;
+  border: 1px solid #dc2626;
+}
+
+.module-actions .btn-danger:hover {
+  background: #dc2626;
+  color: white;
+}
+
+/* More dropdown menu */
+.module-more-menu {
+  position: relative;
+}
+
+.module-more-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.module-more-btn:hover {
+  background: #e5e7eb;
+}
+
+.module-more-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  min-width: 160px;
+  z-index: 100;
+  padding: 4px;
+}
+
+.module-more-dropdown button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 0.875rem;
+  color: #374151;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.module-more-dropdown button:hover {
+  background: #f3f4f6;
+}
+
+.module-more-dropdown button.danger {
+  color: #dc2626;
+}
+
+.module-more-dropdown button.danger:hover {
+  background: #fef2f2;
+}
+
+/* Connection Status Animation */
+@keyframes pulse {
+  0% {
+    opacity: 1;
+    box-shadow: 0 0 5px rgba(255, 152, 0, 0.5);
+  }
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 10px rgba(255, 152, 0, 0.8);
+  }
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 5px rgba(255, 152, 0, 0.5);
   }
 }

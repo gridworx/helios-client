@@ -16,23 +16,33 @@ import { dbInitializer } from './database/init';
 import { errorHandler } from './middleware/errorHandler';
 // import { setupRoutes } from './routes/setup.routes';
 // import { platformRoutes } from './routes/platform.routes';
-import { PluginManager } from './core/plugins/PluginManager';
 import userRoutes from './routes/user.routes';
 import authRoutes from './routes/auth.routes';
-// import tenantAuthRoutes from './routes/tenant-auth.routes';
-// import tenantSetupRoutes from './routes/tenant-setup.routes';
 import GoogleWorkspaceRoutes from './routes/google-workspace.routes';
 import modulesRoutes from './routes/modules.routes';
 import organizationRoutes from './routes/organization.routes';
+import apiKeysRoutes from './routes/api-keys.routes';
+import labelsRoutes from './routes/labels.routes';
+import workspacesRoutes from './routes/workspaces.routes';
+import accessGroupsRoutes from './routes/access-groups.routes';
+import securityEventsRoutes from './routes/security-events.routes';
+import auditLogsRoutes from './routes/audit-logs.routes';
+import userPreferencesRoutes from './routes/user-preferences.routes';
+import emailSecurityRoutes from './routes/email-security.routes';
+import orgChartRoutes from './routes/org-chart.routes';
+import signaturesRoutes from './routes/signatures.routes';
+import customFieldsRoutes from './routes/custom-fields.routes';
+import dashboardRoutes from './routes/dashboard.routes';
+import { authenticateApiKey } from './middleware/api-key-auth';
+import { SignatureSchedulerService } from './services/signature-scheduler.service';
+import { cacheService } from './services/cache.service';
+import { activityTracker } from './services/activity-tracker.service';
 
+import transparentProxyRouter from './middleware/transparent-proxy';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger';
 const app = express();
 const PORT = process.env['PORT'] || 3001;
-
-// Initialize plugin manager
-const pluginManager = new PluginManager();
-
-// Add plugin manager to app for use in routes and middleware
-app.locals.pluginManager = pluginManager;
 
 // Security middleware
 app.use(helmet({
@@ -51,18 +61,25 @@ app.use(helmet({
   }
 }));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: parseInt(process.env['RATE_LIMIT_WINDOW_MS'] || '900000'), // 15 minutes
-  max: parseInt(process.env['RATE_LIMIT_MAX_REQUESTS'] || '100'),
-  message: {
-    error: 'Too many requests from this IP, please try again later.',
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+// Rate limiting (disabled in test environment)
+const rateLimitEnabled = process.env['RATE_LIMIT_ENABLED'] !== 'false';
 
-app.use(limiter);
+if (rateLimitEnabled) {
+  const limiter = rateLimit({
+    windowMs: parseInt(process.env['RATE_LIMIT_WINDOW_MS'] || '900000'), // 15 minutes
+    max: parseInt(process.env['RATE_LIMIT_MAX_REQUESTS'] || '100'),
+    message: {
+      error: 'Too many requests from this IP, please try again later.',
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  app.use(limiter);
+  logger.info('Rate limiting enabled');
+} else {
+  logger.info('Rate limiting disabled (test environment)');
+}
 
 // CORS configuration
 const corsOptions = {
@@ -71,7 +88,17 @@ const corsOptions = {
     : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5173', 'http://localhost:5174'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'X-API-Key',
+    'X-Actor-Name',
+    'X-Actor-Email',
+    'X-Actor-ID',
+    'X-Actor-Type',
+    'X-Client-Reference'
+  ],
 };
 
 app.use(cors(corsOptions));
@@ -111,6 +138,218 @@ app.get('/health', async (req, res) => {
     });
   }
 });
+// API Documentation - Swagger UI with custom styling
+const swaggerCustomCss = `
+  /* Helios Custom Swagger UI Styling */
+  .swagger-ui .topbar { display: none; }
+
+  /* Overall container */
+  .swagger-ui {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  /* Info section */
+  .swagger-ui .info {
+    margin: 30px 0;
+  }
+
+  .swagger-ui .info .title {
+    font-size: 32px;
+    color: #1f2937;
+    font-weight: 600;
+  }
+
+  .swagger-ui .info .description {
+    color: #4b5563;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* Scheme container */
+  .swagger-ui .scheme-container {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+  }
+
+  /* Operations */
+  .swagger-ui .opblock {
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+
+  .swagger-ui .opblock.opblock-post {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.03);
+  }
+
+  .swagger-ui .opblock.opblock-get {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.03);
+  }
+
+  .swagger-ui .opblock.opblock-put {
+    border-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.03);
+  }
+
+  .swagger-ui .opblock.opblock-patch {
+    border-color: #8b5cf6;
+    background: rgba(139, 92, 246, 0.03);
+  }
+
+  .swagger-ui .opblock.opblock-delete {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.03);
+  }
+
+  /* Operation tags */
+  .swagger-ui .opblock-tag {
+    border-bottom: 2px solid #e5e7eb;
+    padding: 16px 0;
+    margin: 24px 0;
+  }
+
+  .swagger-ui .opblock-tag-section {
+    margin-bottom: 24px;
+  }
+
+  /* Method badges */
+  .swagger-ui .opblock-summary-method {
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 12px;
+    min-width: 70px;
+    text-align: center;
+    padding: 6px 12px;
+  }
+
+  /* Buttons */
+  .swagger-ui .btn {
+    border-radius: 6px;
+    font-weight: 500;
+    padding: 8px 16px;
+    transition: all 0.15s ease;
+  }
+
+  .swagger-ui .btn.execute {
+    background: #8b5cf6;
+    border-color: #8b5cf6;
+  }
+
+  .swagger-ui .btn.execute:hover {
+    background: #7c3aed;
+    border-color: #7c3aed;
+  }
+
+  /* Parameters table */
+  .swagger-ui table thead tr th {
+    background: #f9fafb;
+    color: #374151;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 12px;
+    border-bottom: 2px solid #e5e7eb;
+  }
+
+  .swagger-ui table tbody tr td {
+    padding: 12px;
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  /* Response section */
+  .swagger-ui .responses-wrapper {
+    margin-top: 20px;
+  }
+
+  .swagger-ui .response {
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    margin-bottom: 12px;
+  }
+
+  /* Code blocks */
+  .swagger-ui .highlight-code {
+    background: #1e1e1e;
+    border-radius: 6px;
+    padding: 16px;
+  }
+
+  .swagger-ui .highlight-code pre {
+    color: #e5e7eb;
+  }
+
+  /* Models */
+  .swagger-ui .model-box {
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background: #f9fafb;
+    padding: 16px;
+  }
+
+  .swagger-ui .model-title {
+    color: #1f2937;
+    font-weight: 600;
+  }
+
+  /* Authentication */
+  .swagger-ui .auth-container {
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 16px;
+    margin: 16px 0;
+  }
+
+  .swagger-ui .auth-btn-wrapper .btn-done {
+    background: #10b981;
+    border-color: #10b981;
+  }
+
+  .swagger-ui .auth-btn-wrapper .btn-done:hover {
+    background: #059669;
+    border-color: #059669;
+  }
+
+  /* Scrollbar styling */
+  .swagger-ui ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .swagger-ui ::-webkit-scrollbar-track {
+    background: #f3f4f6;
+    border-radius: 4px;
+  }
+
+  .swagger-ui ::-webkit-scrollbar-thumb {
+    background: #9ca3af;
+    border-radius: 4px;
+  }
+
+  .swagger-ui ::-webkit-scrollbar-thumb:hover {
+    background: #6b7280;
+  }
+`;
+
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: swaggerCustomCss,
+  customSiteTitle: 'Helios API Documentation',
+  customfavIcon: '/favicon.ico'
+}));
+
+// Serve OpenAPI spec as JSON
+app.get('/api/openapi.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+
+// API Key Authentication Middleware - Applied BEFORE JWT
+// This allows API key authentication to take priority
+app.use('/api', authenticateApiKey);
 
 // Platform setup check middleware - this is the core routing logic
 app.use('/api', async (req, res, next) => {
@@ -120,7 +359,6 @@ app.use('/api', async (req, res, next) => {
         req.path.startsWith('/organization/setup') ||
         req.path.startsWith('/auth') ||
         req.path.startsWith('/setup') ||
-        req.path.startsWith('/tenant-setup') ||
         req.path.startsWith('/google-workspace') ||
         req.path.startsWith('/modules')) {
       return next();
@@ -152,14 +390,27 @@ app.use('/api', async (req, res, next) => {
   }
 });
 
-// API Routes
+// API Routes - Order matters! More specific routes first
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/organization/api-keys', apiKeysRoutes);
+app.use('/api/organization/labels', labelsRoutes);
+app.use('/api/organization/workspaces', workspacesRoutes);
+app.use('/api/organization/access-groups', accessGroupsRoutes);
+app.use('/api/organization/security-events', securityEventsRoutes);
+app.use('/api/organization/audit-logs', auditLogsRoutes);
+app.use('/api/organization/custom-fields', customFieldsRoutes);
+app.use('/api/email-security', emailSecurityRoutes);
+app.use('/api/signatures', signaturesRoutes);
+app.use('/api/organization', orgChartRoutes); // Register org chart routes under /api/organization
 app.use('/api/organization', organizationRoutes);
 app.use('/api/auth', authRoutes);
-// app.use('/api/auth', tenantAuthRoutes); // Tenant authentication
 app.use('/api/user', userRoutes);
+app.use('/api/user-preferences', userPreferencesRoutes);
 // app.use('/api/platform', platformRoutes);
 app.use('/api/google-workspace', GoogleWorkspaceRoutes);
 app.use('/api/modules', modulesRoutes);
+// Transparent Proxy for Google Workspace APIs (must be before catch-all)
+app.use(transparentProxyRouter);
 
 // Catch-all for undefined API routes
 app.use('/api/*', (req, res) => {
@@ -233,9 +484,29 @@ async function startServer(): Promise<void> {
       await dbInitializer.seedInitialData();
     }
 
-    // Initialize plugin system
-    logger.info('Initializing plugin system...');
-    await pluginManager.initialize();
+    // CRITICAL: Verify single-tenant integrity
+    // This ensures only ONE organization exists in the system
+    try {
+      const integrityCheck = await db.query('SELECT verify_single_tenant_integrity()');
+      if (!integrityCheck.rows[0]?.verify_single_tenant_integrity) {
+        logger.warn('⚠️ No organization found. Setup required.');
+      } else {
+        logger.info('✅ Single-tenant integrity verified');
+      }
+    } catch (error: any) {
+      if (error.message?.includes('Single-tenant violation')) {
+        logger.error('🚨 CRITICAL: Multiple organizations detected in single-tenant system!');
+        logger.error('This application supports EXACTLY ONE organization.');
+        logger.error('For multi-tenant needs, use the MTP platform.');
+        process.exit(1);
+      }
+      throw error;
+    }
+
+    // Initialize signature scheduler
+    const signatureScheduler = new SignatureSchedulerService();
+    await signatureScheduler.initializeScheduler();
+    logger.info('📧 Signature scheduler ready');
 
     // Start server
     app.listen(PORT, () => {
@@ -243,7 +514,6 @@ async function startServer(): Promise<void> {
       logger.info(`📊 Health check: http://localhost:${PORT}/health`);
       logger.info(`⚙️ Platform setup: http://localhost:${PORT}/platform`);
       logger.info(`🌍 Environment: ${process.env['NODE_ENV'] || 'development'}`);
-      logger.info(`🔌 Plugins loaded: ${pluginManager.getLoadedPlugins().length}`);
     });
 
   } catch (error) {
@@ -267,3 +537,4 @@ process.on('SIGINT', async () => {
 
 // Start the server
 startServer();
+

@@ -48,34 +48,38 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
   try {
     const organizationId = req.user?.organizationId;
 
-    // Get all modules
+    // Get all modules from NEW schema (available_modules table)
     const modulesResult = await db.query(`
       SELECT
-        m.id,
-        m.name,
-        m.slug,
-        m.description,
-        m.icon,
-        m.version,
-        m.is_available,
-        om.is_enabled,
-        om.is_configured,
-        om.last_sync_at,
-        om.sync_status,
-        om.sync_error
-      FROM modules m
+        am.id,
+        am.module_key as slug,
+        am.module_name as name,
+        am.module_type,
+        am.description,
+        am.version,
+        am.is_core,
+        am.requires_modules,
+        COALESCE(om.is_enabled, false) as is_enabled,
+        om.config,
+        om.created_at as enabled_at
+      FROM available_modules am
       LEFT JOIN organization_modules om
-        ON m.id = om.module_id
+        ON om.module_id = am.id
         AND om.organization_id = $1
-      WHERE m.is_available = true
-      ORDER BY m.name
+      ORDER BY
+        CASE am.module_type
+          WHEN 'infrastructure' THEN 1
+          WHEN 'integration' THEN 2
+          WHEN 'feature' THEN 3
+        END,
+        am.module_name
     `, [organizationId]);
 
     // Get stats for enabled modules
     const modules = await Promise.all(modulesResult.rows.map(async (module: any) => {
       const stats: any = {};
 
-      if (module.is_enabled && module.is_configured && module.slug === 'google_workspace') {
+      if (module.is_enabled && module.slug === 'google_workspace') {
         // Get Google Workspace stats
         const userCountResult = await db.query(
           'SELECT COUNT(*) as count FROM gw_synced_users WHERE organization_id = $1',
@@ -94,14 +98,14 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
         id: module.id,
         name: module.name,
         slug: module.slug,
+        moduleType: module.module_type,
         description: module.description,
-        icon: module.icon,
         version: module.version,
-        isEnabled: module.is_enabled || false,
-        isConfigured: module.is_configured || false,
-        lastSync: module.last_sync_at,
-        syncStatus: module.sync_status,
-        syncError: module.sync_error,
+        isCore: module.is_core,
+        requiresModules: module.requires_modules || [],
+        isEnabled: module.is_enabled,
+        config: module.config,
+        enabledAt: module.enabled_at,
         stats
       };
     }));
@@ -120,19 +124,34 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/modules/:moduleSlug/enable
- * Enable a module for the organization
+ * GET /api/modules/:id
+ * Get a single module by ID
  */
-router.post('/:moduleSlug/enable', requirePermission('admin'), async (req: Request, res: Response) => {
+router.get('/:id', requireAuth, async (req: Request, res: Response) => {
   try {
     const organizationId = req.user?.organizationId;
-    const { moduleSlug } = req.params;
+    const { id } = req.params;
 
-    // Get module ID
-    const moduleResult = await db.query(
-      'SELECT id FROM modules WHERE slug = $1 AND is_available = true',
-      [moduleSlug]
-    );
+    // Get module from NEW schema
+    const moduleResult = await db.query(`
+      SELECT
+        am.id,
+        am.module_key as slug,
+        am.module_name as name,
+        am.module_type,
+        am.description,
+        am.version,
+        am.is_core,
+        am.requires_modules,
+        COALESCE(om.is_enabled, false) as is_enabled,
+        om.config,
+        om.created_at as enabled_at
+      FROM available_modules am
+      LEFT JOIN organization_modules om
+        ON om.module_id = am.id
+        AND om.organization_id = $1
+      WHERE am.id = $2
+    `, [organizationId, id]);
 
     if (moduleResult.rows.length === 0) {
       return res.status(404).json({
@@ -141,19 +160,142 @@ router.post('/:moduleSlug/enable', requirePermission('admin'), async (req: Reque
       });
     }
 
-    const moduleId = moduleResult.rows[0].id;
+    const module = moduleResult.rows[0];
 
-    // Enable module
-    await db.query(`
-      INSERT INTO organization_modules (organization_id, module_id, is_enabled, is_configured, created_at, updated_at)
-      VALUES ($1, $2, true, false, NOW(), NOW())
-      ON CONFLICT (organization_id, module_id)
-      DO UPDATE SET is_enabled = true, updated_at = NOW()
-    `, [organizationId, moduleId]);
+    // Get stats if enabled
+    const stats: any = {};
+    if (module.is_enabled && module.slug === 'google_workspace') {
+      const userCountResult = await db.query(
+        'SELECT COUNT(*) as count FROM gw_synced_users WHERE organization_id = $1',
+        [organizationId]
+      );
+      const groupCountResult = await db.query(
+        'SELECT COUNT(*) as count FROM gw_groups WHERE organization_id = $1',
+        [organizationId]
+      );
+
+      stats.users = parseInt(userCountResult.rows[0].count);
+      stats.groups = parseInt(groupCountResult.rows[0].count);
+    }
 
     res.json({
       success: true,
-      message: 'Module enabled successfully'
+      data: {
+        id: module.id,
+        name: module.name,
+        slug: module.slug,
+        moduleType: module.module_type,
+        description: module.description,
+        version: module.version,
+        isCore: module.is_core,
+        requiresModules: module.requires_modules || [],
+        isEnabled: module.is_enabled,
+        config: module.config,
+        enabledAt: module.enabled_at,
+        stats
+      }
+    });
+  } catch (error: any) {
+    logger.error('Failed to get module', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve module'
+    });
+  }
+});
+
+/**
+ * POST /api/modules/:moduleSlug/enable
+ * Enable a module for the organization
+ */
+router.post('/:moduleSlug/enable', requirePermission('admin'), async (req: Request, res: Response) => {
+  try {
+    const organizationId = req.user?.organizationId;
+    const userId = req.user?.userId;
+    const { moduleSlug } = req.params;
+    const { config } = req.body;
+
+    // Get module from NEW schema
+    const moduleResult = await db.query(`
+      SELECT
+        am.id,
+        am.module_key,
+        am.module_name,
+        am.requires_modules,
+        COALESCE(om.is_enabled, false) as is_enabled
+      FROM available_modules am
+      LEFT JOIN organization_modules om
+        ON om.module_id = am.id
+        AND om.organization_id = $1
+      WHERE am.module_key = $2
+    `, [organizationId, moduleSlug]);
+
+    if (moduleResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Module not found'
+      });
+    }
+
+    const module = moduleResult.rows[0];
+
+    if (module.is_enabled) {
+      return res.status(400).json({
+        success: false,
+        error: 'Module is already enabled'
+      });
+    }
+
+    // Check dependencies using the database function
+    const dependenciesCheck = await db.query(`
+      SELECT check_module_dependencies($1, $2) as dependencies_met
+    `, [organizationId, moduleSlug]);
+
+    if (!dependenciesCheck.rows[0].dependencies_met) {
+      const requiredModules = module.requires_modules || [];
+      const enabledResult = await db.query(`
+        SELECT am.module_key, am.module_name
+        FROM available_modules am
+        JOIN organization_modules om
+          ON om.module_id = am.id
+          AND om.organization_id = $1
+        WHERE am.module_key = ANY($2::text[])
+          AND om.is_enabled = true
+      `, [organizationId, requiredModules]);
+
+      const enabledKeys = enabledResult.rows.map((row: any) => row.module_key);
+      const missingModules = requiredModules.filter((key: string) => !enabledKeys.includes(key));
+
+      return res.status(400).json({
+        success: false,
+        error: 'Module dependencies not met. Please enable required modules first.',
+        missing_modules: missingModules
+      });
+    }
+
+    // Enable module
+    await db.query(`
+      INSERT INTO organization_modules (
+        organization_id, module_id, is_enabled, config
+      )
+      VALUES ($1, $2, true, $3)
+      ON CONFLICT (organization_id, module_id)
+      DO UPDATE SET
+        is_enabled = true,
+        config = EXCLUDED.config,
+        updated_at = NOW()
+    `, [organizationId, module.id, config ? JSON.stringify(config) : null]);
+
+    logger.info('Module enabled', {
+      organizationId,
+      moduleKey: moduleSlug,
+      userId,
+      moduleName: module.module_name
+    });
+
+    res.json({
+      success: true,
+      message: `${module.module_name} enabled successfully`
     });
   } catch (error: any) {
     logger.error('Failed to enable module', { error: error.message });
@@ -171,13 +313,23 @@ router.post('/:moduleSlug/enable', requirePermission('admin'), async (req: Reque
 router.post('/:moduleSlug/disable', requirePermission('admin'), async (req: Request, res: Response) => {
   try {
     const organizationId = req.user?.organizationId;
+    const userId = req.user?.userId;
     const { moduleSlug } = req.params;
 
-    // Get module ID
-    const moduleResult = await db.query(
-      'SELECT id FROM modules WHERE slug = $1',
-      [moduleSlug]
-    );
+    // Get module from NEW schema
+    const moduleResult = await db.query(`
+      SELECT
+        am.id,
+        am.module_key,
+        am.module_name,
+        am.is_core,
+        COALESCE(om.is_enabled, false) as is_enabled
+      FROM available_modules am
+      LEFT JOIN organization_modules om
+        ON om.module_id = am.id
+        AND om.organization_id = $1
+      WHERE am.module_key = $2
+    `, [organizationId, moduleSlug]);
 
     if (moduleResult.rows.length === 0) {
       return res.status(404).json({
@@ -186,18 +338,66 @@ router.post('/:moduleSlug/disable', requirePermission('admin'), async (req: Requ
       });
     }
 
-    const moduleId = moduleResult.rows[0].id;
+    const module = moduleResult.rows[0];
+
+    if (module.is_core) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot disable core module'
+      });
+    }
+
+    if (!module.is_enabled) {
+      return res.status(400).json({
+        success: false,
+        error: 'Module is already disabled'
+      });
+    }
+
+    // Check if any enabled modules depend on this one
+    const dependentModules = await db.query(`
+      SELECT
+        am.module_key,
+        am.module_name
+      FROM available_modules am
+      JOIN organization_modules om
+        ON om.module_id = am.id
+        AND om.organization_id = $1
+      WHERE om.is_enabled = true
+        AND am.requires_modules @> $2::jsonb
+    `, [organizationId, JSON.stringify([moduleSlug])]);
+
+    if (dependentModules.rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot disable module - other modules depend on it',
+        dependent_modules: dependentModules.rows.map((m: any) => ({
+          key: m.module_key,
+          name: m.module_name
+        }))
+      });
+    }
 
     // Disable module
     await db.query(`
       UPDATE organization_modules
-      SET is_enabled = false, updated_at = NOW()
-      WHERE organization_id = $1 AND module_id = $2
-    `, [organizationId, moduleId]);
+      SET
+        is_enabled = false,
+        updated_at = NOW()
+      WHERE organization_id = $1
+        AND module_id = $2
+    `, [organizationId, module.id]);
+
+    logger.info('Module disabled', {
+      organizationId,
+      moduleKey: moduleSlug,
+      userId,
+      moduleName: module.module_name
+    });
 
     res.json({
       success: true,
-      message: 'Module disabled successfully'
+      message: `${module.module_name} disabled successfully`
     });
   } catch (error: any) {
     logger.error('Failed to disable module', { error: error.message });
