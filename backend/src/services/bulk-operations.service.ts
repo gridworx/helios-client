@@ -350,21 +350,126 @@ export class BulkOperationsService {
   }
 
   /**
-   * Add user to group (placeholder - implement based on your groups schema)
+   * Add user to group
+   * @param item - Object containing userEmail and groupId (or groupName)
    */
   private async addGroupMember(item: any, organizationId: string): Promise<any> {
-    // TODO: Implement group membership addition
-    logger.warn('Group membership addition not yet implemented', { item });
-    return { message: 'Not implemented' };
+    const { userEmail, userId, groupId, groupName, role = 'member' } = item;
+
+    // Get user ID if only email provided
+    let resolvedUserId = userId;
+    if (!resolvedUserId && userEmail) {
+      const userResult = await db.query(
+        'SELECT id FROM organization_users WHERE email = $1 AND organization_id = $2',
+        [userEmail.toLowerCase(), organizationId]
+      );
+      if (userResult.rows.length === 0) {
+        throw new Error(`User not found: ${userEmail}`);
+      }
+      resolvedUserId = userResult.rows[0].id;
+    }
+
+    if (!resolvedUserId) {
+      throw new Error('Either userId or userEmail is required');
+    }
+
+    // Get group ID if only name provided
+    let resolvedGroupId = groupId;
+    if (!resolvedGroupId && groupName) {
+      const groupResult = await db.query(
+        'SELECT id FROM user_groups WHERE name = $1 AND organization_id = $2',
+        [groupName, organizationId]
+      );
+      if (groupResult.rows.length === 0) {
+        throw new Error(`Group not found: ${groupName}`);
+      }
+      resolvedGroupId = groupResult.rows[0].id;
+    }
+
+    if (!resolvedGroupId) {
+      throw new Error('Either groupId or groupName is required');
+    }
+
+    // Check if membership already exists
+    const existingMembership = await db.query(
+      'SELECT id FROM user_group_memberships WHERE user_id = $1 AND group_id = $2',
+      [resolvedUserId, resolvedGroupId]
+    );
+
+    if (existingMembership.rows.length > 0) {
+      // Update existing membership role if different
+      await db.query(
+        'UPDATE user_group_memberships SET role = $1 WHERE user_id = $2 AND group_id = $3',
+        [role, resolvedUserId, resolvedGroupId]
+      );
+      logger.info('Group membership updated', { userId: resolvedUserId, groupId: resolvedGroupId, role });
+      return { userId: resolvedUserId, groupId: resolvedGroupId, action: 'updated' };
+    }
+
+    // Create new membership
+    const result = await db.query(`
+      INSERT INTO user_group_memberships (user_id, group_id, role)
+      VALUES ($1, $2, $3)
+      RETURNING id, user_id, group_id, role
+    `, [resolvedUserId, resolvedGroupId, role]);
+
+    logger.info('Group membership created', { userId: resolvedUserId, groupId: resolvedGroupId });
+    return result.rows[0];
   }
 
   /**
-   * Remove user from group (placeholder - implement based on your groups schema)
+   * Remove user from group
+   * @param item - Object containing userEmail/userId and groupId/groupName
    */
   private async removeGroupMember(item: any, organizationId: string): Promise<any> {
-    // TODO: Implement group membership removal
-    logger.warn('Group membership removal not yet implemented', { item });
-    return { message: 'Not implemented' };
+    const { userEmail, userId, groupId, groupName } = item;
+
+    // Get user ID if only email provided
+    let resolvedUserId = userId;
+    if (!resolvedUserId && userEmail) {
+      const userResult = await db.query(
+        'SELECT id FROM organization_users WHERE email = $1 AND organization_id = $2',
+        [userEmail.toLowerCase(), organizationId]
+      );
+      if (userResult.rows.length === 0) {
+        throw new Error(`User not found: ${userEmail}`);
+      }
+      resolvedUserId = userResult.rows[0].id;
+    }
+
+    if (!resolvedUserId) {
+      throw new Error('Either userId or userEmail is required');
+    }
+
+    // Get group ID if only name provided
+    let resolvedGroupId = groupId;
+    if (!resolvedGroupId && groupName) {
+      const groupResult = await db.query(
+        'SELECT id FROM user_groups WHERE name = $1 AND organization_id = $2',
+        [groupName, organizationId]
+      );
+      if (groupResult.rows.length === 0) {
+        throw new Error(`Group not found: ${groupName}`);
+      }
+      resolvedGroupId = groupResult.rows[0].id;
+    }
+
+    if (!resolvedGroupId) {
+      throw new Error('Either groupId or groupName is required');
+    }
+
+    // Delete membership
+    const result = await db.query(
+      'DELETE FROM user_group_memberships WHERE user_id = $1 AND group_id = $2 RETURNING id',
+      [resolvedUserId, resolvedGroupId]
+    );
+
+    if (result.rowCount === 0) {
+      throw new Error('Membership not found');
+    }
+
+    logger.info('Group membership removed', { userId: resolvedUserId, groupId: resolvedGroupId });
+    return { userId: resolvedUserId, groupId: resolvedGroupId, action: 'removed' };
   }
 
   /**
