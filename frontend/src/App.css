@@ -32,6 +32,10 @@
   to { transform: rotate(360deg); }
 }
 
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
 .loading p {
   margin-top: 1rem;
   color: #6b7280;

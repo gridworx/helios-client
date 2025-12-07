@@ -98,6 +98,8 @@ function AppContent() {
   const [loginOrgName, setLoginOrgName] = useState<string>('');
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [visibleWidgets, setVisibleWidgets] = useState<WidgetId[]>([]);
+  const [widgetsLoading, setWidgetsLoading] = useState(true);
+  const [widgetsError, setWidgetsError] = useState<string | null>(null);
 
   useEffect(() => {
     checkConfiguration();
@@ -211,29 +213,61 @@ function AppContent() {
 
   const fetchOrganizationStats = async (_organizationId: string) => {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
       const response = await fetch(`http://localhost:3001/api/dashboard/stats`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
-        }
+        },
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        console.error('Failed to fetch dashboard stats: HTTP', response.status);
+        return;
+      }
+
       const data = await response.json();
 
       if (data.success) {
         setStats(data.data);
       }
     } catch (err) {
-      console.error('Failed to fetch dashboard stats:', err);
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.error('Dashboard stats request timed out');
+      } else {
+        console.error('Failed to fetch dashboard stats:', err);
+      }
     }
   };
 
   // Load user preferences for dashboard widgets
   const loadUserPreferences = async () => {
+    setWidgetsLoading(true);
+    setWidgetsError(null);
+
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
       const response = await fetch(`http://localhost:3001/api/dashboard/widgets`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
-        }
+        },
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        console.error('Failed to load dashboard widgets: HTTP', response.status);
+        // Use defaults on HTTP error
+        const defaultWidgets = getEnabledWidgets();
+        setVisibleWidgets(defaultWidgets.map(w => w.id));
+        return;
+      }
+
       const data = await response.json();
 
       if (data.success && data.data && data.data.length > 0) {
@@ -249,10 +283,17 @@ function AppContent() {
         setVisibleWidgets(defaultWidgets.map(w => w.id));
       }
     } catch (err) {
-      console.error('Failed to load dashboard widgets:', err);
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.error('Dashboard widgets request timed out');
+        setWidgetsError('Request timed out. Using default widgets.');
+      } else {
+        console.error('Failed to load dashboard widgets:', err);
+      }
       // On error, use defaults
       const defaultWidgets = getEnabledWidgets();
       setVisibleWidgets(defaultWidgets.map(w => w.id));
+    } finally {
+      setWidgetsLoading(false);
     }
   };
 
@@ -368,13 +409,16 @@ function AppContent() {
 
 
           // Refresh labels now that we have a token (before showing dashboard!)
-          refreshLabels().then(() => {
+          refreshLabels().then(async () => {
             setStep('dashboard');
 
             // Fetch organization stats and user preferences after dashboard shown
+            // Run both in parallel but await completion to avoid race conditions
             if (loginData.data.organization) {
-              fetchOrganizationStats(loginData.data.organization.id);
-              loadUserPreferences();
+              await Promise.all([
+                fetchOrganizationStats(loginData.data.organization.id),
+                loadUserPreferences()
+              ]);
             }
           });
         }}
@@ -678,9 +722,19 @@ function AppContent() {
 
               {/* Dashboard Widget Grid */}
               <div className="dashboard-widget-grid">
-                {visibleWidgets.length === 0 ? (
+                {widgetsLoading ? (
                   <div style={{ gridColumn: 'span 12', textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
+                    <RefreshCw size={20} className="animate-spin" style={{ display: 'inline-block', marginRight: '0.5rem' }} />
                     Loading dashboard widgets...
+                  </div>
+                ) : widgetsError ? (
+                  <div style={{ gridColumn: 'span 12', textAlign: 'center', padding: '2rem', color: '#ef4444' }}>
+                    <AlertCircle size={20} style={{ display: 'inline-block', marginRight: '0.5rem', verticalAlign: 'middle' }} />
+                    {widgetsError}
+                  </div>
+                ) : visibleWidgets.length === 0 ? (
+                  <div style={{ gridColumn: 'span 12', textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
+                    No widgets configured. Click "Customize Dashboard" to add widgets.
                   </div>
                 ) : (
                   visibleWidgets.map(widgetId => {
