@@ -273,8 +273,8 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
     } else if (statusFilter === 'deleted') {
       statusCondition = "AND ou.user_status = 'deleted'";
     } else {
-      // 'all' means ALL users - no filter at all
-      statusCondition = '';
+      // 'all' means all non-deleted users by default (excludes soft-deleted)
+      statusCondition = "AND (ou.user_status IS NULL OR ou.user_status != 'deleted')";
     }
 
     // Add user type filter condition
