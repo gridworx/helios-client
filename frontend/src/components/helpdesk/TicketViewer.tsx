@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
-  X, User, Clock, Tag, MessageSquare, Send,
-  UserPlus, UserMinus, CheckCircle, AlertCircle,
-  MoreVertical, Edit, Trash
+  X, User, Tag, Send,
+  UserPlus, UserMinus, AlertCircle,
+  MoreVertical, Edit
 } from 'lucide-react';
 import { helpdeskService, type Ticket, type TicketNote, type PresenceData } from '../../services/helpdesk.service';
 import PresenceIndicator from './PresenceIndicator';
@@ -18,7 +18,7 @@ const TicketViewer: React.FC<TicketViewerProps> = ({ ticket, onClose, onUpdate }
   const [notes, setNotes] = useState<TicketNote[]>([]);
   const [presence, setPresence] = useState<PresenceData | null>(null);
   const [noteContent, setNoteContent] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [_loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showStatusMenu, setShowStatusMenu] = useState(false);
 

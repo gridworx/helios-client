@@ -18,7 +18,7 @@ export function BulkOperations({ organizationId }: BulkOperationsProps) {
   const [isExecuting, setIsExecuting] = useState(false);
   const [currentOperation, setCurrentOperation] = useState<BulkOperation | null>(null);
   const [operationHistory, setOperationHistory] = useState<BulkOperation[]>([]);
-  const [showHistory, setShowHistory] = useState(true);
+  const [showHistory] = useState(true);
   const [templates, setTemplates] = useState<any[]>([]);
   const [showTemplates, setShowTemplates] = useState(false);
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);

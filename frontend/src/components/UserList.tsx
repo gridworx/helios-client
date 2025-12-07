@@ -86,8 +86,8 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
   const [createError, setCreateError] = useState<string | null>(null);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [userToEdit, setUserToEdit] = useState<User | null>(null);
+  const [_showEditModal, _setShowEditModal] = useState(false);
+  const [_userToEdit, _setUserToEdit] = useState<User | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const [isBulkOperating, setIsBulkOperating] = useState(false);
@@ -527,7 +527,7 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
     }
   };
 
-  const handleQuickBlock = async (user: User) => {
+  const handleQuickBlock = async (_user: User) => {
     // TODO: Open block user modal
     alert('Block user feature - opening modal...');
     setActionMenuOpen(null);
@@ -744,7 +744,7 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
         let loginStatusClass = '';
         let loginText = 'Never';
 
-        if (lastLoginDate) {
+        if (lastLoginDate && daysSinceLogin !== null) {
           if (daysSinceLogin === 0) {
             loginText = 'Today';
             loginStatusClass = 'login-recent';

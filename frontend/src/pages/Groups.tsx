@@ -23,7 +23,7 @@ interface GroupsProps {
   onSelectGroup?: (groupId: string) => void;
 }
 
-export function Groups({ organizationId, customLabel, onSelectGroup }: GroupsProps) {
+export function Groups({ organizationId, customLabel: _customLabel, onSelectGroup }: GroupsProps) {
   const labels = useEntityLabels(ENTITIES.ACCESS_GROUP);
   const [groups, setGroups] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);

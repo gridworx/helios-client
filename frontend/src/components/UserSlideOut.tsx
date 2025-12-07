@@ -375,14 +375,6 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
     }
   };
 
-  const getPlatformIcon = (platform: string) => {
-    const icons: Record<string, { icon: string; color: string; title: string }> = {
-      google_workspace: { icon: 'G', color: '#4285F4', title: 'Google Workspace' },
-      microsoft_365: { icon: 'M', color: '#0078D4', title: 'Microsoft 365' },
-      local: { icon: 'L', color: '#28a745', title: 'Local User' }
-    };
-    return icons[platform] || icons.local;
-  };
 
   const getStatusBadgeClass = (status?: string) => {
     if (status === 'active') return 'status-badge-active';

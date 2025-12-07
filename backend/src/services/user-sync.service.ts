@@ -10,7 +10,7 @@ export interface UnifiedUser {
   lastName?: string;
   fullName?: string;
   displayName?: string;
-  avatarUrl?: string;
+  avatarUrl?: string | null;
   jobTitle?: string;
   department?: string;
   phone?: string;
@@ -307,7 +307,7 @@ export class UserSyncService {
 
       const result = await db.query(query, params);
 
-      return result.rows.map((row: any) => ({
+      return result.rows.map((row: any): UnifiedUser => ({
         id: row.id,
         organizationId: row.organization_id,
         email: row.email,
@@ -315,7 +315,7 @@ export class UserSyncService {
         lastName: row.last_name,
         fullName: row.full_name,
         displayName: row.full_name || row.email.split('@')[0],
-        avatarUrl: null,
+        avatarUrl: null as string | null,
         jobTitle: row.job_title,
         department: row.department,
         phone: row.phone,

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   FileText,
   Plus,
-  Calendar,
   Users,
   BarChart3,
   Search,
@@ -12,10 +11,8 @@ import {
   Pause,
   Edit3,
   Trash2,
-  Copy,
   CheckCircle,
   Clock,
-  AlertCircle,
   Target,
   TrendingUp
 } from 'lucide-react';
@@ -62,8 +59,8 @@ const Signatures: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'templates' | 'campaigns' | 'analytics'>('templates');
   const [templates, setTemplates] = useState<SignatureTemplate[]>([]);
   const [campaigns, setCampaigns] = useState<SignatureCampaign[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState<SignatureTemplate | null>(null);
-  const [selectedCampaign, setSelectedCampaign] = useState<SignatureCampaign | null>(null);
+  const [_selectedTemplate, setSelectedTemplate] = useState<SignatureTemplate | null>(null);
+  const [_selectedCampaign, setSelectedCampaign] = useState<SignatureCampaign | null>(null);
   const [showCampaignWizard, setShowCampaignWizard] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');

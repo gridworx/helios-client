@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
-import { User, ChevronDown, ChevronRight } from 'lucide-react';
 import './OrgChartTree.css';
 
 interface OrgNode {
@@ -96,7 +95,7 @@ const OrgChartTree: React.FC<OrgChartTreeProps> = ({
     treeLayout(root);
 
     // Draw links
-    const link = g.selectAll('.link')
+    g.selectAll('.link')
       .data(root.links())
       .enter()
       .append('path')
@@ -176,14 +175,14 @@ const OrgChartTree: React.FC<OrgChartTreeProps> = ({
     // Add user photo or icon
     const photoSize = 32;
     node.append('clipPath')
-      .attr('id', (d: any, i: number) => `clip-${i}`)
+      .attr('id', (_d: any, i: number) => `clip-${i}`)
       .append('circle')
       .attr('cx', -nodeWidth / 2 + 24)
       .attr('cy', 0)
       .attr('r', photoSize / 2);
 
     // Add photo if available, otherwise show icon
-    node.each(function(d: any, i: number) {
+    node.each(function(this: SVGGElement, d: any, i: number) {
       const nodeSelection = d3.select(this);
 
       if (d.data.photoUrl) {
@@ -256,10 +255,10 @@ const OrgChartTree: React.FC<OrgChartTreeProps> = ({
   const matchesSearch = (node: OrgNode): boolean => {
     if (!searchTerm) return false;
     const term = searchTerm.toLowerCase();
-    return node.name.toLowerCase().includes(term) ||
+    return !!(node.name.toLowerCase().includes(term) ||
            node.email.toLowerCase().includes(term) ||
            (node.title && node.title.toLowerCase().includes(term)) ||
-           (node.department && node.department.toLowerCase().includes(term));
+           (node.department && node.department.toLowerCase().includes(term)));
   };
 
   const truncateText = (text: string, maxLength: number): string => {

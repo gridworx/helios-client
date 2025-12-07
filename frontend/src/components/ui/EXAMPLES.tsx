@@ -8,14 +8,11 @@
  * This is for reference and development only.
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Modal, ConfirmDialog, UserSelector, SelectableBlock } from './index';
 import {
   Trash2,
   ArrowRightLeft,
-  UserPlus,
-  Settings,
-  AlertCircle,
   CheckCircle
 } from 'lucide-react';
 

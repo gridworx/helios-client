@@ -208,7 +208,7 @@ const GoogleWorkspaceWizard: React.FC<GoogleWorkspaceWizardProps> = ({
         </div>
 
         <div className="gw-wizard-progress">
-          {steps.map((step, index) => (
+          {steps.map((step, _index) => (
             <div
               key={step.id}
               className={`gw-wizard-step ${

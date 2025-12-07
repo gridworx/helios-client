@@ -27,7 +27,7 @@ interface PublicAssetsProps {
 export function PublicAssets({ organizationId }: PublicAssetsProps) {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);

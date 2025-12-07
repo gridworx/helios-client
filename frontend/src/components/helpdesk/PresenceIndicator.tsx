@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, Edit3, Users } from 'lucide-react';
+import { Eye, Edit3 } from 'lucide-react';
 import type { PresenceData } from '../../services/helpdesk.service';
 import './PresenceIndicator.css';
 

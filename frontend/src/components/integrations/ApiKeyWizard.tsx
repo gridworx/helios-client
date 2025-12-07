@@ -41,7 +41,7 @@ const AVAILABLE_PERMISSIONS = [
   { value: 'write:organization', label: 'Write Organization', description: 'Update org settings' },
 ];
 
-export function ApiKeyWizard({ organizationId, onClose, onSuccess }: ApiKeyWizardProps) {
+export function ApiKeyWizard({ organizationId: _organizationId, onClose, onSuccess }: ApiKeyWizardProps) {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [config, setConfig] = useState<KeyConfig>({

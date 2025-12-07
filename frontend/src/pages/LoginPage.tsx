@@ -7,7 +7,7 @@ interface LoginPageProps {
   organizationName?: string;
 }
 
-export function LoginPage({ onLoginSuccess, organizationDomain, organizationName }: LoginPageProps) {
+export function LoginPage({ onLoginSuccess, organizationDomain: _organizationDomain, organizationName }: LoginPageProps) {
   const [formData, setFormData] = useState({
     email: '',
     password: ''

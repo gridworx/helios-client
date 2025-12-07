@@ -76,33 +76,6 @@ const Helpdesk: React.FC = () => {
     );
   });
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'new':
-        return <AlertCircle className="icon" />;
-      case 'in_progress':
-        return <Clock className="icon" />;
-      case 'resolved':
-        return <CheckCircle className="icon" />;
-      default:
-        return null;
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'urgent':
-        return 'priority-urgent';
-      case 'high':
-        return 'priority-high';
-      case 'normal':
-        return 'priority-normal';
-      case 'low':
-        return 'priority-low';
-      default:
-        return '';
-    }
-  };
 
   if (loading) {
     return (

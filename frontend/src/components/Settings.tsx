@@ -33,9 +33,6 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
   const [securitySubTab, setSecuritySubTab] = useState<'settings' | 'events' | 'audit'>('settings');
   const [showModuleConfig, setShowModuleConfig] = useState(false);
   const [configuringModule, setConfiguringModule] = useState<string | null>(null);
-  const [adminEmail, setAdminEmail] = useState('');
-  const [serviceAccountFile, setServiceAccountFile] = useState<File | null>(null);
-  const [isConfiguring, setIsConfiguring] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',

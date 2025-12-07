@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { ENTITIES, DEFAULT_LABELS, type EntityName } from '../config/entities';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
+import { ENTITIES, DEFAULT_LABELS } from '../config/entities';
+import type { EntityName } from '../config/entities';
 
 /**
  * Label set (singular + plural)

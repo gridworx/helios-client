@@ -4,14 +4,16 @@ import { LoginPage } from './pages/LoginPage'
 import { ClientUserMenu } from './components/ClientUserMenu'
 import { AccountSetup } from './components/AccountSetup'
 import { Settings } from './components/Settings'
-import { PlatformCard } from './components/PlatformCard'
+// PlatformCard - available for future use
+// import { PlatformCard } from './components/PlatformCard'
 import { MetricCard } from './components/MetricCard'
 import { DashboardCustomizer } from './components/DashboardCustomizer'
 import { Administrators } from './components/Administrators'
 import { Users } from './pages/Users'
 import { Groups } from './pages/Groups'
 import { GroupDetail } from './pages/GroupDetail'
-import { OrgUnits } from './pages/OrgUnits'
+// OrgUnits - available for future use
+// import { OrgUnits } from './pages/OrgUnits'
 import OrgChart from './pages/OrgChart'
 import { AssetManagement } from './pages/AssetManagement'
 import { Workspaces } from './pages/Workspaces'
@@ -24,7 +26,7 @@ import { LabelsProvider, useLabels } from './contexts/LabelsContext'
 import { ENTITIES } from './config/entities'
 import { getWidgetData } from './utils/widget-data'
 import { getEnabledWidgets, type WidgetId } from './config/widgets'
-import { Zap, FileText, TrendingUp, Search, Home, Users as UsersIcon, UsersRound, MessageSquare, Building2, Package, Settings as SettingsIcon, UserPlus, Upload, Download, RefreshCw, AlertCircle, Info, TrendingUp as TrendingUpIcon, HardDrive, Shield, Edit3, Network, PenTool, Bell, Building, CheckCircle, HelpCircle } from 'lucide-react'
+import { Zap, FileText, TrendingUp, Search, Home, Users as UsersIcon, UsersRound, MessageSquare, Package, Settings as SettingsIcon, UserPlus, Upload, Download, RefreshCw, AlertCircle, Info, Shield, Edit3, Network, PenTool, Bell, Building, HelpCircle } from 'lucide-react'
 
 interface OrganizationConfig {
   organizationId: string;
@@ -83,19 +85,8 @@ function AppContent() {
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState<OrganizationConfig | null>(null);
   const [step, setStep] = useState<'welcome' | 'setup' | 'login' | 'dashboard' | null>(null);
-  const [setupStep, setSetupStep] = useState(1);
-  const [setupData, setSetupData] = useState({
-    organizationName: '',
-    domain: '',
-    adminEmail: '',
-    serviceAccountFile: null as File | null,
-    adminFirstName: '',
-    adminLastName: '',
-    adminPassword: ''
-  });
-  const [setupError, setSetupError] = useState<string | null>(null);
   const [stats, setStats] = useState<OrganizationStats | null>(null);
-  const [syncLoading, setSyncLoading] = useState(false);
+  const [_syncLoading, setSyncLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentPage, setCurrentPage] = useState(() => {
@@ -218,7 +209,7 @@ function AppContent() {
     }
   };
 
-  const fetchOrganizationStats = async (organizationId: string) => {
+  const fetchOrganizationStats = async (_organizationId: string) => {
     try {
       const response = await fetch(`http://localhost:3001/api/dashboard/stats`, {
         headers: {
@@ -451,360 +442,6 @@ function AppContent() {
       </div>
     );
   }
-
-  if (step === 'setup') {
-    return (
-      <div className="app">
-        <div className="setup-container">
-          <div className="setup-card">
-            <div className="setup-header">
-              <h1>🔧 Google Workspace Setup</h1>
-              <p>Configure Domain-Wide Delegation to connect your Google Workspace</p>
-            </div>
-
-            <div className="setup-body">
-              {setupStep === 1 && (
-                <div className="setup-step">
-                  <h2>Step 1: Organization Information</h2>
-                <p className="step-description">
-                  Tell us about your Google Workspace organization
-                </p>
-
-                <div className="form-group">
-                  <label>Organization Name</label>
-                  <input
-                    type="text"
-                    placeholder="Acme Corporation"
-                    className="form-input"
-                    value={setupData.organizationName}
-                    onChange={e => setSetupData({...setupData, organizationName: e.target.value})}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Google Workspace Domain</label>
-                  <input
-                    type="text"
-                    placeholder="acme.com"
-                    className="form-input"
-                    value={setupData.domain}
-                    onChange={e => setSetupData({...setupData, domain: e.target.value})}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Admin Email</label>
-                  <input
-                    type="email"
-                    placeholder="admin@acme.com"
-                    className="form-input"
-                    value={setupData.adminEmail}
-                    onChange={e => setSetupData({...setupData, adminEmail: e.target.value})}
-                  />
-                </div>
-
-                {setupError && (
-                  <div className="setup-error">
-                    ⚠️ {setupError}
-                  </div>
-                )}
-
-                <div className="info-box">
-                  <strong>ℹ️ What is Domain-Wide Delegation?</strong>
-                  <p>
-                    Domain-Wide Delegation allows Helios to securely access your Google Workspace
-                    without requiring user passwords. It's the enterprise-grade way to manage
-                    Google Workspace programmatically.
-                  </p>
-                </div>
-
-                <div className="setup-actions">
-                  <button className="btn-secondary" onClick={() => setStep('welcome')}>
-                    ← Back
-                  </button>
-                  <button
-                    className="btn-primary"
-                    onClick={() => {
-                      if (!setupData.organizationName || !setupData.domain || !setupData.adminEmail) {
-                        setSetupError('Please fill in all fields');
-                        return;
-                      }
-                      setSetupError(null);
-                      setSetupStep(2);
-                    }}
-                  >
-                    Next: Upload Service Account →
-                  </button>
-                </div>
-                </div>
-              )}
-
-              {setupStep === 2 && (
-                <div className="setup-step">
-                  <h2>Step 2: Upload Service Account</h2>
-                  <p className="step-description">
-                    Upload your Google Cloud service account JSON file
-                  </p>
-
-                  <div className="file-upload-section">
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setSetupData({...setupData, serviceAccountFile: file});
-                          setSetupError(null);
-                        }
-                      }}
-                      style={{ display: 'none' }}
-                      id="service-account-upload"
-                    />
-                    <label htmlFor="service-account-upload" className="file-upload-area">
-                      {setupData.serviceAccountFile ? (
-                        <div className="file-selected">
-                          <div className="file-icon"><CheckCircle size={20} color="#10b981" /></div>
-                          <div className="file-name">{setupData.serviceAccountFile.name}</div>
-                          <div className="file-size">
-                            {(setupData.serviceAccountFile.size / 1024).toFixed(2)} KB
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="file-placeholder">
-                          <div className="file-icon">📁</div>
-                          <div className="file-text">Click to upload service account JSON</div>
-                          <div className="file-hint">Download from Google Cloud Console</div>
-                        </div>
-                      )}
-                    </label>
-                  </div>
-
-                  <div className="info-box">
-                    <strong>📋 How to get the service account JSON:</strong>
-                    <ol>
-                      <li>Go to <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer">Google Cloud Console</a></li>
-                      <li>Create or select a project</li>
-                      <li>Enable the Admin SDK API</li>
-                      <li>Go to IAM & Admin → Service Accounts</li>
-                      <li>Create Service Account</li>
-                      <li>Enable Domain-Wide Delegation</li>
-                      <li>Download JSON key file</li>
-                    </ol>
-                  </div>
-
-                  <div className="setup-actions">
-                    <button className="btn-secondary" onClick={() => setSetupStep(1)}>
-                      ← Back
-                    </button>
-                    <button
-                      className="btn-primary"
-                      onClick={() => {
-                        if (!setupData.serviceAccountFile) {
-                          setSetupError('Please upload service account JSON file');
-                          return;
-                        }
-                        setSetupError(null);
-                        setSetupStep(3);
-                      }}
-                    >
-                      Next: Configure DWD →
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {setupStep === 3 && (
-                <div className="setup-step">
-                  <h2>Step 3: Create Admin Account</h2>
-                  <p className="step-description">
-                    Create your administrator account to manage this portal
-                  </p>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>First Name</label>
-                      <input
-                        type="text"
-                        value={setupData.adminFirstName}
-                        onChange={e => setSetupData({...setupData, adminFirstName: e.target.value})}
-                        placeholder="John"
-                        className="form-input"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Last Name</label>
-                      <input
-                        type="text"
-                        value={setupData.adminLastName}
-                        onChange={e => setSetupData({...setupData, adminLastName: e.target.value})}
-                        placeholder="Doe"
-                        className="form-input"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Admin Password</label>
-                    <input
-                      type="password"
-                      value={setupData.adminPassword}
-                      onChange={e => setSetupData({...setupData, adminPassword: e.target.value})}
-                      placeholder="Minimum 8 characters"
-                      className="form-input"
-                    />
-                  </div>
-
-                  <div className="info-box">
-                    <strong>🔒 Admin Account</strong>
-                    <p>
-                      This account will have full access to manage your organization's SaaS applications.
-                      You can add more users later with different permission levels.
-                    </p>
-                  </div>
-
-                  <div className="setup-actions">
-                    <button className="btn-secondary" onClick={() => setSetupStep(2)}>
-                      ← Back
-                    </button>
-                    <button
-                      className="btn-primary"
-                      onClick={() => {
-                        if (!setupData.adminFirstName || !setupData.adminLastName || !setupData.adminPassword) {
-                          setSetupError('Please fill in all admin account fields');
-                          return;
-                        }
-                        if (setupData.adminPassword.length < 8) {
-                          setSetupError('Password must be at least 8 characters');
-                          return;
-                        }
-                        setSetupError(null);
-                        setSetupStep(4);
-                      }}
-                    >
-                      Next: Configure DWD →
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {setupStep === 4 && (
-                <div className="setup-step">
-                  <h2>Step 4: Configure Domain-Wide Delegation</h2>
-                  <p className="step-description">
-                    Add Domain-Wide Delegation in Google Admin Console
-                  </p>
-
-                  <div className="dwd-instructions">
-                    <div className="instruction-item">
-                      <div className="step-number">1</div>
-                      <div className="instruction-content">
-                        <p>Go to <a href="https://admin.google.com/ac/owl/domainwidedelegation" target="_blank" rel="noopener noreferrer">
-                          Google Admin Console → Security → API Controls → Domain-wide Delegation
-                        </a></p>
-                      </div>
-                    </div>
-
-                    <div className="instruction-item">
-                      <div className="step-number">2</div>
-                      <div className="instruction-content">
-                        <p>Click "Add new" and enter this Client ID:</p>
-                        <div className="copy-field">
-                          <code>123456789012345678901</code>
-                          <button onClick={() => navigator.clipboard?.writeText('123456789012345678901')}>📋</button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="instruction-item">
-                      <div className="step-number">3</div>
-                      <div className="instruction-content">
-                        <p>Paste these OAuth scopes:</p>
-                        <div className="copy-field scopes">
-                          <code>https://www.googleapis.com/auth/admin.directory.user,https://www.googleapis.com/auth/admin.directory.group</code>
-                          <button onClick={() => navigator.clipboard?.writeText('https://www.googleapis.com/auth/admin.directory.user,https://www.googleapis.com/auth/admin.directory.group')}>📋</button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="instruction-item">
-                      <div className="step-number">4</div>
-                      <div className="instruction-content">
-                        <p>Click "Authorize" and then test the connection below</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="setup-actions">
-                    <button className="btn-secondary" onClick={() => setSetupStep(2)}>
-                      ← Back
-                    </button>
-                    <button className="btn-test">
-                      <Search size={16} /> Test Connection
-                    </button>
-                    <button
-                      className="btn-primary"
-                      onClick={async () => {
-                        try {
-                          // Upload service account and create organization
-                          if (!setupData.serviceAccountFile) {
-                            setSetupError('Please upload service account file first');
-                            return;
-                          }
-
-                          const fileContent = await setupData.serviceAccountFile.text();
-                          const credentials = JSON.parse(fileContent);
-                          const organizationId = crypto.randomUUID();
-
-                          const response = await fetch('http://localhost:3001/api/google-workspace/setup', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              organizationId,
-                              domain: setupData.domain,
-                              organizationName: setupData.organizationName,
-                              adminEmail: setupData.adminEmail,
-                              credentials
-                            })
-                          });
-
-                          const data = await response.json();
-
-                          if (!response.ok) {
-                            throw new Error(data.error || 'Setup failed');
-                          }
-
-                          // Complete setup
-                          const newConfig = {
-                            organizationId,
-                            domain: setupData.domain,
-                            organizationName: setupData.organizationName,
-                            dwdConfigured: true
-                          };
-
-                          localStorage.setItem('helios_organization', JSON.stringify(newConfig));
-                          setConfig(newConfig);
-                          setStep('dashboard');
-
-                          // Trigger initial sync
-                          setTimeout(() => fetchOrganizationStats(organizationId), 1000);
-
-                        } catch (err: any) {
-                          setSetupError(err.message || 'Setup failed');
-                        }
-                      }}
-                    >
-                      <CheckCircle size={16} /> Complete Setup
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
 
   return (
     <div className="app">

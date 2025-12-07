@@ -25,24 +25,19 @@ export const PlatformCard: React.FC<PlatformCardProps> = ({
   platform,
   title,
   logo,
-  connected,
-  totalUsers,
+  connected: _connected,
+  totalUsers: _totalUsers,
   stats,
   lastSync,
   licenses,
   onClick,
 }) => {
-  const platformColors = {
-    google: '#4285f4',
-    microsoft: '#00a4ef',
-    helios: 'var(--theme-primary)',
-  };
 
   const statusLabel = platform === 'helios' ? 'Local management' : 'Connected';
   const statusClass = platform === 'helios' ? 'local' : 'connected';
 
   // Format last sync time
-  const formatLastSync = (syncTime: string | null) => {
+  const formatLastSync = (syncTime: string | null | undefined) => {
     if (!syncTime) return 'Never synced';
     const date = new Date(syncTime);
     const now = new Date();

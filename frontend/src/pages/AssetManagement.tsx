@@ -17,8 +17,8 @@ interface AssetManagementProps {
   organizationId: string;
 }
 
-export function AssetManagement({ organizationId }: AssetManagementProps) {
-  const [assets, setAssets] = useState<Asset[]>([
+export function AssetManagement({ organizationId: _organizationId }: AssetManagementProps) {
+  const [assets] = useState<Asset[]>([
     {
       id: '1',
       name: 'MacBook Pro 16"',
@@ -82,7 +82,7 @@ export function AssetManagement({ organizationId }: AssetManagementProps) {
     return colors[status] || '#9e9e9e';
   };
 
-  const filteredAssets = assets.filter(asset => {
+  const filteredAssets = assets.filter((asset: Asset) => {
     const matchesType = filterType === 'all' || asset.type === filterType;
     const matchesSearch = asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           asset.serialNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -172,7 +172,7 @@ export function AssetManagement({ organizationId }: AssetManagementProps) {
               </div>
             ) : (
               <div className="grid-body">
-                {filteredAssets.map(asset => (
+                {filteredAssets.map((asset: Asset) => (
                   <div key={asset.id} className="grid-row">
                     <div className="col-wide">
                       <div className="item-info">
@@ -230,19 +230,19 @@ export function AssetManagement({ organizationId }: AssetManagementProps) {
             <div className="summary-card">
               <div className="summary-label">Total Value</div>
               <div className="summary-value">
-                ${assets.reduce((sum, asset) => sum + asset.value, 0).toLocaleString()}
+                ${assets.reduce((sum: number, asset: Asset) => sum + asset.value, 0).toLocaleString()}
               </div>
             </div>
             <div className="summary-card">
               <div className="summary-label">Assigned</div>
               <div className="summary-value">
-                {assets.filter(a => a.assignedTo).length}
+                {assets.filter((a: Asset) => a.assignedTo).length}
               </div>
             </div>
             <div className="summary-card">
               <div className="summary-label">Available</div>
               <div className="summary-value">
-                {assets.filter(a => !a.assignedTo).length}
+                {assets.filter((a: Asset) => !a.assignedTo).length}
               </div>
             </div>
           </div>

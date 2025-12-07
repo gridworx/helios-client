@@ -6,7 +6,7 @@ import './ThemeSelector.css';
 
 export function ThemeSelector() {
   const [currentTheme, setCurrentTheme] = useState<ThemeName>(themeService.getTheme());
-  const [themes, setThemes] = useState<Theme[]>(themeService.getAllThemes());
+  const [themes] = useState<Theme[]>(themeService.getAllThemes());
 
   useEffect(() => {
     setCurrentTheme(themeService.getTheme());

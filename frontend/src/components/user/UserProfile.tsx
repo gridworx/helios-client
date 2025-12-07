@@ -18,7 +18,7 @@ interface UserProfileProps {
   userId?: string;
 }
 
-const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
+const UserProfile: React.FC<UserProfileProps> = ({ userId: _userId }) => {
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'sessions'>('profile');
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isEditing, setIsEditing] = useState(false);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Key, Plus, Eye, Trash2, RefreshCw, Clock, AlertCircle, CheckCircle } from 'lucide-react';
+import { Key, Plus, Trash2, RefreshCw, Clock, AlertCircle, CheckCircle } from 'lucide-react';
 import './ApiKeyList.css';
 
 interface ApiKey {
@@ -89,7 +89,7 @@ export function ApiKeyList({ organizationId, onCreateKey }: ApiKeyListProps) {
     }
   };
 
-  const handleRenew = async (keyId: string, keyName: string) => {
+  const handleRenew = async (_keyId: string, keyName: string) => {
     // This would open a renewal dialog - for now just alert
     alert(`Renewal for "${keyName}" will be implemented in the renewal dialog`);
   };

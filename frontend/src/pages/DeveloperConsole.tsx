@@ -338,7 +338,7 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
           changePasswordAtNextLogin: params.changePassword !== 'false'
         };
 
-        const data = await apiRequest('POST', '/api/google/admin/directory/v1/users', body);
+        await apiRequest('POST', '/api/google/admin/directory/v1/users', body);
         addOutput('success', `User created: ${email}`);
         break;
       }
@@ -360,7 +360,7 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
         }
         if (params.ou) body.orgUnitPath = params.ou;
 
-        const data = await apiRequest('PATCH', `/api/google/admin/directory/v1/users/${email}`, body);
+        await apiRequest('PATCH', `/api/google/admin/directory/v1/users/${email}`, body);
         addOutput('success', `User updated: ${email}`);
         break;
       }
@@ -581,7 +581,7 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
           description: params.description || ''
         };
 
-        const data = await apiRequest('POST', '/api/google-workspace/groups', { organizationId: orgId, ...body });
+        await apiRequest('POST', '/api/google-workspace/groups', { organizationId: orgId, ...body });
         addOutput('success', `Group created: ${email}`);
         break;
       }
@@ -598,7 +598,7 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
         if (params.name) body.name = params.name;
         if (params.description) body.description = params.description;
 
-        const data = await apiRequest('PATCH', `/api/google-workspace/groups/${groupEmail}`, { organizationId: orgId, ...body });
+        await apiRequest('PATCH', `/api/google-workspace/groups/${groupEmail}`, { organizationId: orgId, ...body });
         addOutput('success', `Group updated: ${groupEmail}`);
         break;
       }
@@ -645,7 +645,7 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
         const params = parseArgs(args.slice(2));
         const role = params.role || 'MEMBER';
 
-        const data = await apiRequest('POST', `/api/google-workspace/groups/${groupEmail}/members`, {
+        await apiRequest('POST', `/api/google-workspace/groups/${groupEmail}/members`, {
           organizationId: orgId,
           email: userEmail,
           role
@@ -716,7 +716,7 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
           description: params.description || ''
         };
 
-        const data = await apiRequest('POST', '/api/google/admin/directory/v1/customer/my_customer/orgunits', body);
+        await apiRequest('POST', '/api/google/admin/directory/v1/customer/my_customer/orgunits', body);
         addOutput('success', `OU created: ${parentPath}/${params.name}`);
         break;
       }
@@ -733,7 +733,7 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
         if (params.name) body.name = params.name;
         if (params.description) body.description = params.description;
 
-        const data = await apiRequest('PUT', `/api/google/admin/directory/v1/customer/my_customer/orgunits${ouPath}`, body);
+        await apiRequest('PUT', `/api/google/admin/directory/v1/customer/my_customer/orgunits${ouPath}`, body);
         addOutput('success', `OU updated: ${ouPath}`);
         break;
       }
@@ -809,13 +809,13 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
   };
 
   // ----- Google Workspace: Sync -----
-  const handleGWSync = async (action: string, args: string[]) => {
+  const handleGWSync = async (action: string, _args: string[]) => {
     const orgId = getOrganizationId();
 
     switch (action) {
       case 'users': {
-        const data = await apiRequest('POST', '/api/google-workspace/sync-now', { organizationId: orgId });
-        addOutput('success', `User sync completed: ${JSON.stringify(data)}`);
+        const _data = await apiRequest('POST', '/api/google-workspace/sync-now', { organizationId: orgId });
+        addOutput('success', `User sync completed: ${JSON.stringify(_data)}`);
         break;
       }
 
@@ -1158,7 +1158,15 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
         const params = parseArgs(args.slice(1));
 
         const [mailNickname] = email.split('@');
-        const body = {
+        const body: {
+          accountEnabled: boolean;
+          displayName: string;
+          mailNickname: string;
+          userPrincipalName: string;
+          passwordProfile: { forceChangePasswordNextSignIn: boolean; password: string };
+          givenName?: string;
+          surname?: string;
+        } = {
           accountEnabled: params.disabled !== 'true',
           displayName: params.displayName || params.name,
           mailNickname: mailNickname,
@@ -1169,8 +1177,8 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
           }
         };
 
-        if (params.givenName) body.givenName = params.givenName;
-        if (params.surname) body.surname = params.surname;
+        if (params.firstName) body.givenName = params.firstName;
+        if (params.lastName) body.surname = params.lastName;
 
         await apiRequest('POST', '/api/microsoft/graph/v1.0/users', body);
         addOutput('success', `✅ User created: ${email}`);
@@ -1187,8 +1195,8 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
 
         const body: any = {};
         if (params.displayName) body.displayName = params.displayName;
-        if (params.givenName) body.givenName = params.givenName;
-        if (params.surname) body.surname = params.surname;
+        if (params.firstName) body.givenName = params.firstName;
+        if (params.lastName) body.surname = params.lastName;
         if (params.jobTitle) body.jobTitle = params.jobTitle;
         if (params.department) body.department = params.department;
         if (params.officeLocation) body.officeLocation = params.officeLocation;
@@ -1528,7 +1536,7 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
   };
 
   // ===== HELIOS GROUPS COMMAND HANDLER =====
-  const handleGroupsCommand = async (args: string[]) => {
+  const handleGroupsCommand = async (_args: string[]) => {
     addOutput('info', 'Helios groups commands coming soon...');
   };
 

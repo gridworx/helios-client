@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Terminal, Key, Users, Lock, Settings as SettingsIcon, LogOut, Book, User, ChevronDown } from 'lucide-react';
+import { Terminal, Key, Users, Lock, Settings as SettingsIcon, LogOut, Book, ChevronDown } from 'lucide-react';
 import './ClientUserMenu.css';
 
 interface ClientUserMenuProps {

@@ -12,7 +12,7 @@ interface Role {
 }
 
 export function RolesManagement() {
-  const [roles, setRoles] = useState<Role[]>([
+  const [_roles, _setRoles] = useState<Role[]>([
     {
       id: '1',
       name: 'Organization Admin',
@@ -70,7 +70,7 @@ export function RolesManagement() {
   ]);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingRole, setEditingRole] = useState<Role | null>(null);
+  const [_editingRole, _setEditingRole] = useState<Role | null>(null);
 
   const availablePermissions = [
     { category: 'Profile', permissions: ['profile.read', 'profile.write', 'profile.preferences'] },
@@ -96,7 +96,7 @@ export function RolesManagement() {
       </div>
 
       <div className="roles-grid">
-        {roles.map(role => (
+        {_roles.map(role => (
           <div key={role.id} className="role-card">
             <div className="role-header">
               <div>
@@ -106,7 +106,7 @@ export function RolesManagement() {
               <div className="role-actions">
                 {!role.isSystem && (
                   <>
-                    <button className="btn-icon" onClick={() => setEditingRole(role)}>✏️</button>
+                    <button className="btn-icon" onClick={() => _setEditingRole(role)}>✏️</button>
                     <button className="btn-icon danger">🗑️</button>
                   </>
                 )}

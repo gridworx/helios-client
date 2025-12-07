@@ -1,18 +1,17 @@
-import { useState, useEffect } from 'react';
 import { UserList } from '../components/UserList';
 import { Groups } from './Groups';
 import { OrgUnits } from './OrgUnits';
 import { useTabPersistence } from '../hooks/useTabPersistence';
 import './Directory.css';
 
+type DirectoryTab = 'users' | 'groups' | 'org-units' | 'devices';
+
 interface DirectoryProps {
-  organizationName: string;
-  domain: string;
   organizationId: string;
 }
 
-export function Directory({ organizationName, domain, organizationId }: DirectoryProps) {
-  const [activeTab, setActiveTab] = useTabPersistence('helios_directory_tab', 'users');
+export function Directory({ organizationId }: DirectoryProps) {
+  const [activeTab, setActiveTab] = useTabPersistence<DirectoryTab>('helios_directory_tab', 'users');
 
   return (
     <div className="directory-container">
@@ -54,7 +53,7 @@ export function Directory({ organizationName, domain, organizationId }: Director
 
       <div className="directory-content">
         {activeTab === 'users' && (
-          <UserList organizationId={organizationId} />
+          <UserList organizationId={organizationId} userType="staff" />
         )}
 
         {activeTab === 'groups' && (

@@ -119,12 +119,12 @@ const TicketList: React.FC<TicketListProps> = ({ tickets, selectedTicket, onSele
 
           <div className="ticket-footer">
             <div className="ticket-group">{ticket.group_email}</div>
-            {ticket.notes_count > 0 && (
+            {(ticket.notes_count ?? 0) > 0 && (
               <div className="ticket-notes-count">
-                {ticket.notes_count} note{ticket.notes_count > 1 ? 's' : ''}
+                {ticket.notes_count} note{(ticket.notes_count ?? 0) > 1 ? 's' : ''}
               </div>
             )}
-            {ticket.viewers_count > 0 && (
+            {(ticket.viewers_count ?? 0) > 0 && (
               <div className="ticket-viewers">
                 {ticket.viewers_count} viewing
               </div>

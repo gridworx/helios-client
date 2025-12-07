@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Key, Copy, Check, AlertTriangle, Download, X } from 'lucide-react';
+import { Key, Copy, Check, AlertTriangle, Download } from 'lucide-react';
 import './ApiKeyShowOnce.css';
 
 interface ApiKeyShowOnceProps {
