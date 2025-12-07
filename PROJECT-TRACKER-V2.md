@@ -205,7 +205,7 @@
 ### Low
 - [ ] Tooltips cut off on mobile
 - [ ] Print view needs optimization
-- [ ] Date picker doesn't respect locale
+- [x] Date picker doesn't respect locale *(Fixed: removed hardcoded 'en-US' locale)*
 
 ---
 

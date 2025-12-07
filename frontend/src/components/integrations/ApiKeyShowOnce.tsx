@@ -110,7 +110,7 @@ ${keyData.type === 'vendor' ? `
               <div className="info-row">
                 <span className="info-label">Expires:</span>
                 <span className="info-value">
-                  {new Date(keyData.expiresAt).toLocaleDateString('en-US', {
+                  {new Date(keyData.expiresAt).toLocaleDateString(undefined, {
                     month: 'long',
                     day: 'numeric',
                     year: 'numeric',
