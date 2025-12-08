@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Terminal, Key, Users, Lock, Settings as SettingsIcon, LogOut, Book, ChevronDown } from 'lucide-react';
+import { Terminal, Key, Users, Lock, Settings as SettingsIcon, LogOut, Book, ChevronDown, User } from 'lucide-react';
 import './ClientUserMenu.css';
 
 interface ClientUserMenuProps {
@@ -11,9 +11,10 @@ interface ClientUserMenuProps {
   onNavigateToSettings?: () => void;
   onNavigateToAdministrators?: () => void;
   onNavigateToConsole?: () => void;
+  onNavigateToMyProfile?: () => void;
 }
 
-export function ClientUserMenu({ userName, userEmail, userRole, onLogout, onChangePassword, onNavigateToSettings, onNavigateToAdministrators, onNavigateToConsole }: ClientUserMenuProps) {
+export function ClientUserMenu({ userName, userEmail, userRole, onLogout, onChangePassword, onNavigateToSettings, onNavigateToAdministrators, onNavigateToConsole, onNavigateToMyProfile }: ClientUserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -72,6 +73,15 @@ export function ClientUserMenu({ userName, userEmail, userRole, onLogout, onChan
           <div className="menu-divider"></div>
 
           <div className="menu-items">
+            <button className="menu-item" onClick={() => {
+              setIsOpen(false);
+              if (onNavigateToMyProfile) {
+                onNavigateToMyProfile();
+              }
+            }}>
+              <User size={14} className="menu-icon-svg" />
+              <span>My Profile</span>
+            </button>
             <button className="menu-item" onClick={() => {
               setIsOpen(false);
               if (onChangePassword) {

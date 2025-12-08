@@ -22,6 +22,7 @@ import { EmailSecurity } from './pages/EmailSecurity'
 import Signatures from './pages/Signatures'
 import AuditLogs from './pages/AuditLogs'
 import { DeveloperConsole } from './pages/DeveloperConsole'
+import { MyProfile } from './pages/MyProfile'
 import { LabelsProvider, useLabels } from './contexts/LabelsContext'
 import { ENTITIES } from './config/entities'
 import { getWidgetData } from './utils/widget-data'
@@ -530,6 +531,9 @@ function AppContent() {
             onNavigateToConsole={() => {
               setCurrentPage('console');
             }}
+            onNavigateToMyProfile={() => {
+              setCurrentPage('my-profile');
+            }}
             onLogout={async () => {
               try {
                 await fetch('http://localhost:3001/api/auth/logout', {
@@ -971,7 +975,11 @@ function AppContent() {
             <DeveloperConsole organizationId={config?.organizationId || ''} />
           )}
 
-          {currentPage !== 'dashboard' && currentPage !== 'settings' && currentPage !== 'users' && currentPage !== 'groups' && currentPage !== 'workspaces' && currentPage !== 'orgUnits' && currentPage !== 'assets' && currentPage !== 'email-security' && currentPage !== 'security-events' && currentPage !== 'audit-logs' && currentPage !== 'console' && currentPage !== 'administrators' && (
+          {currentPage === 'my-profile' && (
+            <MyProfile organizationId={config?.organizationId || ''} />
+          )}
+
+          {currentPage !== 'dashboard' && currentPage !== 'settings' && currentPage !== 'users' && currentPage !== 'groups' && currentPage !== 'workspaces' && currentPage !== 'orgUnits' && currentPage !== 'assets' && currentPage !== 'email-security' && currentPage !== 'security-events' && currentPage !== 'audit-logs' && currentPage !== 'console' && currentPage !== 'administrators' && currentPage !== 'my-profile' && (
             <div className="page-placeholder">
               <div className="placeholder-content">
                 <div className="placeholder-icon">🚧</div>
