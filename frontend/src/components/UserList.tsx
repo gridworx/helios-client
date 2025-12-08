@@ -180,7 +180,6 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.data) {
-
             const formattedUsers = data.data.map((user: any) => ({
               id: user.id,
               email: user.email,
@@ -244,11 +243,20 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
             setUsers([]);
           }
         } else {
-          // API call failed
+          // API call failed - check for authentication errors
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Users API error:', response.status, errorData);
+          if (response.status === 401) {
+            setError('Session expired. Please log in again.');
+          } else {
+            setError(errorData.error || 'Failed to load users');
+          }
           setUsers([]);
         }
-      } catch (err) {
+      } catch (err: any) {
         // API error
+        console.error('Users fetch error:', err);
+        setError(err.message || 'Network error loading users');
         setUsers([]);
       }
 

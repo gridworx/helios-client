@@ -34,12 +34,18 @@ const GoogleWorkspaceWizard: React.FC<GoogleWorkspaceWizardProps> = ({
   const [existingConfig, setExistingConfig] = useState<boolean>(false);
   const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
 
-  // Check if configuration already exists
+  // Check if configuration already exists and pre-populate domain
   useEffect(() => {
     const checkExistingConfig = async () => {
       try {
         const orgData = localStorage.getItem('helios_organization');
-        const organizationId = orgData ? JSON.parse(orgData).organizationId : null;
+        const parsedOrgData = orgData ? JSON.parse(orgData) : null;
+        const organizationId = parsedOrgData?.organizationId || parsedOrgData?.id;
+
+        // Pre-populate domain from organization data
+        if (parsedOrgData?.domain && !domain) {
+          setDomain(parsedOrgData.domain);
+        }
 
         if (organizationId) {
           const response = await fetch(`http://localhost:3001/api/google-workspace/module-status/${organizationId}`);
@@ -90,16 +96,8 @@ const GoogleWorkspaceWizard: React.FC<GoogleWorkspaceWizardProps> = ({
         }
 
         setServiceAccountData(json);
-
-        // Auto-fill domain if possible
-        const emailDomain = json.client_email.match(/@(.+)\.iam\.gserviceaccount\.com/)?.[1];
-        if (emailDomain && !domain) {
-          // Try to extract domain from project ID (often contains the domain)
-          const possibleDomain = json.project_id.replace(/-\d+$/, '').replace(/-/g, '.');
-          if (possibleDomain.includes('.')) {
-            setDomain(possibleDomain);
-          }
-        }
+        // Domain is pre-populated from organization data on component mount
+        // No need to set it here again
       } catch (err) {
         setError('Invalid JSON file. Please upload a valid service account key file.');
         setServiceAccountFile(null);
