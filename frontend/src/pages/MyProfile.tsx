@@ -5,12 +5,12 @@ import {
   X,
   Plus,
   Trash2,
-  Mic,
   Video,
   Loader2,
 } from 'lucide-react';
 import { profileService } from '../services/profile.service';
 import type { ProfileData } from '../services/profile.service';
+import { MediaRecorderComponent } from '../components/MediaRecorder';
 import './MyProfile.css';
 
 interface MyProfileProps {
@@ -518,52 +518,25 @@ export function MyProfile({ organizationId: _organizationId }: MyProfileProps) {
         {activeTab === 'media' && (
           <div className="media-section">
             <div className="form-section">
-              <h3>Name Pronunciation</h3>
-              <p className="section-description">
-                Help colleagues pronounce your name correctly.
-              </p>
-              <div className="media-card">
-                {media.name_pronunciation ? (
-                  <div className="media-preview">
-                    <audio controls src={media.name_pronunciation.presignedUrl} />
-                    <button className="btn-text delete">Delete Recording</button>
-                  </div>
-                ) : (
-                  <div className="media-placeholder">
-                    <Mic size={32} />
-                    <p>No recording yet</p>
-                    <button className="btn-primary">
-                      <Mic size={16} /> Record Pronunciation
-                    </button>
-                  </div>
-                )}
-              </div>
+              <MediaRecorderComponent
+                type="name_pronunciation"
+                maxDuration={10}
+                onUploadSuccess={loadProfile}
+                onDelete={loadProfile}
+                existingMediaUrl={media.name_pronunciation?.presignedUrl}
+                existingDuration={media.name_pronunciation?.durationSeconds || undefined}
+              />
             </div>
 
             <div className="form-section">
-              <h3>Voice Introduction</h3>
-              <p className="section-description">
-                Record a short audio introduction (up to 60 seconds).
-              </p>
-              <div className="media-card">
-                {media.voice_intro ? (
-                  <div className="media-preview">
-                    <audio controls src={media.voice_intro.presignedUrl} />
-                    <span className="duration">
-                      {media.voice_intro.durationSeconds}s
-                    </span>
-                    <button className="btn-text delete">Delete Recording</button>
-                  </div>
-                ) : (
-                  <div className="media-placeholder">
-                    <Mic size={32} />
-                    <p>No voice intro recorded</p>
-                    <button className="btn-primary">
-                      <Mic size={16} /> Record Voice Intro
-                    </button>
-                  </div>
-                )}
-              </div>
+              <MediaRecorderComponent
+                type="voice_intro"
+                maxDuration={60}
+                onUploadSuccess={loadProfile}
+                onDelete={loadProfile}
+                existingMediaUrl={media.voice_intro?.presignedUrl}
+                existingDuration={media.voice_intro?.durationSeconds || undefined}
+              />
             </div>
 
             <div className="form-section">
@@ -578,15 +551,29 @@ export function MyProfile({ organizationId: _organizationId }: MyProfileProps) {
                     <span className="duration">
                       {media.video_intro.durationSeconds}s
                     </span>
-                    <button className="btn-text delete">Delete Video</button>
+                    <button className="btn-text delete" onClick={() => {
+                      profileService.deleteMedia('video_intro').then(() => loadProfile());
+                    }}>Delete Video</button>
                   </div>
                 ) : (
                   <div className="media-placeholder">
                     <Video size={32} />
                     <p>No video intro uploaded</p>
-                    <button className="btn-primary">
+                    <label className="btn-primary" style={{ cursor: 'pointer' }}>
                       <Video size={16} /> Upload Video
-                    </button>
+                      <input
+                        type="file"
+                        accept="video/mp4,video/webm,video/quicktime"
+                        style={{ display: 'none' }}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const result = await profileService.uploadMedia('video_intro', file);
+                            if (result) loadProfile();
+                          }
+                        }}
+                      />
+                    </label>
                   </div>
                 )}
               </div>

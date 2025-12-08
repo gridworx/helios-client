@@ -37,12 +37,12 @@
   - Tab sections or collapsible sections
   - File: `frontend/src/pages/MyProfile.tsx`
 
-- [ ] **TASK-PD-007**: Create MediaRecorder component
+- [x] **TASK-PD-007**: Create MediaRecorder component
   - Audio recording with waveform visualization
   - Timer countdown to max duration
   - Preview and re-record options
   - File: `frontend/src/components/MediaRecorder.tsx`
-  - **Note:** Basic UI structure exists in MyProfile.tsx, needs separate component
+  - **Completed:** Full MediaRecorder component with recording, playback, upload
 
 - [x] **TASK-PD-008**: Create FunFactsEditor component
   - Add/edit/delete fun facts
