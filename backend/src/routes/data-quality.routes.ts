@@ -7,6 +7,48 @@ import { authenticateToken } from '../middleware/auth';
 const router = Router();
 
 /**
+ * GET /api/organization/data-quality/orphans
+ * Get all orphaned values (combined from departments, locations, cost centers)
+ * This is the endpoint used by the frontend MasterDataSection component
+ */
+router.get('/orphans', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const organizationId = req.user?.organizationId;
+
+    if (!organizationId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Organization ID not found'
+      });
+    }
+
+    const [deptQuality, locQuality, ccQuality] = await Promise.all([
+      dataQualityService.getDepartmentQuality(organizationId),
+      dataQualityService.getLocationQuality(organizationId),
+      dataQualityService.getCostCenterQuality(organizationId)
+    ]);
+
+    // Combine all orphaned values with field indicator
+    const orphans = [
+      ...deptQuality.orphaned.map(o => ({ ...o, field: 'department' })),
+      ...locQuality.orphaned.map(o => ({ ...o, field: 'location' })),
+      ...ccQuality.orphaned.map(o => ({ ...o, field: 'cost_center' }))
+    ];
+
+    res.json({
+      success: true,
+      data: orphans
+    });
+  } catch (error: any) {
+    logger.error('Failed to fetch orphaned values', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch orphaned values'
+    });
+  }
+});
+
+/**
  * GET /api/organization/data-quality/report
  * Get comprehensive data quality report
  */
