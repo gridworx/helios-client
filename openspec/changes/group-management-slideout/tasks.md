@@ -266,16 +266,18 @@
 
 ## Documentation Tasks
 
-- [ ] **TASK-028**: Update API documentation
+- [x] **TASK-028**: Update API documentation
   - Document new endpoints
   - Document rule schema
   - File: `docs/api/access-groups.md`
+  - **Comprehensive API reference with all endpoints, field/operator references**
 
-- [ ] **TASK-029**: Create user guide for dynamic groups
+- [x] **TASK-029**: Create user guide for dynamic groups
   - How to create dynamic groups
   - Rule examples
   - Troubleshooting
   - File: `docs/guides/dynamic-groups.md`
+  - **Complete user guide with examples, best practices, and FAQ**
 
 ## Estimated Effort
 
