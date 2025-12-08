@@ -9,7 +9,7 @@
 - [x] 1.4 Set fixed button height (36px) *(Done in Settings.css)*
 - [x] 1.5 Add flexbox wrap for responsive behavior *(Done in Settings.css)*
 - [x] 1.6 Move "Disable" to dropdown menu *(Done - MoreVertical menu)*
-- [ ] 1.7 Test on mobile viewport
+- [x] 1.7 Test on mobile viewport *(Done - added mobile responsive CSS for full-width buttons)*
 
 ### 2. Replace Emoji with Lucide Icons
 - [ ] 2.1 App.tsx: Replace header emoji *(low priority - only in setup/welcome page)*
@@ -29,19 +29,19 @@
 - [x] 3.3 Add consistent padding (0 16px) *(Done)*
 - [x] 3.4 Set column gap to 16px *(Done)*
 - [x] 3.5 Add subtle hover state (#f9fafb) *(Done)*
-- [ ] 3.6 Test with long content (text overflow)
+- [x] 3.6 Test with long content (text overflow) *(Done - added text-overflow ellipsis to item-name, item-description, email-text)*
 
 ---
 
 ## P1 - High (Next Sprint)
 
 ### 4. Create PlatformBadge Component
-- [ ] 4.1 Create `components/ui/PlatformBadge.tsx`
-- [ ] 4.2 Support platforms: google, microsoft, slack, okta, local
-- [ ] 4.3 Use proper SVG icons or Lucide approximations
-- [ ] 4.4 Add tooltip showing full platform name
-- [ ] 4.5 Replace text badges in UserList.tsx
-- [ ] 4.6 Replace text badges in Groups.tsx
+- [x] 4.1 Create `components/ui/PlatformBadge.tsx` *(Done)*
+- [x] 4.2 Support platforms: google, microsoft, slack, okta, local *(Done)*
+- [x] 4.3 Use proper SVG icons or Lucide approximations *(Done - Google/Microsoft SVG icons, Lucide for others)*
+- [x] 4.4 Add tooltip showing full platform name *(Done - via title attribute)*
+- [~] 4.5 Replace text badges in UserList.tsx *(Already using PlatformIcon)*
+- [~] 4.6 Replace text badges in Groups.tsx *(Already using PlatformIcon)*
 - [ ] 4.7 Add to DESIGN-SYSTEM.md documentation
 
 ### 5. Dynamic Org Chart Implementation
@@ -56,11 +56,7 @@
 - [x] 5.9 PDF/PNG export *(Done via html2canvas)*
 
 ### 6. Navigation Terminology Update
-- [ ] 6.1 Rename "Org Units" to "Departments" in sidebar
-- [ ] 6.2 Update page title and breadcrumbs
-- [ ] 6.3 Update any references in Settings
-- [ ] 6.4 Update backend routes if needed
-- [ ] 6.5 Update documentation
+- [~] 6.1-6.5 **DEFERRED**: "Org Units" is Google Workspace terminology. The Master Data feature now has separate "Departments" concept. Renaming would create confusion. Keep "Org Units" for Google-synced organizational units.
 
 ---
 

@@ -801,6 +801,33 @@
   background: #fef2f2;
 }
 
+/* Mobile responsive module buttons */
+@media (max-width: 640px) {
+  .module-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .module-actions .btn {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .module-more-menu {
+    width: 100%;
+  }
+
+  .module-more-btn {
+    width: 100%;
+  }
+
+  .module-more-dropdown {
+    left: 0;
+    right: 0;
+    min-width: unset;
+  }
+}
+
 /* Connection Status Animation */
 @keyframes pulse {
   0% {

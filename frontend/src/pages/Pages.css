@@ -131,6 +131,14 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0; /* Allow flex children to shrink below content width */
+  overflow: hidden;
+}
+
+.item-info > div:not(.item-icon) {
+  min-width: 0; /* Allow text container to shrink */
+  overflow: hidden;
+  flex: 1;
 }
 
 .item-icon {
@@ -148,17 +156,26 @@
   font-weight: 500;
   color: #1a1a1a;
   margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .item-description {
   font-size: 13px;
   color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .member-count,
 .email-text {
   font-size: 14px;
   color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .platform-badge {

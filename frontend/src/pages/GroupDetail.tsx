@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTabPersistence } from '../hooks/useTabPersistence';
 import { UsersRound, Search, Plus, Trash2, Loader, Save, BarChart3, User, Pencil } from 'lucide-react';
+import { PlatformBadge } from '../components/ui/PlatformBadge';
 import './Pages.css';
 
 type GroupDetailTab = 'members' | 'settings' | 'activity';
@@ -253,9 +254,7 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
                 {group?.email} • {members.length} member{members.length !== 1 ? 's' : ''}
               </p>
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                <span className="platform-badge" style={{ backgroundColor: '#4285F4' }}>
-                  G
-                </span>
+                <PlatformBadge platform="google" size="sm" />
                 <span className="type-badge">{group?.adminCreated ? 'Admin' : 'User'} Created</span>
               </div>
             </div>
