@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './UserList.css';
 import { UserSlideOut } from './UserSlideOut';
 import { MoreVertical, Eye, PauseCircle, PlayCircle, Lock, Copy, Trash2, CheckCircle, Users, RefreshCw, UserPlus, Loader } from 'lucide-react';
@@ -69,6 +70,7 @@ interface UserListProps {
 
 export function UserList({ organizationId, userType, onCountChange, searchQuery = '', statusFilter, onStatusCountsChange }: UserListProps) {
   // Component for managing organization users
+  const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -979,7 +981,7 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
           <button className="btn-sync" onClick={fetchUsers}>
             <RefreshCw size={14} /> Sync
           </button>
-          <button className="btn-add-user" onClick={() => window.location.pathname = '/add-user'}>
+          <button className="btn-add-user" onClick={() => navigate('/add-user')}>
             <UserPlus size={14} /> Add User
           </button>
         </div>

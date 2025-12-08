@@ -23,6 +23,7 @@ import { EmailSecurity } from './pages/EmailSecurity'
 import Signatures from './pages/Signatures'
 import AuditLogs from './pages/AuditLogs'
 import { DeveloperConsole } from './pages/DeveloperConsole'
+import { AddUser } from './pages/AddUser'
 import { MyProfile } from './pages/MyProfile'
 import { People } from './pages/People'
 import { MyTeam } from './pages/MyTeam'
@@ -126,6 +127,9 @@ function getPageFromPath(pathname: string): string {
   if (pathname.startsWith('/my-groups')) return 'my-groups';
   if (pathname.startsWith('/my-profile')) return 'my-profile';
   if (pathname.startsWith('/user-settings')) return 'user-settings';
+
+  // Special pages
+  if (pathname.startsWith('/add-user')) return 'add-user';
 
   // Legacy routes (for backwards compatibility - these will redirect)
   if (pathname.startsWith('/users')) return 'users';
@@ -999,7 +1003,11 @@ function AppContent() {
             <UserSettings organizationId={config?.organizationId || ''} />
           )}
 
-          {currentPage !== 'dashboard' && currentPage !== 'settings' && currentPage !== 'users' && currentPage !== 'groups' && currentPage !== 'workspaces' && currentPage !== 'orgUnits' && currentPage !== 'assets' && currentPage !== 'email-security' && currentPage !== 'signatures' && currentPage !== 'security-events' && currentPage !== 'audit-logs' && currentPage !== 'console' && currentPage !== 'administrators' && currentPage !== 'my-profile' && currentPage !== 'people' && currentPage !== 'my-team' && currentPage !== 'my-groups' && currentPage !== 'user-settings' && currentPage !== 'orgChart' && (
+          {currentPage === 'add-user' && (
+            <AddUser />
+          )}
+
+          {currentPage !== 'dashboard' && currentPage !== 'settings' && currentPage !== 'users' && currentPage !== 'groups' && currentPage !== 'workspaces' && currentPage !== 'orgUnits' && currentPage !== 'assets' && currentPage !== 'email-security' && currentPage !== 'signatures' && currentPage !== 'security-events' && currentPage !== 'audit-logs' && currentPage !== 'console' && currentPage !== 'administrators' && currentPage !== 'my-profile' && currentPage !== 'people' && currentPage !== 'my-team' && currentPage !== 'my-groups' && currentPage !== 'user-settings' && currentPage !== 'orgChart' && currentPage !== 'add-user' && (
             <div className="page-placeholder">
               <div className="placeholder-content">
                 <div className="placeholder-icon">🚧</div>

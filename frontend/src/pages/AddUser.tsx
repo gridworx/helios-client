@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Upload, UserPlus, Users, FileSpreadsheet, Trash2, AlertCircle, CheckCircle, X, User } from 'lucide-react';
 import './AddUser.css';
 
@@ -18,6 +19,8 @@ interface BulkUserRow {
 }
 
 export function AddUser() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [viewMode, setViewMode] = useState<ViewMode>('single');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,19 +34,18 @@ export function AddUser() {
     const token = localStorage.getItem('helios_token');
     if (!token) {
       // Not authenticated, redirect to home
-      window.location.pathname = '/';
+      navigate('/');
       return;
     }
 
     // Check if we're in edit mode
-    const urlParams = new URLSearchParams(window.location.search);
-    const editId = urlParams.get('edit');
+    const editId = searchParams.get('edit');
     if (editId) {
       setIsEditMode(true);
       setEditUserId(editId);
       fetchUserForEdit(editId);
     }
-  }, []);
+  }, [navigate, searchParams]);
 
   const fetchUserForEdit = async (userId: string) => {
     try {
@@ -539,7 +541,7 @@ export function AddUser() {
 
       // Reset form or redirect
       setTimeout(() => {
-        window.location.pathname = '/users';
+        navigate('/admin/users');
       }, 2000);
 
     } catch (err: any) {
@@ -912,7 +914,7 @@ export function AddUser() {
 
       {/* Form Actions */}
       <div className="form-actions">
-        <button type="button" className="btn-secondary" onClick={() => window.location.pathname = '/users'} disabled={isSubmitting || isLoadingUser}>
+        <button type="button" className="btn-secondary" onClick={() => navigate('/admin/users')} disabled={isSubmitting || isLoadingUser}>
           Cancel
         </button>
         <button type="button" className="btn-primary" onClick={handleSubmitSingle} disabled={isSubmitting || isLoadingUser}>
@@ -1210,7 +1212,7 @@ export function AddUser() {
     <div className="add-user-page">
       <div className="page-header">
         <div className="header-content">
-          <button className="back-button" onClick={() => window.location.pathname = '/users'}>
+          <button className="back-button" onClick={() => navigate('/admin/users')}>
             ← Back to Users
           </button>
           <h1>{isEditMode ? 'Edit User' : 'Add New User'}</h1>
