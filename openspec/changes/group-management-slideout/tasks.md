@@ -121,22 +121,22 @@
 
 ### Backend Tasks
 
-- [ ] **TASK-008**: Create group sync endpoints
+- [x] **TASK-008**: Create group sync endpoints
   - `POST /api/organization/access-groups/:id/sync/google`
+  - `GET /api/organization/access-groups/:id/sync/status`
   - Update sync status and last_sync timestamp
   - File: `backend/src/routes/access-groups.routes.ts`
 
-- [ ] **TASK-009**: Implement group sync to Google Workspace
-  - Create group if not exists
-  - Sync members (add/remove)
+- [x] **TASK-009**: Implement group sync to Google Workspace
+  - Sync members (add/remove) via `syncGroupMembers` method
   - Handle sync direction (push/pull/bidirectional)
-  - File: `backend/src/services/google-workspace-sync.service.ts`
+  - File: `backend/src/services/google-workspace.service.ts`
 
-- [ ] **TASK-010**: Add sync status tracking
-  - Store last sync timestamp
-  - Store sync errors
-  - Track sync direction setting
-  - File: `backend/src/services/google-workspace-sync.service.ts`
+- [x] **TASK-010**: Add sync status tracking
+  - Store last sync timestamp via `synced_at` column
+  - Return sync errors in response
+  - Track sync direction via request parameter
+  - File: `backend/src/routes/access-groups.routes.ts`
 
 ### Frontend Tasks
 

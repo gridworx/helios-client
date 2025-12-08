@@ -955,4 +955,194 @@ router.put('/:id/membership-type', async (req: Request, res: Response): Promise<
   }
 });
 
+// =====================================================
+// GROUP SYNC ENDPOINTS
+// =====================================================
+
+/**
+ * POST /api/organization/access-groups/:id/sync/google
+ * Sync group members to Google Workspace
+ */
+router.post('/:id/sync/google', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const organizationId = req.user?.organizationId;
+    const userId = req.user?.userId;
+    const { direction = 'push' } = req.body;
+
+    if (!organizationId) {
+      res.status(400).json({
+        success: false,
+        error: 'Organization ID not found',
+      });
+      return;
+    }
+
+    // Verify group exists and is a Google Workspace group
+    const groupResult = await db.query(
+      `SELECT
+        ag.id, ag.name, ag.platform, ag.external_id,
+        ag.synced_at
+      FROM access_groups ag
+      WHERE ag.id = $1 AND ag.organization_id = $2`,
+      [id, organizationId]
+    );
+
+    if (groupResult.rows.length === 0) {
+      res.status(404).json({
+        success: false,
+        error: 'Access group not found',
+      });
+      return;
+    }
+
+    const group = groupResult.rows[0];
+
+    if (group.platform !== 'google_workspace') {
+      res.status(400).json({
+        success: false,
+        error: 'This group is not a Google Workspace group',
+      });
+      return;
+    }
+
+    if (!group.external_id) {
+      res.status(400).json({
+        success: false,
+        error: 'This group does not have a Google Workspace ID',
+      });
+      return;
+    }
+
+    // Get current Helios members
+    const membersResult = await db.query(
+      `SELECT ou.email
+       FROM access_group_members agm
+       JOIN organization_users ou ON agm.user_id = ou.id
+       WHERE agm.access_group_id = $1 AND agm.is_active = true`,
+      [id]
+    );
+
+    const heliosMembers = membersResult.rows.map((row: any) => row.email);
+
+    // Perform sync
+    const syncResult = await googleWorkspaceService.syncGroupMembers(
+      organizationId,
+      id,
+      group.external_id,
+      heliosMembers,
+      direction
+    );
+
+    // Update synced_at timestamp
+    await db.query(
+      'UPDATE access_groups SET synced_at = NOW(), updated_at = NOW() WHERE id = $1',
+      [id]
+    );
+
+    // Track activity
+    await activityTracker.trackGroupChange(
+      organizationId,
+      id,
+      userId!,
+      req.user?.email!,
+      'synced_to_google',
+      {
+        groupName: group.name,
+        direction,
+        added: syncResult.added,
+        removed: syncResult.removed,
+        errors: syncResult.errors.length
+      }
+    );
+
+    res.json({
+      success: syncResult.success,
+      data: {
+        added: syncResult.added,
+        removed: syncResult.removed,
+        errors: syncResult.errors,
+        details: syncResult.details
+      },
+      message: syncResult.success
+        ? `Sync completed: ${syncResult.added} added, ${syncResult.removed} removed`
+        : `Sync completed with errors: ${syncResult.errors.length} failures`,
+    });
+  } catch (error: any) {
+    logger.error('Failed to sync group to Google Workspace', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to sync group',
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * GET /api/organization/access-groups/:id/sync/status
+ * Get sync status for a group
+ */
+router.get('/:id/sync/status', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const organizationId = req.user?.organizationId;
+
+    // Get group with sync info
+    const groupResult = await db.query(
+      `SELECT
+        ag.id, ag.name, ag.platform, ag.external_id,
+        ag.synced_at, ag.created_at, ag.updated_at
+      FROM access_groups ag
+      WHERE ag.id = $1 AND ag.organization_id = $2`,
+      [id, organizationId]
+    );
+
+    if (groupResult.rows.length === 0) {
+      res.status(404).json({
+        success: false,
+        error: 'Access group not found',
+      });
+      return;
+    }
+
+    const group = groupResult.rows[0];
+
+    // Get member counts
+    const memberCountResult = await db.query(
+      'SELECT COUNT(*) as count FROM access_group_members WHERE access_group_id = $1 AND is_active = true',
+      [id]
+    );
+
+    // If Google Workspace group, get Google member count
+    let googleMemberCount = null;
+    if (group.platform === 'google_workspace' && group.external_id) {
+      const gwResult = await googleWorkspaceService.getGroupMemberEmails(organizationId!, group.external_id);
+      if (gwResult.success && gwResult.members) {
+        googleMemberCount = gwResult.members.length;
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        groupId: group.id,
+        name: group.name,
+        platform: group.platform,
+        externalId: group.external_id,
+        lastSynced: group.synced_at,
+        heliosMemberCount: parseInt(memberCountResult.rows[0].count),
+        googleMemberCount,
+        syncAvailable: group.platform === 'google_workspace' && !!group.external_id
+      }
+    });
+  } catch (error: any) {
+    logger.error('Failed to get sync status', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get sync status',
+      message: error.message,
+    });
+  }
+});
+
 export default router;

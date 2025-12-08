@@ -1536,6 +1536,165 @@ export class GoogleWorkspaceService {
       return null;
     }
   }
+
+  /**
+   * Get members of a Google Workspace group (emails only for sync)
+   */
+  async getGroupMemberEmails(
+    organizationId: string,
+    groupId: string
+  ): Promise<{ success: boolean; members?: string[]; error?: string }> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        return { success: false, error: 'Google Workspace not configured' };
+      }
+
+      const adminEmail = await this.getAdminEmail(organizationId);
+      if (!adminEmail) {
+        return { success: false, error: 'Admin email not configured' };
+      }
+
+      const jwtClient = new JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: ['https://www.googleapis.com/auth/admin.directory.group.member'],
+        subject: adminEmail
+      });
+
+      const admin = google.admin({ version: 'directory_v1', auth: jwtClient });
+
+      // Get all members from Google Workspace group
+      const members: string[] = [];
+      let pageToken: string | undefined;
+
+      do {
+        const response = await admin.members.list({
+          groupKey: groupId,
+          maxResults: 200,
+          pageToken
+        });
+
+        if (response.data.members) {
+          for (const member of response.data.members) {
+            if (member.email) {
+              members.push(member.email.toLowerCase());
+            }
+          }
+        }
+
+        pageToken = response.data.nextPageToken || undefined;
+      } while (pageToken);
+
+      return { success: true, members };
+    } catch (error: any) {
+      logger.error('Failed to get group members from Google Workspace', {
+        groupId,
+        error: error.message
+      });
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Sync group members from Helios to Google Workspace
+   * @param direction 'push' = Helios -> Google, 'pull' = Google -> Helios, 'bidirectional' = merge both
+   */
+  async syncGroupMembers(
+    organizationId: string,
+    groupId: string,
+    externalId: string,
+    heliosMembers: string[],
+    direction: 'push' | 'pull' | 'bidirectional' = 'push'
+  ): Promise<{
+    success: boolean;
+    added: number;
+    removed: number;
+    errors: string[];
+    details?: any;
+  }> {
+    const errors: string[] = [];
+    let added = 0;
+    let removed = 0;
+
+    try {
+      // Get current Google Workspace members
+      const gwResult = await this.getGroupMemberEmails(organizationId, externalId);
+      if (!gwResult.success || !gwResult.members) {
+        return {
+          success: false,
+          added: 0,
+          removed: 0,
+          errors: [gwResult.error || 'Failed to fetch Google Workspace members']
+        };
+      }
+
+      const gwMembers = new Set(gwResult.members.map((e: string) => e.toLowerCase()));
+      const heliosMemberSet = new Set(heliosMembers.map((e: string) => e.toLowerCase()));
+
+      if (direction === 'push' || direction === 'bidirectional') {
+        // Add members that are in Helios but not in Google Workspace
+        for (const email of heliosMembers) {
+          if (!gwMembers.has(email.toLowerCase())) {
+            const result = await this.addUserToGroup(organizationId, email, externalId);
+            if (result.success) {
+              added++;
+              logger.info('Added member to Google Workspace group', { email, groupId: externalId });
+            } else {
+              errors.push(`Failed to add ${email}: ${result.error}`);
+            }
+          }
+        }
+
+        // Remove members that are in Google Workspace but not in Helios
+        for (const email of gwResult.members) {
+          if (!heliosMemberSet.has(email.toLowerCase())) {
+            const result = await this.removeUserFromGroup(organizationId, email, externalId);
+            if (result.success) {
+              removed++;
+              logger.info('Removed member from Google Workspace group', { email, groupId: externalId });
+            } else {
+              errors.push(`Failed to remove ${email}: ${result.error}`);
+            }
+          }
+        }
+      }
+
+      logger.info('Group sync completed', {
+        organizationId,
+        groupId,
+        externalId,
+        direction,
+        added,
+        removed,
+        errorCount: errors.length
+      });
+
+      return {
+        success: errors.length === 0,
+        added,
+        removed,
+        errors,
+        details: {
+          heliosMemberCount: heliosMembers.length,
+          gwMemberCount: gwResult.members.length
+        }
+      };
+    } catch (error: any) {
+      logger.error('Group sync failed', {
+        organizationId,
+        groupId,
+        externalId,
+        error: error.message
+      });
+      return {
+        success: false,
+        added,
+        removed,
+        errors: [...errors, error.message]
+      };
+    }
+  }
 }
 
 export const googleWorkspaceService = new GoogleWorkspaceService();

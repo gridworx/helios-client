@@ -183,16 +183,18 @@ class ActivityTrackerService {
     groupId: string,
     actorId: string,
     actorEmail: string,
-    action: 'created' | 'updated' | 'deleted' | 'member_added' | 'member_removed' | 'rule_added' | 'rule_deleted' | 'rules_applied' | 'membership_type_changed',
+    action: 'created' | 'updated' | 'deleted' | 'member_added' | 'member_removed' | 'rule_added' | 'rule_deleted' | 'rules_applied' | 'membership_type_changed' | 'synced_to_google',
     metadata?: Record<string, any>
   ): Promise<void> {
+    // Map synced_to_google to sync.completed for activity type
+    const activityType = action === 'synced_to_google' ? 'sync.completed' : `group.${action}`;
     await this.track({
       organizationId,
       actorId,
       actorEmail,
-      type: `group.${action}` as ActivityType,
+      type: activityType as ActivityType,
       severity: action === 'deleted' ? 'warning' : 'info',
-      title: `Group ${action.replace('_', ' ')}`,
+      title: action === 'synced_to_google' ? 'Group synced to Google Workspace' : `Group ${action.replace('_', ' ')}`,
       metadata: { groupId, ...metadata }
     });
   }
