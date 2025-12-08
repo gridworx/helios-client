@@ -134,15 +134,15 @@ export function LoginPage({ onLoginSuccess, organizationDomain: _organizationDom
         <div className="feature-card">
           <h3>👥 Centralized Administration</h3>
           <p>
-            Manage users, permissions, and configurations across Google Workspace,
-            Microsoft 365, and other SaaS platforms from one dashboard.
+            Manage users, groups, and organizational units from Google Workspace
+            with a powerful administrative dashboard.
           </p>
         </div>
         <div className="feature-card">
           <h3>⚡ Workflow Automation</h3>
           <p>
-            Automate user onboarding, offboarding, and role changes across
-            multiple platforms to reduce manual work and errors.
+            Automate user onboarding, offboarding, and role changes
+            to reduce manual work and errors.
           </p>
         </div>
       </div>

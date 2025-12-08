@@ -124,15 +124,15 @@ export function AccountSetup({ onComplete }: AccountSetupProps) {
                   placeholder="acme.com"
                 />
                 <div className="form-hint">
-                  This will be used for module configurations (Google Workspace, Microsoft 365, etc.)
+                  This will be used for Google Workspace integration and user management
                 </div>
               </div>
 
               <div className="info-box">
                 <strong>📋 What's Next?</strong>
                 <p>
-                  After setup, you'll be able to enable modules like Google Workspace,
-                  Microsoft 365, Slack, and more from your dashboard settings.
+                  After setup, you'll be able to enable Google Workspace integration
+                  to sync users, groups, and organizational units from your dashboard settings.
                 </p>
               </div>
             </div>

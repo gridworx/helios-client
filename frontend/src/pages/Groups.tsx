@@ -213,9 +213,9 @@ export function Groups({ organizationId, customLabel: _customLabel, onSelectGrou
           value={filterPlatform}
           onChange={(e) => setFilterPlatform(e.target.value)}
         >
-          <option value="all">All Platforms</option>
+          <option value="all">All Sources</option>
           <option value="google_workspace">Google Workspace</option>
-          <option value="microsoft_365">Microsoft 365</option>
+          <option value="manual">Local Only</option>
         </select>
 
         <button

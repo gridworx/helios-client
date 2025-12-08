@@ -476,8 +476,8 @@ function AppContent() {
               <div className="info-banner">
                 <strong>🎉 Welcome to Helios Admin Portal!</strong>
                 <p>
-                  Self-hosted SaaS administration platform starting with Google Workspace.
-                  Microsoft 365, Slack, and other integrations coming soon.
+                  Self-hosted administration platform for Google Workspace.
+                  Sync users, groups, and organizational units with ease.
                 </p>
               </div>
             </div>
@@ -831,17 +831,7 @@ function AppContent() {
                             )}
                           </>
                         )}
-                        {stats.microsoft?.lastSync && (
-                          <div className="activity-item">
-                            <div className="activity-icon success">
-                              <RefreshCw size={14} />
-                            </div>
-                            <div className="activity-content">
-                              <div className="activity-text">Microsoft 365 sync completed</div>
-                              <div className="activity-time">{new Date(stats.microsoft.lastSync).toLocaleString()}</div>
-                            </div>
-                          </div>
-                        )}
+                        {/* Microsoft 365 sync activity - Coming Soon */}
                       </>
                     ) : (
                       <div className="empty-state">
@@ -891,27 +881,19 @@ function AppContent() {
                       </div>
                     )}
 
-                    {stats?.microsoft?.connected && !stats.microsoft.lastSync && (
-                      <div className="alert-item info">
-                        <Info size={16} className="alert-icon" />
-                        <div className="alert-content">
-                          <div className="alert-text">Initial Microsoft 365 sync recommended</div>
-                          <button className="alert-action" onClick={handleManualSync}>Sync</button>
-                        </div>
-                      </div>
-                    )}
+                    {/* Microsoft 365 alerts - Coming Soon */}
 
-                    {!stats?.google?.connected && !stats?.microsoft?.connected && stats?.helios && stats.helios.totalUsers === 0 && (
+                    {!stats?.google?.connected && stats?.helios && stats.helios.totalUsers === 0 && (
                       <div className="alert-item info">
                         <Info size={16} className="alert-icon" />
                         <div className="alert-content">
-                          <div className="alert-text">No platforms connected yet</div>
+                          <div className="alert-text">Google Workspace not connected yet</div>
                           <button className="alert-action" onClick={() => setCurrentPage('settings')}>Setup</button>
                         </div>
                       </div>
                     )}
 
-                    {(!stats?.google?.suspendedUsers || stats.google.suspendedUsers === 0) && (stats?.google?.lastSync || stats?.microsoft?.lastSync) && (
+                    {(!stats?.google?.suspendedUsers || stats.google.suspendedUsers === 0) && stats?.google?.lastSync && (
                       <div className="empty-state">
                         <Info size={24} className="empty-icon" />
                         <p>No alerts at this time</p>
