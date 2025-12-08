@@ -101,11 +101,12 @@
   - File: `database/migrations/034_add_admin_user_separation.sql`
   - **Completed:** Migration created with is_external_admin and default_view columns
 
-- [ ] **TASK-AUS-014**: Update user creation to set admin type
-  - External admins created without employee profile link
-  - Internal admins have employee profile
-  - Update admin invite flow
-  - File: `backend/src/routes/users.routes.ts`
+- [x] **TASK-AUS-014**: Update user creation to set admin type
+  - External admins can be created by setting isExternalAdmin=true when role='admin'
+  - isExternalAdmin is automatically set to false if role is changed to non-admin
+  - Both POST /api/organization/users and PUT /api/organization/users/:userId support isExternalAdmin
+  - File: `backend/src/routes/organization.routes.ts`
+  - **Completed:** User creation and update now support isExternalAdmin flag
 
 - [x] **TASK-AUS-015**: Update login response with access flags
   - Include canAccessAdminUI and canAccessUserUI

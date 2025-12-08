@@ -643,7 +643,9 @@ router.post('/users', authenticateToken, async (req: Request, res: Response) => 
       jumpcloudUserId,
       associateId,
       // Avatar
-      avatarUrl
+      avatarUrl,
+      // Admin type - for creating external admins (MSPs, consultants)
+      isExternalAdmin
     } = req.body;
 
     // Validate required fields
@@ -741,6 +743,11 @@ router.post('/users', authenticateToken, async (req: Request, res: Response) => 
     // Determine user status
     const userStatus = method === 'email_link' ? 'invited' : 'active';
 
+    // Determine if this is an external admin
+    // External admins: can only be created when role is 'admin' and isExternalAdmin is true
+    // They don't have access to employee-facing features like People Directory
+    const externalAdmin = userRole === 'admin' && isExternalAdmin === true;
+
     // Create user
     const result = await db.query(
       `INSERT INTO organization_users (
@@ -754,10 +761,11 @@ router.post('/users', authenticateToken, async (req: Request, res: Response) => 
         google_workspace_id, microsoft_365_id, github_username, slack_user_id,
         jumpcloud_user_id, associate_id,
         avatar_url,
+        is_external_admin,
         created_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, NOW())
-      RETURNING id, email, first_name, last_name, role, is_active, alternate_email, user_status as "userStatus", job_title, department, department_id, location, created_at`,
+      VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, NOW())
+      RETURNING id, email, first_name, last_name, role, is_active, alternate_email, user_status as "userStatus", job_title, department, department_id, location, is_external_admin, created_at`,
       [
         email.toLowerCase(),
         passwordHash,
@@ -794,7 +802,8 @@ router.post('/users', authenticateToken, async (req: Request, res: Response) => 
         slackUserId || null,
         jumpcloudUserId || null,
         associateId || null,
-        avatarUrl || null
+        avatarUrl || null,
+        externalAdmin
       ]
     );
 
@@ -823,6 +832,7 @@ router.post('/users', authenticateToken, async (req: Request, res: Response) => 
       userId: newUser.id,
       email: newUser.email,
       role: newUser.role,
+      isExternalAdmin: newUser.is_external_admin,
       createdBy: req.user?.userId,
       passwordSetupMethod: method,
       emailSent: method === 'email_link' ? emailSent : null
@@ -839,6 +849,7 @@ router.post('/users', authenticateToken, async (req: Request, res: Response) => 
           lastName: newUser.last_name,
           role: newUser.role,
           isActive: newUser.is_active,
+          isExternalAdmin: newUser.is_external_admin || false,
           createdAt: newUser.created_at
         }
       }
@@ -891,7 +902,9 @@ router.put('/users/:userId', authenticateToken, async (req: Request, res: Respon
       jumpcloudUserId,
       associateId,
       // Avatar
-      avatarUrl
+      avatarUrl,
+      // Admin type
+      isExternalAdmin
     } = req.body;
 
     // Get organizationId from authenticated user
@@ -905,7 +918,7 @@ router.put('/users/:userId', authenticateToken, async (req: Request, res: Respon
 
     // Check if user exists
     const existingUser = await db.query(
-      'SELECT id FROM organization_users WHERE id = $1 AND organization_id = $2',
+      'SELECT id, role FROM organization_users WHERE id = $1 AND organization_id = $2',
       [userId, organizationId]
     );
 
@@ -914,6 +927,17 @@ router.put('/users/:userId', authenticateToken, async (req: Request, res: Respon
         success: false,
         error: 'User not found'
       });
+    }
+
+    // Determine external admin status
+    // Can only be set to true if the user is an admin
+    const currentRole = existingUser.rows[0].role;
+    const newRole = role || currentRole;
+    // If changing to non-admin role, force isExternalAdmin to false
+    // If staying admin or becoming admin, allow isExternalAdmin to be set
+    let externalAdminValue = undefined;
+    if (isExternalAdmin !== undefined) {
+      externalAdminValue = newRole === 'admin' ? isExternalAdmin : false;
     }
 
     // Update user
@@ -947,9 +971,10 @@ router.put('/users/:userId', authenticateToken, async (req: Request, res: Respon
         jumpcloud_user_id = COALESCE($26, jumpcloud_user_id),
         associate_id = COALESCE($27, associate_id),
         avatar_url = COALESCE($28, avatar_url),
+        is_external_admin = COALESCE($29, is_external_admin),
         updated_at = NOW()
-      WHERE id = $29 AND organization_id = $30
-      RETURNING id, email, first_name, last_name, role, is_active, updated_at`,
+      WHERE id = $30 AND organization_id = $31
+      RETURNING id, email, first_name, last_name, role, is_active, is_external_admin, updated_at`,
       [
         email,
         firstName,
@@ -979,6 +1004,7 @@ router.put('/users/:userId', authenticateToken, async (req: Request, res: Respon
         jumpcloudUserId,
         associateId,
         avatarUrl,
+        externalAdminValue,
         userId,
         organizationId
       ]
@@ -1064,6 +1090,7 @@ router.put('/users/:userId', authenticateToken, async (req: Request, res: Respon
           lastName: updatedUser.last_name,
           role: updatedUser.role,
           isActive: updatedUser.is_active,
+          isExternalAdmin: updatedUser.is_external_admin || false,
           updatedAt: updatedUser.updated_at
         }
       }
