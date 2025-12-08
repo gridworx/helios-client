@@ -459,6 +459,296 @@ router.delete('/templates/:id', authenticateToken, async (req: Request, res: Res
   }
 });
 
+// ===== GOOGLE WORKSPACE SYNC ROUTES =====
+
+/**
+ * POST /api/bulk/sync/users
+ * Bulk update users with Google Workspace sync
+ */
+router.post('/sync/users', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { items, syncToGoogleWorkspace = true } = req.body;
+    const organizationId = req.user?.organizationId;
+    const userId = req.user?.userId;
+
+    if (!organizationId || !userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required',
+      });
+    }
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Items array is required and must not be empty',
+      });
+    }
+
+    // Get estimated time
+    const estimate = bulkOperationsService.estimateBulkOperationTime(
+      items.length,
+      syncToGoogleWorkspace
+    );
+
+    // Process with sync
+    const result = await bulkOperationsService.processBulkUserUpdatesWithSync(
+      organizationId,
+      items,
+      userId
+    );
+
+    res.json({
+      success: result.failureCount === 0,
+      data: {
+        totalItems: items.length,
+        localResults: {
+          successCount: result.localResults.filter(r => r.success).length,
+          failureCount: result.localResults.filter(r => !r.success).length,
+        },
+        googleWorkspaceResults: {
+          successCount: result.gwResults.filter(r => r.success).length,
+          failureCount: result.gwResults.filter(r => !r.success).length,
+          synced: result.gwResults.length > 0,
+        },
+        estimatedTime: estimate,
+      },
+      message: result.failureCount === 0
+        ? 'Bulk update completed successfully'
+        : `Completed with ${result.failureCount} failures`,
+    });
+  } catch (error: any) {
+    logger.error('Bulk sync users error', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to process bulk user updates',
+    });
+  }
+});
+
+/**
+ * POST /api/bulk/sync/suspend
+ * Bulk suspend users with Google Workspace sync
+ */
+router.post('/sync/suspend', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { userEmails } = req.body;
+    const organizationId = req.user?.organizationId;
+    const userId = req.user?.userId;
+
+    if (!organizationId || !userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required',
+      });
+    }
+
+    if (!userEmails || !Array.isArray(userEmails) || userEmails.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'userEmails array is required and must not be empty',
+      });
+    }
+
+    const result = await bulkOperationsService.processBulkSuspendWithSync(
+      organizationId,
+      userEmails,
+      userId
+    );
+
+    res.json({
+      success: result.failureCount === 0,
+      data: {
+        totalItems: userEmails.length,
+        localResults: {
+          successCount: result.localResults.filter(r => r.success).length,
+          failureCount: result.localResults.filter(r => !r.success).length,
+        },
+        googleWorkspaceResults: {
+          successCount: result.gwResults.filter(r => r.success).length,
+          failureCount: result.gwResults.filter(r => !r.success).length,
+          synced: result.gwResults.length > 0,
+        },
+      },
+      message: result.failureCount === 0
+        ? 'Bulk suspend completed successfully'
+        : `Completed with ${result.failureCount} failures`,
+    });
+  } catch (error: any) {
+    logger.error('Bulk sync suspend error', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to process bulk suspend',
+    });
+  }
+});
+
+/**
+ * POST /api/bulk/sync/move-ou
+ * Bulk move users to OU with Google Workspace sync
+ */
+router.post('/sync/move-ou', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { userEmails, targetOU } = req.body;
+    const organizationId = req.user?.organizationId;
+    const userId = req.user?.userId;
+
+    if (!organizationId || !userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required',
+      });
+    }
+
+    if (!userEmails || !Array.isArray(userEmails) || userEmails.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'userEmails array is required and must not be empty',
+      });
+    }
+
+    if (!targetOU) {
+      return res.status(400).json({
+        success: false,
+        error: 'targetOU is required',
+      });
+    }
+
+    const result = await bulkOperationsService.processBulkMoveOUWithSync(
+      organizationId,
+      userEmails,
+      targetOU,
+      userId
+    );
+
+    res.json({
+      success: result.failureCount === 0,
+      data: {
+        totalItems: userEmails.length,
+        targetOU,
+        localResults: {
+          successCount: result.localResults.filter(r => r.success).length,
+          failureCount: result.localResults.filter(r => !r.success).length,
+        },
+        googleWorkspaceResults: {
+          successCount: result.gwResults.filter(r => r.success).length,
+          failureCount: result.gwResults.filter(r => !r.success).length,
+          synced: result.gwResults.length > 0,
+        },
+      },
+      message: result.failureCount === 0
+        ? 'Bulk OU move completed successfully'
+        : `Completed with ${result.failureCount} failures`,
+    });
+  } catch (error: any) {
+    logger.error('Bulk sync move OU error', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to process bulk OU move',
+    });
+  }
+});
+
+/**
+ * POST /api/bulk/sync/group-members
+ * Bulk add/remove group members with Google Workspace sync
+ */
+router.post('/sync/group-members', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { operations } = req.body;
+    const organizationId = req.user?.organizationId;
+    const userId = req.user?.userId;
+
+    if (!organizationId || !userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required',
+      });
+    }
+
+    if (!operations || !Array.isArray(operations) || operations.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'operations array is required and must not be empty',
+      });
+    }
+
+    // Validate each operation
+    for (const op of operations) {
+      if (!op.userEmail || !op.groupId || !['add', 'remove'].includes(op.operation)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Each operation must have userEmail, groupId, and operation (add/remove)',
+        });
+      }
+    }
+
+    const result = await bulkOperationsService.processBulkGroupMembershipWithSync(
+      organizationId,
+      operations,
+      userId
+    );
+
+    res.json({
+      success: result.failureCount === 0,
+      data: {
+        totalOperations: operations.length,
+        localResults: {
+          successCount: result.localResults.filter(r => r.success).length,
+          failureCount: result.localResults.filter(r => !r.success).length,
+        },
+        googleWorkspaceResults: {
+          successCount: result.gwResults.filter(r => r.success).length,
+          failureCount: result.gwResults.filter(r => !r.success).length,
+          synced: result.gwResults.length > 0,
+        },
+      },
+      message: result.failureCount === 0
+        ? 'Bulk group membership operations completed successfully'
+        : `Completed with ${result.failureCount} failures`,
+    });
+  } catch (error: any) {
+    logger.error('Bulk sync group members error', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to process bulk group membership operations',
+    });
+  }
+});
+
+/**
+ * GET /api/bulk/sync/estimate
+ * Get estimated time for a bulk operation
+ */
+router.get('/sync/estimate', authenticateToken, (req: Request, res: Response) => {
+  try {
+    const itemCount = parseInt(req.query.itemCount as string) || 0;
+    const includeGoogleWorkspace = req.query.syncToGoogleWorkspace === 'true';
+
+    if (itemCount <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'itemCount must be a positive number',
+      });
+    }
+
+    const estimate = bulkOperationsService.estimateBulkOperationTime(
+      itemCount,
+      includeGoogleWorkspace
+    );
+
+    res.json({
+      success: true,
+      data: estimate,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to calculate estimate',
+    });
+  }
+});
+
 /**
  * Helper function to get validation rules based on operation type
  */

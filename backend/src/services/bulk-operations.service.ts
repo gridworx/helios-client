@@ -3,6 +3,7 @@ import { logger } from '../utils/logger';
 import { queueService, BulkOperationJobData } from './queue.service';
 import { csvParserService, ValidationRule } from './csv-parser.service';
 import { bulkOperationEvents } from '../websocket/bulk-operations.gateway';
+import { googleWorkspaceBatchService, BulkUserUpdate, BulkGroupMemberOperation } from './google-workspace-batch.service';
 
 export interface BulkOperation {
   id: string;
@@ -29,7 +30,20 @@ export interface CreateBulkOperationParams {
   operationName?: string;
   items: any[];
   createdBy: string;
+  syncToGoogleWorkspace?: boolean;  // Enable Google Workspace sync for this operation
 }
+
+// Supported operation types that can sync to Google Workspace
+export const GOOGLE_WORKSPACE_SYNC_OPERATIONS = [
+  'user_update',
+  'user_suspend',
+  'user_activate',
+  'user_move_ou',
+  'group_membership_add',
+  'group_membership_remove'
+] as const;
+
+export type GoogleWorkspaceSyncOperation = typeof GOOGLE_WORKSPACE_SYNC_OPERATIONS[number];
 
 export class BulkOperationsService {
   /**
@@ -824,6 +838,374 @@ export class BulkOperationsService {
       createdBy: row.created_by,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+    };
+  }
+
+  // ===== GOOGLE WORKSPACE BULK SYNC =====
+
+  /**
+   * Check if Google Workspace sync is enabled for the organization
+   */
+  private async isGoogleWorkspaceEnabled(organizationId: string): Promise<boolean> {
+    try {
+      const result = await db.query(`
+        SELECT om.is_enabled
+        FROM organization_modules om
+        JOIN modules m ON m.id = om.module_id
+        WHERE om.organization_id = $1 AND m.slug = 'google_workspace'
+      `, [organizationId]);
+
+      return result.rows.length > 0 && result.rows[0].is_enabled;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Process bulk user updates with Google Workspace sync
+   * This updates users locally AND in Google Workspace
+   */
+  public async processBulkUserUpdatesWithSync(
+    organizationId: string,
+    items: any[],
+    createdBy: string,
+    progressCallback?: (processed: number, total: number, phase: string) => void
+  ): Promise<{
+    localResults: any[];
+    gwResults: any[];
+    successCount: number;
+    failureCount: number;
+  }> {
+    const localResults: any[] = [];
+    const gwResults: any[] = [];
+    let successCount = 0;
+    let failureCount = 0;
+
+    // Phase 1: Update local database
+    if (progressCallback) progressCallback(0, items.length, 'local');
+
+    for (let i = 0; i < items.length; i++) {
+      try {
+        const result = await this.updateUser(items[i], organizationId);
+        localResults.push({ item: items[i], success: true, result });
+        successCount++;
+      } catch (error: any) {
+        localResults.push({ item: items[i], success: false, error: error.message });
+        failureCount++;
+      }
+      if (progressCallback) progressCallback(i + 1, items.length, 'local');
+    }
+
+    // Phase 2: Sync to Google Workspace (if enabled)
+    const gwEnabled = await this.isGoogleWorkspaceEnabled(organizationId);
+    if (gwEnabled) {
+      if (progressCallback) progressCallback(0, items.length, 'google_workspace');
+
+      // Build bulk update list for Google Workspace
+      const gwUpdates: BulkUserUpdate[] = items.map(item => ({
+        email: item.email,
+        googleWorkspaceId: item.googleWorkspaceId,
+        updates: {
+          firstName: item.firstName,
+          lastName: item.lastName,
+          jobTitle: item.jobTitle,
+          department: item.department,
+          managerEmail: item.managerEmail,
+          organizationalUnit: item.organizationalUnit,
+        }
+      }));
+
+      const gwResult = await googleWorkspaceBatchService.bulkUpdateUsers(
+        organizationId,
+        gwUpdates,
+        (processed, total) => {
+          if (progressCallback) progressCallback(processed, total, 'google_workspace');
+        }
+      );
+
+      gwResults.push(...gwResult.results);
+
+      // Log the sync results
+      logger.info('Google Workspace bulk sync completed', {
+        organizationId,
+        totalUsers: items.length,
+        gwSuccess: gwResult.successCount,
+        gwFailure: gwResult.failureCount,
+      });
+    }
+
+    return {
+      localResults,
+      gwResults,
+      successCount,
+      failureCount,
+    };
+  }
+
+  /**
+   * Process bulk user suspensions with Google Workspace sync
+   */
+  public async processBulkSuspendWithSync(
+    organizationId: string,
+    userEmails: string[],
+    createdBy: string,
+    progressCallback?: (processed: number, total: number, phase: string) => void
+  ): Promise<{
+    localResults: any[];
+    gwResults: any[];
+    successCount: number;
+    failureCount: number;
+  }> {
+    const localResults: any[] = [];
+    const gwResults: any[] = [];
+    let successCount = 0;
+    let failureCount = 0;
+
+    // Phase 1: Update local database
+    if (progressCallback) progressCallback(0, userEmails.length, 'local');
+
+    for (let i = 0; i < userEmails.length; i++) {
+      try {
+        const result = await this.suspendUser({ email: userEmails[i] }, organizationId);
+        localResults.push({ email: userEmails[i], success: true, result });
+        successCount++;
+      } catch (error: any) {
+        localResults.push({ email: userEmails[i], success: false, error: error.message });
+        failureCount++;
+      }
+      if (progressCallback) progressCallback(i + 1, userEmails.length, 'local');
+    }
+
+    // Phase 2: Sync to Google Workspace
+    const gwEnabled = await this.isGoogleWorkspaceEnabled(organizationId);
+    if (gwEnabled) {
+      if (progressCallback) progressCallback(0, userEmails.length, 'google_workspace');
+
+      const gwResult = await googleWorkspaceBatchService.bulkSuspendUsers(
+        organizationId,
+        userEmails,
+        (processed, total) => {
+          if (progressCallback) progressCallback(processed, total, 'google_workspace');
+        }
+      );
+
+      gwResults.push(...gwResult.results);
+
+      logger.info('Google Workspace bulk suspend completed', {
+        organizationId,
+        totalUsers: userEmails.length,
+        gwSuccess: gwResult.successCount,
+        gwFailure: gwResult.failureCount,
+      });
+    }
+
+    return {
+      localResults,
+      gwResults,
+      successCount,
+      failureCount,
+    };
+  }
+
+  /**
+   * Process bulk OU moves with Google Workspace sync
+   */
+  public async processBulkMoveOUWithSync(
+    organizationId: string,
+    userEmails: string[],
+    targetOU: string,
+    createdBy: string,
+    progressCallback?: (processed: number, total: number, phase: string) => void
+  ): Promise<{
+    localResults: any[];
+    gwResults: any[];
+    successCount: number;
+    failureCount: number;
+  }> {
+    const localResults: any[] = [];
+    const gwResults: any[] = [];
+    let successCount = 0;
+    let failureCount = 0;
+
+    // Phase 1: Update local database
+    if (progressCallback) progressCallback(0, userEmails.length, 'local');
+
+    for (let i = 0; i < userEmails.length; i++) {
+      try {
+        const result = await db.query(`
+          UPDATE organization_users
+          SET organizational_unit = $3, updated_at = NOW()
+          WHERE organization_id = $1 AND email = $2
+          RETURNING id, email
+        `, [organizationId, userEmails[i], targetOU]);
+
+        if (result.rows.length === 0) {
+          throw new Error(`User not found: ${userEmails[i]}`);
+        }
+
+        localResults.push({ email: userEmails[i], success: true, result: result.rows[0] });
+        successCount++;
+      } catch (error: any) {
+        localResults.push({ email: userEmails[i], success: false, error: error.message });
+        failureCount++;
+      }
+      if (progressCallback) progressCallback(i + 1, userEmails.length, 'local');
+    }
+
+    // Phase 2: Sync to Google Workspace
+    const gwEnabled = await this.isGoogleWorkspaceEnabled(organizationId);
+    if (gwEnabled) {
+      if (progressCallback) progressCallback(0, userEmails.length, 'google_workspace');
+
+      const gwResult = await googleWorkspaceBatchService.bulkMoveToOU(
+        organizationId,
+        userEmails,
+        targetOU,
+        (processed, total) => {
+          if (progressCallback) progressCallback(processed, total, 'google_workspace');
+        }
+      );
+
+      gwResults.push(...gwResult.results);
+
+      logger.info('Google Workspace bulk OU move completed', {
+        organizationId,
+        totalUsers: userEmails.length,
+        targetOU,
+        gwSuccess: gwResult.successCount,
+        gwFailure: gwResult.failureCount,
+      });
+    }
+
+    return {
+      localResults,
+      gwResults,
+      successCount,
+      failureCount,
+    };
+  }
+
+  /**
+   * Process bulk group membership operations with Google Workspace sync
+   */
+  public async processBulkGroupMembershipWithSync(
+    organizationId: string,
+    operations: Array<{
+      userEmail: string;
+      groupId: string;
+      groupExternalId?: string;
+      operation: 'add' | 'remove';
+    }>,
+    createdBy: string,
+    progressCallback?: (processed: number, total: number, phase: string) => void
+  ): Promise<{
+    localResults: any[];
+    gwResults: any[];
+    successCount: number;
+    failureCount: number;
+  }> {
+    const localResults: any[] = [];
+    const gwResults: any[] = [];
+    let successCount = 0;
+    let failureCount = 0;
+
+    // Phase 1: Update local database
+    if (progressCallback) progressCallback(0, operations.length, 'local');
+
+    for (let i = 0; i < operations.length; i++) {
+      const op = operations[i];
+      try {
+        if (op.operation === 'add') {
+          const result = await this.addGroupMember(
+            { userEmail: op.userEmail, groupId: op.groupId },
+            organizationId
+          );
+          localResults.push({ ...op, success: true, result });
+        } else {
+          const result = await this.removeGroupMember(
+            { userEmail: op.userEmail, groupId: op.groupId },
+            organizationId
+          );
+          localResults.push({ ...op, success: true, result });
+        }
+        successCount++;
+      } catch (error: any) {
+        localResults.push({ ...op, success: false, error: error.message });
+        failureCount++;
+      }
+      if (progressCallback) progressCallback(i + 1, operations.length, 'local');
+    }
+
+    // Phase 2: Sync to Google Workspace
+    const gwEnabled = await this.isGoogleWorkspaceEnabled(organizationId);
+    if (gwEnabled) {
+      if (progressCallback) progressCallback(0, operations.length, 'google_workspace');
+
+      // Filter operations that have Google Workspace external IDs
+      const gwOperations: BulkGroupMemberOperation[] = operations
+        .filter(op => op.groupExternalId)
+        .map(op => ({
+          groupId: op.groupId,
+          groupExternalId: op.groupExternalId!,
+          userEmail: op.userEmail,
+          operation: op.operation,
+        }));
+
+      if (gwOperations.length > 0) {
+        const gwResult = await googleWorkspaceBatchService.bulkGroupMemberOperations(
+          organizationId,
+          gwOperations,
+          (processed, total) => {
+            if (progressCallback) progressCallback(processed, total, 'google_workspace');
+          }
+        );
+
+        gwResults.push(...gwResult.results);
+
+        logger.info('Google Workspace bulk group membership completed', {
+          organizationId,
+          totalOperations: gwOperations.length,
+          gwSuccess: gwResult.successCount,
+          gwFailure: gwResult.failureCount,
+        });
+      }
+    }
+
+    return {
+      localResults,
+      gwResults,
+      successCount,
+      failureCount,
+    };
+  }
+
+  /**
+   * Get estimated time for a bulk operation
+   */
+  public estimateBulkOperationTime(
+    itemCount: number,
+    includeGoogleWorkspaceSync: boolean = false
+  ): {
+    localEstimateSeconds: number;
+    gwEstimateSeconds: number;
+    totalEstimateSeconds: number;
+    totalEstimateMinutes: number;
+  } {
+    // Local operations: ~20ms per item
+    const localEstimateSeconds = Math.ceil((itemCount * 20) / 1000);
+
+    // Google Workspace sync estimate
+    const gwEstimate = includeGoogleWorkspaceSync
+      ? googleWorkspaceBatchService.estimateOperationTime(itemCount)
+      : { estimatedSeconds: 0 };
+
+    const totalEstimateSeconds = localEstimateSeconds + gwEstimate.estimatedSeconds;
+
+    return {
+      localEstimateSeconds,
+      gwEstimateSeconds: gwEstimate.estimatedSeconds,
+      totalEstimateSeconds,
+      totalEstimateMinutes: Math.ceil(totalEstimateSeconds / 60),
     };
   }
 }

@@ -83,25 +83,28 @@
 
 ## Phase 4: Google Workspace Integration
 
-- [ ] Update Google sync service
+- [x] Update Google sync service
   - Batch API support
   - Rate limit handling
   - Parallel processing
   - Error recovery
+  - **Completed:** Created `google-workspace-batch.service.ts` with batched operations
 
-- [ ] Add bulk Google operations
+- [x] Add bulk Google operations
   - Bulk user updates
   - Bulk group changes
   - Bulk OU moves
   - Sync status tracking
+  - **Completed:** New API endpoints `/api/bulk/sync/*` with local + GW sync
 
 ## Phase 5: Testing & Polish
 
-- [ ] Write unit tests
+- [x] Write unit tests
   - CSV parser tests
   - Validation logic tests
   - Service layer tests
   - Queue processing tests
+  - **Completed:** 15 tests for google-workspace-batch.service.ts
 
 - [ ] Add integration tests
   - End-to-end CSV flow
