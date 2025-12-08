@@ -183,11 +183,12 @@
 
 ### Frontend Tasks
 
-- [ ] **TASK-AUS-024**: Add "Switch to Employee View" prompt for internal admins
+- [x] **TASK-AUS-024**: Add "Switch to Employee View" prompt for internal admins
   - Show on first login if internal admin
   - Explain the two views
   - Allow preference setting
-  - File: `frontend/src/components/ViewOnboarding.tsx`
+  - File: `frontend/src/components/navigation/ViewOnboarding.tsx`
+  - **Completed:** Created ViewOnboarding component with card selection for Admin Console vs Employee View
 
 - [ ] **TASK-AUS-025**: Handle edge cases in navigation
   - Deep link to admin route as user → redirect

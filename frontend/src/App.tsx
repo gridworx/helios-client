@@ -30,7 +30,7 @@ import { MyGroups } from './pages/MyGroups'
 import { UserSettings } from './pages/UserSettings'
 import { LabelsProvider, useLabels } from './contexts/LabelsContext'
 import { ViewProvider, useView } from './contexts/ViewContext'
-import { AdminNavigation, UserNavigation, ViewSwitcher } from './components/navigation'
+import { AdminNavigation, UserNavigation, ViewSwitcher, ViewOnboarding } from './components/navigation'
 import { getWidgetData } from './utils/widget-data'
 import { getEnabledWidgets, type WidgetId } from './config/widgets'
 import { UserPlus, Upload, Download, RefreshCw, AlertCircle, Info, Edit3, Bell, Building, HelpCircle, Search, Users as UsersIcon } from 'lucide-react'
@@ -1017,6 +1017,9 @@ function AppContent() {
 
         </main>
       </div>
+
+      {/* View Onboarding Modal for Internal Admins */}
+      <ViewOnboarding onComplete={() => {}} />
 
       <footer className="client-footer">
         <p>Helios Admin Portal v1.0.0</p>
