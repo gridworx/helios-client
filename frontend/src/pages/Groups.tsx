@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { googleWorkspaceService } from '../services/google-workspace.service';
 import { useEntityLabels } from '../contexts/LabelsContext';
 import { ENTITIES } from '../config/entities';
-import { Search, RefreshCw, Plus, Users, Eye, Edit2, Trash2 } from 'lucide-react';
+import { Search, RefreshCw, Plus, Users } from 'lucide-react';
 import { PlatformIcon } from '../components/ui/PlatformIcon';
+import { GroupSlideOut } from '../components/GroupSlideOut';
 import './Pages.css';
 
 interface Group {
@@ -36,6 +37,7 @@ export function Groups({ organizationId, customLabel: _customLabel, onSelectGrou
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDescription, setNewGroupDescription] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchGroups();
@@ -52,6 +54,18 @@ export function Groups({ organizationId, customLabel: _customLabel, onSelectGrou
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Groups API error:', response.status, errorData);
+        if (response.status === 401) {
+          setError('Session expired. Please log in again.');
+        } else {
+          setError(errorData.error || 'Failed to load groups');
+        }
+        setGroups([]);
+        return;
+      }
+
       const result = await response.json();
 
       if (result.success && result.data) {
@@ -60,9 +74,9 @@ export function Groups({ organizationId, customLabel: _customLabel, onSelectGrou
           name: group.name,
           description: group.description || '',
           email: group.email,
-          memberCount: parseInt(group.member_count) || group.directMembersCount || 0,
+          memberCount: parseInt(group.member_count) || parseInt(group.metadata?.directMembersCount) || group.directMembersCount || 0,
           platform: group.platform || 'google_workspace',
-          type: group.group_type || (group.adminCreated ? 'Admin' : 'User'),
+          type: group.group_type || (group.metadata?.adminCreated ? 'Admin' : 'User'),
           createdAt: group.created_at || group.createdAt || new Date().toISOString()
         }));
         setGroups(formattedGroups);
@@ -73,6 +87,7 @@ export function Groups({ organizationId, customLabel: _customLabel, onSelectGrou
         }
       }
     } catch (err: any) {
+      console.error('Groups fetch error:', err);
       setError(err.message || 'Failed to fetch groups');
       setGroups([]);
     } finally {
@@ -214,12 +229,11 @@ export function Groups({ organizationId, customLabel: _customLabel, onSelectGrou
       </div>
 
       <div className="data-grid">
-        <div className="grid-header" style={{ gridTemplateColumns: '2fr 1fr 80px 1.5fr 120px' }}>
+        <div className="grid-header" style={{ gridTemplateColumns: '2fr 1fr 80px 1.5fr' }}>
           <div className="col-wide">Group Name</div>
           <div className="col-medium">Members</div>
           <div className="col-small">Platform</div>
           <div className="col-medium">Email</div>
-          <div className="col-small">Actions</div>
         </div>
 
         {filteredGroups.length === 0 ? (
@@ -231,12 +245,20 @@ export function Groups({ organizationId, customLabel: _customLabel, onSelectGrou
         ) : (
           <div className="grid-body">
             {filteredGroups.map(group => {
+              const handleRowClick = () => {
+                if (onSelectGroup) {
+                  onSelectGroup(group.id);
+                } else {
+                  setSelectedGroupId(group.id);
+                }
+              };
+
               return (
                 <div
                   key={group.id}
                   className="grid-row"
-                  onClick={() => onSelectGroup && onSelectGroup(group.id)}
-                  style={{ cursor: onSelectGroup ? 'pointer' : 'default', gridTemplateColumns: '2fr 1fr 80px 1.5fr 120px' }}
+                  onClick={handleRowClick}
+                  style={{ cursor: 'pointer', gridTemplateColumns: '2fr 1fr 80px 1.5fr' }}
                 >
                   <div className="col-wide">
                     <div className="item-info">
@@ -251,20 +273,13 @@ export function Groups({ organizationId, customLabel: _customLabel, onSelectGrou
                     <span className="member-count">{group.memberCount} members</span>
                   </div>
                   <div className="col-small">
-                    <PlatformIcon 
-                      platform={group.platform === 'google_workspace' ? 'google' : group.platform === 'microsoft_365' ? 'microsoft' : 'helios'} 
-                      size={28} 
+                    <PlatformIcon
+                      platform={group.platform === 'google_workspace' ? 'google' : group.platform === 'microsoft_365' ? 'microsoft' : 'helios'}
+                      size={28}
                     />
                   </div>
                   <div className="col-medium">
                     <span className="email-text">{group.email}</span>
-                  </div>
-                  <div className="col-small">
-                    <div className="action-buttons">
-                      <button className="btn-icon" title="View members"><Eye size={16} /></button>
-                      <button className="btn-icon" title="Edit group"><Edit2 size={16} /></button>
-                      <button className="btn-icon danger" title="Delete group"><Trash2 size={16} /></button>
-                    </div>
                   </div>
                 </div>
               );
@@ -395,6 +410,18 @@ export function Groups({ organizationId, customLabel: _customLabel, onSelectGrou
             </div>
           </div>
         </div>
+      )}
+
+      {/* Group SlideOut */}
+      {selectedGroupId && (
+        <GroupSlideOut
+          groupId={selectedGroupId}
+          organizationId={organizationId}
+          onClose={() => setSelectedGroupId(null)}
+          onGroupUpdated={() => {
+            fetchGroups();
+          }}
+        />
       )}
     </div>
   );

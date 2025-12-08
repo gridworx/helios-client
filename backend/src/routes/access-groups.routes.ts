@@ -122,6 +122,155 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
+ * PUT /api/organization/access-groups/:id
+ * Update an access group
+ */
+router.put('/:id', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const organizationId = req.user?.organizationId;
+    const userId = req.user?.userId;
+    const { name, description, email } = req.body;
+
+    // Verify group exists and belongs to org
+    const existing = await db.query(
+      'SELECT * FROM access_groups WHERE id = $1 AND organization_id = $2',
+      [id, organizationId]
+    );
+
+    if (existing.rows.length === 0) {
+      res.status(404).json({
+        success: false,
+        error: 'Access group not found',
+      });
+      return;
+    }
+
+    const oldGroup = existing.rows[0];
+
+    // Update the group
+    const result = await db.query(
+      `UPDATE access_groups SET
+        name = COALESCE($1, name),
+        description = COALESCE($2, description),
+        email = COALESCE($3, email),
+        updated_at = NOW()
+      WHERE id = $4 AND organization_id = $5
+      RETURNING *`,
+      [name, description, email, id, organizationId]
+    );
+
+    // Track the activity
+    const changes: any = {};
+    if (name && name !== oldGroup.name) changes.name = { from: oldGroup.name, to: name };
+    if (description !== undefined && description !== oldGroup.description) {
+      changes.description = { from: oldGroup.description, to: description };
+    }
+    if (email !== undefined && email !== oldGroup.email) {
+      changes.email = { from: oldGroup.email, to: email };
+    }
+
+    if (Object.keys(changes).length > 0) {
+      await activityTracker.trackGroupChange(
+        organizationId,
+        id,
+        userId!,
+        req.user?.email!,
+        'updated',
+        {
+          groupName: result.rows[0].name,
+          changes
+        }
+      );
+    }
+
+    logger.info('Access group updated', {
+      groupId: id,
+      organizationId,
+      changes
+    });
+
+    res.json({
+      success: true,
+      data: result.rows[0],
+      message: 'Access group updated successfully',
+    });
+  } catch (error: any) {
+    logger.error('Failed to update access group', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update access group',
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * DELETE /api/organization/access-groups/:id
+ * Delete an access group
+ */
+router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const organizationId = req.user?.organizationId;
+    const userId = req.user?.userId;
+
+    // Verify group exists and belongs to org
+    const existing = await db.query(
+      'SELECT * FROM access_groups WHERE id = $1 AND organization_id = $2',
+      [id, organizationId]
+    );
+
+    if (existing.rows.length === 0) {
+      res.status(404).json({
+        success: false,
+        error: 'Access group not found',
+      });
+      return;
+    }
+
+    const group = existing.rows[0];
+
+    // Soft delete by setting is_active = false
+    await db.query(
+      `UPDATE access_groups SET is_active = false, updated_at = NOW()
+       WHERE id = $1 AND organization_id = $2`,
+      [id, organizationId]
+    );
+
+    // Track the activity
+    await activityTracker.trackGroupChange(
+      organizationId,
+      id,
+      userId!,
+      req.user?.email!,
+      'deleted',
+      {
+        groupName: group.name
+      }
+    );
+
+    logger.info('Access group deleted', {
+      groupId: id,
+      groupName: group.name,
+      organizationId
+    });
+
+    res.json({
+      success: true,
+      message: 'Access group deleted successfully',
+    });
+  } catch (error: any) {
+    logger.error('Failed to delete access group', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete access group',
+      message: error.message,
+    });
+  }
+});
+
+/**
  * POST /api/organization/access-groups
  * Create a new access group (manual, not synced from platform)
  */
