@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTabPersistence } from '../hooks/useTabPersistence';
+import { UsersRound, Search, Plus, Trash2, Loader, Save, BarChart3, User } from 'lucide-react';
 import './Pages.css';
 
 type GroupDetailTab = 'members' | 'settings' | 'activity';
@@ -245,7 +246,7 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
             ← Back to Groups
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <div className="item-icon" style={{ fontSize: '2rem' }}>👥</div>
+            <div className="item-icon" style={{ fontSize: '2rem' }}><UsersRound size={32} /></div>
             <div>
               <h1>{group?.name || 'Loading...'}</h1>
               <p style={{ margin: '0.25rem 0', color: '#6b7280' }}>
@@ -326,7 +327,7 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
           <div>
             <div className="page-controls" style={{ marginBottom: '1rem' }}>
               <div className="search-box">
-                <span className="search-icon">🔍</span>
+                <Search size={16} className="search-icon" />
                 <input
                   type="text"
                   placeholder="Search members..."
@@ -336,7 +337,7 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
                 className="btn-primary"
                 onClick={() => setShowAddMemberModal(true)}
               >
-                ➕ Add Member
+                <Plus size={16} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Add Member
               </button>
             </div>
 
@@ -344,7 +345,7 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
               <div className="loading-spinner">Loading members...</div>
             ) : members.length === 0 ? (
               <div className="empty-state">
-                <span className="empty-icon">👤</span>
+                <User size={48} className="empty-icon" />
                 <h3>No members found</h3>
                 <p>This group doesn't have any members yet</p>
               </div>
@@ -362,7 +363,7 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
                     <div key={member.id} className="grid-row">
                       <div className="col-wide">
                         <div className="item-info">
-                          <div className="item-icon">👤</div>
+                          <div className="item-icon"><User size={20} /></div>
                           <div>
                             <div className="item-name">{member.email}</div>
                           </div>
@@ -396,7 +397,7 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
                           onClick={() => handleRemoveMember(member.email)}
                           disabled={removingMember === member.email}
                         >
-                          {removingMember === member.email ? '⏳' : '🗑️'}
+                          {removingMember === member.email ? <Loader size={14} className="spin" /> : <Trash2 size={14} />}
                         </button>
                       </div>
                     </div>
@@ -437,7 +438,7 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
                     onClick={handleUpdateGroup}
                     disabled={isSavingSettings}
                   >
-                    {isSavingSettings ? '⏳ Saving...' : '💾 Save Changes'}
+                    {isSavingSettings ? <><Loader size={14} className="spin" style={{ marginRight: '4px' }} /> Saving...</> : <><Save size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Save Changes</>}
                   </button>
                 </div>
               )}
@@ -531,7 +532,7 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
 
         {activeTab === 'activity' && (
           <div className="empty-state">
-            <span className="empty-icon">📊</span>
+            <BarChart3 size={48} className="empty-icon" />
             <h3>Group Activity</h3>
             <p>Group activity log will be available here</p>
           </div>
@@ -634,7 +635,7 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
                 onClick={handleAddMember}
                 disabled={isAddingMember || !newMemberEmail}
               >
-                {isAddingMember ? '⏳ Adding...' : '➕ Add Member'}
+                {isAddingMember ? <><Loader size={14} className="spin" style={{ marginRight: '4px' }} /> Adding...</> : <><Plus size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Add Member</>}
               </button>
             </div>
           </div>

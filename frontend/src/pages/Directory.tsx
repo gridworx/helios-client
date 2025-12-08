@@ -2,6 +2,7 @@ import { UserList } from '../components/UserList';
 import { Groups } from './Groups';
 import { OrgUnits } from './OrgUnits';
 import { useTabPersistence } from '../hooks/useTabPersistence';
+import { Users, UsersRound, Building2, Monitor } from 'lucide-react';
 import './Directory.css';
 
 type DirectoryTab = 'users' | 'groups' | 'org-units' | 'devices';
@@ -25,28 +26,28 @@ export function Directory({ organizationId }: DirectoryProps) {
           className={`tab-button ${activeTab === 'users' ? 'active' : ''}`}
           onClick={() => setActiveTab('users')}
         >
-          <span className="tab-icon">👥</span>
+          <Users size={16} className="tab-icon" />
           Users
         </button>
         <button
           className={`tab-button ${activeTab === 'groups' ? 'active' : ''}`}
           onClick={() => setActiveTab('groups')}
         >
-          <span className="tab-icon">👥</span>
+          <UsersRound size={16} className="tab-icon" />
           Groups
         </button>
         <button
           className={`tab-button ${activeTab === 'org-units' ? 'active' : ''}`}
           onClick={() => setActiveTab('org-units')}
         >
-          <span className="tab-icon">🏢</span>
+          <Building2 size={16} className="tab-icon" />
           Organizational Units
         </button>
         <button
           className={`tab-button ${activeTab === 'devices' ? 'active' : ''}`}
           onClick={() => setActiveTab('devices')}
         >
-          <span className="tab-icon">💻</span>
+          <Monitor size={16} className="tab-icon" />
           Devices
         </button>
       </div>

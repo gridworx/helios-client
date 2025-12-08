@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { useTabPersistence } from '../hooks/useTabPersistence';
+import { ClipboardList, Users, RefreshCw, BarChart3, Settings, Trash2, CheckCircle, AlertTriangle } from 'lucide-react';
 import './UserSlideOut.css';
 
 interface User {
@@ -383,13 +385,13 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
     return 'status-badge-active';
   };
 
-  const tabs: { id: TabType; label: string; icon: string }[] = [
-    { id: 'overview', label: 'Overview', icon: '📋' },
-    { id: 'groups', label: 'Groups', icon: '👥' },
-    { id: 'platforms', label: 'Account Sync', icon: '🔄' },
-    { id: 'activity', label: 'Activity', icon: '📊' },
-    { id: 'settings', label: 'Settings', icon: '⚙️' },
-    { id: 'danger', label: 'Danger Zone', icon: '🗑️' }
+  const tabs: { id: TabType; label: string; icon: ReactNode }[] = [
+    { id: 'overview', label: 'Overview', icon: <ClipboardList size={16} /> },
+    { id: 'groups', label: 'Groups', icon: <Users size={16} /> },
+    { id: 'platforms', label: 'Account Sync', icon: <RefreshCw size={16} /> },
+    { id: 'activity', label: 'Activity', icon: <BarChart3 size={16} /> },
+    { id: 'settings', label: 'Settings', icon: <Settings size={16} /> },
+    { id: 'danger', label: 'Danger Zone', icon: <Trash2 size={16} /> }
   ];
 
   return (
@@ -544,7 +546,7 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
                   <label>Status</label>
                   <div>
                     <span className={`status-indicator ${user.isActive ? 'active' : 'inactive'}`}>
-                      {user.isActive ? '✅ Active' : '⚠️ Inactive'}
+                      {user.isActive ? <><CheckCircle size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Active</> : <><AlertTriangle size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Inactive</>}
                     </span>
                   </div>
                 </div>

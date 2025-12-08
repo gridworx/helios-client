@@ -3,20 +3,24 @@
 ## P0 - Critical (This Sprint)
 
 ### 1. Fix Module Page Button Layout
-- [ ] 1.1 Create ButtonGroup component with consistent sizing
-- [ ] 1.2 Refactor Settings.tsx Modules tab buttons
-- [ ] 1.3 Set minimum button width (100px)
-- [ ] 1.4 Set fixed button height (36px)
-- [ ] 1.5 Add flexbox wrap for responsive behavior
-- [ ] 1.6 Move "Disable" to dropdown menu
+- [x] 1.1 Create ButtonGroup component with consistent sizing *(Done via .module-actions CSS class)*
+- [x] 1.2 Refactor Settings.tsx Modules tab buttons *(Done)*
+- [x] 1.3 Set minimum button width (100px) *(Done in Settings.css)*
+- [x] 1.4 Set fixed button height (36px) *(Done in Settings.css)*
+- [x] 1.5 Add flexbox wrap for responsive behavior *(Done in Settings.css)*
+- [x] 1.6 Move "Disable" to dropdown menu *(Done - MoreVertical menu)*
 - [ ] 1.7 Test on mobile viewport
 
 ### 2. Replace Emoji with Lucide Icons
-- [ ] 2.1 App.tsx: Replace header emoji (🏢, 🔍, 🔔)
-- [ ] 2.2 UserList.tsx: Replace bulk action emoji (✅, ⏸️, 🗑️)
-- [ ] 2.3 UserList.tsx: Replace empty state emoji (👥)
-- [ ] 2.4 Search all files for remaining emoji usage
-- [ ] 2.5 Verify no emoji in production build
+- [ ] 2.1 App.tsx: Replace header emoji *(low priority - only in setup/welcome page)*
+- [x] 2.2 UserList.tsx: Replace bulk action emoji *(Already using Lucide icons)*
+- [x] 2.3 UserList.tsx: Replace empty state emoji *(Already using Lucide icons)*
+- [x] 2.4 Directory.tsx: Replace tab emoji with Lucide icons *(Done: Users, UsersRound, Building2, Monitor)*
+- [x] 2.5 UserSlideOut.tsx: Replace tab/status emoji with Lucide icons *(Done: ClipboardList, Users, RefreshCw, BarChart3, Settings, Trash2, CheckCircle, AlertTriangle)*
+- [x] 2.6 GroupDetail.tsx: Replace all emoji with Lucide icons *(Done: UsersRound, Search, Plus, Trash2, Loader, Save, BarChart3, User)*
+- [ ] 2.7 OrgUnits.tsx: Replace emoji with Lucide icons
+- [ ] 2.8 Secondary pages (TemplateStudio, AssetManagement, etc.)
+- [ ] 2.9 Verify no emoji in production build
 
 ### 3. Fix Table Row Heights and Spacing
 - [ ] 3.1 UserList.css: Set row height to 48px
