@@ -109,11 +109,12 @@
   - Database transaction tests
   - Progress tracking tests
 
-- [ ] Create documentation
-  - User guide for bulk operations
-  - CSV format documentation
-  - API documentation
-  - Template examples
+- [x] Create documentation
+  - User guide for bulk operations (`docs/guides/bulk-operations.md`)
+  - CSV format documentation (included in user guide)
+  - API documentation (`docs/api/bulk-operations.md`)
+  - Template examples (included in user guide)
+  - **Completed:** Comprehensive user and API documentation
 
 - [ ] Performance optimization
   - Database query optimization
