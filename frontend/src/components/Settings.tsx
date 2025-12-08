@@ -6,10 +6,11 @@ import GoogleWorkspaceWizard from './modules/GoogleWorkspaceWizard';
 import { ApiKeyList } from './integrations/ApiKeyList';
 import { ApiKeyWizard } from './integrations/ApiKeyWizard';
 import { ApiKeyShowOnce } from './integrations/ApiKeyShowOnce';
+import { MasterDataSection } from './settings/MasterDataSection';
 import SecurityEvents from '../pages/SecurityEvents';
 import AuditLogs from '../pages/AuditLogs';
 import { useTabPersistence } from '../hooks/useTabPersistence';
-import { Package, Building2, Shield, Lock, Palette, Settings as SettingsIcon, Key, Search as SearchIcon, RefreshCw, BarChart3, Info, ShieldAlert, Activity, MoreVertical, Power } from 'lucide-react';
+import { Package, Building2, Shield, Lock, Palette, Settings as SettingsIcon, Key, Search as SearchIcon, RefreshCw, BarChart3, Info, ShieldAlert, Activity, MoreVertical, Power, Database } from 'lucide-react';
 
 interface SettingsProps {
   organizationName: string;
@@ -29,7 +30,7 @@ interface ModuleStatus {
 }
 
 export function Settings({ organizationName, domain, organizationId, showPasswordModal: externalShowPasswordModal, onPasswordModalChange, currentUser }: SettingsProps) {
-  const [activeTab, setActiveTab] = useTabPersistence<'modules' | 'organization' | 'roles' | 'security' | 'customization' | 'integrations' | 'advanced'>('helios_settings_tab', 'modules');
+  const [activeTab, setActiveTab] = useTabPersistence<'modules' | 'organization' | 'roles' | 'security' | 'customization' | 'integrations' | 'masterdata' | 'advanced'>('helios_settings_tab', 'modules');
   const [securitySubTab, setSecuritySubTab] = useState<'settings' | 'events' | 'audit'>('settings');
   const [showModuleConfig, setShowModuleConfig] = useState(false);
   const [configuringModule, setConfiguringModule] = useState<string | null>(null);
@@ -133,6 +134,13 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
             >
               <Key className="nav-icon" size={16} />
               <span>Integrations</span>
+            </button>
+            <button
+              className={`settings-nav-item ${activeTab === 'masterdata' ? 'active' : ''}`}
+              onClick={() => setActiveTab('masterdata')}
+            >
+              <Database className="nav-icon" size={16} />
+              <span>Master Data</span>
             </button>
             <button
               className={`settings-nav-item ${activeTab === 'advanced' ? 'active' : ''}`}
@@ -593,6 +601,10 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                 />
               </div>
             </div>
+          )}
+
+          {activeTab === 'masterdata' && (
+            <MasterDataSection organizationId={organizationId} />
           )}
 
           {activeTab === 'advanced' && (
