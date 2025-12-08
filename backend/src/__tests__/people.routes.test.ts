@@ -417,6 +417,17 @@ describe('Privacy Filtering - GET /api/people/:id', () => {
         rows: [{ id: testTargetUserId }],
       });
 
+      // Mock manager info query (because reporting_manager_id exists)
+      mockQuery.mockResolvedValueOnce({
+        rows: [{
+          id: viewerId,
+          first_name: 'Manager',
+          last_name: 'User',
+          email: 'manager@example.com',
+          job_title: 'Manager',
+        }],
+      });
+
       // Mock fun facts (visible to manager)
       mockQuery.mockResolvedValueOnce({
         rows: [{ id: 'fact1', emoji: '🎉', content: 'Fun fact' }],
@@ -480,6 +491,17 @@ describe('Privacy Filtering - GET /api/people/:id', () => {
       // Mock team check - they share a manager
       mockQuery.mockResolvedValueOnce({
         rows: [{ id: 1 }], // Has result = same team
+      });
+
+      // Mock manager info query (because reporting_manager_id exists)
+      mockQuery.mockResolvedValueOnce({
+        rows: [{
+          id: sharedManagerId,
+          first_name: 'Shared',
+          last_name: 'Manager',
+          email: 'shared.manager@example.com',
+          job_title: 'Team Lead',
+        }],
       });
 
       // Mock fun facts
