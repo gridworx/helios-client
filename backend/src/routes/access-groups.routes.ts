@@ -4,6 +4,7 @@ import { authenticateToken } from '../middleware/auth';
 import { db } from '../database/connection';
 import { googleWorkspaceService } from '../services/google-workspace.service';
 import { activityTracker } from '../services/activity-tracker.service';
+import { dynamicGroupService, DynamicGroupField, DynamicGroupOperator, RuleLogic } from '../services/dynamic-group.service';
 
 const router = Router();
 
@@ -528,6 +529,427 @@ router.delete('/:id/members/:userId', async (req: Request, res: Response): Promi
     res.status(500).json({
       success: false,
       error: 'Failed to remove member',
+      message: error.message,
+    });
+  }
+});
+
+// =====================================================
+// DYNAMIC GROUP RULES ENDPOINTS
+// =====================================================
+
+/**
+ * GET /api/organization/access-groups/:id/rules
+ * Get all rules for a dynamic group
+ */
+router.get('/:id/rules', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const organizationId = req.user?.organizationId;
+
+    // Verify group exists and belongs to org
+    const groupCheck = await db.query(
+      'SELECT id, membership_type, rule_logic FROM access_groups WHERE id = $1 AND organization_id = $2',
+      [id, organizationId]
+    );
+
+    if (groupCheck.rows.length === 0) {
+      res.status(404).json({
+        success: false,
+        error: 'Access group not found',
+      });
+      return;
+    }
+
+    const rules = await dynamicGroupService.getRules(id);
+
+    res.json({
+      success: true,
+      data: {
+        rules,
+        groupConfig: {
+          membershipType: groupCheck.rows[0].membership_type,
+          ruleLogic: groupCheck.rows[0].rule_logic
+        }
+      }
+    });
+  } catch (error: any) {
+    logger.error('Failed to get group rules', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get group rules',
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * POST /api/organization/access-groups/:id/rules
+ * Add a rule to a dynamic group
+ */
+router.post('/:id/rules', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const organizationId = req.user?.organizationId;
+    const userId = req.user?.userId;
+    const { field, operator, value, caseSensitive, includeNested } = req.body;
+
+    // Validate required fields
+    if (!field || !operator || value === undefined) {
+      res.status(400).json({
+        success: false,
+        error: 'Missing required fields: field, operator, value',
+      });
+      return;
+    }
+
+    // Verify group exists and belongs to org
+    const groupCheck = await db.query(
+      'SELECT id, name FROM access_groups WHERE id = $1 AND organization_id = $2',
+      [id, organizationId]
+    );
+
+    if (groupCheck.rows.length === 0) {
+      res.status(404).json({
+        success: false,
+        error: 'Access group not found',
+      });
+      return;
+    }
+
+    const rule = await dynamicGroupService.addRule(
+      id,
+      {
+        field: field as DynamicGroupField,
+        operator: operator as DynamicGroupOperator,
+        value,
+        caseSensitive,
+        includeNested
+      },
+      userId
+    );
+
+    // Track activity
+    await activityTracker.trackGroupChange(
+      organizationId,
+      id,
+      userId!,
+      req.user?.email!,
+      'rule_added',
+      {
+        groupName: groupCheck.rows[0].name,
+        ruleId: rule.id,
+        field,
+        operator
+      }
+    );
+
+    res.status(201).json({
+      success: true,
+      data: rule,
+      message: 'Rule added successfully',
+    });
+  } catch (error: any) {
+    logger.error('Failed to add group rule', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to add rule',
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * PUT /api/organization/access-groups/:id/rules/:ruleId
+ * Update a rule
+ */
+router.put('/:id/rules/:ruleId', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id, ruleId } = req.params;
+    const organizationId = req.user?.organizationId;
+    const { field, operator, value, caseSensitive, includeNested, sortOrder } = req.body;
+
+    // Verify group exists and belongs to org
+    const groupCheck = await db.query(
+      'SELECT id FROM access_groups WHERE id = $1 AND organization_id = $2',
+      [id, organizationId]
+    );
+
+    if (groupCheck.rows.length === 0) {
+      res.status(404).json({
+        success: false,
+        error: 'Access group not found',
+      });
+      return;
+    }
+
+    // Verify rule belongs to this group
+    const ruleCheck = await db.query(
+      'SELECT id FROM dynamic_group_rules WHERE id = $1 AND access_group_id = $2',
+      [ruleId, id]
+    );
+
+    if (ruleCheck.rows.length === 0) {
+      res.status(404).json({
+        success: false,
+        error: 'Rule not found',
+      });
+      return;
+    }
+
+    const updatedRule = await dynamicGroupService.updateRule(ruleId, {
+      field,
+      operator,
+      value,
+      caseSensitive,
+      includeNested,
+      sortOrder
+    });
+
+    res.json({
+      success: true,
+      data: updatedRule,
+      message: 'Rule updated successfully',
+    });
+  } catch (error: any) {
+    logger.error('Failed to update group rule', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update rule',
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * DELETE /api/organization/access-groups/:id/rules/:ruleId
+ * Delete a rule
+ */
+router.delete('/:id/rules/:ruleId', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id, ruleId } = req.params;
+    const organizationId = req.user?.organizationId;
+    const userId = req.user?.userId;
+
+    // Verify group exists and belongs to org
+    const groupCheck = await db.query(
+      'SELECT id, name FROM access_groups WHERE id = $1 AND organization_id = $2',
+      [id, organizationId]
+    );
+
+    if (groupCheck.rows.length === 0) {
+      res.status(404).json({
+        success: false,
+        error: 'Access group not found',
+      });
+      return;
+    }
+
+    const deleted = await dynamicGroupService.deleteRule(ruleId);
+
+    if (!deleted) {
+      res.status(404).json({
+        success: false,
+        error: 'Rule not found',
+      });
+      return;
+    }
+
+    // Track activity
+    await activityTracker.trackGroupChange(
+      organizationId,
+      id,
+      userId!,
+      req.user?.email!,
+      'rule_deleted',
+      {
+        groupName: groupCheck.rows[0].name,
+        ruleId
+      }
+    );
+
+    res.json({
+      success: true,
+      message: 'Rule deleted successfully',
+    });
+  } catch (error: any) {
+    logger.error('Failed to delete group rule', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete rule',
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * POST /api/organization/access-groups/:id/evaluate
+ * Evaluate rules and return matching users (preview)
+ */
+router.post('/:id/evaluate', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const organizationId = req.user?.organizationId;
+    const { returnUsers, limit } = req.body;
+
+    // Verify group exists and belongs to org
+    const groupCheck = await db.query(
+      'SELECT id FROM access_groups WHERE id = $1 AND organization_id = $2',
+      [id, organizationId]
+    );
+
+    if (groupCheck.rows.length === 0) {
+      res.status(404).json({
+        success: false,
+        error: 'Access group not found',
+      });
+      return;
+    }
+
+    const result = await dynamicGroupService.evaluateRules(id, {
+      returnUsers: returnUsers ?? true,
+      limit: limit ?? 50
+    });
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    logger.error('Failed to evaluate group rules', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to evaluate rules',
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * POST /api/organization/access-groups/:id/apply-rules
+ * Apply rules and update group membership
+ */
+router.post('/:id/apply-rules', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const organizationId = req.user?.organizationId;
+    const userId = req.user?.userId;
+
+    // Verify group exists and belongs to org
+    const groupCheck = await db.query(
+      'SELECT id, name, membership_type FROM access_groups WHERE id = $1 AND organization_id = $2',
+      [id, organizationId]
+    );
+
+    if (groupCheck.rows.length === 0) {
+      res.status(404).json({
+        success: false,
+        error: 'Access group not found',
+      });
+      return;
+    }
+
+    if (groupCheck.rows[0].membership_type !== 'dynamic') {
+      res.status(400).json({
+        success: false,
+        error: 'This is not a dynamic group. Change membership type to dynamic first.',
+      });
+      return;
+    }
+
+    const result = await dynamicGroupService.applyRules(id, userId);
+
+    // Track activity
+    await activityTracker.trackGroupChange(
+      organizationId,
+      id,
+      userId!,
+      req.user?.email!,
+      'rules_applied',
+      {
+        groupName: groupCheck.rows[0].name,
+        added: result.added,
+        removed: result.removed,
+        unchanged: result.unchanged
+      }
+    );
+
+    res.json({
+      success: true,
+      data: result,
+      message: `Rules applied: ${result.added} added, ${result.removed} removed, ${result.unchanged} unchanged`,
+    });
+  } catch (error: any) {
+    logger.error('Failed to apply group rules', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to apply rules',
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * PUT /api/organization/access-groups/:id/membership-type
+ * Update group membership type (static/dynamic)
+ */
+router.put('/:id/membership-type', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const organizationId = req.user?.organizationId;
+    const userId = req.user?.userId;
+    const { membershipType, ruleLogic, refreshInterval } = req.body;
+
+    if (!membershipType || !['static', 'dynamic'].includes(membershipType)) {
+      res.status(400).json({
+        success: false,
+        error: 'Invalid membership type. Must be "static" or "dynamic".',
+      });
+      return;
+    }
+
+    // Verify group exists and belongs to org
+    const groupCheck = await db.query(
+      'SELECT id, name, membership_type FROM access_groups WHERE id = $1 AND organization_id = $2',
+      [id, organizationId]
+    );
+
+    if (groupCheck.rows.length === 0) {
+      res.status(404).json({
+        success: false,
+        error: 'Access group not found',
+      });
+      return;
+    }
+
+    await dynamicGroupService.setMembershipType(id, membershipType, {
+      ruleLogic: ruleLogic as RuleLogic,
+      refreshInterval
+    });
+
+    // Track activity
+    await activityTracker.trackGroupChange(
+      organizationId,
+      id,
+      userId!,
+      req.user?.email!,
+      'membership_type_changed',
+      {
+        groupName: groupCheck.rows[0].name,
+        from: groupCheck.rows[0].membership_type,
+        to: membershipType
+      }
+    );
+
+    res.json({
+      success: true,
+      message: `Group membership type changed to ${membershipType}`,
+    });
+  } catch (error: any) {
+    logger.error('Failed to update membership type', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update membership type',
       message: error.message,
     });
   }

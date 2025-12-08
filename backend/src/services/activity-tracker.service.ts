@@ -183,7 +183,7 @@ class ActivityTrackerService {
     groupId: string,
     actorId: string,
     actorEmail: string,
-    action: 'created' | 'updated' | 'deleted' | 'member_added' | 'member_removed',
+    action: 'created' | 'updated' | 'deleted' | 'member_added' | 'member_removed' | 'rule_added' | 'rule_deleted' | 'rules_applied' | 'membership_type_changed',
     metadata?: Record<string, any>
   ): Promise<void> {
     await this.track({

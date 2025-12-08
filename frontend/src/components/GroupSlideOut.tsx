@@ -1,8 +1,33 @@
 import { useState, useEffect } from 'react';
-import { X, Users, Info, Settings, Shield, Trash2, RefreshCw, UserPlus, UserMinus, Search, Check, AlertTriangle } from 'lucide-react';
+import { X, Users, Info, Settings, Shield, Trash2, RefreshCw, UserPlus, UserMinus, Search, Check, AlertTriangle, Zap, Plus, Eye } from 'lucide-react';
 import { useTabPersistence } from '../hooks/useTabPersistence';
 import { PlatformIcon } from './ui/PlatformIcon';
 import './GroupSlideOut.css';
+
+// Dynamic group types
+type DynamicGroupField = 'department' | 'location' | 'job_title' | 'reports_to' | 'org_unit_path' | 'employee_type' | 'user_type' | 'email' | 'cost_center';
+type DynamicGroupOperator = 'equals' | 'not_equals' | 'contains' | 'not_contains' | 'starts_with' | 'ends_with' | 'in_list' | 'is_empty' | 'is_not_empty' | 'is_under';
+type RuleLogic = 'AND' | 'OR';
+
+interface DynamicGroupRule {
+  id: string;
+  accessGroupId: string;
+  field: DynamicGroupField;
+  operator: DynamicGroupOperator;
+  value: string;
+  caseSensitive: boolean;
+  includeNested: boolean;
+  sortOrder: number;
+}
+
+interface MatchingUser {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  department?: string;
+  jobTitle?: string;
+}
 
 interface GroupMember {
   id: string;
@@ -23,6 +48,10 @@ interface Group {
   email: string | null;
   platform: string;
   group_type: string;
+  membership_type?: 'static' | 'dynamic';
+  rule_logic?: RuleLogic;
+  refresh_interval?: number;
+  last_rule_evaluation?: string | null;
   external_id: string | null;
   external_url: string | null;
   allow_external_members: boolean;
@@ -42,7 +71,33 @@ interface GroupSlideOutProps {
   onGroupUpdated?: () => void;
 }
 
-type TabType = 'overview' | 'members' | 'sync' | 'settings' | 'danger';
+type TabType = 'overview' | 'members' | 'rules' | 'sync' | 'settings' | 'danger';
+
+// Field and operator options for rule builder
+const FIELD_OPTIONS: { value: DynamicGroupField; label: string }[] = [
+  { value: 'department', label: 'Department' },
+  { value: 'location', label: 'Location' },
+  { value: 'job_title', label: 'Job Title' },
+  { value: 'reports_to', label: 'Reports To' },
+  { value: 'org_unit_path', label: 'Org Unit Path' },
+  { value: 'employee_type', label: 'Employee Type' },
+  { value: 'user_type', label: 'User Type' },
+  { value: 'email', label: 'Email' },
+  { value: 'cost_center', label: 'Cost Center' }
+];
+
+const OPERATOR_OPTIONS: { value: DynamicGroupOperator; label: string }[] = [
+  { value: 'equals', label: 'Equals' },
+  { value: 'not_equals', label: 'Does not equal' },
+  { value: 'contains', label: 'Contains' },
+  { value: 'not_contains', label: 'Does not contain' },
+  { value: 'starts_with', label: 'Starts with' },
+  { value: 'ends_with', label: 'Ends with' },
+  { value: 'in_list', label: 'Is in list' },
+  { value: 'is_empty', label: 'Is empty' },
+  { value: 'is_not_empty', label: 'Is not empty' },
+  { value: 'is_under', label: 'Is under (hierarchy)' }
+];
 
 export function GroupSlideOut({ groupId, organizationId: _organizationId, onClose, onGroupUpdated }: GroupSlideOutProps) {
   const [activeTab, setActiveTab] = useTabPersistence<TabType>('helios_group_slideout_tab', 'overview');
@@ -67,9 +122,31 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Dynamic group rules state
+  const [rules, setRules] = useState<DynamicGroupRule[]>([]);
+  const [ruleLogic, setRuleLogic] = useState<RuleLogic>('AND');
+  const [rulesLoading, setRulesLoading] = useState(false);
+  const [isAddingRule, setIsAddingRule] = useState(false);
+  const [newRule, setNewRule] = useState<{ field: DynamicGroupField; operator: DynamicGroupOperator; value: string }>({
+    field: 'department',
+    operator: 'equals',
+    value: ''
+  });
+  const [previewResult, setPreviewResult] = useState<{ count: number; users: MatchingUser[] } | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [isApplyingRules, setIsApplyingRules] = useState(false);
+  const [isMembershipTypeChanging, setIsMembershipTypeChanging] = useState(false);
+
   useEffect(() => {
     fetchGroupDetails();
   }, [groupId]);
+
+  // Fetch rules when switching to rules tab or when group membership type is dynamic
+  useEffect(() => {
+    if (group?.membership_type === 'dynamic' || activeTab === 'rules') {
+      fetchRules();
+    }
+  }, [group?.membership_type, activeTab, groupId]);
 
   const fetchGroupDetails = async () => {
     setLoading(true);
@@ -267,6 +344,203 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
     }
   };
 
+  // =====================================================
+  // DYNAMIC GROUPS FUNCTIONS
+  // =====================================================
+
+  const fetchRules = async () => {
+    if (rulesLoading) return;
+    setRulesLoading(true);
+    try {
+      const token = localStorage.getItem('helios_token');
+      const response = await fetch(
+        `http://localhost:3001/api/organization/access-groups/${groupId}/rules`,
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setRules(data.data.rules || []);
+          if (data.data.groupConfig?.ruleLogic) {
+            setRuleLogic(data.data.groupConfig.ruleLogic);
+          }
+        }
+      }
+    } catch (err: any) {
+      console.error('Failed to fetch rules:', err);
+    } finally {
+      setRulesLoading(false);
+    }
+  };
+
+  const handleAddRule = async () => {
+    if (!newRule.value && !['is_empty', 'is_not_empty'].includes(newRule.operator)) {
+      alert('Please enter a value for the rule');
+      return;
+    }
+
+    setIsAddingRule(true);
+    try {
+      const token = localStorage.getItem('helios_token');
+      const response = await fetch(
+        `http://localhost:3001/api/organization/access-groups/${groupId}/rules`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(newRule)
+        }
+      );
+
+      const data = await response.json();
+      if (data.success) {
+        await fetchRules();
+        setNewRule({ field: 'department', operator: 'equals', value: '' });
+        setPreviewResult(null);
+      } else {
+        throw new Error(data.error || 'Failed to add rule');
+      }
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setIsAddingRule(false);
+    }
+  };
+
+  const handleDeleteRule = async (ruleId: string) => {
+    if (!confirm('Delete this rule?')) return;
+
+    try {
+      const token = localStorage.getItem('helios_token');
+      const response = await fetch(
+        `http://localhost:3001/api/organization/access-groups/${groupId}/rules/${ruleId}`,
+        {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+
+      const data = await response.json();
+      if (data.success) {
+        await fetchRules();
+        setPreviewResult(null);
+      } else {
+        throw new Error(data.error || 'Failed to delete rule');
+      }
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    }
+  };
+
+  const handlePreviewRules = async () => {
+    setIsPreviewLoading(true);
+    try {
+      const token = localStorage.getItem('helios_token');
+      const response = await fetch(
+        `http://localhost:3001/api/organization/access-groups/${groupId}/evaluate`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ returnUsers: true, limit: 10 })
+        }
+      );
+
+      const data = await response.json();
+      if (data.success) {
+        setPreviewResult({
+          count: data.data.matchingUserCount,
+          users: data.data.matchingUsers || []
+        });
+      } else {
+        throw new Error(data.error || 'Failed to evaluate rules');
+      }
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setIsPreviewLoading(false);
+    }
+  };
+
+  const handleApplyRules = async () => {
+    if (!confirm('Apply these rules? This will update group membership based on the rules.')) return;
+
+    setIsApplyingRules(true);
+    try {
+      const token = localStorage.getItem('helios_token');
+      const response = await fetch(
+        `http://localhost:3001/api/organization/access-groups/${groupId}/apply-rules`,
+        {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+
+      const data = await response.json();
+      if (data.success) {
+        alert(`Rules applied: ${data.data.added} added, ${data.data.removed} removed`);
+        await fetchGroupDetails();
+        onGroupUpdated?.();
+      } else {
+        throw new Error(data.error || 'Failed to apply rules');
+      }
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setIsApplyingRules(false);
+    }
+  };
+
+  const handleToggleMembershipType = async () => {
+    const newType = group?.membership_type === 'dynamic' ? 'static' : 'dynamic';
+    const confirmMsg = newType === 'dynamic'
+      ? 'Convert to dynamic group? You will be able to set membership rules.'
+      : 'Convert to static group? Existing members will be kept but rules will no longer apply.';
+
+    if (!confirm(confirmMsg)) return;
+
+    setIsMembershipTypeChanging(true);
+    try {
+      const token = localStorage.getItem('helios_token');
+      const response = await fetch(
+        `http://localhost:3001/api/organization/access-groups/${groupId}/membership-type`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            membershipType: newType,
+            ruleLogic: 'AND',
+            refreshInterval: 0
+          })
+        }
+      );
+
+      const data = await response.json();
+      if (data.success) {
+        await fetchGroupDetails();
+        if (newType === 'dynamic') {
+          setActiveTab('rules');
+        }
+      } else {
+        throw new Error(data.error || 'Failed to update membership type');
+      }
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setIsMembershipTypeChanging(false);
+    }
+  };
+
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Never';
     return new Date(dateString).toLocaleDateString(undefined, {
@@ -366,6 +640,15 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
             <Users size={18} className="tab-icon" />
             <span className="tab-label">Members</span>
           </button>
+          {(group.membership_type === 'dynamic' || group.platform === 'manual') && (
+            <button
+              className={`slideout-tab ${activeTab === 'rules' ? 'active' : ''}`}
+              onClick={() => setActiveTab('rules')}
+            >
+              <Zap size={18} className="tab-icon" />
+              <span className="tab-label">Rules</span>
+            </button>
+          )}
           <button
             className={`slideout-tab ${activeTab === 'sync' ? 'active' : ''}`}
             onClick={() => setActiveTab('sync')}
@@ -536,6 +819,194 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
                     </div>
                   ))}
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* Rules Tab */}
+          {activeTab === 'rules' && (
+            <div className="tab-content">
+              <div className="tab-header">
+                <h3>Membership Rules</h3>
+                <div className="edit-actions">
+                  <button
+                    className={`btn-sm ${group.membership_type === 'dynamic' ? 'btn-secondary' : 'btn-primary'}`}
+                    onClick={handleToggleMembershipType}
+                    disabled={isMembershipTypeChanging}
+                  >
+                    <Zap size={14} />
+                    {isMembershipTypeChanging ? 'Updating...' : (
+                      group.membership_type === 'dynamic' ? 'Convert to Static' : 'Enable Dynamic'
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {group.membership_type !== 'dynamic' ? (
+                <div className="empty-state">
+                  <Zap size={48} strokeWidth={1.5} />
+                  <h4>Static Group</h4>
+                  <p>This group uses manual membership. Enable dynamic mode to automatically add members based on rules.</p>
+                  <button
+                    className="btn-primary"
+                    onClick={handleToggleMembershipType}
+                    disabled={isMembershipTypeChanging}
+                  >
+                    <Zap size={14} />
+                    Enable Dynamic Membership
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* Rule Logic Selector */}
+                  <div className="rule-logic-section">
+                    <label>Match:</label>
+                    <div className="rule-logic-options">
+                      <label className={`radio-option ${ruleLogic === 'AND' ? 'selected' : ''}`}>
+                        <input
+                          type="radio"
+                          name="ruleLogic"
+                          checked={ruleLogic === 'AND'}
+                          onChange={() => setRuleLogic('AND')}
+                        />
+                        <span>All rules (AND)</span>
+                      </label>
+                      <label className={`radio-option ${ruleLogic === 'OR' ? 'selected' : ''}`}>
+                        <input
+                          type="radio"
+                          name="ruleLogic"
+                          checked={ruleLogic === 'OR'}
+                          onChange={() => setRuleLogic('OR')}
+                        />
+                        <span>Any rule (OR)</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Current Rules */}
+                  <div className="rules-section">
+                    <div className="section-header">
+                      <h4>Current Rules ({rules.length})</h4>
+                    </div>
+
+                    {rulesLoading ? (
+                      <div className="rules-loading">Loading rules...</div>
+                    ) : rules.length === 0 ? (
+                      <div className="rules-empty">
+                        <p>No rules defined. Add a rule below to automatically include users.</p>
+                      </div>
+                    ) : (
+                      <div className="rules-list">
+                        {rules.map((rule, index) => (
+                          <div key={rule.id} className="rule-item">
+                            <div className="rule-number">{index + 1}</div>
+                            <div className="rule-content">
+                              <span className="rule-field">
+                                {FIELD_OPTIONS.find(f => f.value === rule.field)?.label || rule.field}
+                              </span>
+                              <span className="rule-operator">
+                                {OPERATOR_OPTIONS.find(o => o.value === rule.operator)?.label || rule.operator}
+                              </span>
+                              <span className="rule-value">"{rule.value}"</span>
+                            </div>
+                            <button
+                              className="btn-icon danger"
+                              title="Delete rule"
+                              onClick={() => handleDeleteRule(rule.id)}
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Add New Rule */}
+                  <div className="add-rule-section">
+                    <h4>Add Rule</h4>
+                    <div className="add-rule-form">
+                      <select
+                        value={newRule.field}
+                        onChange={(e) => setNewRule({ ...newRule, field: e.target.value as DynamicGroupField })}
+                        className="rule-select"
+                      >
+                        {FIELD_OPTIONS.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={newRule.operator}
+                        onChange={(e) => setNewRule({ ...newRule, operator: e.target.value as DynamicGroupOperator })}
+                        className="rule-select"
+                      >
+                        {OPERATOR_OPTIONS.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                      {!['is_empty', 'is_not_empty'].includes(newRule.operator) && (
+                        <input
+                          type="text"
+                          value={newRule.value}
+                          onChange={(e) => setNewRule({ ...newRule, value: e.target.value })}
+                          placeholder="Value..."
+                          className="rule-input"
+                        />
+                      )}
+                      <button
+                        className="btn-primary btn-sm"
+                        onClick={handleAddRule}
+                        disabled={isAddingRule}
+                      >
+                        <Plus size={14} />
+                        {isAddingRule ? 'Adding...' : 'Add'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Preview & Apply */}
+                  <div className="rules-actions">
+                    <button
+                      className="btn-secondary"
+                      onClick={handlePreviewRules}
+                      disabled={isPreviewLoading || rules.length === 0}
+                    >
+                      <Eye size={14} />
+                      {isPreviewLoading ? 'Evaluating...' : 'Preview'}
+                    </button>
+                    <button
+                      className="btn-primary"
+                      onClick={handleApplyRules}
+                      disabled={isApplyingRules || rules.length === 0}
+                    >
+                      <Check size={14} />
+                      {isApplyingRules ? 'Applying...' : 'Apply Rules'}
+                    </button>
+                  </div>
+
+                  {/* Preview Results */}
+                  {previewResult && (
+                    <div className="preview-results">
+                      <h4>Preview: {previewResult.count} users match</h4>
+                      {previewResult.users.length > 0 && (
+                        <div className="preview-users">
+                          {previewResult.users.map(user => (
+                            <div key={user.id} className="preview-user">
+                              <span className="preview-user-name">{user.firstName} {user.lastName}</span>
+                              <span className="preview-user-email">{user.email}</span>
+                              {user.department && <span className="preview-user-dept">{user.department}</span>}
+                            </div>
+                          ))}
+                          {previewResult.count > previewResult.users.length && (
+                            <div className="preview-more">
+                              + {previewResult.count - previewResult.users.length} more users
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
