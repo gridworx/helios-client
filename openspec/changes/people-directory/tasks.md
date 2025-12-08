@@ -65,43 +65,56 @@
 
 ### Backend Tasks
 
-- [ ] **TASK-PD-011**: Create /api/people endpoints
+- [x] **TASK-PD-011**: Create /api/people endpoints
   - GET /api/people - list with pagination, filtering
   - GET /api/people/:id - view profile
   - GET /api/people/search - search by name, skills
   - GET /api/people/new - recently joined
+  - GET /api/people/filters - get department/location filter options
+  - GET /api/people/by-skill/:topic - find people by expertise
   - File: `backend/src/routes/people.routes.ts`
+  - **Completed:** Full People API with pagination, search, and filtering
 
-- [ ] **TASK-PD-012**: Implement privacy filtering in people API
+- [x] **TASK-PD-012**: Implement privacy filtering in people API
   - Check visibility settings per field
-  - Filter response based on viewer's relationship
+  - Filter response based on viewer's relationship (self, manager, team, other)
   - File: `backend/src/services/people.service.ts`
+  - **Completed:** Privacy-aware profile fetching with relationship checks
 
 ### Frontend Tasks
 
-- [ ] **TASK-PD-013**: Create People directory page
+- [x] **TASK-PD-013**: Create People directory page
   - Grid/list view toggle
-  - Search bar
+  - Search bar with debounce
   - Department/location filters
+  - Sort by name, department, or start date
+  - Load more pagination
   - File: `frontend/src/pages/People.tsx`
+  - **Completed:** Full People directory with grid/list views and filtering
 
-- [ ] **TASK-PD-014**: Create PersonCard component
+- [x] **TASK-PD-014**: Create PersonCard component
   - Photo, name, title, department
   - Media indicators (has video/audio)
-  - Skills/interests tags (truncated)
+  - Expertise/interests counts
+  - New joiner badge
+  - Grid and list view variants
   - File: `frontend/src/components/PersonCard.tsx`
+  - **Completed:** Responsive card component with media indicators
 
-- [ ] **TASK-PD-015**: Create PersonProfile page
-  - Full profile view for viewing coworkers
-  - Media playback
+- [x] **TASK-PD-015**: Create PersonProfile page
+  - Full profile view via slide-out panel
+  - Media playback (voice intro, name pronunciation)
   - Contact information (based on privacy)
-  - File: `frontend/src/pages/PersonProfile.tsx`
+  - Manager info, expertise topics, interests, fun facts
+  - File: `frontend/src/components/PersonSlideOut.tsx`
+  - **Completed:** PersonSlideOut with Overview and About tabs
 
-- [ ] **TASK-PD-016**: Create NewJoiners section
+- [x] **TASK-PD-016**: Create NewJoiners section
   - Filter people by start date (last 30 days)
-  - Highlight on directory page
-  - Optional "wave" action
-  - File: `frontend/src/components/NewJoiners.tsx`
+  - Highlight on directory page with sparkle badge
+  - Integrated into People page header
+  - File: `frontend/src/pages/People.tsx` (integrated)
+  - **Completed:** New Joiners section shows at top of directory
 
 ## Phase 3: Rich Media
 

@@ -23,6 +23,7 @@ import Signatures from './pages/Signatures'
 import AuditLogs from './pages/AuditLogs'
 import { DeveloperConsole } from './pages/DeveloperConsole'
 import { MyProfile } from './pages/MyProfile'
+import { People } from './pages/People'
 import { LabelsProvider, useLabels } from './contexts/LabelsContext'
 import { ENTITIES } from './config/entities'
 import { getWidgetData } from './utils/widget-data'
@@ -601,6 +602,16 @@ function AppContent() {
                 <span>{labels[ENTITIES.USER]?.plural || 'Users'}</span>
               </button>
 
+              {/* People Directory - User-facing directory */}
+              <button
+                className={`nav-item ${currentPage === 'people' ? 'active' : ''}`}
+                onClick={() => setCurrentPage('people')}
+                data-testid="nav-people"
+              >
+                <UsersRound size={16} className="nav-icon" />
+                <span>People</span>
+              </button>
+
               {/* Access Groups - Only if GWS or M365 enabled */}
               {isEntityAvailable(ENTITIES.ACCESS_GROUP) && (
                 <button
@@ -979,7 +990,11 @@ function AppContent() {
             <MyProfile organizationId={config?.organizationId || ''} />
           )}
 
-          {currentPage !== 'dashboard' && currentPage !== 'settings' && currentPage !== 'users' && currentPage !== 'groups' && currentPage !== 'workspaces' && currentPage !== 'orgUnits' && currentPage !== 'assets' && currentPage !== 'email-security' && currentPage !== 'security-events' && currentPage !== 'audit-logs' && currentPage !== 'console' && currentPage !== 'administrators' && currentPage !== 'my-profile' && (
+          {currentPage === 'people' && (
+            <People organizationId={config?.organizationId || ''} />
+          )}
+
+          {currentPage !== 'dashboard' && currentPage !== 'settings' && currentPage !== 'users' && currentPage !== 'groups' && currentPage !== 'workspaces' && currentPage !== 'orgUnits' && currentPage !== 'assets' && currentPage !== 'email-security' && currentPage !== 'security-events' && currentPage !== 'audit-logs' && currentPage !== 'console' && currentPage !== 'administrators' && currentPage !== 'my-profile' && currentPage !== 'people' && (
             <div className="page-placeholder">
               <div className="placeholder-content">
                 <div className="placeholder-icon">🚧</div>
