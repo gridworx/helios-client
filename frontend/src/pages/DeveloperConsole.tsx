@@ -451,10 +451,10 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
           password: password
         });
 
-        addOutput('success', `✅ Password reset for ${email}`);
+        addOutput('success', `[OK]Password reset for ${email}`);
         if (!params.password) {
-          addOutput('info', `🔑 Generated password: ${password}`);
-          addOutput('info', '💡 User will be prompted to change on first login');
+          addOutput('info', `[KEY]Generated password: ${password}`);
+          addOutput('info', '[INFO]User will be prompted to change on first login');
         }
         break;
       }
@@ -472,7 +472,7 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
           alias: alias
         });
 
-        addOutput('success', `✅ Added alias ${alias} to ${email}`);
+        addOutput('success', `[OK]Added alias ${alias} to ${email}`);
         break;
       }
 
@@ -486,7 +486,7 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
 
         await apiRequest('DELETE', `/api/google/admin/directory/v1/users/${email}/aliases/${alias}`);
 
-        addOutput('success', `✅ Removed alias ${alias} from ${email}`);
+        addOutput('success', `[OK]Removed alias ${alias} from ${email}`);
         break;
       }
 
@@ -501,8 +501,8 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
           status: true
         });
 
-        addOutput('success', `✅ Granted super admin privileges to ${email}`);
-        addOutput('info', '⚠️  User now has full administrative access to the organization');
+        addOutput('success', `[OK]Granted super admin privileges to ${email}`);
+        addOutput('info', '[WARN]User now has full administrative access to the organization');
         break;
       }
 
@@ -852,20 +852,20 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
         if (args.length < 2) {
           addOutput('error', 'Usage: gw drive transfer-ownership <from-email> <to-email>');
           addOutput('info', 'Transfers all Drive files from one user to another');
-          addOutput('info', '⚠️  This operation may take several minutes for large file collections');
+          addOutput('info', '[WARN]This operation may take several minutes for large file collections');
           return;
         }
         const fromEmail = args[0];
         const toEmail = args[1];
 
-        addOutput('info', `🔄 Initiating Drive ownership transfer...`);
+        addOutput('info', `[SYNC]Initiating Drive ownership transfer...`);
         addOutput('info', `   From: ${fromEmail}`);
         addOutput('info', `   To: ${toEmail}`);
         addOutput('info', '');
 
         try {
           // Step 1: Get all files owned by fromEmail
-          addOutput('info', '📂 Step 1/2: Finding files...');
+          addOutput('info', '[STEP]Step 1/2: Finding files...');
           const files = await apiRequest('GET', '/api/google/drive/v3/files', {
             q: `'${fromEmail}' in owners and trashed=false`,
             fields: 'files(id,name,owners)',
@@ -873,7 +873,7 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
           });
 
           if (!files.files || files.files.length === 0) {
-            addOutput('info', `✅ No files found owned by ${fromEmail}`);
+            addOutput('info', `[OK]No files found owned by ${fromEmail}`);
             return;
           }
 
@@ -881,7 +881,7 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
           addOutput('info', '');
 
           // Step 2: Transfer each file
-          addOutput('info', `📤 Step 2/2: Transferring ownership...`);
+          addOutput('info', `[STEP]Step 2/2: Transferring ownership...`);
           let transferred = 0;
           let errors = 0;
 
@@ -905,7 +905,7 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
           }
 
           addOutput('info', '');
-          addOutput('success', `✅ Transfer complete!`);
+          addOutput('success', `[OK]Transfer complete!`);
           addOutput('success', `   Transferred: ${transferred} files`);
           if (errors > 0) {
             addOutput('error', `   Errors: ${errors} files (check permissions)`);
@@ -941,7 +941,7 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
           name: params.name
         });
 
-        addOutput('success', `✅ Created shared drive: ${params.name}`);
+        addOutput('success', `[OK]Created shared drive: ${params.name}`);
         addOutput('info', `   Drive ID: ${data.id}`);
         break;
       }
@@ -995,7 +995,7 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
           supportsAllDrives: true
         });
 
-        addOutput('success', `✅ Added ${email} to shared drive as ${role}`);
+        addOutput('success', `[OK]Added ${email} to shared drive as ${role}`);
         break;
       }
 
@@ -1030,14 +1030,14 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
       case 'delete': {
         if (args.length === 0) {
           addOutput('error', 'Usage: gw shared-drives delete <drive-id>');
-          addOutput('info', '⚠️  This will permanently delete the shared drive and all its contents');
+          addOutput('info', '[WARN]This will permanently delete the shared drive and all its contents');
           return;
         }
         const driveId = args[0];
 
         await apiRequest('DELETE', `/api/google/drive/v3/drives/${driveId}`);
-        addOutput('success', `✅ Shared drive deleted: ${driveId}`);
-        addOutput('info', '⚠️  All files in the shared drive have been permanently deleted');
+        addOutput('success', `[OK]Shared drive deleted: ${driveId}`);
+        addOutput('info', '[WARN]All files in the shared drive have been permanently deleted');
         break;
       }
 
@@ -1181,7 +1181,7 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
         if (params.lastName) body.surname = params.lastName;
 
         await apiRequest('POST', '/api/microsoft/graph/v1.0/users', body);
-        addOutput('success', `✅ User created: ${email}`);
+        addOutput('success', `[OK]User created: ${email}`);
         break;
       }
 
@@ -1203,7 +1203,7 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
         if (params.mobilePhone) body.mobilePhone = params.mobilePhone;
 
         await apiRequest('PATCH', `/api/microsoft/graph/v1.0/users/${email}`, body);
-        addOutput('success', `✅ User updated: ${email}`);
+        addOutput('success', `[OK]User updated: ${email}`);
         break;
       }
 
@@ -1214,7 +1214,7 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
         }
         const email = args[0];
         await apiRequest('DELETE', `/api/microsoft/graph/v1.0/users/${email}`);
-        addOutput('success', `✅ User deleted: ${email}`);
+        addOutput('success', `[OK]User deleted: ${email}`);
         break;
       }
 
@@ -1246,12 +1246,12 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
           }
         });
 
-        addOutput('success', `✅ Password reset for ${email}`);
+        addOutput('success', `[OK]Password reset for ${email}`);
         if (!params.password) {
-          addOutput('info', `🔑 Generated password: ${password}`);
+          addOutput('info', `[KEY]Generated password: ${password}`);
         }
         if (forceChange) {
-          addOutput('info', '🔒 User must change password at next sign-in');
+          addOutput('info', '[LOCK]User must change password at next sign-in');
         }
         break;
       }
@@ -1263,7 +1263,7 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
         }
         const email = args[0];
         await apiRequest('PATCH', `/api/microsoft/graph/v1.0/users/${email}`, { accountEnabled: true });
-        addOutput('success', `✅ User enabled: ${email}`);
+        addOutput('success', `[OK]User enabled: ${email}`);
         break;
       }
 
@@ -1274,7 +1274,7 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
         }
         const email = args[0];
         await apiRequest('PATCH', `/api/microsoft/graph/v1.0/users/${email}`, { accountEnabled: false });
-        addOutput('success', `✅ User disabled: ${email}`);
+        addOutput('success', `[OK]User disabled: ${email}`);
         break;
       }
 
@@ -1327,7 +1327,7 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
         };
 
         await apiRequest('POST', `/api/microsoft/graph/v1.0/users/${email}/assignLicense`, body);
-        addOutput('success', `✅ License assigned to ${email}`);
+        addOutput('success', `[OK]License assigned to ${email}`);
         break;
       }
 
@@ -1345,7 +1345,7 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
         };
 
         await apiRequest('POST', `/api/microsoft/graph/v1.0/users/${email}/assignLicense`, body);
-        addOutput('success', `✅ License removed from ${email}`);
+        addOutput('success', `[OK]License removed from ${email}`);
         break;
       }
 
@@ -1417,7 +1417,7 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
         if (params.description) body.description = params.description;
 
         await apiRequest('POST', '/api/microsoft/graph/v1.0/groups', body);
-        addOutput('success', `✅ Group created: ${params.displayName}`);
+        addOutput('success', `[OK]Group created: ${params.displayName}`);
         break;
       }
 
@@ -1441,7 +1441,7 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
         };
 
         await apiRequest('POST', `/api/microsoft/graph/v1.0/groups/${groupId}/members/$ref`, body);
-        addOutput('success', `✅ Member added to group`);
+        addOutput('success', `[OK]Member added to group`);
         break;
       }
 

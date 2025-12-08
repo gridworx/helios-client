@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Laptop, Monitor, Smartphone, Printer, Server, Globe, Package, Plus, Search, FileBarChart, Eye, Pencil, Trash2, Key, HardDrive } from 'lucide-react';
 import './Pages.css';
 
 interface Asset {
@@ -59,17 +60,23 @@ export function AssetManagement({ organizationId: _organizationId }: AssetManage
   const [searchTerm, setSearchTerm] = useState('');
 
   const getTypeIcon = (type: string) => {
-    const icons: Record<string, string> = {
-      'Laptop': '💻',
-      'Monitor': '🖥️',
-      'Mobile Device': '📱',
-      'Tablet': '📱',
-      'Printer': '🖨️',
-      'Server': '🖲️',
-      'Network': '🌐',
-      'default': '📦'
-    };
-    return icons[type] || icons.default;
+    switch (type) {
+      case 'Laptop':
+        return <Laptop size={24} />;
+      case 'Monitor':
+        return <Monitor size={24} />;
+      case 'Mobile Device':
+      case 'Tablet':
+        return <Smartphone size={24} />;
+      case 'Printer':
+        return <Printer size={24} />;
+      case 'Server':
+        return <Server size={24} />;
+      case 'Network':
+        return <Globe size={24} />;
+      default:
+        return <Package size={24} />;
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -98,7 +105,7 @@ export function AssetManagement({ organizationId: _organizationId }: AssetManage
           <p>Track and manage organization devices, software, and licenses</p>
         </div>
         <button className="btn-primary">
-          ➕ Add Asset
+          <Plus size={16} /> Add Asset
         </button>
       </div>
 
@@ -107,19 +114,19 @@ export function AssetManagement({ organizationId: _organizationId }: AssetManage
           className={`tab-button ${activeView === 'devices' ? 'active' : ''}`}
           onClick={() => setActiveView('devices')}
         >
-          💻 Devices
+          <Laptop size={16} /> Devices
         </button>
         <button
           className={`tab-button ${activeView === 'software' ? 'active' : ''}`}
           onClick={() => setActiveView('software')}
         >
-          📀 Software
+          <HardDrive size={16} /> Software
         </button>
         <button
           className={`tab-button ${activeView === 'licenses' ? 'active' : ''}`}
           onClick={() => setActiveView('licenses')}
         >
-          🔑 Licenses
+          <Key size={16} /> Licenses
         </button>
       </div>
 
@@ -127,7 +134,7 @@ export function AssetManagement({ organizationId: _organizationId }: AssetManage
         <>
           <div className="page-controls">
             <div className="search-box">
-              <span className="search-icon">🔍</span>
+              <span className="search-icon"><Search size={16} /></span>
               <input
                 type="text"
                 placeholder="Search assets, serial numbers, or users..."
@@ -150,7 +157,7 @@ export function AssetManagement({ organizationId: _organizationId }: AssetManage
             </select>
 
             <button className="btn-secondary">
-              📊 Export Inventory
+              <FileBarChart size={16} /> Export Inventory
             </button>
           </div>
 
@@ -166,7 +173,7 @@ export function AssetManagement({ organizationId: _organizationId }: AssetManage
 
             {filteredAssets.length === 0 ? (
               <div className="empty-state">
-                <span className="empty-icon">📦</span>
+                <span className="empty-icon"><Package size={32} /></span>
                 <h3>No assets found</h3>
                 <p>Start by adding your organization's devices and equipment</p>
               </div>
@@ -176,13 +183,13 @@ export function AssetManagement({ organizationId: _organizationId }: AssetManage
                   <div key={asset.id} className="grid-row">
                     <div className="col-wide">
                       <div className="item-info">
-                        <div className="item-icon" style={{ fontSize: '24px' }}>
+                        <div className="item-icon">
                           {getTypeIcon(asset.type)}
                         </div>
                         <div>
                           <div className="item-name">{asset.name}</div>
                           <div className="item-description">
-                            {asset.type} • {asset.serialNumber}
+                            {asset.type} &middot; {asset.serialNumber}
                           </div>
                         </div>
                       </div>
@@ -211,9 +218,9 @@ export function AssetManagement({ organizationId: _organizationId }: AssetManage
                     </div>
                     <div className="col-small">
                       <div className="action-buttons">
-                        <button className="btn-icon" title="View details">👁️</button>
-                        <button className="btn-icon" title="Edit asset">✏️</button>
-                        <button className="btn-icon danger" title="Retire asset">🗑️</button>
+                        <button className="btn-icon" title="View details"><Eye size={16} /></button>
+                        <button className="btn-icon" title="Edit asset"><Pencil size={16} /></button>
+                        <button className="btn-icon danger" title="Retire asset"><Trash2 size={16} /></button>
                       </div>
                     </div>
                   </div>
@@ -251,7 +258,7 @@ export function AssetManagement({ organizationId: _organizationId }: AssetManage
 
       {activeView === 'software' && (
         <div className="empty-state">
-          <span className="empty-icon">📀</span>
+          <span className="empty-icon"><HardDrive size={32} /></span>
           <h3>Software Management</h3>
           <p>Track installed software, versions, and compliance across your organization</p>
           <button className="btn-primary">Coming Soon</button>
@@ -260,7 +267,7 @@ export function AssetManagement({ organizationId: _organizationId }: AssetManage
 
       {activeView === 'licenses' && (
         <div className="empty-state">
-          <span className="empty-icon">🔑</span>
+          <span className="empty-icon"><Key size={32} /></span>
           <h3>License Management</h3>
           <p>Manage software licenses, renewals, and compliance tracking</p>
           <button className="btn-primary">Coming Soon</button>

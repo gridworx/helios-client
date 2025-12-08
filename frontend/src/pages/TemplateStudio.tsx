@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTabPersistence } from '../hooks/useTabPersistence';
+import { PenLine, Mail, Globe, Puzzle, Plus, FileText, Calendar, Target, Search, RefreshCw, Star, Palette, Eye, Pencil, Copy, Trash2, Tag, X, Loader, Check } from 'lucide-react';
 import './TemplateStudio.css';
 
 interface Template {
@@ -99,25 +100,25 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
       value: 'email_signature',
       label: 'Email Signature',
       description: 'Body content only - no <html> or <body> tags needed',
-      icon: '✍️'
+      icon: <PenLine size={16} />
     },
     {
       value: 'email_template',
       label: 'Email Template',
       description: 'Full HTML email template',
-      icon: '📧'
+      icon: <Mail size={16} />
     },
     {
       value: 'public_page',
       label: 'Public Page',
       description: 'Complete webpage with <html>, <head>, <body>',
-      icon: '🌐'
+      icon: <Globe size={16} />
     },
     {
       value: 'html_snippet',
       label: 'HTML Snippet',
       description: 'Reusable HTML block for embedding',
-      icon: '🧩'
+      icon: <Puzzle size={16} />
     }
   ];
 
@@ -626,7 +627,7 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
           <p>Create and manage email signature templates and campaigns</p>
         </div>
         <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
-          ➕ Create Template
+          <Plus size={16} /> Create Template
         </button>
       </div>
 
@@ -636,19 +637,19 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
           className={`tab-button ${activeTab === 'templates' ? 'active' : ''}`}
           onClick={() => setActiveTab('templates')}
         >
-          📄 Templates ({templates.length})
+          <FileText size={16} /> Templates ({templates.length})
         </button>
         <button
           className={`tab-button ${activeTab === 'campaigns' ? 'active' : ''}`}
           onClick={() => setActiveTab('campaigns')}
         >
-          📅 Campaigns ({campaigns.length})
+          <Calendar size={16} /> Campaigns ({campaigns.length})
         </button>
         <button
           className={`tab-button ${activeTab === 'assignments' ? 'active' : ''}`}
           onClick={() => setActiveTab('assignments')}
         >
-          🎯 Assignment Rules
+          <Target size={16} /> Assignment Rules
         </button>
       </div>
 
@@ -658,7 +659,7 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
           {/* Controls */}
           <div className="page-controls">
             <div className="search-box">
-              <span className="search-icon">🔍</span>
+              <span className="search-icon"><Search size={16} /></span>
               <input
                 type="text"
                 placeholder="Search templates..."
@@ -679,14 +680,14 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
               ))}
             </select>
             <button className="btn-secondary" onClick={fetchTemplates}>
-              🔄 Refresh
+              <RefreshCw size={14} /> Refresh
             </button>
           </div>
 
           {/* Templates Grid */}
           {filteredTemplates.length === 0 ? (
             <div className="empty-state">
-              <span className="empty-icon">📄</span>
+              <span className="empty-icon"><FileText size={32} /></span>
               <h3>No templates found</h3>
               <p>
                 {searchQuery || filterCategory !== 'all'
@@ -696,7 +697,7 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
               </p>
               {!searchQuery && filterCategory === 'all' && (
                 <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
-                  ➕ Create Template
+                  <Plus size={16} /> Create Template
                 </button>
               )}
             </div>
@@ -714,14 +715,14 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
                         />
                       ) : (
                         <div className="template-thumbnail placeholder">
-                          <span className="thumbnail-icon">📄</span>
+                          <span className="thumbnail-icon"><FileText size={24} /></span>
                         </div>
                       )}
                       {template.is_default && (
-                        <span className="default-badge">⭐ Default</span>
+                        <span className="default-badge"><Star size={12} /> Default</span>
                       )}
                       {template.is_system_template && (
-                        <span className="system-badge">🎨 Pre-built</span>
+                        <span className="system-badge"><Palette size={12} /> Pre-built</span>
                       )}
                     </div>
                     <div className="template-card-body">
@@ -750,21 +751,21 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
                           setShowTemplatePreview(true);
                         }}
                       >
-                        👁️
+                        <Eye size={16} />
                       </button>
                       <button
                         className="btn-icon"
                         title="Edit template"
                         onClick={() => handleEditClick(template)}
                       >
-                        ✏️
+                        <Pencil size={16} />
                       </button>
                       <button
                         className="btn-icon"
                         title="Duplicate template"
                         onClick={() => alert('Duplicate functionality coming soon')}
                       >
-                        📋
+                        <Copy size={16} />
                       </button>
                       <button
                         className="btn-icon danger"
@@ -772,7 +773,7 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
                         onClick={() => handleDeleteTemplate(template)}
                         disabled={template.usage_count > 0}
                       >
-                        🗑️
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </div>
@@ -788,20 +789,20 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
         <>
           <div className="page-controls">
             <button className="btn-primary" onClick={() => alert('Create campaign functionality coming soon')}>
-              ➕ Create Campaign
+              <Plus size={16} /> Create Campaign
             </button>
             <button className="btn-secondary" onClick={fetchCampaigns}>
-              🔄 Refresh
+              <RefreshCw size={14} /> Refresh
             </button>
           </div>
 
           {campaigns.length === 0 ? (
             <div className="empty-state">
-              <span className="empty-icon">📅</span>
+              <span className="empty-icon"><Calendar size={32} /></span>
               <h3>No campaigns found</h3>
               <p>Create time-bound template campaigns to rollout signatures for events</p>
               <button className="btn-primary" onClick={() => alert('Create campaign functionality coming soon')}>
-                ➕ Create Campaign
+                <Plus size={16} /> Create Campaign
               </button>
             </div>
           ) : (
@@ -839,10 +840,10 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
                       </div>
                       <div className="action-buttons">
                         <button className="btn-icon" title="View campaign">
-                          👁️
+                          <Eye size={16} />
                         </button>
                         <button className="btn-icon" title="Edit campaign">
-                          ✏️
+                          <Pencil size={16} />
                         </button>
                       </div>
                     </div>
@@ -857,11 +858,11 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
       {/* Assignments Tab */}
       {activeTab === 'assignments' && (
         <div className="empty-state">
-          <span className="empty-icon">🎯</span>
+          <span className="empty-icon"><Target size={32} /></span>
           <h3>Assignment Rules</h3>
           <p>Create rules to automatically assign templates to users, groups, or departments</p>
           <button className="btn-primary" onClick={() => alert('Create assignment rule functionality coming soon')}>
-            ➕ Create Rule
+            <Plus size={16} /> Create Rule
           </button>
         </div>
       )}
@@ -873,7 +874,7 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
             <div className="modal-header">
               <h2>Create New Template</h2>
               <button className="modal-close" onClick={() => setShowCreateModal(false)}>
-                ✕
+                <X size={20} />
               </button>
             </div>
 
@@ -957,7 +958,7 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
                     onClick={() => setShowVariablePicker(!showVariablePicker)}
                     disabled={isCreating}
                   >
-                    🏷️ Insert Variable
+                    <Tag size={14} /> Insert Variable
                   </button>
                 </div>
                 {showVariablePicker && (
@@ -969,7 +970,7 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
                         className="close-picker"
                         onClick={() => setShowVariablePicker(false)}
                       >
-                        ✕
+                        <X size={14} />
                       </button>
                     </div>
                     <div className="variable-list">
@@ -1020,7 +1021,7 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
                 onClick={handleCreateTemplate}
                 disabled={isCreating || !newTemplateName || !newTemplateHtml}
               >
-                {isCreating ? '⏳ Creating...' : '✅ Create Template'}
+                {isCreating ? <><Loader size={14} className="spin" /> Creating...</> : <><Check size={14} /> Create Template</>}
               </button>
             </div>
           </div>
@@ -1034,7 +1035,7 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
             <div className="modal-header">
               <h2>Edit Template</h2>
               <button className="modal-close" onClick={() => setShowEditModal(false)}>
-                ✕
+                <X size={20} />
               </button>
             </div>
 
@@ -1118,7 +1119,7 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
                     onClick={() => setShowVariablePicker(!showVariablePicker)}
                     disabled={isCreating}
                   >
-                    🏷️ Insert Variable
+                    <Tag size={14} /> Insert Variable
                   </button>
                 </div>
                 {showVariablePicker && (
@@ -1130,7 +1131,7 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
                         className="close-picker"
                         onClick={() => setShowVariablePicker(false)}
                       >
-                        ✕
+                        <X size={14} />
                       </button>
                     </div>
                     <div className="variable-list">
@@ -1181,7 +1182,7 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
                 onClick={handleUpdateTemplate}
                 disabled={isCreating || !newTemplateName || !newTemplateHtml}
               >
-                {isCreating ? '⏳ Updating...' : '✅ Update Template'}
+                {isCreating ? <><Loader size={14} className="spin" /> Updating...</> : <><Check size={14} /> Update Template</>}
               </button>
             </div>
           </div>
@@ -1195,7 +1196,7 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
             <div className="modal-header">
               <h2>{selectedTemplate.name}</h2>
               <button className="modal-close" onClick={() => setShowTemplatePreview(false)}>
-                ✕
+                <X size={20} />
               </button>
             </div>
 
@@ -1260,7 +1261,7 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
                 setShowTemplatePreview(false);
                 handleEditClick(selectedTemplate!);
               }}>
-                ✏️ Edit Template
+                <Pencil size={14} /> Edit Template
               </button>
             </div>
           </div>

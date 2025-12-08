@@ -152,10 +152,10 @@ export function BulkOperations({ organizationId }: BulkOperationsProps) {
 
       if (result.success) {
         setValidatedData(result.data || []);
-        alert(`✅ CSV validated successfully!\n${result.meta?.validRows} rows are valid and ready to import.`);
+        alert(`CSV validated successfully!\n${result.meta?.validRows} rows are valid and ready to import.`);
       } else {
         setValidationErrors(result.errors || []);
-        alert(`❌ CSV validation failed with ${result.errors?.length} errors. Please fix and try again.`);
+        alert(`CSV validation failed with ${result.errors?.length} errors. Please fix and try again.`);
       }
     } catch (error: any) {
       alert(`Error: ${error.message}`);
@@ -207,7 +207,7 @@ export function BulkOperations({ organizationId }: BulkOperationsProps) {
       // Reload history
       await loadHistory();
 
-      alert('✅ Bulk operation completed successfully!');
+      alert('Bulk operation completed successfully!');
 
       // Reset form
       setSelectedFile(null);

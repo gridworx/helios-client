@@ -18,8 +18,8 @@
 - [x] 2.4 Directory.tsx: Replace tab emoji with Lucide icons *(Done: Users, UsersRound, Building2, Monitor)*
 - [x] 2.5 UserSlideOut.tsx: Replace tab/status emoji with Lucide icons *(Done: ClipboardList, Users, RefreshCw, BarChart3, Settings, Trash2, CheckCircle, AlertTriangle)*
 - [x] 2.6 GroupDetail.tsx: Replace all emoji with Lucide icons *(Done: UsersRound, Search, Plus, Trash2, Loader, Save, BarChart3, User)*
-- [ ] 2.7 OrgUnits.tsx: Replace emoji with Lucide icons
-- [ ] 2.8 Secondary pages (TemplateStudio, AssetManagement, etc.)
+- [x] 2.7 OrgUnits.tsx: Replace emoji with Lucide icons *(Done: Building2, MapPin, User, FolderTree, Plus, Pencil, Trash2, Check, AlertTriangle, FileEdit, Loader, RefreshCw, ChevronRight, ChevronDown)*
+- [x] 2.8 Secondary pages (TemplateStudio, AssetManagement, PublicAssets, BulkOperations, DeveloperConsole) *(Done: All pages converted to Lucide icons)*
 - [ ] 2.9 Verify no emoji in production build
 
 ### 3. Fix Table Row Heights and Spacing

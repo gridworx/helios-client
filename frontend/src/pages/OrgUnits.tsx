@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { googleWorkspaceService } from '../services/google-workspace.service';
+import { Building2, MapPin, User, FolderTree, Plus, Pencil, Trash2, Check, AlertTriangle, FileEdit, Loader, RefreshCw, ChevronRight, ChevronDown } from 'lucide-react';
 import './Pages.css';
 
 interface OrgUnit {
@@ -120,14 +121,14 @@ export function OrgUnits({ organizationId, customLabel }: OrgUnitsProps) {
     const getSyncStatusBadge = () => {
       switch (unit.syncStatus) {
         case 'synced':
-          return <span className="sync-badge synced" title="Synced with Google Workspace">✓ Synced</span>;
+          return <span className="sync-badge synced" title="Synced with Google Workspace"><Check size={12} /> Synced</span>;
         case 'modified':
-          return <span className="sync-badge modified" title="Modified locally">✏️ Modified</span>;
+          return <span className="sync-badge modified" title="Modified locally"><Pencil size={12} /> Modified</span>;
         case 'conflict':
-          return <span className="sync-badge conflict" title="Sync conflict - needs resolution">⚠️ Conflict</span>;
+          return <span className="sync-badge conflict" title="Sync conflict - needs resolution"><AlertTriangle size={12} /> Conflict</span>;
         case 'manual':
         default:
-          return <span className="sync-badge manual" title="Created manually">📝 Manual</span>;
+          return <span className="sync-badge manual" title="Created manually"><FileEdit size={12} /> Manual</span>;
       }
     };
 
@@ -140,36 +141,36 @@ export function OrgUnits({ organizationId, customLabel }: OrgUnitsProps) {
                 className="expand-button"
                 onClick={() => toggleExpand(unit.id)}
               >
-                {isExpanded ? '▼' : '▶'}
+                {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </button>
             )}
             {!hasChildren && <span className="no-expand"></span>}
-            <div className="unit-icon">🏢</div>
+            <div className="unit-icon"><Building2 size={20} /></div>
             <div>
               <div className="unit-name">{unit.name}</div>
               <div className="unit-path">{unit.path}</div>
               {unit.location?.name && (
-                <div className="unit-location">📍 {unit.location.name}</div>
+                <div className="unit-location"><MapPin size={12} /> {unit.location.name}</div>
               )}
             </div>
           </div>
           <div className="org-unit-stats">
             {getSyncStatusBadge()}
             <span className="stat-item">
-              <span className="stat-icon">👤</span>
+              <span className="stat-icon"><User size={14} /></span>
               {unit.userCount || 0} users
             </span>
             {hasChildren && (
               <span className="stat-item">
-                <span className="stat-icon">📁</span>
+                <span className="stat-icon"><FolderTree size={14} /></span>
                 {children.length} sub-units
               </span>
             )}
           </div>
           <div className="org-unit-actions">
-            <button className="btn-icon" title="Add sub-unit">➕</button>
-            <button className="btn-icon" title="Edit">✏️</button>
-            <button className="btn-icon danger" title="Delete">🗑️</button>
+            <button className="btn-icon" title="Add sub-unit"><Plus size={16} /></button>
+            <button className="btn-icon" title="Edit"><Pencil size={16} /></button>
+            <button className="btn-icon danger" title="Delete"><Trash2 size={16} /></button>
           </div>
         </div>
         {isExpanded && children.map(child => renderOrgUnit(child, level + 1))}
@@ -187,7 +188,7 @@ export function OrgUnits({ organizationId, customLabel }: OrgUnitsProps) {
           <p>Manage organizational structure and hierarchy</p>
         </div>
         <button className="btn-primary">
-          ➕ Create {customLabel || 'Unit'}
+          <Plus size={16} /> Create {customLabel || 'Unit'}
         </button>
       </div>
 
@@ -200,7 +201,7 @@ export function OrgUnits({ organizationId, customLabel }: OrgUnitsProps) {
               </span>
             )}
             {syncError && (
-              <span className="sync-error">⚠️ {syncError}</span>
+              <span className="sync-error"><AlertTriangle size={14} /> {syncError}</span>
             )}
           </div>
           <div className="tree-controls">
@@ -215,7 +216,7 @@ export function OrgUnits({ organizationId, customLabel }: OrgUnitsProps) {
               onClick={syncOrgUnits}
               disabled={isSyncing}
             >
-              {isSyncing ? '⏳ Syncing...' : '🔄 Sync from Google'}
+              {isSyncing ? <><Loader size={14} className="spin" /> Syncing...</> : <><RefreshCw size={14} /> Sync from Google</>}
             </button>
           </div>
         </div>
@@ -223,16 +224,16 @@ export function OrgUnits({ organizationId, customLabel }: OrgUnitsProps) {
         <div className="tree-content">
           {isLoading ? (
             <div className="empty-state">
-              <span className="empty-icon">⏳</span>
+              <span className="empty-icon"><Loader size={32} className="spin" /></span>
               <h3>Loading {label.toLowerCase()}...</h3>
             </div>
           ) : rootUnits.length === 0 ? (
             <div className="empty-state">
-              <span className="empty-icon">🏢</span>
+              <span className="empty-icon"><Building2 size={32} /></span>
               <h3>No {label.toLowerCase()} found</h3>
               <p>Click "Sync from Google" to import your organizational structure</p>
               <button className="btn-primary" onClick={syncOrgUnits} disabled={isSyncing}>
-                {isSyncing ? '⏳ Syncing...' : '🔄 Sync from Google'}
+                {isSyncing ? <><Loader size={14} className="spin" /> Syncing...</> : <><RefreshCw size={14} /> Sync from Google</>}
               </button>
             </div>
           ) : (

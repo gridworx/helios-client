@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Image, FileText, Video, Music, Paperclip, Upload, Search, RefreshCw, Package, Eye, Copy, Trash2, X, FolderOpen, Plus, Loader } from 'lucide-react';
 import './PublicAssets.css';
 
 interface Asset {
@@ -217,12 +218,12 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   };
 
-  const getFileIcon = (mimeType: string): string => {
-    if (mimeType.startsWith('image/')) return '🖼️';
-    if (mimeType === 'application/pdf') return '📄';
-    if (mimeType.startsWith('video/')) return '🎬';
-    if (mimeType.startsWith('audio/')) return '🎵';
-    return '📎';
+  const getFileIcon = (mimeType: string) => {
+    if (mimeType.startsWith('image/')) return <Image size={24} />;
+    if (mimeType === 'application/pdf') return <FileText size={24} />;
+    if (mimeType.startsWith('video/')) return <Video size={24} />;
+    if (mimeType.startsWith('audio/')) return <Music size={24} />;
+    return <Paperclip size={24} />;
   };
 
   const filteredAssets = assets.filter(asset => {
@@ -251,14 +252,14 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
           <p>Manage images, logos, and files used across templates and modules</p>
         </div>
         <button className="btn-primary" onClick={() => setShowUploadModal(true)}>
-          ⬆️ Upload Asset
+          <Upload size={16} /> Upload Asset
         </button>
       </div>
 
       {/* Controls */}
       <div className="page-controls">
         <div className="search-box">
-          <span className="search-icon">🔍</span>
+          <span className="search-icon"><Search size={16} /></span>
           <input
             type="text"
             placeholder="Search assets..."
@@ -277,14 +278,14 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
           <option value="other">Other</option>
         </select>
         <button className="btn-secondary" onClick={fetchAssets}>
-          🔄 Refresh
+          <RefreshCw size={14} /> Refresh
         </button>
       </div>
 
       {/* Assets Grid */}
       {filteredAssets.length === 0 ? (
         <div className="empty-state">
-          <span className="empty-icon">📦</span>
+          <span className="empty-icon"><Package size={32} /></span>
           <h3>No assets found</h3>
           <p>
             {searchQuery || filterType !== 'all'
@@ -294,7 +295,7 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
           </p>
           {!searchQuery && filterType === 'all' && (
             <button className="btn-primary" onClick={() => setShowUploadModal(true)}>
-              ⬆️ Upload Asset
+              <Upload size={16} /> Upload Asset
             </button>
           )}
         </div>
@@ -353,7 +354,7 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
                       setShowPreviewModal(true);
                     }}
                   >
-                    👁️
+                    <Eye size={16} />
                   </button>
                   <button
                     className="btn-icon"
@@ -363,7 +364,7 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
                       alert('URL copied to clipboard!');
                     }}
                   >
-                    📋
+                    <Copy size={16} />
                   </button>
                   <button
                     className="btn-icon danger"
@@ -371,7 +372,7 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
                     onClick={() => handleDeleteAsset(asset)}
                     disabled={asset.usage_count > 0}
                   >
-                    🗑️
+                    <Trash2 size={16} />
                   </button>
                 </div>
               </div>
@@ -391,7 +392,7 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
                 onClick={() => setShowUploadModal(false)}
                 disabled={isUploading}
               >
-                ✕
+                <X size={16} />
               </button>
             </div>
 
@@ -432,13 +433,13 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
                           setSelectedFile(null);
                         }}
                       >
-                        ✕
+                        <X size={16} />
                       </button>
                     )}
                   </div>
                 ) : (
                   <>
-                    <div className="drop-icon">📁</div>
+                    <div className="drop-icon"><FolderOpen size={32} /></div>
                     <p className="drop-text">Drag & drop a file here or click to browse</p>
                     <p className="drop-hint">Supported: Images (JPG, PNG, GIF, WebP, SVG) and PDF files</p>
                   </>
@@ -514,7 +515,7 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
                     onClick={handleAddTag}
                     disabled={!tagInput.trim() || isUploading}
                   >
-                    ➕
+                    <Plus size={16} />
                   </button>
                 </div>
                 {tags.length > 0 && (
@@ -527,7 +528,7 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
                           onClick={() => handleRemoveTag(tag)}
                           disabled={isUploading}
                         >
-                          ✕
+                          <X size={16} />
                         </button>
                       </span>
                     ))}
@@ -549,7 +550,7 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
                 onClick={handleUpload}
                 disabled={!selectedFile || isUploading}
               >
-                {isUploading ? '⏳ Uploading...' : '⬆️ Upload Asset'}
+                {isUploading ? <><Loader size={14} className="spin" /> Uploading...</> : <><Upload size={16} /> Upload Asset</>}
               </button>
             </div>
           </div>
@@ -563,7 +564,7 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
             <div className="modal-header">
               <h2>{selectedAsset.original_file_name}</h2>
               <button className="modal-close" onClick={() => setShowPreviewModal(false)}>
-                ✕
+                <X size={16} />
               </button>
             </div>
 
@@ -650,7 +651,7 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
                   alert('URL copied to clipboard!');
                 }}
               >
-                📋 Copy URL
+                <Copy size={16} /> Copy URL
               </button>
             </div>
           </div>
