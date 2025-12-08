@@ -4,57 +4,57 @@
 
 ### Backend Tasks
 
-- [ ] **TASK-000A**: Create departments table migration
+- [x] **TASK-000A**: Create departments table migration
   - Hierarchical structure with parent_id
   - Manager reference
   - Google OU mapping
-  - File: `database/migrations/030_departments.sql`
+  - File: `database/migrations/019_create_canonical_data_model.sql`
 
-- [ ] **TASK-000B**: Create locations table migration
+- [x] **TASK-000B**: Create locations table migration
   - Hierarchical structure (regions > offices)
   - Type field (headquarters, office, remote)
-  - File: `database/migrations/030_departments.sql` (same file)
+  - File: `database/migrations/032_add_locations_and_cost_centers.sql`
 
-- [ ] **TASK-000C**: Create cost_centers table migration
+- [x] **TASK-000C**: Create cost_centers table migration
   - Code and name fields
   - Link to department
-  - File: `database/migrations/030_departments.sql` (same file)
+  - File: `database/migrations/032_add_locations_and_cost_centers.sql`
 
-- [ ] **TASK-000D**: Update organization_users with FK columns
+- [x] **TASK-000D**: Update organization_users with FK columns
   - Add department_id, location_id, cost_center_id
   - Keep existing text fields for migration
-  - File: `database/migrations/030_departments.sql`
+  - File: `database/migrations/032_add_locations_and_cost_centers.sql`
 
-- [ ] **TASK-000E**: Create departments CRUD endpoints
+- [x] **TASK-000E**: Create departments CRUD endpoints
   - GET/POST/PUT/DELETE for departments
   - Tree structure support
   - User count aggregation
   - File: `backend/src/routes/departments.routes.ts`
 
-- [ ] **TASK-000F**: Create data quality endpoints
+- [x] **TASK-000F**: Create data quality endpoints
   - GET /api/organization/data-quality/report
   - GET /api/organization/data-quality/orphans
   - POST /api/organization/data-quality/resolve-orphan
   - File: `backend/src/routes/data-quality.routes.ts`
 
-- [ ] **TASK-000G**: Create orphan detection service
+- [x] **TASK-000G**: Create orphan detection service
   - Find department values not in master data
   - Fuzzy matching for suggestions
   - File: `backend/src/services/data-quality.service.ts`
 
 ### Frontend Tasks
 
-- [ ] **TASK-000H**: Create Department Manager page
+- [x] **TASK-000H**: Create Department Manager page
   - Tree view of departments
   - Add/edit/delete departments
   - Show user counts
-  - File: `frontend/src/pages/settings/Departments.tsx`
+  - File: `frontend/src/components/settings/MasterDataSection.tsx` (combined with locations/cost centers)
 
-- [ ] **TASK-000I**: Create Data Quality Dashboard
+- [x] **TASK-000I**: Create Data Quality Dashboard
   - Show orphan counts per entity
   - Resolution workflow
   - Progress indicators
-  - File: `frontend/src/pages/settings/DataQuality.tsx`
+  - File: `frontend/src/components/settings/MasterDataSection.tsx` (Data Quality tab)
 
 - [ ] **TASK-000J**: Create hierarchical dropdown component
   - Reusable tree selector
@@ -62,34 +62,34 @@
   - Show user counts
   - File: `frontend/src/components/ui/TreeSelect.tsx`
 
-- [ ] **TASK-000K**: Add Settings > Master Data section
+- [x] **TASK-000K**: Add Settings > Master Data section
   - Navigation to Departments, Locations, etc.
   - Data Quality link
-  - File: `frontend/src/pages/Settings.tsx`
+  - File: `frontend/src/components/Settings.tsx`
 
 ## Phase 1: GroupSlideOut Basic (MVP)
 
 ### Backend Tasks
 
-- [ ] **TASK-001**: Create migration for access_groups schema updates
+- [x] **TASK-001**: Create migration for access_groups schema updates
   - Add `group_type` column (static/dynamic)
   - Add `rule_logic` column (AND/OR)
   - Add sync setting columns
-  - File: `database/migrations/030_group_management_updates.sql`
+  - File: `database/migrations/031_add_dynamic_groups.sql`
 
-- [ ] **TASK-002**: Update GET `/api/organization/access-groups/:id` endpoint
+- [x] **TASK-002**: Update GET `/api/organization/access-groups/:id` endpoint
   - Return full group details including sync settings
   - Include member count
   - File: `backend/src/routes/access-groups.routes.ts`
 
-- [ ] **TASK-003**: Implement PUT `/api/organization/access-groups/:id` endpoint
+- [x] **TASK-003**: Implement PUT `/api/organization/access-groups/:id` endpoint
   - Update group name, description, email
   - Update group type and settings
   - File: `backend/src/routes/access-groups.routes.ts`
 
 ### Frontend Tasks
 
-- [ ] **TASK-004**: Create GroupSlideOut component structure
+- [x] **TASK-004**: Create GroupSlideOut component structure
   - Basic slide-out panel with header
   - Tab navigation component
   - Close and save buttons
@@ -97,21 +97,21 @@
     - `frontend/src/components/GroupSlideOut.tsx`
     - `frontend/src/components/GroupSlideOut.css`
 
-- [ ] **TASK-005**: Implement Overview tab
+- [x] **TASK-005**: Implement Overview tab
   - Display group info (name, email, description)
   - Show group type badge (static/dynamic)
   - Member count and created date
   - Edit mode toggle
   - File: `frontend/src/components/GroupSlideOut.tsx`
 
-- [ ] **TASK-006**: Implement Members tab
+- [x] **TASK-006**: Implement Members tab
   - List current members
   - Search within members
   - Remove member action
   - Add member modal with user search
   - File: `frontend/src/components/GroupSlideOut.tsx`
 
-- [ ] **TASK-007**: Integrate GroupSlideOut into Groups page
+- [x] **TASK-007**: Integrate GroupSlideOut into Groups page
   - Click on group row opens slideout
   - Pass group data and callbacks
   - Refresh list on update
@@ -140,14 +140,14 @@
 
 ### Frontend Tasks
 
-- [ ] **TASK-011**: Implement Sync tab
+- [x] **TASK-011**: Implement Sync tab
   - Google Workspace sync toggle
   - Sync direction selector (push/pull/bidirectional)
   - Sync status display
   - Sync Now button
   - File: `frontend/src/components/GroupSlideOut.tsx`
 
-- [ ] **TASK-012**: Add Microsoft 365 placeholder
+- [x] **TASK-012**: Add Microsoft 365 placeholder
   - Feature flagged section
   - "Coming Soon" message
   - Disabled controls
@@ -222,19 +222,19 @@
   - Performance optimization with materialized path
   - File: `backend/src/services/dynamic-group.service.ts`
 
-- [ ] **TASK-022**: Add audit logging for rule changes
+- [x] **TASK-022**: Add audit logging for rule changes
   - Log rule create/update/delete
   - Log membership changes from rules
-  - File: `backend/src/services/dynamic-group.service.ts`
+  - File: `backend/src/services/activity-tracker.service.ts` (via access-groups.routes.ts)
 
 ### Frontend Tasks
 
-- [ ] **TASK-023**: Implement Settings tab
+- [x] **TASK-023**: Implement Settings tab
   - Group visibility settings
   - Permission settings (who can see members)
   - File: `frontend/src/components/GroupSlideOut.tsx`
 
-- [ ] **TASK-024**: Implement Danger tab
+- [x] **TASK-024**: Implement Danger tab
   - Archive group option
   - Delete group with confirmation
   - Show sync impact warning
