@@ -56,7 +56,7 @@
   - Progress indicators
   - File: `frontend/src/components/settings/MasterDataSection.tsx` (Data Quality tab)
 
-- [ ] **TASK-000J**: Create hierarchical dropdown component
+- [x] **TASK-000J**: Create hierarchical dropdown component
   - Reusable tree selector
   - Search within tree
   - Show user counts
@@ -217,9 +217,10 @@
 
 ### Backend Tasks
 
-- [ ] **TASK-021**: Implement nested reports_to support
+- [x] **TASK-021**: Implement nested reports_to support
   - Recursive query for org hierarchy
-  - Performance optimization with materialized path
+  - Support for user ID, email, or name matching
+  - Helper methods for reporting chain and management chain
   - File: `backend/src/services/dynamic-group.service.ts`
 
 - [x] **TASK-022**: Add audit logging for rule changes

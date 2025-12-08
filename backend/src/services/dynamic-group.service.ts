@@ -474,9 +474,10 @@ class DynamicGroupService {
         // For hierarchical fields - includes the value itself and all children
         if (rule.field === 'department' || rule.field === 'department_id') {
           // Use recursive CTE to get all child departments
+          // The value can be department ID or department name
           condition = `department_id IN (
             WITH RECURSIVE dept_tree AS (
-              SELECT id FROM departments WHERE id::text = $2 OR name = $2
+              SELECT id FROM departments WHERE id::text = $2 OR LOWER(name) = LOWER($2)
               UNION ALL
               SELECT d.id FROM departments d
               JOIN dept_tree dt ON d.parent_department_id = dt.id
@@ -485,21 +486,67 @@ class DynamicGroupService {
           )`;
         } else if (rule.field === 'reports_to' || rule.field === 'manager_id') {
           // Include direct and nested reports
+          // The value can be user ID, email, or name
+          // First, we find the manager by ID, email, or name, then get their reports
           if (rule.includeNested) {
+            // Recursive query to get all direct and indirect reports
             condition = `id IN (
-              WITH RECURSIVE reports AS (
-                SELECT id FROM organization_users WHERE reporting_manager_id::text = $2
-                UNION ALL
-                SELECT ou.id FROM organization_users ou
-                JOIN reports r ON ou.reporting_manager_id = r.id
-              )
+              WITH RECURSIVE
+                -- First find the manager by ID, email, or name
+                manager AS (
+                  SELECT id FROM organization_users
+                  WHERE organization_id = $1
+                    AND (
+                      id::text = $2
+                      OR LOWER(email) = LOWER($2)
+                      OR LOWER(CONCAT(first_name, ' ', last_name)) = LOWER($2)
+                    )
+                  LIMIT 1
+                ),
+                -- Then recursively get all reports (direct and nested)
+                reports AS (
+                  SELECT ou.id, ou.reporting_manager_id, 1 as depth
+                  FROM organization_users ou
+                  JOIN manager m ON ou.reporting_manager_id = m.id
+                  WHERE ou.organization_id = $1 AND ou.user_status = 'active'
+                  UNION ALL
+                  SELECT ou.id, ou.reporting_manager_id, r.depth + 1
+                  FROM organization_users ou
+                  JOIN reports r ON ou.reporting_manager_id = r.id
+                  WHERE ou.organization_id = $1 AND ou.user_status = 'active'
+                    AND r.depth < 20  -- Prevent infinite loops with max depth
+                )
               SELECT id FROM reports
             )`;
           } else {
-            condition = `reporting_manager_id::text = $2`;
+            // Direct reports only
+            condition = `reporting_manager_id IN (
+              SELECT id FROM organization_users
+              WHERE organization_id = $1
+                AND (
+                  id::text = $2
+                  OR LOWER(email) = LOWER($2)
+                  OR LOWER(CONCAT(first_name, ' ', last_name)) = LOWER($2)
+                )
+            )`;
           }
+        } else if (rule.field === 'org_unit_path') {
+          // Org unit paths use path-based hierarchy (e.g., /Engineering/Platform)
+          // "is under" means the path starts with the value
+          condition = `${dbField} LIKE $2 || '%'`;
+        } else if (rule.field === 'location' || rule.field === 'location_id') {
+          // Use recursive CTE to get all child locations
+          condition = `location_id IN (
+            WITH RECURSIVE loc_tree AS (
+              SELECT id FROM locations WHERE id::text = $2 OR LOWER(name) = LOWER($2)
+              UNION ALL
+              SELECT l.id FROM locations l
+              JOIN loc_tree lt ON l.parent_id = lt.id
+            )
+            SELECT id FROM loc_tree
+          )`;
         } else {
-          // Default to starts_with for paths (e.g., org unit paths)
+          // Default to starts_with for paths
           condition = `${dbField} LIKE $2 || '%'`;
         }
         params.push(rule.value);
@@ -655,6 +702,169 @@ class DynamicGroupService {
     );
 
     return result.rows.map((r: { id: string }) => r.id);
+  }
+
+  /**
+   * Get all users in a manager's reporting chain (both direct and nested reports)
+   * Useful for visualizing org hierarchy and debugging rules
+   */
+  async getReportingChain(
+    organizationId: string,
+    managerId: string,
+    options: { includeManager?: boolean; maxDepth?: number } = {}
+  ): Promise<{
+    managerId: string;
+    reports: Array<{
+      id: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+      depth: number;
+      directManagerId: string | null;
+    }>;
+  }> {
+    const { includeManager = false, maxDepth = 20 } = options;
+
+    const result = await db.query(
+      `WITH RECURSIVE reports AS (
+        -- Direct reports (depth 1)
+        SELECT
+          ou.id,
+          ou.email,
+          ou.first_name as "firstName",
+          ou.last_name as "lastName",
+          ou.reporting_manager_id as "directManagerId",
+          1 as depth
+        FROM organization_users ou
+        WHERE ou.organization_id = $1
+          AND ou.reporting_manager_id = $2
+          AND ou.user_status = 'active'
+          AND ou.deleted_at IS NULL
+
+        UNION ALL
+
+        -- Nested reports
+        SELECT
+          ou.id,
+          ou.email,
+          ou.first_name,
+          ou.last_name,
+          ou.reporting_manager_id,
+          r.depth + 1
+        FROM organization_users ou
+        JOIN reports r ON ou.reporting_manager_id = r.id
+        WHERE ou.organization_id = $1
+          AND ou.user_status = 'active'
+          AND ou.deleted_at IS NULL
+          AND r.depth < $3
+      )
+      SELECT * FROM reports ORDER BY depth, "lastName", "firstName"`,
+      [organizationId, managerId, maxDepth]
+    );
+
+    return {
+      managerId,
+      reports: result.rows
+    };
+  }
+
+  /**
+   * Check if a user reports to a manager (directly or through the chain)
+   */
+  async userReportsTo(
+    organizationId: string,
+    userId: string,
+    managerId: string,
+    includeNested: boolean = true
+  ): Promise<boolean> {
+    if (includeNested) {
+      // Check the full reporting chain
+      const result = await db.query(
+        `WITH RECURSIVE manager_chain AS (
+          -- Start with the user's direct manager
+          SELECT reporting_manager_id as manager_id, 1 as depth
+          FROM organization_users
+          WHERE id = $1 AND organization_id = $2
+
+          UNION ALL
+
+          -- Walk up the chain
+          SELECT ou.reporting_manager_id, mc.depth + 1
+          FROM organization_users ou
+          JOIN manager_chain mc ON ou.id = mc.manager_id
+          WHERE ou.organization_id = $2
+            AND mc.depth < 20
+            AND mc.manager_id IS NOT NULL
+        )
+        SELECT 1 FROM manager_chain WHERE manager_id = $3 LIMIT 1`,
+        [userId, organizationId, managerId]
+      );
+
+      return result.rows.length > 0;
+    } else {
+      // Check direct manager only
+      const result = await db.query(
+        `SELECT 1 FROM organization_users
+         WHERE id = $1 AND organization_id = $2 AND reporting_manager_id = $3`,
+        [userId, organizationId, managerId]
+      );
+
+      return result.rows.length > 0;
+    }
+  }
+
+  /**
+   * Get a user's management chain (their manager, their manager's manager, etc.)
+   */
+  async getManagementChain(
+    organizationId: string,
+    userId: string,
+    maxDepth: number = 20
+  ): Promise<Array<{
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    depth: number;
+  }>> {
+    const result = await db.query(
+      `WITH RECURSIVE manager_chain AS (
+        -- Start with the user's direct manager
+        SELECT
+          ou.id,
+          ou.email,
+          ou.first_name as "firstName",
+          ou.last_name as "lastName",
+          ou.reporting_manager_id,
+          1 as depth
+        FROM organization_users ou
+        WHERE ou.id = (
+          SELECT reporting_manager_id FROM organization_users WHERE id = $1 AND organization_id = $2
+        )
+        AND ou.organization_id = $2
+
+        UNION ALL
+
+        -- Walk up the chain
+        SELECT
+          ou.id,
+          ou.email,
+          ou.first_name,
+          ou.last_name,
+          ou.reporting_manager_id,
+          mc.depth + 1
+        FROM organization_users ou
+        JOIN manager_chain mc ON ou.id = mc.reporting_manager_id
+        WHERE ou.organization_id = $2
+          AND mc.depth < $3
+      )
+      SELECT id, email, "firstName", "lastName", depth
+      FROM manager_chain
+      ORDER BY depth`,
+      [userId, organizationId, maxDepth]
+    );
+
+    return result.rows;
   }
 }
 

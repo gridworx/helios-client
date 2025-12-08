@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Users, Info, Settings, Shield, Trash2, RefreshCw, UserPlus, UserMinus, Search, Check, AlertTriangle, Zap, Plus, Eye } from 'lucide-react';
 import { useTabPersistence } from '../hooks/useTabPersistence';
 import { PlatformIcon } from './ui/PlatformIcon';
+import { TreeSelect } from './ui/TreeSelect';
 import './GroupSlideOut.css';
 
 // Dynamic group types
@@ -33,6 +34,8 @@ interface Department {
   id: string;
   name: string;
   parent_department_id: string | null;
+  parentDepartmentId?: string | null;
+  userCount?: number;
 }
 
 interface GroupMember {
@@ -977,16 +980,25 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
                       </select>
                       {!['is_empty', 'is_not_empty'].includes(newRule.operator) && (
                         newRule.field === 'department' && departments.length > 0 ? (
-                          <select
-                            value={newRule.value}
-                            onChange={(e) => setNewRule({ ...newRule, value: e.target.value })}
-                            className="rule-select"
-                          >
-                            <option value="">Select department...</option>
-                            {departments.map(dept => (
-                              <option key={dept.id} value={dept.name}>{dept.name}</option>
-                            ))}
-                          </select>
+                          <div className="rule-tree-select-wrapper">
+                            <TreeSelect
+                              value={departments.find(d => d.name === newRule.value)?.id || ''}
+                              onChange={(id) => {
+                                const dept = departments.find(d => d.id === id);
+                                setNewRule({ ...newRule, value: dept?.name || '' });
+                              }}
+                              data={departments.map(d => ({
+                                id: d.id,
+                                name: d.name,
+                                parentId: d.parentDepartmentId || d.parent_department_id || null,
+                                userCount: d.userCount
+                              }))}
+                              placeholder="Select department..."
+                              showUserCount
+                              showSearch
+                              allowClear
+                            />
+                          </div>
                         ) : (
                           <input
                             type="text"

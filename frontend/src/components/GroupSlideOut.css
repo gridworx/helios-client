@@ -1013,6 +1013,15 @@
   box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
 }
 
+.rule-tree-select-wrapper {
+  min-width: 200px;
+  flex: 1;
+}
+
+.rule-tree-select-wrapper .helios-tree-select-dropdown {
+  min-width: 280px;
+}
+
 /* Rules Actions */
 .rules-actions {
   display: flex;
