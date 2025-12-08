@@ -210,22 +210,25 @@
 
 ## Testing Tasks
 
-- [ ] **TASK-PD-T01**: E2E tests for My Profile
+- [x] **TASK-PD-T01**: E2E tests for My Profile
   - Edit bio, save successfully
   - Record voice intro
   - Add/remove fun facts
   - File: `e2e/tests/my-profile.spec.ts`
+  - **Completed:** 30+ test cases covering all tabs, form editing, privacy settings
 
-- [ ] **TASK-PD-T02**: E2E tests for People Directory
+- [x] **TASK-PD-T02**: E2E tests for People Directory
   - Search by name
   - Filter by department
   - View coworker profile
   - File: `e2e/tests/people-directory.spec.ts`
+  - **Completed:** 35+ test cases covering search, filters, views, slideout
 
-- [ ] **TASK-PD-T03**: API tests for privacy filtering
+- [x] **TASK-PD-T03**: API tests for privacy filtering
   - Verify fields hidden based on settings
   - Verify manager can see manager-only fields
-  - File: `backend/src/routes/__tests__/people.routes.test.ts`
+  - File: `backend/src/__tests__/people.routes.test.ts`
+  - **Completed:** Comprehensive tests for privacy filtering by relationship
 
 ## Estimated Effort
 
