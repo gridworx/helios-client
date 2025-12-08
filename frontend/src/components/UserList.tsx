@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './UserList.css';
 import { UserSlideOut } from './UserSlideOut';
-import { MoreVertical, Eye, PauseCircle, PlayCircle, Lock, Copy, Trash2, CheckCircle, Users, RefreshCw, UserPlus, Loader } from 'lucide-react';
+import { MoreVertical, Eye, PauseCircle, PlayCircle, Lock, Copy, Trash2, CheckCircle, Users, RefreshCw, UserPlus, Loader, Mail, Key } from 'lucide-react';
 import { PlatformIcon } from './ui/PlatformIcon';
 
 interface User {
@@ -1283,7 +1283,7 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
                     style={{ marginRight: '0.5rem' }}
                   />
                   <div>
-                    <div style={{ fontWeight: '500', color: '#1f2937' }}>📧 Send password setup email (Recommended)</div>
+                    <div style={{ fontWeight: '500', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '6px' }}><Mail size={16} /> Send password setup email (Recommended)</div>
                     <div style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '0.25rem' }}>User will receive a secure link to set their own password</div>
                   </div>
                 </label>
@@ -1298,7 +1298,7 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
                     style={{ marginRight: '0.5rem' }}
                   />
                   <div>
-                    <div style={{ fontWeight: '500', color: '#1f2937' }}>🔑 I will set the password</div>
+                    <div style={{ fontWeight: '500', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '6px' }}><Key size={16} /> I will set the password</div>
                     <div style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '0.25rem' }}>Set a password now and share it with the user</div>
                   </div>
                 </label>

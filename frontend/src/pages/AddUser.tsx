@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Upload, UserPlus, Users, FileSpreadsheet, Trash2, AlertCircle, CheckCircle, X, User } from 'lucide-react';
+import { Upload, UserPlus, Users, FileSpreadsheet, Trash2, AlertCircle, CheckCircle, X, User, Mail, Key, Save, Loader, Plus } from 'lucide-react';
 import './AddUser.css';
 
 type ViewMode = 'single' | 'bulk' | 'csv';
@@ -623,7 +623,7 @@ export function AddUser() {
               disabled={isSubmitting}
             />
             <div className="method-content">
-              <div className="method-title">📧 Send password setup email</div>
+              <div className="method-title"><Mail size={16} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> Send password setup email</div>
               <div className="method-description">User receives secure link to set their own password</div>
             </div>
           </label>
@@ -638,7 +638,7 @@ export function AddUser() {
               disabled={isSubmitting}
             />
             <div className="method-content">
-              <div className="method-title">🔑 I will set the password</div>
+              <div className="method-title"><Key size={16} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> I will set the password</div>
               <div className="method-description">Set password now and share with user</div>
             </div>
           </label>
@@ -918,7 +918,17 @@ export function AddUser() {
           Cancel
         </button>
         <button type="button" className="btn-primary" onClick={handleSubmitSingle} disabled={isSubmitting || isLoadingUser}>
-          {isSubmitting ? (isEditMode ? '⏳ Updating User...' : '⏳ Creating User...') : (isEditMode ? '💾 Update User' : '➕ Create User')}
+          {isSubmitting ? (
+            <>
+              <Loader size={16} className="spin" style={{ marginRight: '6px' }} />
+              {isEditMode ? 'Updating User...' : 'Creating User...'}
+            </>
+          ) : (
+            <>
+              {isEditMode ? <Save size={16} style={{ marginRight: '6px' }} /> : <Plus size={16} style={{ marginRight: '6px' }} />}
+              {isEditMode ? 'Update User' : 'Create User'}
+            </>
+          )}
         </button>
       </div>
     </div>
