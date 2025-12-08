@@ -30,9 +30,6 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
         d.org_unit_id as "orgUnitId",
         d.org_unit_path as "orgUnitPath",
         d.auto_sync_to_ou as "autoSyncToOu",
-        d.gw_group_id as "gwGroupId",
-        d.gw_group_email as "gwGroupEmail",
-        d.auto_sync_to_group as "autoSyncToGroup",
         d.is_active as "isActive",
         d.created_at as "createdAt",
         d.updated_at as "updatedAt",
@@ -75,9 +72,6 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response) => {
         d.org_unit_id as "orgUnitId",
         d.org_unit_path as "orgUnitPath",
         d.auto_sync_to_ou as "autoSyncToOu",
-        d.gw_group_id as "gwGroupId",
-        d.gw_group_email as "gwGroupEmail",
-        d.auto_sync_to_group as "autoSyncToGroup",
         d.is_active as "isActive",
         d.created_at as "createdAt",
         d.updated_at as "updatedAt",
@@ -121,9 +115,6 @@ router.post('/',
     body('orgUnitId').optional().trim(),
     body('orgUnitPath').optional().trim(),
     body('autoSyncToOu').optional().isBoolean(),
-    body('gwGroupId').optional().trim(),
-    body('gwGroupEmail').optional().trim(),
-    body('autoSyncToGroup').optional().isBoolean(),
   ],
   async (req: Request, res: Response) => {
     const errors = validationResult(req);
@@ -144,10 +135,7 @@ router.post('/',
         parentDepartmentId,
         orgUnitId,
         orgUnitPath,
-        autoSyncToOu,
-        gwGroupId,
-        gwGroupEmail,
-        autoSyncToGroup
+        autoSyncToOu
       } = req.body;
 
       // Check if department name already exists
@@ -172,12 +160,9 @@ router.post('/',
           org_unit_id,
           org_unit_path,
           auto_sync_to_ou,
-          gw_group_id,
-          gw_group_email,
-          auto_sync_to_group,
           created_by
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING
           id,
           name,
@@ -186,9 +171,6 @@ router.post('/',
           org_unit_id as "orgUnitId",
           org_unit_path as "orgUnitPath",
           auto_sync_to_ou as "autoSyncToOu",
-          gw_group_id as "gwGroupId",
-          gw_group_email as "gwGroupEmail",
-          auto_sync_to_group as "autoSyncToGroup",
           is_active as "isActive",
           created_at as "createdAt"
       `, [
@@ -199,9 +181,6 @@ router.post('/',
         orgUnitId || null,
         orgUnitPath || null,
         autoSyncToOu || false,
-        gwGroupId || null,
-        gwGroupEmail || null,
-        autoSyncToGroup || false,
         userId
       ]);
 
@@ -239,9 +218,6 @@ router.put('/:id',
     body('orgUnitId').optional().trim(),
     body('orgUnitPath').optional().trim(),
     body('autoSyncToOu').optional().isBoolean(),
-    body('gwGroupId').optional().trim(),
-    body('gwGroupEmail').optional().trim(),
-    body('autoSyncToGroup').optional().isBoolean(),
     body('isActive').optional().isBoolean(),
   ],
   async (req: Request, res: Response) => {
@@ -264,9 +240,6 @@ router.put('/:id',
         orgUnitId,
         orgUnitPath,
         autoSyncToOu,
-        gwGroupId,
-        gwGroupEmail,
-        autoSyncToGroup,
         isActive
       } = req.body;
 
@@ -291,12 +264,9 @@ router.put('/:id',
           org_unit_id = COALESCE($4, org_unit_id),
           org_unit_path = COALESCE($5, org_unit_path),
           auto_sync_to_ou = COALESCE($6, auto_sync_to_ou),
-          gw_group_id = COALESCE($7, gw_group_id),
-          gw_group_email = COALESCE($8, gw_group_email),
-          auto_sync_to_group = COALESCE($9, auto_sync_to_group),
-          is_active = COALESCE($10, is_active),
+          is_active = COALESCE($7, is_active),
           updated_at = CURRENT_TIMESTAMP
-        WHERE id = $11 AND organization_id = $12
+        WHERE id = $8 AND organization_id = $9
         RETURNING
           id,
           name,
@@ -305,9 +275,6 @@ router.put('/:id',
           org_unit_id as "orgUnitId",
           org_unit_path as "orgUnitPath",
           auto_sync_to_ou as "autoSyncToOu",
-          gw_group_id as "gwGroupId",
-          gw_group_email as "gwGroupEmail",
-          auto_sync_to_group as "autoSyncToGroup",
           is_active as "isActive",
           updated_at as "updatedAt"
       `, [
@@ -317,9 +284,6 @@ router.put('/:id',
         orgUnitId,
         orgUnitPath,
         autoSyncToOu,
-        gwGroupId,
-        gwGroupEmail,
-        autoSyncToGroup,
         isActive,
         id,
         organizationId
