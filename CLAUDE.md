@@ -53,6 +53,20 @@ The codebase previously experimented with multi-tenant architecture but was chan
 
 **If you see a file referencing a `tenants` table, it's broken dead code that should be deleted.**
 
+## ⚠️ REQUIRED READING: Agent Development Rules
+
+**Before making any changes, read `AGENT-RULES.md`** which contains:
+- Correct database table and column names
+- Google Workspace API scope requirements
+- Test environment configuration
+- Common mistakes to avoid
+
+**Critical points:**
+- Use `modules` table, NOT `available_modules`
+- Use `slug` column, NOT `module_key`
+- Use full OAuth scopes, NOT readonly versions
+- Always trigger initial sync when enabling integrations
+
 ## 📁 Project Structure
 
 ```
