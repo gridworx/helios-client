@@ -200,7 +200,7 @@
 ### Medium
 - [x] Dashboard widgets occasionally fail to load *(Fixed: improved loading states, timeouts, and error handling)*
 - [x] CSV export includes deleted users *(Fixed: 7e811a8)*
-- [ ] Search doesn't include custom attributes
+- [x] Search doesn't include custom attributes *(Fixed: 989ea1e - now searches jobTitle, location, IDs, phones)*
 
 ### Low
 - [ ] Tooltips cut off on mobile
