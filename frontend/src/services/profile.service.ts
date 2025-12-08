@@ -86,6 +86,22 @@ export interface TeamData {
   directReports: Profile[];
 }
 
+export interface UserGroup {
+  id: string;
+  name: string;
+  description: string | null;
+  email: string | null;
+  platform: string;
+  groupType: string;
+  externalId: string | null;
+  externalUrl: string | null;
+  isActive: boolean;
+  createdAt: string;
+  memberType: string;
+  joinedAt: string;
+  memberCount: number;
+}
+
 // Helper to get auth headers
 function getAuthHeaders(): Record<string, string> {
   const token = localStorage.getItem('helios_token');
@@ -328,6 +344,20 @@ export const profileService = {
     } catch (error) {
       console.error('Failed to fetch team:', error);
       return null;
+    }
+  },
+
+  // Groups
+  async getMyGroups(): Promise<UserGroup[]> {
+    try {
+      const response = await fetch(`${API_BASE}/me/groups`, {
+        headers: getAuthHeaders(),
+      });
+      const data: ApiResponse<UserGroup[]> = await response.json();
+      return data.success ? data.data! : [];
+    } catch (error) {
+      console.error('Failed to fetch groups:', error);
+      return [];
     }
   },
 };

@@ -943,4 +943,76 @@ router.delete('/media/:type', requireAuth, async (req: express.Request, res: exp
   }
 });
 
+// =====================================================
+// GROUPS ENDPOINTS
+// =====================================================
+
+/**
+ * GET /api/me/groups - Get groups the current user belongs to
+ */
+router.get('/groups', requireAuth, async (req: express.Request, res: express.Response) => {
+  try {
+    const userId = req.user?.userId;
+    const organizationId = req.user?.organizationId;
+
+    if (!userId || !organizationId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    // Get groups the user is a member of
+    const result = await db.query(
+      `SELECT
+        ag.id,
+        ag.name,
+        ag.description,
+        ag.email,
+        ag.platform,
+        ag.group_type,
+        ag.external_id,
+        ag.external_url,
+        ag.is_active,
+        ag.created_at,
+        agm.member_type,
+        agm.joined_at,
+        COUNT(agm2.user_id) OVER (PARTITION BY ag.id) as member_count
+       FROM access_groups ag
+       INNER JOIN access_group_members agm ON ag.id = agm.access_group_id AND agm.user_id = $1
+       LEFT JOIN access_group_members agm2 ON ag.id = agm2.access_group_id AND agm2.is_active = true
+       WHERE ag.organization_id = $2 AND ag.is_active = true AND agm.is_active = true
+       ORDER BY ag.name ASC`,
+      [userId, organizationId]
+    );
+
+    // Deduplicate rows (window function creates one row per member)
+    const groupsMap = new Map();
+    for (const row of result.rows) {
+      if (!groupsMap.has(row.id)) {
+        groupsMap.set(row.id, {
+          id: row.id,
+          name: row.name,
+          description: row.description,
+          email: row.email,
+          platform: row.platform,
+          groupType: row.group_type,
+          externalId: row.external_id,
+          externalUrl: row.external_url,
+          isActive: row.is_active,
+          createdAt: row.created_at,
+          memberType: row.member_type,
+          joinedAt: row.joined_at,
+          memberCount: parseInt(row.member_count, 10)
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      data: Array.from(groupsMap.values())
+    });
+  } catch (error: any) {
+    logger.error('Error fetching user groups:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 export default router;

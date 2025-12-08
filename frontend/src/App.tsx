@@ -26,6 +26,8 @@ import { DeveloperConsole } from './pages/DeveloperConsole'
 import { MyProfile } from './pages/MyProfile'
 import { People } from './pages/People'
 import { MyTeam } from './pages/MyTeam'
+import { MyGroups } from './pages/MyGroups'
+import { UserSettings } from './pages/UserSettings'
 import { LabelsProvider, useLabels } from './contexts/LabelsContext'
 import { ViewProvider, useView } from './contexts/ViewContext'
 import { AdminNavigation, UserNavigation, ViewSwitcher } from './components/navigation'
@@ -988,7 +990,15 @@ function AppContent() {
             <MyTeam organizationId={config?.organizationId || ''} />
           )}
 
-          {currentPage !== 'dashboard' && currentPage !== 'settings' && currentPage !== 'users' && currentPage !== 'groups' && currentPage !== 'workspaces' && currentPage !== 'orgUnits' && currentPage !== 'assets' && currentPage !== 'email-security' && currentPage !== 'signatures' && currentPage !== 'security-events' && currentPage !== 'audit-logs' && currentPage !== 'console' && currentPage !== 'administrators' && currentPage !== 'my-profile' && currentPage !== 'people' && currentPage !== 'my-team' && currentPage !== 'orgChart' && (
+          {currentPage === 'my-groups' && (
+            <MyGroups organizationId={config?.organizationId || ''} />
+          )}
+
+          {currentPage === 'user-settings' && (
+            <UserSettings organizationId={config?.organizationId || ''} />
+          )}
+
+          {currentPage !== 'dashboard' && currentPage !== 'settings' && currentPage !== 'users' && currentPage !== 'groups' && currentPage !== 'workspaces' && currentPage !== 'orgUnits' && currentPage !== 'assets' && currentPage !== 'email-security' && currentPage !== 'signatures' && currentPage !== 'security-events' && currentPage !== 'audit-logs' && currentPage !== 'console' && currentPage !== 'administrators' && currentPage !== 'my-profile' && currentPage !== 'people' && currentPage !== 'my-team' && currentPage !== 'my-groups' && currentPage !== 'user-settings' && currentPage !== 'orgChart' && (
             <div className="page-placeholder">
               <div className="placeholder-content">
                 <div className="placeholder-icon">🚧</div>
