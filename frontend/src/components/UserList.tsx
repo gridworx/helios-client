@@ -1064,7 +1064,7 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
               <p>
                 {filterPlatform !== 'all'
                   ? `No users found with ${getPlatformIcon(filterPlatform).title} integration`
-                  : 'Start by connecting to Google Workspace or Microsoft 365'
+                  : 'Start by connecting to Google Workspace in Settings'
                 }
               </p>
             </div>

@@ -60,9 +60,9 @@ export function Workspaces({ organizationId }: WorkspacesProps) {
             <MessageSquare size={48} />
             <h3>No {labels.plural} Yet</h3>
             <p>
-              {labels.plural} are collaboration spaces like Microsoft Teams or Google Chat Spaces.
+              {labels.plural} are collaboration spaces like Google Chat Spaces.
             </p>
-            <p>Enable Microsoft 365 or Google Chat to sync {labels.plural.toLowerCase()}.</p>
+            <p>Enable Google Workspace integration in Settings to sync {labels.plural.toLowerCase()}.</p>
           </div>
         ) : (
           <div className="table-container">
