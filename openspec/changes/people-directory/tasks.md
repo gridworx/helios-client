@@ -125,29 +125,33 @@
   - Store transcription in user_media table
   - File: `backend/src/services/transcription.service.ts`
 
-- [ ] **TASK-PD-018**: Add video thumbnail generation
+- [x] **TASK-PD-018**: Add video thumbnail generation
   - Extract thumbnail from uploaded video
   - Store thumbnail in MinIO
   - File: `backend/src/services/video.service.ts`
+  - **Completed:** Video service with ffmpeg-based thumbnail generation
 
 ### Frontend Tasks
 
-- [ ] **TASK-PD-019**: Create video upload component
+- [x] **TASK-PD-019**: Create video upload component
   - File picker with preview
   - Duration validation
   - Upload progress indicator
   - File: `frontend/src/components/VideoUploader.tsx`
+  - **Completed:** Full VideoUploader with drag-drop, preview, validation
 
-- [ ] **TASK-PD-020**: Create audio player component
+- [x] **TASK-PD-020**: Create audio player component
   - Custom styled player
   - Waveform visualization
   - Play/pause, seek
   - File: `frontend/src/components/AudioPlayer.tsx`
+  - **Completed:** AudioPlayer with waveform visualization, progress seeking
 
-- [ ] **TASK-PD-021**: Create video player component
+- [x] **TASK-PD-021**: Create video player component
   - Inline player in profile
   - Fullscreen option
   - File: `frontend/src/components/VideoPlayer.tsx`
+  - **Completed:** VideoPlayer with fullscreen, progress bar, keyboard controls
 
 ## Phase 4: My Team & Discovery
 

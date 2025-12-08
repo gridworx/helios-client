@@ -18,7 +18,15 @@
       "Bash(node:*)",
       "Bash(docker logs:*)",
       "Bash(docker-compose down:*)",
-      "Bash(docker-compose up:*)"
+      "Bash(docker-compose up:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(xargs:*)",
+      "Bash(docker compose restart:*)",
+      "Bash(python3:*)",
+      "Bash(sudo ls:*)"
     ],
     "deny": [],
     "ask": []

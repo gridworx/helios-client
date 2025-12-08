@@ -166,38 +166,171 @@ def run_claude_session(prompt: str, settings_path: Path) -> tuple[int, str]:
         return 1, str(e)
 
 
-def get_continuation_prompt() -> str:
+def get_continuation_prompt(progress: dict) -> str:
     """Get the prompt for continuing development."""
+
+    # Check if there's a specific task queued
+    next_task = progress.get("next_task")
+
+    # Handle bug fix tasks
+    if next_task and next_task.get("type") == "bug_fix":
+        import json
+        task_json = json.dumps(next_task, indent=2)
+        return f"""You are fixing critical bugs in the Helios Client Portal.
+
+## CRITICAL: Read Rules First
+
+**Before making ANY code changes, read `AGENT-RULES.md`**
+
+## Bug Fix Task
+
+{task_json}
+
+## Your Approach
+
+1. **First, verify the test environment works:**
+   - Load the service account from the path specified
+   - Test API connection to Google Workspace
+   - Confirm you can list users from the test domain
+
+2. **Fix bugs one at a time:**
+   - Start with BUG-001 (module not enabled)
+   - Trace the code flow from frontend → API → database
+   - Add logging if needed to debug
+   - Fix the issue
+   - Test by making API calls and checking database
+
+3. **Verify each fix:**
+   - Run the SQL verification queries
+   - Make actual API calls to test endpoints
+   - Check the database state matches expectations
+
+4. **Only commit when ALL bugs are fixed and tested**
+
+## Database Quick Reference
+
+Tables: `modules`, `organization_modules`, `gw_credentials`, `gw_synced_users`
+Columns in modules: `id`, `name`, `slug` (NOT module_key!)
+
+## Testing Commands
+
+```bash
+# Test API connection
+cd backend && npx ts-node -e "
+const {{ google }} = require('googleapis');
+const fs = require('fs');
+const sa = JSON.parse(fs.readFileSync('.secrets/test-service-account.json'));
+const auth = new google.auth.JWT({{
+  email: sa.client_email,
+  key: sa.private_key,
+  scopes: ['https://www.googleapis.com/auth/admin.directory.user'],
+  subject: 'mike@gridworx.io'
+}});
+auth.authorize().then(() => console.log('API OK')).catch(e => console.error(e));
+"
+
+# Check database state
+docker exec helios_client_postgres psql -U postgres -d helios_client -c "SELECT * FROM organization_modules;"
+```
+
+Begin by reading AGENT-RULES.md, then verify the test environment works."""
+
+    # Handle OpenSpec tasks
+    if next_task and next_task.get("type") == "openspec":
+        proposal_path = next_task.get("proposal", "")
+        approach = next_task.get("approach", "implement")
+        instructions = next_task.get("instructions", "")
+
+        return f"""You are continuing autonomous development on the Helios Client Portal.
+
+## PRIORITY TASK: OpenSpec Implementation
+
+There is a staged OpenSpec proposal ready for implementation:
+
+**Proposal:** {proposal_path}
+**Approach:** {approach}
+**Instructions:** {instructions}
+
+### Your Steps:
+
+1. **Read the proposal files:**
+   - `{proposal_path}/proposal.md` - Understand the goal
+   - `{proposal_path}/design.md` - Technical approach
+   - `{proposal_path}/tasks.md` - Specific tasks to complete
+
+2. **Follow TDD approach:**
+   - Write E2E tests FIRST (before implementation)
+   - Run tests to verify they fail
+   - Implement the changes
+   - Run tests to verify they pass
+
+3. **Mark tasks complete:**
+   - Check off tasks in tasks.md as you complete them
+   - Commit atomically per task group
+
+4. **When done:**
+   - All tests pass
+   - All tasks checked off
+   - Update autonomous/progress.json to remove next_task
+
+## Guidelines
+
+- Follow the OpenSpec proposal exactly
+- Use test-driven development
+- Commit frequently with descriptive messages
+- Do NOT deviate from the proposal scope
+
+Begin by reading the proposal files."""
+
+    # Default continuation prompt
     return """You are continuing autonomous development on the Helios Client Portal.
+
+## CRITICAL: Read Rules First
+
+**Before making ANY code changes, read these files:**
+1. `AGENT-RULES.md` - Database schema, API scopes, testing requirements
+2. `CLAUDE.md` - Project conventions and constraints
 
 ## First: Orient Yourself
 
-1. Check git status to see what's changed
-2. Review the TODO list or recent commits
-3. Check for any failing tests or build errors
+1. Check autonomous/progress.json for any queued tasks
+2. Check git status to see what's changed
+3. Review the TODO list or recent commits
+4. Check for any failing tests or build errors
 
 ## Your Task
 
 Continue implementing features or fixing issues based on:
-1. Any open TODO items in the codebase
-2. Issues mentioned in PROJECT-TRACKER-V2.md
-3. TypeScript/build errors that need fixing
+1. Any next_task in autonomous/progress.json
+2. Open OpenSpec proposals in openspec/changes/
+3. Issues mentioned in PROJECT-TRACKER-V2.md
+4. TypeScript/build errors that need fixing
+
+## Testing Google Workspace
+
+Test credentials are at `backend/.secrets/test-service-account.json`
+- Domain: gridworx.io
+- Admin: mike@gridworx.io
+- Always test API calls before committing changes
 
 ## Guidelines
 
 - Work on ONE task at a time
 - Commit your work frequently with clear messages
 - Update TODO/progress files as you complete tasks
+- VERIFY database table/column names before writing queries
+- Use FULL OAuth scopes, not readonly versions
 - If you get stuck, document the issue and move on
 
 ## When Done
 
 Before ending:
 1. Ensure the build passes (npm run build in frontend/backend)
-2. Commit all changes
-3. Update progress tracking
+2. Test Google Workspace integration if you touched that code
+3. Commit all changes
+4. Update progress tracking
 
-Begin by checking the current state of the project."""
+Begin by reading AGENT-RULES.md, then check the current state of the project."""
 
 
 def get_task_prompt(task: str) -> str:
@@ -281,7 +414,7 @@ def main():
         progress["current_task"] = args.task
         prompt = get_task_prompt(args.task)
     else:
-        prompt = get_continuation_prompt()
+        prompt = get_continuation_prompt(progress)
 
     if args.dry_run:
         print("\n--- DRY RUN ---")
@@ -323,8 +456,9 @@ def main():
                 print(f"\nContinuing in {AUTO_CONTINUE_DELAY}s...")
                 time.sleep(AUTO_CONTINUE_DELAY)
 
-            # For continuation, use the standard prompt
-            prompt = get_continuation_prompt()
+            # Reload progress in case it was updated, then get continuation prompt
+            progress = load_progress()
+            prompt = get_continuation_prompt(progress)
 
     except KeyboardInterrupt:
         print("\n\nInterrupted by user")
