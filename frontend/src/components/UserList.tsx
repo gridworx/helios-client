@@ -882,7 +882,7 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
         return false;
       });
 
-  // Apply search filter
+  // Apply search filter - includes custom attributes
   if (searchQuery) {
     const query = searchQuery.toLowerCase();
     filteredUsers = filteredUsers.filter(user =>
@@ -890,7 +890,17 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
       user.lastName.toLowerCase().includes(query) ||
       user.email.toLowerCase().includes(query) ||
       (user.department && user.department.toLowerCase().includes(query)) ||
-      (user.company && user.company.toLowerCase().includes(query))
+      (user.company && user.company.toLowerCase().includes(query)) ||
+      (user.jobTitle && user.jobTitle.toLowerCase().includes(query)) ||
+      (user.location && user.location.toLowerCase().includes(query)) ||
+      (user.employeeId && user.employeeId.toLowerCase().includes(query)) ||
+      (user.employeeType && user.employeeType.toLowerCase().includes(query)) ||
+      (user.costCenter && user.costCenter.toLowerCase().includes(query)) ||
+      (user.githubUsername && user.githubUsername.toLowerCase().includes(query)) ||
+      (user.slackUserId && user.slackUserId.toLowerCase().includes(query)) ||
+      (user.associateId && user.associateId.toLowerCase().includes(query)) ||
+      (user.mobilePhone && user.mobilePhone.includes(query)) ||
+      (user.workPhone && user.workPhone.includes(query))
     );
   }
 
