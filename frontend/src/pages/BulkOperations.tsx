@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Upload, Download, FileSpreadsheet, Clock, CheckCircle2, XCircle, AlertCircle, Save, Trash2, FolderOpen } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Upload, Download, FileSpreadsheet, Clock, CheckCircle2, XCircle, AlertCircle, Save, Trash2, FolderOpen, Wifi, WifiOff } from 'lucide-react';
 import { bulkOperationsService, type BulkOperation, type ValidationError } from '../services/bulk-operations.service';
+import { bulkOperationsSocket, type BulkOperationProgressEvent, type BulkOperationFailureEvent } from '../services/bulk-operations-socket.service';
 import './BulkOperations.css';
 
 interface BulkOperationsProps {
@@ -25,6 +26,40 @@ export function BulkOperations({ organizationId }: BulkOperationsProps) {
   const [templateName, setTemplateName] = useState('');
   const [templateDescription, setTemplateDescription] = useState('');
   const [previewData, setPreviewData] = useState<any[] | null>(null);
+  const [socketConnected, setSocketConnected] = useState(false);
+  const [useWebSocket, setUseWebSocket] = useState(true); // Toggle for fallback to polling
+
+  // Track if we're currently subscribed to prevent duplicate subscriptions
+  const activeSubscriptionRef = useRef<string | null>(null);
+
+  // Initialize WebSocket connection
+  useEffect(() => {
+    const connectSocket = async () => {
+      const token = localStorage.getItem('helios_token');
+      if (!token) return;
+
+      try {
+        await bulkOperationsSocket.connect(token);
+        setSocketConnected(true);
+        console.log('[BulkOperations] WebSocket connected');
+      } catch (error) {
+        console.error('[BulkOperations] WebSocket connection failed, falling back to polling:', error);
+        setSocketConnected(false);
+        setUseWebSocket(false);
+      }
+    };
+
+    connectSocket();
+
+    // Cleanup on unmount
+    return () => {
+      if (activeSubscriptionRef.current) {
+        bulkOperationsSocket.unsubscribe(activeSubscriptionRef.current);
+        activeSubscriptionRef.current = null;
+      }
+      bulkOperationsSocket.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     loadHistory();
@@ -164,6 +199,73 @@ export function BulkOperations({ organizationId }: BulkOperationsProps) {
     }
   };
 
+  // WebSocket progress handler
+  const handleWebSocketProgress = useCallback((data: BulkOperationProgressEvent) => {
+    setCurrentOperation((prev) => ({
+      ...prev,
+      id: data.bulkOperationId,
+      organizationId: data.organizationId,
+      operationType: prev?.operationType || selectedOperation,
+      status: data.status,
+      totalItems: data.totalItems,
+      processedItems: data.processedItems,
+      successCount: data.successCount,
+      failureCount: data.failureCount,
+      createdAt: prev?.createdAt || new Date().toISOString(),
+      progress: data.progress,
+    } as BulkOperation));
+  }, [selectedOperation]);
+
+  // WebSocket completion handler
+  const handleWebSocketCompletion = useCallback(async (data: BulkOperationProgressEvent) => {
+    setCurrentOperation((prev) => ({
+      ...prev,
+      id: data.bulkOperationId,
+      organizationId: data.organizationId,
+      operationType: prev?.operationType || selectedOperation,
+      status: 'completed',
+      totalItems: data.totalItems,
+      processedItems: data.processedItems,
+      successCount: data.successCount,
+      failureCount: data.failureCount,
+      createdAt: prev?.createdAt || new Date().toISOString(),
+      progress: 100,
+    } as BulkOperation));
+
+    activeSubscriptionRef.current = null;
+    setIsExecuting(false);
+    await loadHistory();
+    alert('Bulk operation completed successfully!');
+
+    // Reset form
+    setSelectedFile(null);
+    setValidatedData(null);
+    setValidationErrors([]);
+  }, [selectedOperation]);
+
+  // WebSocket failure handler
+  const handleWebSocketFailure = useCallback(async (data: BulkOperationFailureEvent) => {
+    setCurrentOperation((prev) => ({
+      ...prev,
+      id: data.bulkOperationId,
+      organizationId: data.organizationId,
+      operationType: prev?.operationType || selectedOperation,
+      status: 'failed',
+      totalItems: data.totalItems,
+      processedItems: data.processedItems,
+      successCount: data.successCount,
+      failureCount: data.failureCount,
+      createdAt: prev?.createdAt || new Date().toISOString(),
+      progress: data.progress,
+      errorMessage: data.error,
+    } as BulkOperation));
+
+    activeSubscriptionRef.current = null;
+    setIsExecuting(false);
+    await loadHistory();
+    alert(`Bulk operation failed: ${data.error}`);
+  }, [selectedOperation]);
+
   const handleExecute = async () => {
     if (!validatedData || validatedData.length === 0) {
       alert('No valid data to execute. Please upload and validate a CSV first.');
@@ -196,26 +298,39 @@ export function BulkOperations({ organizationId }: BulkOperationsProps) {
         progress: 0,
       });
 
-      // Poll for status updates
-      await bulkOperationsService.pollOperationStatus(
-        result.bulkOperationId,
-        (operation) => {
-          setCurrentOperation(operation);
-        }
-      );
+      // Use WebSocket for real-time updates if connected, otherwise fall back to polling
+      if (useWebSocket && socketConnected && bulkOperationsSocket.getIsConnected()) {
+        console.log('[BulkOperations] Using WebSocket for progress updates');
+        activeSubscriptionRef.current = result.bulkOperationId;
+        bulkOperationsSocket.subscribe(
+          result.bulkOperationId,
+          handleWebSocketProgress,
+          handleWebSocketCompletion,
+          handleWebSocketFailure
+        );
+      } else {
+        console.log('[BulkOperations] Using polling for progress updates');
+        // Fall back to polling
+        await bulkOperationsService.pollOperationStatus(
+          result.bulkOperationId,
+          (operation) => {
+            setCurrentOperation(operation);
+          }
+        );
 
-      // Reload history
-      await loadHistory();
+        // Reload history
+        await loadHistory();
 
-      alert('Bulk operation completed successfully!');
+        alert('Bulk operation completed successfully!');
 
-      // Reset form
-      setSelectedFile(null);
-      setValidatedData(null);
-      setValidationErrors([]);
+        // Reset form
+        setSelectedFile(null);
+        setValidatedData(null);
+        setValidationErrors([]);
+        setIsExecuting(false);
+      }
     } catch (error: any) {
       alert(`Error: ${error.message}`);
-    } finally {
       setIsExecuting(false);
     }
   };
@@ -244,8 +359,25 @@ export function BulkOperations({ organizationId }: BulkOperationsProps) {
   return (
     <div className="bulk-operations-container">
       <div className="bulk-operations-header">
-        <h1>Bulk Operations</h1>
-        <p>Perform mass updates on users and groups using CSV imports</p>
+        <div className="header-title-row">
+          <div>
+            <h1>Bulk Operations</h1>
+            <p>Perform mass updates on users and groups using CSV imports</p>
+          </div>
+          <div className="websocket-status" title={socketConnected ? 'Real-time updates enabled' : 'Using polling for updates'}>
+            {socketConnected ? (
+              <span className="status-connected">
+                <Wifi size={16} />
+                Real-time
+              </span>
+            ) : (
+              <span className="status-disconnected">
+                <WifiOff size={16} />
+                Polling
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="bulk-operations-content">

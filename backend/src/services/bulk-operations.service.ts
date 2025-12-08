@@ -2,6 +2,7 @@ import { db } from '../database/connection';
 import { logger } from '../utils/logger';
 import { queueService, BulkOperationJobData } from './queue.service';
 import { csvParserService, ValidationRule } from './csv-parser.service';
+import { bulkOperationEvents } from '../websocket/bulk-operations.gateway';
 
 export interface BulkOperation {
   id: string;
@@ -183,6 +184,18 @@ export class BulkOperationsService {
             failureCount
           );
 
+          // Emit WebSocket progress event
+          this.emitProgressEvent({
+            bulkOperationId,
+            organizationId: operation.organizationId,
+            status: 'processing',
+            totalItems: items.length,
+            processedItems: processed,
+            successCount,
+            failureCount,
+            progress,
+          });
+
           if (progressCallback) {
             progressCallback(progress);
           }
@@ -202,6 +215,18 @@ export class BulkOperationsService {
         operation.createdBy || null
       );
 
+      // Emit WebSocket completion event
+      this.emitCompletionEvent({
+        bulkOperationId,
+        organizationId: operation.organizationId,
+        status: 'completed',
+        totalItems: items.length,
+        processedItems: items.length,
+        successCount,
+        failureCount,
+        progress: 100,
+      });
+
       logger.info('Bulk operation completed', {
         bulkOperationId,
         successCount,
@@ -220,7 +245,85 @@ export class BulkOperationsService {
         errorMessage: error.message,
       });
 
+      // Emit WebSocket failure event
+      const operation = await this.getBulkOperation(bulkOperationId);
+      if (operation) {
+        this.emitFailureEvent({
+          bulkOperationId,
+          organizationId: operation.organizationId,
+          status: 'failed',
+          totalItems: operation.totalItems,
+          processedItems: operation.processedItems,
+          successCount: operation.successCount,
+          failureCount: operation.failureCount,
+          progress: Math.floor((operation.processedItems / operation.totalItems) * 100) || 0,
+          error: error.message,
+        });
+      }
+
       throw error;
+    }
+  }
+
+  /**
+   * Emit WebSocket progress event
+   */
+  private emitProgressEvent(data: {
+    bulkOperationId: string;
+    organizationId: string;
+    status: string;
+    totalItems: number;
+    processedItems: number;
+    successCount: number;
+    failureCount: number;
+    progress: number;
+  }): void {
+    try {
+      bulkOperationEvents.emit('progress', data);
+    } catch (error) {
+      // Don't fail the operation if WebSocket emission fails
+      logger.warn('Failed to emit bulk operation progress event', { error });
+    }
+  }
+
+  /**
+   * Emit WebSocket completion event
+   */
+  private emitCompletionEvent(data: {
+    bulkOperationId: string;
+    organizationId: string;
+    status: string;
+    totalItems: number;
+    processedItems: number;
+    successCount: number;
+    failureCount: number;
+    progress: number;
+  }): void {
+    try {
+      bulkOperationEvents.emit('completed', data);
+    } catch (error) {
+      logger.warn('Failed to emit bulk operation completion event', { error });
+    }
+  }
+
+  /**
+   * Emit WebSocket failure event
+   */
+  private emitFailureEvent(data: {
+    bulkOperationId: string;
+    organizationId: string;
+    status: string;
+    totalItems: number;
+    processedItems: number;
+    successCount: number;
+    failureCount: number;
+    progress: number;
+    error: string;
+  }): void {
+    try {
+      bulkOperationEvents.emit('failed', data);
+    } catch (error) {
+      logger.warn('Failed to emit bulk operation failure event', { error });
     }
   }
 

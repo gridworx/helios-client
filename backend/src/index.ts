@@ -5,6 +5,7 @@ import path from 'path';
 dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
 
 import express from 'express';
+import { createServer } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -39,15 +40,18 @@ import costCentersRoutes from './routes/cost-centers.routes';
 import dataQualityRoutes from './routes/data-quality.routes';
 import meRoutes from './routes/me.routes';
 import peopleRoutes from './routes/people.routes';
+import bulkOperationsRoutes from './routes/bulk-operations.routes';
 import { authenticateApiKey } from './middleware/api-key-auth';
 import { SignatureSchedulerService } from './services/signature-scheduler.service';
 import { cacheService } from './services/cache.service';
 import { activityTracker } from './services/activity-tracker.service';
+import { initializeBulkOperationsGateway } from './websocket/bulk-operations.gateway';
 
 import transparentProxyRouter from './middleware/transparent-proxy';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 const app = express();
+const httpServer = createServer(app);
 const PORT = process.env['PORT'] || 3001;
 
 // Security middleware
@@ -418,6 +422,7 @@ app.use('/api/user', userRoutes);
 app.use('/api/user-preferences', userPreferencesRoutes);
 app.use('/api/me', meRoutes);
 app.use('/api/people', peopleRoutes);
+app.use('/api/bulk', bulkOperationsRoutes);
 // app.use('/api/platform', platformRoutes);
 app.use('/api/google-workspace', GoogleWorkspaceRoutes);
 app.use('/api/modules', modulesRoutes);
@@ -520,11 +525,16 @@ async function startServer(): Promise<void> {
     await signatureScheduler.initializeScheduler();
     logger.info('📧 Signature scheduler ready');
 
-    // Start server
-    app.listen(PORT, () => {
+    // Initialize WebSocket gateway for bulk operations
+    initializeBulkOperationsGateway(httpServer);
+    logger.info('🔌 WebSocket gateway initialized for bulk operations');
+
+    // Start server (use httpServer instead of app.listen for WebSocket support)
+    httpServer.listen(PORT, () => {
       logger.info(`🚀 Helios Platform Backend running on port ${PORT}`);
       logger.info(`📊 Health check: http://localhost:${PORT}/health`);
       logger.info(`⚙️ Platform setup: http://localhost:${PORT}/platform`);
+      logger.info(`🔌 WebSocket: ws://localhost:${PORT}/socket.io/`);
       logger.info(`🌍 Environment: ${process.env['NODE_ENV'] || 'development'}`);
     });
 
