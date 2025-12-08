@@ -496,10 +496,11 @@ function AppContent() {
           setCurrentUser(loginData.data.user);
 
           // Set user capabilities for view switching
+          // Use access flags from API if available, otherwise derive from role
           const user = loginData.data.user;
           setCapabilities({
-            isAdmin: user.role === 'admin' || user.role === 'super_admin',
-            isEmployee: true, // All org users are employees
+            isAdmin: user.isAdmin ?? (user.role === 'admin' || user.role === 'super_admin'),
+            isEmployee: user.isEmployee ?? true, // Default to true if not specified
           });
 
           // Use organization info from login response (backend now includes it)

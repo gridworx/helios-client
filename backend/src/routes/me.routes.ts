@@ -952,6 +952,87 @@ router.delete('/media/:type', async (req: express.Request, res: express.Response
 });
 
 // =====================================================
+// VIEW PREFERENCE ENDPOINTS
+// =====================================================
+
+/**
+ * GET /api/me/view-preference - Get user's view preference (admin vs user)
+ */
+router.get('/view-preference', async (req: express.Request, res: express.Response) => {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const result = await db.query(
+      `SELECT user_preferences FROM organization_users WHERE id = $1`,
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    const preferences = result.rows[0].user_preferences || {};
+    const viewPreference = preferences.viewPreference || 'admin'; // Default to admin
+
+    res.json({
+      success: true,
+      data: {
+        viewPreference
+      }
+    });
+  } catch (error: any) {
+    logger.error('Error fetching view preference:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * PUT /api/me/view-preference - Set user's view preference
+ */
+router.put('/view-preference', async (req: express.Request, res: express.Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { viewPreference } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    // Validate view preference
+    if (!viewPreference || !['admin', 'user'].includes(viewPreference)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid view preference. Must be "admin" or "user"'
+      });
+    }
+
+    // Update user preferences JSONB with view preference
+    await db.query(
+      `UPDATE organization_users
+       SET user_preferences = COALESCE(user_preferences, '{}'::jsonb) || $1::jsonb,
+           updated_at = NOW()
+       WHERE id = $2`,
+      [JSON.stringify({ viewPreference }), userId]
+    );
+
+    logger.info('View preference updated', { userId, viewPreference });
+
+    res.json({
+      success: true,
+      message: 'View preference updated',
+      data: { viewPreference }
+    });
+  } catch (error: any) {
+    logger.error('Error updating view preference:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// =====================================================
 // GROUPS ENDPOINTS
 // =====================================================
 

@@ -32,9 +32,11 @@ router.post('/login',
 
     const { email, password } = req.body;
 
-    // Find user
+    // Find user with admin/employee flags
     const result = await db.query(
-      `SELECT id, email, password_hash, first_name, last_name, role, is_active, organization_id
+      `SELECT id, email, password_hash, first_name, last_name, role, is_active, organization_id,
+              COALESCE(is_external_admin, false) as is_external_admin,
+              default_view, user_preferences
        FROM organization_users
        WHERE email = $1`,
       [email.toLowerCase()]
@@ -104,6 +106,26 @@ router.post('/login',
       role: user.role
     });
 
+    // Determine access capabilities
+    const isAdmin = user.role === 'admin' || user.role === 'super_admin';
+    const isExternalAdmin = user.is_external_admin === true;
+    const isEmployee = !isExternalAdmin; // Internal users are employees
+
+    // Determine default view
+    // External admin: always admin
+    // Internal admin: use saved preference or default to admin
+    // Regular user: always user
+    let defaultView = 'admin';
+    if (!isAdmin) {
+      defaultView = 'user';
+    } else if (isEmployee) {
+      // Internal admin - check for saved preference
+      const savedPreference = user.user_preferences?.viewPreference || user.default_view;
+      if (savedPreference === 'user') {
+        defaultView = 'user';
+      }
+    }
+
     res.json({
       success: true,
       message: 'Login successful',
@@ -114,7 +136,15 @@ router.post('/login',
           firstName: user.first_name,
           lastName: user.last_name,
           role: user.role,
-          organizationId: user.organization_id
+          organizationId: user.organization_id,
+          // Access control flags
+          isAdmin,
+          isEmployee,
+          isExternalAdmin,
+          canAccessAdminUI: isAdmin,
+          canAccessUserUI: isEmployee,
+          canSwitchViews: isAdmin && isEmployee,
+          defaultView
         },
         organization: {
           id: organization.id,
@@ -152,7 +182,9 @@ router.get('/verify', asyncHandler(async (req: Request, res: Response) => {
 
     // Verify user still exists and is active
     const result = await db.query(
-      `SELECT id, email, first_name, last_name, role, is_active, organization_id
+      `SELECT id, email, first_name, last_name, role, is_active, organization_id,
+              COALESCE(is_external_admin, false) as is_external_admin,
+              default_view, user_preferences
        FROM organization_users
        WHERE id = $1`,
       [decoded.userId]
@@ -174,6 +206,22 @@ router.get('/verify', asyncHandler(async (req: Request, res: Response) => {
       });
     }
 
+    // Determine access capabilities
+    const isAdmin = user.role === 'admin' || user.role === 'super_admin';
+    const isExternalAdmin = user.is_external_admin === true;
+    const isEmployee = !isExternalAdmin; // Internal users are employees
+
+    // Determine default view
+    let defaultView = 'admin';
+    if (!isAdmin) {
+      defaultView = 'user';
+    } else if (isEmployee) {
+      const savedPreference = user.user_preferences?.viewPreference || user.default_view;
+      if (savedPreference === 'user') {
+        defaultView = 'user';
+      }
+    }
+
     res.json({
       success: true,
       data: {
@@ -183,7 +231,15 @@ router.get('/verify', asyncHandler(async (req: Request, res: Response) => {
           firstName: user.first_name,
           lastName: user.last_name,
           role: user.role,
-          organizationId: user.organization_id
+          organizationId: user.organization_id,
+          // Access control flags
+          isAdmin,
+          isEmployee,
+          isExternalAdmin,
+          canAccessAdminUI: isAdmin,
+          canAccessUserUI: isEmployee,
+          canSwitchViews: isAdmin && isEmployee,
+          defaultView
         }
       }
     });

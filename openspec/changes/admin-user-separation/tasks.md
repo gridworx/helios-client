@@ -11,11 +11,12 @@
   - File: `backend/src/middleware/auth.ts`
   - **Completed:** Added isAdmin and isEmployee flags to user session, with helper functions
 
-- [ ] **TASK-AUS-002**: Create view preference endpoints
+- [x] **TASK-AUS-002**: Create view preference endpoints
   - GET /api/me/view-preference - get current view
   - PUT /api/me/view-preference - set view preference
-  - Store in user settings or separate table
+  - Store in user_preferences JSONB column
   - File: `backend/src/routes/me.routes.ts`
+  - **Completed:** Endpoints created, ViewContext updated to sync with API
 
 - [x] **TASK-AUS-003**: Add route-level access guards
   - AdminOnly middleware for /admin/* routes
@@ -94,10 +95,11 @@
 
 ### Backend Tasks
 
-- [ ] **TASK-AUS-013**: Add is_external_admin column to organization_users
+- [x] **TASK-AUS-013**: Add is_external_admin column to organization_users
   - Boolean flag, default false
   - Migration file for schema change
-  - File: `database/migrations/035_add_admin_user_separation.sql`
+  - File: `database/migrations/034_add_admin_user_separation.sql`
+  - **Completed:** Migration created with is_external_admin and default_view columns
 
 - [ ] **TASK-AUS-014**: Update user creation to set admin type
   - External admins created without employee profile link
@@ -105,23 +107,26 @@
   - Update admin invite flow
   - File: `backend/src/routes/users.routes.ts`
 
-- [ ] **TASK-AUS-015**: Update login response with access flags
+- [x] **TASK-AUS-015**: Update login response with access flags
   - Include canAccessAdminUI and canAccessUserUI
   - Include defaultView based on user type
   - File: `backend/src/routes/auth.routes.ts`
+  - **Completed:** Login and verify endpoints return isAdmin, isEmployee, isExternalAdmin, canAccessAdminUI, canAccessUserUI, canSwitchViews, defaultView
 
 ### Frontend Tasks
 
-- [ ] **TASK-AUS-016**: Update AuthContext with access flags
+- [x] **TASK-AUS-016**: Update AuthContext with access flags
   - Store canAccessAdminUI, canAccessUserUI
   - Derive from user session data
-  - File: `frontend/src/contexts/AuthContext.tsx`
+  - File: `frontend/src/contexts/ViewContext.tsx`
+  - **Completed:** ViewContext updated to use API flags with fallback to role-based derivation
 
-- [ ] **TASK-AUS-017**: Implement default view logic on login
+- [x] **TASK-AUS-017**: Implement default view logic on login
   - External admin → always Admin Console
   - Internal admin → Admin Console (or remembered)
   - Regular user → always Employee View
-  - File: `frontend/src/pages/Login.tsx`
+  - File: `frontend/src/App.tsx`
+  - **Completed:** App.tsx uses isAdmin/isEmployee from API, ViewContext handles default view logic
 
 ## Phase 4: Page Relocation
 

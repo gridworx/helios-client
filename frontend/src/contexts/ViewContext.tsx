@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
+
+const API_BASE = 'http://localhost:3001/api';
 
 /**
  * View modes available in the application
@@ -25,6 +27,7 @@ interface ViewContextValue {
   canSwitchViews: boolean;
   capabilities: UserCapabilities;
   setCapabilities: (caps: UserCapabilities) => void;
+  isLoading: boolean;
 }
 
 const defaultCapabilities: UserCapabilities = {
@@ -40,7 +43,59 @@ const ViewContext = createContext<ViewContextValue>({
   canSwitchViews: false,
   capabilities: defaultCapabilities,
   setCapabilities: () => {},
+  isLoading: false,
 });
+
+/**
+ * Fetch view preference from API
+ */
+async function fetchViewPreference(): Promise<ViewMode | null> {
+  const token = localStorage.getItem('helios_token');
+  if (!token) return null;
+
+  try {
+    const response = await fetch(`${API_BASE}/me/view-preference`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    if (data.success && data.data?.viewPreference) {
+      return data.data.viewPreference as ViewMode;
+    }
+    return null;
+  } catch (error) {
+    console.error('Failed to fetch view preference:', error);
+    return null;
+  }
+}
+
+/**
+ * Save view preference to API
+ */
+async function saveViewPreference(viewPreference: ViewMode): Promise<boolean> {
+  const token = localStorage.getItem('helios_token');
+  if (!token) return false;
+
+  try {
+    const response = await fetch(`${API_BASE}/me/view-preference`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ viewPreference }),
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.error('Failed to save view preference:', error);
+    return false;
+  }
+}
 
 /**
  * Determine default view based on user capabilities
@@ -79,6 +134,8 @@ function getDefaultView(caps: UserCapabilities): ViewMode {
 export const ViewProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [capabilities, setCapabilitiesState] = useState<UserCapabilities>(defaultCapabilities);
   const [currentView, setCurrentViewState] = useState<ViewMode>('admin');
+  const [isLoading, setIsLoading] = useState(false);
+  const hasFetchedPreference = useRef(false);
 
   // Derived access flags
   const canAccessAdminView = capabilities.isAdmin;
@@ -86,16 +143,53 @@ export const ViewProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const canSwitchViews = capabilities.isAdmin && capabilities.isEmployee;
 
   /**
-   * Set capabilities and update default view
+   * Set capabilities and load view preference from API or localStorage
    */
-  const setCapabilities = useCallback((caps: UserCapabilities) => {
+  const setCapabilities = useCallback(async (caps: UserCapabilities) => {
     setCapabilitiesState(caps);
-    const defaultView = getDefaultView(caps);
-    setCurrentViewState(defaultView);
+
+    // External admin - always admin, no need to fetch
+    if (caps.isAdmin && !caps.isEmployee) {
+      setCurrentViewState('admin');
+      return;
+    }
+
+    // Regular employee - always user, no need to fetch
+    if (caps.isEmployee && !caps.isAdmin) {
+      setCurrentViewState('user');
+      return;
+    }
+
+    // Internal admin - try to fetch preference from API
+    if (caps.isAdmin && caps.isEmployee && !hasFetchedPreference.current) {
+      hasFetchedPreference.current = true;
+      setIsLoading(true);
+
+      const apiPreference = await fetchViewPreference();
+      if (apiPreference) {
+        setCurrentViewState(apiPreference);
+        // Sync to localStorage for faster loading next time
+        localStorage.setItem('helios_view_preference', apiPreference);
+      } else {
+        // Fall back to localStorage or default
+        const localPreference = localStorage.getItem('helios_view_preference');
+        if (localPreference === 'admin' || localPreference === 'user') {
+          setCurrentViewState(localPreference);
+        } else {
+          setCurrentViewState('admin'); // Default to admin
+        }
+      }
+
+      setIsLoading(false);
+    } else {
+      // Use localStorage for immediate loading
+      const defaultView = getDefaultView(caps);
+      setCurrentViewState(defaultView);
+    }
   }, []);
 
   /**
-   * Set current view with validation
+   * Set current view with validation and persist to API
    */
   const setCurrentView = useCallback((view: ViewMode) => {
     // Validate the view change
@@ -112,7 +206,13 @@ export const ViewProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Persist preference for internal admins
     if (canSwitchViews) {
+      // Save to localStorage immediately for fast access
       localStorage.setItem('helios_view_preference', view);
+
+      // Also save to API for cross-device sync (fire and forget)
+      saveViewPreference(view).catch(err => {
+        console.error('Failed to save view preference to API:', err);
+      });
     }
   }, [canAccessAdminView, canAccessUserView, canSwitchViews]);
 
@@ -122,12 +222,11 @@ export const ViewProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (storedUser) {
       try {
         const user = JSON.parse(storedUser);
-        // Determine capabilities based on user role
-        // For now, assume role === 'admin' means isAdmin
-        // and all authenticated users are employees (can be refined later)
+        // Use access flags from stored user if available (from API)
+        // Otherwise derive from role for backward compatibility
         const caps: UserCapabilities = {
-          isAdmin: user.role === 'admin' || user.role === 'super_admin',
-          isEmployee: true, // All org users are employees for now
+          isAdmin: user.isAdmin ?? (user.role === 'admin' || user.role === 'super_admin'),
+          isEmployee: user.isEmployee ?? true, // Default to true if not specified
         };
         setCapabilities(caps);
       } catch (err) {
@@ -146,6 +245,7 @@ export const ViewProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         canSwitchViews,
         capabilities,
         setCapabilities,
+        isLoading,
       }}
     >
       {children}
