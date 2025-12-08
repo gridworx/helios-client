@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { useTabPersistence } from '../hooks/useTabPersistence';
-import { ClipboardList, Users, RefreshCw, BarChart3, Settings, Trash2, CheckCircle, AlertTriangle } from 'lucide-react';
+import { ClipboardList, Users, RefreshCw, BarChart3, Settings, Trash2, CheckCircle, AlertTriangle, FileText } from 'lucide-react';
 import './UserSlideOut.css';
 
 interface User {
@@ -849,7 +849,7 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
                 <div className="activity-list">
                   {activityLog.map((activity) => (
                     <div key={activity.id} className="activity-item">
-                      <div className="activity-icon">📝</div>
+                      <div className="activity-icon"><FileText size={16} /></div>
                       <div className="activity-details">
                         <strong>{activity.description || activity.action.replace(/_/g, ' ')}</strong>
                         <span className="activity-time">

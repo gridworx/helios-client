@@ -1235,7 +1235,8 @@ export function AddUser() {
       {/* Loading State */}
       {isLoadingUser && (
         <div className="message" style={{ textAlign: 'center', padding: '2rem' }}>
-          ⏳ Loading user data...
+          <Loader size={16} className="spin" style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} />
+          Loading user data...
         </div>
       )}
 
@@ -1266,12 +1267,14 @@ export function AddUser() {
         {/* Messages */}
         {error && (
           <div className="message error-message">
-            ⚠️ {error}
+            <AlertCircle size={16} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} />
+            {error}
           </div>
         )}
         {success && (
           <div className="message success-message">
-            ✓ {success}
+            <CheckCircle size={16} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} />
+            {success}
           </div>
         )}
 
