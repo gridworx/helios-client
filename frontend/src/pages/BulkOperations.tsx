@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Upload, Download, FileSpreadsheet, Clock, CheckCircle2, XCircle, AlertCircle, Save, Trash2, FolderOpen, Wifi, WifiOff } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { Upload, Download, FileSpreadsheet, Clock, CheckCircle2, XCircle, AlertCircle, Save, Trash2, FolderOpen, Wifi, WifiOff, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Edit2, X, Check, Square, CheckSquare, MinusSquare } from 'lucide-react';
 import { bulkOperationsService, type BulkOperation, type ValidationError } from '../services/bulk-operations.service';
 import { bulkOperationsSocket, type BulkOperationProgressEvent, type BulkOperationFailureEvent } from '../services/bulk-operations-socket.service';
 import './BulkOperations.css';
@@ -9,6 +9,10 @@ interface BulkOperationsProps {
 }
 
 type OperationType = 'user_update' | 'user_create' | 'user_suspend' | 'group_membership_add' | 'group_membership_remove';
+
+// Pagination configuration
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+const DEFAULT_PAGE_SIZE = 25;
 
 export function BulkOperations({ organizationId }: BulkOperationsProps) {
   const [selectedOperation, setSelectedOperation] = useState<OperationType>('user_update');
@@ -29,8 +33,193 @@ export function BulkOperations({ organizationId }: BulkOperationsProps) {
   const [socketConnected, setSocketConnected] = useState(false);
   const [useWebSocket, setUseWebSocket] = useState(true); // Toggle for fallback to polling
 
+  // Bulk editor grid state
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [editingCell, setEditingCell] = useState<{ rowIndex: number; column: string } | null>(null);
+  const [editingValue, setEditingValue] = useState('');
+  const [pendingEdits, setPendingEdits] = useState<Map<string, string>>(new Map()); // key: `${rowIndex}-${column}`
+
   // Track if we're currently subscribed to prevent duplicate subscriptions
   const activeSubscriptionRef = useRef<string | null>(null);
+  const editInputRef = useRef<HTMLInputElement>(null);
+
+  // Computed values for pagination
+  const totalItems = previewData?.length || 0;
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalItems);
+  const paginatedData = useMemo(() => {
+    if (!previewData) return [];
+    return previewData.slice(startIndex, endIndex);
+  }, [previewData, startIndex, endIndex]);
+
+  // Selection state helpers
+  const allPageRowsSelected = useMemo(() => {
+    if (!paginatedData.length) return false;
+    return paginatedData.every((_, idx) => selectedRows.has(startIndex + idx));
+  }, [paginatedData, selectedRows, startIndex]);
+
+  const somePageRowsSelected = useMemo(() => {
+    if (!paginatedData.length) return false;
+    const someSelected = paginatedData.some((_, idx) => selectedRows.has(startIndex + idx));
+    return someSelected && !allPageRowsSelected;
+  }, [paginatedData, selectedRows, startIndex, allPageRowsSelected]);
+
+  // Reset pagination when preview data changes
+  useEffect(() => {
+    setCurrentPage(1);
+    setSelectedRows(new Set());
+    setPendingEdits(new Map());
+    setEditingCell(null);
+  }, [previewData]);
+
+  // Focus edit input when editing starts
+  useEffect(() => {
+    if (editingCell && editInputRef.current) {
+      editInputRef.current.focus();
+      editInputRef.current.select();
+    }
+  }, [editingCell]);
+
+  // Bulk editor grid functions
+  const handleSelectAll = () => {
+    if (allPageRowsSelected) {
+      // Deselect all on current page
+      const newSelected = new Set(selectedRows);
+      paginatedData.forEach((_, idx) => newSelected.delete(startIndex + idx));
+      setSelectedRows(newSelected);
+    } else {
+      // Select all on current page
+      const newSelected = new Set(selectedRows);
+      paginatedData.forEach((_, idx) => newSelected.add(startIndex + idx));
+      setSelectedRows(newSelected);
+    }
+  };
+
+  const handleSelectRow = (absoluteIndex: number) => {
+    const newSelected = new Set(selectedRows);
+    if (newSelected.has(absoluteIndex)) {
+      newSelected.delete(absoluteIndex);
+    } else {
+      newSelected.add(absoluteIndex);
+    }
+    setSelectedRows(newSelected);
+  };
+
+  const handleSelectAllData = () => {
+    if (selectedRows.size === totalItems) {
+      setSelectedRows(new Set());
+    } else {
+      const allIndices = new Set(Array.from({ length: totalItems }, (_, i) => i));
+      setSelectedRows(allIndices);
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedRows(new Set());
+  };
+
+  const handleDeleteSelected = () => {
+    if (!previewData || selectedRows.size === 0) return;
+    if (!confirm(`Delete ${selectedRows.size} selected row(s)? This cannot be undone.`)) return;
+
+    const sortedIndices = Array.from(selectedRows).sort((a, b) => b - a);
+    const newData = [...previewData];
+    sortedIndices.forEach(idx => newData.splice(idx, 1));
+
+    setPreviewData(newData);
+    setValidatedData(newData);
+    setSelectedRows(new Set());
+    setPendingEdits(new Map());
+
+    // Adjust current page if necessary
+    const newTotalPages = Math.ceil(newData.length / pageSize);
+    if (currentPage > newTotalPages && newTotalPages > 0) {
+      setCurrentPage(newTotalPages);
+    }
+  };
+
+  const handleStartEdit = (rowIndex: number, column: string, currentValue: any) => {
+    const editKey = `${rowIndex}-${column}`;
+    const pendingValue = pendingEdits.get(editKey);
+    setEditingCell({ rowIndex, column });
+    setEditingValue(pendingValue !== undefined ? pendingValue : String(currentValue || ''));
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingCell || !previewData) return;
+
+    const { rowIndex, column } = editingCell;
+    const editKey = `${rowIndex}-${column}`;
+    const originalValue = String(previewData[rowIndex]?.[column] || '');
+
+    if (editingValue !== originalValue) {
+      const newEdits = new Map(pendingEdits);
+      newEdits.set(editKey, editingValue);
+      setPendingEdits(newEdits);
+    } else {
+      // Remove from pending edits if value matches original
+      const newEdits = new Map(pendingEdits);
+      newEdits.delete(editKey);
+      setPendingEdits(newEdits);
+    }
+
+    setEditingCell(null);
+    setEditingValue('');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCell(null);
+    setEditingValue('');
+  };
+
+  const handleApplyPendingEdits = () => {
+    if (!previewData || pendingEdits.size === 0) return;
+
+    const newData = previewData.map((row, rowIndex) => {
+      const updatedRow = { ...row };
+      pendingEdits.forEach((value, key) => {
+        const [editRowIndex, column] = key.split('-');
+        if (parseInt(editRowIndex) === rowIndex) {
+          updatedRow[column] = value;
+        }
+      });
+      return updatedRow;
+    });
+
+    setPreviewData(newData);
+    setValidatedData(newData);
+    setPendingEdits(new Map());
+  };
+
+  const handleDiscardPendingEdits = () => {
+    if (pendingEdits.size === 0) return;
+    if (!confirm('Discard all pending changes?')) return;
+    setPendingEdits(new Map());
+  };
+
+  const getCellValue = (rowIndex: number, column: string, originalValue: any): string => {
+    const editKey = `${rowIndex}-${column}`;
+    const pendingValue = pendingEdits.get(editKey);
+    return pendingValue !== undefined ? pendingValue : String(originalValue || '');
+  };
+
+  const hasPendingEdit = (rowIndex: number, column: string): boolean => {
+    return pendingEdits.has(`${rowIndex}-${column}`);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setCurrentPage(1);
+  };
 
   // Initialize WebSocket connection
   useEffect(() => {
@@ -138,13 +327,11 @@ export function BulkOperations({ organizationId }: BulkOperationsProps) {
     if (!validatedData) return;
 
     try {
-      const preview = await bulkOperationsService.previewOperation(selectedOperation, validatedData);
-      // The preview API returns an object with sampleItems, extract the actual items
-      setPreviewData(preview.sampleItems || validatedData.slice(0, 10));
+      // For the bulk editor grid, show all validated data (pagination handles display)
+      setPreviewData(validatedData);
     } catch (error: any) {
       console.error('Preview error:', error);
-      // If preview fails, just show the validated data
-      setPreviewData(validatedData.slice(0, 10));
+      setPreviewData(validatedData);
     }
   };
 
@@ -595,37 +782,238 @@ export function BulkOperations({ organizationId }: BulkOperationsProps) {
           )}
 
           {previewData && (
-            <div className="preview-section">
-              <h3>Preview Changes ({previewData.length} items)</h3>
+            <div className="preview-section bulk-editor-grid">
+              <div className="preview-header">
+                <h3>Bulk Editor ({previewData.length} items)</h3>
+                <div className="preview-header-actions">
+                  {pendingEdits.size > 0 && (
+                    <div className="pending-edits-indicator">
+                      <Edit2 size={14} />
+                      <span>{pendingEdits.size} pending change{pendingEdits.size !== 1 ? 's' : ''}</span>
+                      <button className="btn-text btn-sm" onClick={handleApplyPendingEdits}>
+                        Apply
+                      </button>
+                      <button className="btn-text btn-sm" onClick={handleDiscardPendingEdits}>
+                        Discard
+                      </button>
+                    </div>
+                  )}
+                  <button
+                    className="btn-secondary btn-sm"
+                    onClick={() => {
+                      setPreviewData(null);
+                      setSelectedRows(new Set());
+                      setPendingEdits(new Map());
+                    }}
+                  >
+                    <X size={16} />
+                    Close Editor
+                  </button>
+                </div>
+              </div>
+
+              {/* Bulk Action Toolbar */}
+              {selectedRows.size > 0 && (
+                <div className="bulk-action-toolbar">
+                  <div className="selection-info">
+                    <CheckSquare size={16} />
+                    <span>{selectedRows.size} of {totalItems} row{selectedRows.size !== 1 ? 's' : ''} selected</span>
+                  </div>
+                  <div className="bulk-actions">
+                    {selectedRows.size < totalItems && (
+                      <button className="btn-text btn-sm" onClick={handleSelectAllData}>
+                        Select all {totalItems}
+                      </button>
+                    )}
+                    <button className="btn-text btn-sm" onClick={handleClearSelection}>
+                      Clear selection
+                    </button>
+                    <button className="btn-danger btn-sm" onClick={handleDeleteSelected}>
+                      <Trash2 size={14} />
+                      Delete selected
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="preview-table-container">
-                <table className="preview-table">
+                <table className="preview-table bulk-editor-table">
                   <thead>
                     <tr>
+                      <th className="checkbox-column">
+                        <button
+                          className="checkbox-btn"
+                          onClick={handleSelectAll}
+                          title={allPageRowsSelected ? 'Deselect all on page' : 'Select all on page'}
+                        >
+                          {allPageRowsSelected ? (
+                            <CheckSquare size={18} />
+                          ) : somePageRowsSelected ? (
+                            <MinusSquare size={18} />
+                          ) : (
+                            <Square size={18} />
+                          )}
+                        </button>
+                      </th>
+                      <th className="row-number-column">#</th>
                       {Object.keys(previewData[0] || {}).map((key) => (
                         <th key={key}>{key}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {previewData.slice(0, 10).map((item, index) => (
-                      <tr key={index}>
-                        {Object.values(item).map((value: any, i) => (
-                          <td key={i}>{String(value)}</td>
-                        ))}
-                      </tr>
-                    ))}
+                    {paginatedData.map((item, pageIndex) => {
+                      const absoluteIndex = startIndex + pageIndex;
+                      const isSelected = selectedRows.has(absoluteIndex);
+                      const columns = Object.keys(item);
+
+                      return (
+                        <tr
+                          key={absoluteIndex}
+                          className={`
+                            ${isSelected ? 'row-selected' : ''}
+                            ${columns.some(col => hasPendingEdit(absoluteIndex, col)) ? 'row-has-edits' : ''}
+                          `}
+                        >
+                          <td className="checkbox-column">
+                            <button
+                              className="checkbox-btn"
+                              onClick={() => handleSelectRow(absoluteIndex)}
+                            >
+                              {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
+                            </button>
+                          </td>
+                          <td className="row-number-column">{absoluteIndex + 1}</td>
+                          {columns.map((column) => {
+                            const originalValue = item[column];
+                            const displayValue = getCellValue(absoluteIndex, column, originalValue);
+                            const isPendingEdit = hasPendingEdit(absoluteIndex, column);
+                            const isEditing = editingCell?.rowIndex === absoluteIndex && editingCell?.column === column;
+
+                            return (
+                              <td
+                                key={column}
+                                className={`
+                                  editable-cell
+                                  ${isPendingEdit ? 'cell-pending-edit' : ''}
+                                  ${isEditing ? 'cell-editing' : ''}
+                                `}
+                                onDoubleClick={() => !isEditing && handleStartEdit(absoluteIndex, column, originalValue)}
+                              >
+                                {isEditing ? (
+                                  <div className="cell-edit-container">
+                                    <input
+                                      ref={editInputRef}
+                                      type="text"
+                                      value={editingValue}
+                                      onChange={(e) => setEditingValue(e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveEdit();
+                                        if (e.key === 'Escape') handleCancelEdit();
+                                      }}
+                                      onBlur={handleSaveEdit}
+                                      className="cell-edit-input"
+                                    />
+                                    <div className="cell-edit-actions">
+                                      <button className="btn-icon-sm" onClick={handleSaveEdit} title="Save">
+                                        <Check size={14} />
+                                      </button>
+                                      <button className="btn-icon-sm" onClick={handleCancelEdit} title="Cancel">
+                                        <X size={14} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="cell-display">
+                                    <span className="cell-value">{displayValue}</span>
+                                    {isPendingEdit && (
+                                      <span className="cell-original" title={`Original: ${originalValue}`}>
+                                        (was: {String(originalValue).substring(0, 15)}{String(originalValue).length > 15 ? '...' : ''})
+                                      </span>
+                                    )}
+                                    <button
+                                      className="cell-edit-btn"
+                                      onClick={() => handleStartEdit(absoluteIndex, column, originalValue)}
+                                      title="Edit"
+                                    >
+                                      <Edit2 size={12} />
+                                    </button>
+                                  </div>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
-                {previewData.length > 10 && (
-                  <p className="preview-note">Showing first 10 of {previewData.length} items</p>
-                )}
               </div>
-              <button
-                className="btn-secondary btn-sm"
-                onClick={() => setPreviewData(null)}
-              >
-                Close Preview
-              </button>
+
+              {/* Pagination Controls */}
+              <div className="pagination-container">
+                <div className="pagination-info">
+                  Showing {startIndex + 1} - {endIndex} of {totalItems} items
+                </div>
+
+                <div className="pagination-controls">
+                  <div className="page-size-selector">
+                    <label>Rows per page:</label>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                    >
+                      {PAGE_SIZE_OPTIONS.map((size) => (
+                        <option key={size} value={size}>{size}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="page-navigation">
+                    <button
+                      className="btn-icon"
+                      onClick={() => handlePageChange(1)}
+                      disabled={currentPage === 1}
+                      title="First page"
+                    >
+                      <ChevronsLeft size={18} />
+                    </button>
+                    <button
+                      className="btn-icon"
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      title="Previous page"
+                    >
+                      <ChevronLeft size={18} />
+                    </button>
+
+                    <span className="page-indicator">
+                      Page {currentPage} of {totalPages || 1}
+                    </span>
+
+                    <button
+                      className="btn-icon"
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage >= totalPages}
+                      title="Next page"
+                    >
+                      <ChevronRight size={18} />
+                    </button>
+                    <button
+                      className="btn-icon"
+                      onClick={() => handlePageChange(totalPages)}
+                      disabled={currentPage >= totalPages}
+                      title="Last page"
+                    >
+                      <ChevronsRight size={18} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <p className="editor-hint">
+                Double-click a cell to edit. Press Enter to save, Escape to cancel.
+              </p>
             </div>
           )}
         </div>

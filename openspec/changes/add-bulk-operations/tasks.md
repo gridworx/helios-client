@@ -61,11 +61,13 @@
   - Format validation UI
   - Column mapping interface
 
-- [ ] Implement bulk editor grid
-  - Multi-select checkboxes
-  - Bulk action toolbar
-  - Inline preview
-  - Pagination for large sets
+- [x] Implement bulk editor grid
+  - Multi-select checkboxes (select all, select page, individual rows)
+  - Bulk action toolbar (delete selected, select all data, clear selection)
+  - Inline editing (double-click to edit, pending changes indicator)
+  - Pagination for large sets (10, 25, 50, 100 per page)
+  - File: `frontend/src/pages/BulkOperations.tsx`
+  - **Completed:** Full interactive grid with row selection, inline editing, and pagination
 
 - [x] Add operation progress component
   - Real-time progress bar

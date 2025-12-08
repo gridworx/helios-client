@@ -781,3 +781,425 @@
     padding: 8px;
   }
 }
+
+/* ============================================
+   BULK EDITOR GRID STYLES
+   ============================================ */
+
+/* Preview Header with Actions */
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.preview-header h3 {
+  margin: 0;
+}
+
+.preview-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Pending Edits Indicator */
+.pending-edits-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #92400e;
+}
+
+.pending-edits-indicator svg {
+  flex-shrink: 0;
+}
+
+/* Bulk Action Toolbar */
+.bulk-action-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.selection-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e40af;
+}
+
+.selection-info svg {
+  color: #3b82f6;
+}
+
+.bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Text Button Style */
+.btn-text {
+  background: none;
+  border: none;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--theme-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 4px;
+}
+
+.btn-text:hover {
+  background: rgba(139, 92, 246, 0.1);
+}
+
+/* Danger Button */
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #dc2626;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-danger:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+
+/* Bulk Editor Table */
+.bulk-editor-table {
+  table-layout: auto;
+}
+
+.bulk-editor-table th,
+.bulk-editor-table td {
+  position: relative;
+}
+
+/* Checkbox Column */
+.checkbox-column {
+  width: 44px;
+  min-width: 44px;
+  text-align: center;
+  padding: 8px !important;
+}
+
+.checkbox-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.checkbox-btn:hover {
+  color: var(--theme-primary);
+}
+
+.row-selected .checkbox-btn {
+  color: var(--theme-primary);
+}
+
+/* Row Number Column */
+.row-number-column {
+  width: 50px;
+  min-width: 50px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Selected Row Styling */
+.row-selected {
+  background: #eff6ff !important;
+}
+
+.row-selected:hover {
+  background: #dbeafe !important;
+}
+
+/* Row with Pending Edits */
+.row-has-edits {
+  background: #fffbeb !important;
+}
+
+.row-has-edits:hover {
+  background: #fef3c7 !important;
+}
+
+.row-selected.row-has-edits {
+  background: linear-gradient(135deg, #eff6ff 50%, #fffbeb 50%) !important;
+}
+
+/* Editable Cell */
+.editable-cell {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.editable-cell:hover {
+  background: #f3f4f6;
+}
+
+/* Cell Display Mode */
+.cell-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+}
+
+.cell-value {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cell-original {
+  font-size: 11px;
+  color: #9ca3af;
+  font-style: italic;
+  white-space: nowrap;
+}
+
+.cell-edit-btn {
+  opacity: 0;
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  color: #9ca3af;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.editable-cell:hover .cell-edit-btn {
+  opacity: 1;
+}
+
+.cell-edit-btn:hover {
+  color: var(--theme-primary);
+}
+
+/* Pending Edit Cell Styling */
+.cell-pending-edit {
+  background: #fef3c7 !important;
+}
+
+.cell-pending-edit .cell-value {
+  font-weight: 500;
+  color: #92400e;
+}
+
+/* Editing Cell */
+.cell-editing {
+  padding: 4px !important;
+  background: white !important;
+  box-shadow: inset 0 0 0 2px var(--theme-primary);
+}
+
+.cell-edit-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cell-edit-input {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+  min-width: 100px;
+}
+
+.cell-edit-input:focus {
+  outline: none;
+  border-color: var(--theme-primary);
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+}
+
+.cell-edit-actions {
+  display: flex;
+  gap: 2px;
+}
+
+.btn-icon-sm {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: #6b7280;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.btn-icon-sm:hover {
+  background: #f3f4f6;
+  color: var(--theme-primary);
+}
+
+/* Pagination Container */
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+  border-top: 1px solid #e5e7eb;
+  margin-top: 16px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.pagination-info {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+/* Page Size Selector */
+.page-size-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.page-size-selector select {
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #374151;
+  background: white;
+  cursor: pointer;
+}
+
+.page-size-selector select:focus {
+  outline: none;
+  border-color: var(--theme-primary);
+}
+
+/* Page Navigation */
+.page-navigation {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.page-navigation .btn-icon {
+  padding: 6px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  color: #6b7280;
+}
+
+.page-navigation .btn-icon:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: var(--theme-primary);
+  color: var(--theme-primary);
+}
+
+.page-navigation .btn-icon:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-indicator {
+  padding: 0 12px;
+  font-size: 14px;
+  color: #374151;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Editor Hint */
+.editor-hint {
+  margin: 12px 0 0 0;
+  font-size: 13px;
+  color: #9ca3af;
+  text-align: center;
+  font-style: italic;
+}
+
+/* Responsive adjustments for bulk editor */
+@media (max-width: 768px) {
+  .preview-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .preview-header-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .bulk-action-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .bulk-actions {
+    flex-wrap: wrap;
+  }
+
+  .pagination-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pagination-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .page-navigation {
+    justify-content: center;
+  }
+
+  .page-size-selector {
+    justify-content: center;
+  }
+}
