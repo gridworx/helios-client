@@ -190,11 +190,12 @@
   - File: `frontend/src/components/navigation/ViewOnboarding.tsx`
   - **Completed:** Created ViewOnboarding component with card selection for Admin Console vs Employee View
 
-- [ ] **TASK-AUS-025**: Handle edge cases in navigation
+- [x] **TASK-AUS-025**: Handle edge cases in navigation
   - Deep link to admin route as user → redirect
   - Deep link to user route as external admin → redirect
   - Session expiry during view switch
   - File: `frontend/src/components/routes/*.tsx`
+  - **Completed:** AdminRoute and EmployeeRoute guard components exist, LegacyRedirects handles old URLs, session expiry handled via token verification
 
 ## Testing Tasks
 
