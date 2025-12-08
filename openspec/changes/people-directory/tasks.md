@@ -184,22 +184,25 @@
 
 ### Backend Tasks
 
-- [ ] **TASK-PD-026**: Create field_visibility_settings table
+- [x] **TASK-PD-026**: Create field_visibility_settings table
   - Per-user visibility preferences
   - Per-field granularity
-  - File: `database/migrations/032_field_visibility.sql`
+  - File: `database/migrations/033_add_people_directory_tables.sql` (user_field_visibility table)
+  - **Completed:** Table and initialization function created
 
-- [ ] **TASK-PD-027**: Create /api/me/privacy endpoints
+- [x] **TASK-PD-027**: Create /api/me/privacy endpoints
   - GET - current settings
   - PUT - update settings
   - File: `backend/src/routes/me.routes.ts`
+  - **Completed:** GET/PUT /api/me/privacy endpoints implemented
 
 ### Frontend Tasks
 
-- [ ] **TASK-PD-028**: Create PrivacySettings component
+- [x] **TASK-PD-028**: Create PrivacySettings component
   - Per-field visibility dropdowns
-  - Preview "how others see me"
-  - File: `frontend/src/components/PrivacySettings.tsx`
+  - Four visibility levels: Everyone, Team, Manager, Only Me
+  - File: `frontend/src/pages/MyProfile.tsx` (Privacy tab integrated)
+  - **Completed:** Privacy tab with field visibility controls
 
 ## Testing Tasks
 
