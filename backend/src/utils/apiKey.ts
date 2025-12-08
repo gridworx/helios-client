@@ -76,6 +76,8 @@ export function hashApiKey(key: string): string {
  * Validate API key format
  *
  * Checks that key matches expected format: helios_{env}_{random}
+ * Note: The random part uses base64url encoding which can include underscores,
+ * so we split into exactly 3 parts: first two are separated, rest is the random part.
  *
  * @param key - API key to validate
  * @returns true if valid format, false otherwise
@@ -86,13 +88,19 @@ export function validateApiKeyFormat(key: string): boolean {
     return false;
   }
 
-  // Must have three parts separated by underscores
-  const parts = key.split('_');
-  if (parts.length !== 3) {
+  // Split into exactly 3 parts: prefix, env, and everything else (random)
+  // Using split with limit doesn't work well with multiple underscores,
+  // so we extract manually
+  const firstUnderscore = key.indexOf('_');
+  const secondUnderscore = key.indexOf('_', firstUnderscore + 1);
+
+  if (firstUnderscore === -1 || secondUnderscore === -1) {
     return false;
   }
 
-  const [prefix, env, random] = parts;
+  const prefix = key.substring(0, firstUnderscore);
+  const env = key.substring(firstUnderscore + 1, secondUnderscore);
+  const random = key.substring(secondUnderscore + 1);
 
   // Validate prefix
   if (prefix !== 'helios') {
@@ -139,4 +147,94 @@ export function extractEnvironment(key: string): 'prod' | 'dev' | null {
  */
 export function createKeyPrefix(key: string): string {
   return `${key.substring(0, 20)}...`;
+}
+
+/**
+ * Compare a plaintext API key with a stored hash using timing-safe comparison.
+ *
+ * @param plaintext - The plaintext API key from request header
+ * @param storedHash - The stored SHA-256 hash from database
+ * @returns true if the key matches
+ */
+export function verifyApiKey(plaintext: string, storedHash: string): boolean {
+  const hashedInput = hashApiKey(plaintext);
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(hashedInput, 'hex'),
+      Buffer.from(storedHash, 'hex')
+    );
+  } catch {
+    return false;
+  }
+}
+
+// Available API permission scopes
+export const API_SCOPES = {
+  // Users
+  'read:users': 'View users and their profiles',
+  'write:users': 'Create and update users',
+  'delete:users': 'Delete users',
+
+  // Groups
+  'read:groups': 'View groups and memberships',
+  'write:groups': 'Create and update groups',
+  'delete:groups': 'Delete groups',
+  'manage:group-members': 'Add and remove group members',
+
+  // Organization
+  'read:organization': 'View organization settings',
+  'write:organization': 'Update organization settings',
+
+  // Sync
+  'sync:google-workspace': 'Sync with Google Workspace',
+
+  // Audit
+  'read:audit-logs': 'View audit logs',
+
+  // Bulk operations
+  'bulk:users': 'Perform bulk user operations',
+  'bulk:groups': 'Perform bulk group operations',
+
+  // Admin
+  'admin:full': 'Full administrative access (all permissions)',
+} as const;
+
+export type ApiScope = keyof typeof API_SCOPES;
+
+/**
+ * Check if a permission scope is valid.
+ *
+ * @param scope - The scope to validate
+ * @returns true if valid scope
+ */
+export function isValidScope(scope: string): scope is ApiScope {
+  return scope in API_SCOPES;
+}
+
+/**
+ * Check if a key's permissions include a required scope.
+ *
+ * @param permissions - The key's permission array
+ * @param requiredScope - The scope needed for the operation
+ * @returns true if permission is granted
+ */
+export function hasPermission(permissions: string[], requiredScope: ApiScope): boolean {
+  // admin:full grants all permissions
+  if (permissions.includes('admin:full')) {
+    return true;
+  }
+  return permissions.includes(requiredScope);
+}
+
+/**
+ * Expand permissions array, resolving admin:full to all scopes.
+ *
+ * @param permissions - The key's permission array
+ * @returns Expanded list of effective permissions
+ */
+export function expandPermissions(permissions: string[]): ApiScope[] {
+  if (permissions.includes('admin:full')) {
+    return Object.keys(API_SCOPES) as ApiScope[];
+  }
+  return permissions.filter(isValidScope) as ApiScope[];
 }
