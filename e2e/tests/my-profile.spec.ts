@@ -2,7 +2,7 @@ import { test, expect, Page } from '@playwright/test';
 
 // Test fixtures
 const TEST_CREDENTIALS = {
-  email: 'admin@gridworx.io',
+  email: 'mike@gridworx.io',
   password: 'admin123',
 };
 
