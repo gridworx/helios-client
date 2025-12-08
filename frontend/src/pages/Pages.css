@@ -86,8 +86,8 @@
 .grid-header {
   display: grid;
   grid-template-columns: 2fr 1fr 100px 100px 1.5fr 120px;
-  padding: 0 20px;
-  height: 44px;
+  padding: 0 16px;
+  height: 40px;
   background: #fafbfc;
   border-bottom: 1px solid #e5e7eb;
   font-size: 11px;
@@ -96,6 +96,7 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   align-items: center;
+  gap: 16px;
 }
 
 .grid-body {
@@ -106,16 +107,18 @@
 .grid-row {
   display: grid;
   grid-template-columns: 2fr 1fr 100px 100px 1.5fr 120px;
-  padding: 0 20px;
-  height: 56px;
-  min-height: 56px;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 0 16px;
+  height: 48px;
+  min-height: 48px;
+  max-height: 48px;
+  border-bottom: 1px solid #f5f5f5;
   align-items: center;
-  transition: background 0.2s;
+  gap: 16px;
+  transition: background 0.1s ease;
 }
 
 .grid-row:hover {
-  background: #f8f9fa;
+  background: #f9fafb;
 }
 
 /* Column Sizes */

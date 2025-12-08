@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTabPersistence } from '../hooks/useTabPersistence';
-import { UsersRound, Search, Plus, Trash2, Loader, Save, BarChart3, User } from 'lucide-react';
+import { UsersRound, Search, Plus, Trash2, Loader, Save, BarChart3, User, Pencil } from 'lucide-react';
 import './Pages.css';
 
 type GroupDetailTab = 'members' | 'settings' | 'activity';
@@ -417,7 +417,7 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
                   className="btn-secondary"
                   onClick={() => setIsEditingSettings(true)}
                 >
-                  ✏️ Edit Settings
+                  <Pencil size={14} style={{ marginRight: 4 }} /> Edit Settings
                 </button>
               ) : (
                 <div style={{ display: 'flex', gap: '0.5rem' }}>

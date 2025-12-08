@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react';
 import './Toast.css';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
@@ -27,15 +28,15 @@ export const Toast: React.FC<ToastProps> = ({ toast, onClose }) => {
   const getIcon = () => {
     switch (toast.type) {
       case 'success':
-        return '✅';
+        return <CheckCircle size={18} />;
       case 'error':
-        return '❌';
+        return <XCircle size={18} />;
       case 'warning':
-        return '⚠️';
+        return <AlertTriangle size={18} />;
       case 'info':
-        return 'ℹ️';
+        return <Info size={18} />;
       default:
-        return 'ℹ️';
+        return <Info size={18} />;
     }
   };
 
@@ -44,7 +45,7 @@ export const Toast: React.FC<ToastProps> = ({ toast, onClose }) => {
       <span className="toast-icon">{getIcon()}</span>
       <span className="toast-message">{toast.message}</span>
       <button className="toast-close" onClick={() => onClose(toast.id)}>
-        ×
+        <X size={16} />
       </button>
     </div>
   );

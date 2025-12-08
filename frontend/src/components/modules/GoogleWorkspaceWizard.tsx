@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Check, CheckCircle, FileUp, AlertTriangle } from 'lucide-react';
 import './GoogleWorkspaceWizard.css';
 
 interface ServiceAccountData {
@@ -214,7 +215,7 @@ const GoogleWorkspaceWizard: React.FC<GoogleWorkspaceWizardProps> = ({
               } ${currentStep > step.id ? 'completed' : ''}`}
             >
               <div className="gw-wizard-step-number">
-                {currentStep > step.id ? '✓' : step.id}
+                {currentStep > step.id ? <Check size={16} /> : step.id}
               </div>
               <div className="gw-wizard-step-info">
                 <div className="gw-wizard-step-title">{step.title}</div>
@@ -226,7 +227,7 @@ const GoogleWorkspaceWizard: React.FC<GoogleWorkspaceWizardProps> = ({
 
         {error && (
           <div className="gw-wizard-error">
-            <span>⚠️ {error}</span>
+            <AlertTriangle size={16} /> <span>{error}</span>
           </div>
         )}
 
@@ -247,7 +248,7 @@ const GoogleWorkspaceWizard: React.FC<GoogleWorkspaceWizardProps> = ({
                 <label htmlFor="service-account-file" className="gw-wizard-upload-label">
                   {serviceAccountFile ? (
                     <div>
-                      <p>✅ File uploaded: {serviceAccountFile.name}</p>
+                      <p><CheckCircle size={16} style={{ color: '#10b981', verticalAlign: 'middle', marginRight: 4 }} /> File uploaded: {serviceAccountFile.name}</p>
                       {serviceAccountData && (
                         <p className="gw-wizard-file-info">
                           Service Account: {serviceAccountData.client_email}
@@ -256,7 +257,7 @@ const GoogleWorkspaceWizard: React.FC<GoogleWorkspaceWizardProps> = ({
                     </div>
                   ) : (
                     <div>
-                      <p>📁 Click to upload JSON key file</p>
+                      <p><FileUp size={20} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Click to upload JSON key file</p>
                       <p className="gw-wizard-upload-hint">or drag and drop</p>
                     </div>
                   )}
@@ -329,13 +330,13 @@ const GoogleWorkspaceWizard: React.FC<GoogleWorkspaceWizardProps> = ({
                 >
                   {testStatus === 'idle' && 'Test Connection'}
                   {testStatus === 'testing' && 'Testing...'}
-                  {testStatus === 'success' && '✓ Connection Successful'}
+                  {testStatus === 'success' && <><Check size={16} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Connection Successful</>}
                   {testStatus === 'error' && 'Retry Test'}
                 </button>
 
                 {testStatus === 'success' && (
                   <div className="gw-wizard-test-success">
-                    <h4>✅ Connection Verified!</h4>
+                    <h4><CheckCircle size={18} style={{ color: '#10b981', verticalAlign: 'middle', marginRight: 6 }} /> Connection Verified!</h4>
                     <p>Successfully connected to Google Workspace domain: {domain}</p>
                     <p>Service Account: {serviceAccountData?.client_email}</p>
                     <p>Admin Email: {adminEmail}</p>

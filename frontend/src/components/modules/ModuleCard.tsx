@@ -1,4 +1,5 @@
 import React from 'react';
+import { Lock, Settings, RefreshCw, XCircle, CheckCircle, Package } from 'lucide-react';
 import './ModuleCard.css';
 
 export interface ModuleInfo {
@@ -35,11 +36,11 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
   onViewDetails
 }) => {
   const getStatusIcon = () => {
-    if (!module.isEnabled) return '🔒';
-    if (!module.isConfigured) return '⚙️';
-    if (module.syncStatus === 'syncing') return '🔄';
-    if (module.syncStatus === 'error') return '❌';
-    return '✅';
+    if (!module.isEnabled) return <Lock size={16} />;
+    if (!module.isConfigured) return <Settings size={16} />;
+    if (module.syncStatus === 'syncing') return <RefreshCw size={16} className="spinning" />;
+    if (module.syncStatus === 'error') return <XCircle size={16} />;
+    return <CheckCircle size={16} />;
   };
 
   const getStatusText = () => {
@@ -93,7 +94,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
           </svg>
         );
       default:
-        return <div className="module-icon-default">📦</div>;
+        return <div className="module-icon-default"><Package size={32} /></div>;
     }
   };
 

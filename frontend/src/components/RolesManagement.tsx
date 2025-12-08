@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Plus, Pencil, Trash2, Users } from 'lucide-react';
 import './RolesManagement.css';
 
 interface Role {
@@ -91,7 +92,7 @@ export function RolesManagement() {
           <p>Define roles and permissions for users in your organization</p>
         </div>
         <button className="btn-create-role" onClick={() => setShowCreateModal(true)}>
-          ➕ Create Role
+          <Plus size={16} /> Create Role
         </button>
       </div>
 
@@ -106,8 +107,8 @@ export function RolesManagement() {
               <div className="role-actions">
                 {!role.isSystem && (
                   <>
-                    <button className="btn-icon" onClick={() => _setEditingRole(role)}>✏️</button>
-                    <button className="btn-icon danger">🗑️</button>
+                    <button className="btn-icon" onClick={() => _setEditingRole(role)}><Pencil size={14} /></button>
+                    <button className="btn-icon danger"><Trash2 size={14} /></button>
                   </>
                 )}
               </div>
@@ -128,7 +129,7 @@ export function RolesManagement() {
 
             <div className="role-footer">
               <span className="user-count">
-                <span className="count-icon">👥</span>
+                <Users size={14} className="count-icon" />
                 {role.userCount} user{role.userCount !== 1 ? 's' : ''}
               </span>
               <button className="btn-assign">Assign Users</button>

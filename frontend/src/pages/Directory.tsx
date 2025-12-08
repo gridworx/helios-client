@@ -67,7 +67,7 @@ export function Directory({ organizationId }: DirectoryProps) {
 
         {activeTab === 'devices' && (
           <div className="coming-soon">
-            <div className="coming-soon-icon">💻</div>
+            <div className="coming-soon-icon"><Monitor size={48} /></div>
             <h2>Device Management</h2>
             <p>Manage devices enrolled in your organization's platforms.</p>
             <p className="coming-soon-label">Coming Soon</p>
