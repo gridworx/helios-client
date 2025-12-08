@@ -1,0 +1,182 @@
+import React from 'react';
+import {
+  Home,
+  Users as UsersIcon,
+  UsersRound,
+  Package,
+  Shield,
+  PenTool,
+  AlertCircle,
+  Zap,
+  FileText,
+  TrendingUp,
+  Search,
+  Settings as SettingsIcon,
+  Network,
+  MessageSquare,
+} from 'lucide-react';
+import { useLabels } from '../../contexts/LabelsContext';
+import { ENTITIES } from '../../config/entities';
+
+interface AdminNavigationProps {
+  currentPage: string;
+  onNavigate: (page: string) => void;
+  sidebarCollapsed: boolean;
+  labelsLoading: boolean;
+}
+
+/**
+ * Admin Console Navigation
+ *
+ * Shows admin-only features:
+ * - Dashboard (admin stats)
+ * - Directory (Users, Groups, Devices)
+ * - Security (Email Security, Signatures, Security Events)
+ * - Automation (Workflows, Templates)
+ * - Insights (Reports, Analytics)
+ * - Settings
+ */
+export const AdminNavigation: React.FC<AdminNavigationProps> = ({
+  currentPage,
+  onNavigate,
+  sidebarCollapsed: _sidebarCollapsed,
+  labelsLoading,
+}) => {
+  const { labels, isEntityAvailable } = useLabels();
+
+  return (
+    <nav className="nav">
+      <button
+        className={`nav-item ${currentPage === 'dashboard' ? 'active' : ''}`}
+        onClick={() => onNavigate('dashboard')}
+        data-testid="nav-admin-dashboard"
+      >
+        <Home size={16} className="nav-icon" />
+        <span>Dashboard</span>
+      </button>
+
+      <div className="nav-section" data-labels-loaded={labelsLoading ? 'false' : 'true'}>
+        <div className="nav-section-title">Directory</div>
+
+        {/* Users - Always available (core entity) */}
+        <button
+          className={`nav-item ${currentPage === 'users' ? 'active' : ''}`}
+          onClick={() => onNavigate('users')}
+          data-testid="nav-users"
+        >
+          <UsersIcon size={16} className="nav-icon" />
+          <span>{labels[ENTITIES.USER]?.plural || 'Users'}</span>
+        </button>
+
+        {/* Access Groups - Only if GWS or M365 enabled */}
+        {isEntityAvailable(ENTITIES.ACCESS_GROUP) && (
+          <button
+            className={`nav-item ${currentPage === 'groups' ? 'active' : ''}`}
+            onClick={() => onNavigate('groups')}
+            data-testid="nav-access-groups"
+          >
+            <UsersRound size={16} className="nav-icon" />
+            <span>{labels[ENTITIES.ACCESS_GROUP]?.plural || 'Groups'}</span>
+          </button>
+        )}
+
+        {/* Workspaces - Only if M365 or Google Chat enabled */}
+        {isEntityAvailable(ENTITIES.WORKSPACE) && (
+          <button
+            className={`nav-item ${currentPage === 'workspaces' ? 'active' : ''}`}
+            onClick={() => onNavigate('workspaces')}
+            data-testid="nav-workspaces"
+          >
+            <MessageSquare size={16} className="nav-icon" />
+            <span>{labels[ENTITIES.WORKSPACE]?.plural || 'Teams'}</span>
+          </button>
+        )}
+
+        {/* Org Chart - Shows manager relationships */}
+        <button
+          className={`nav-item ${currentPage === 'orgChart' ? 'active' : ''}`}
+          onClick={() => onNavigate('orgChart')}
+          data-testid="nav-org-chart"
+        >
+          <Network size={16} className="nav-icon" />
+          <span>Org Chart</span>
+        </button>
+      </div>
+
+      <div className="nav-section">
+        <div className="nav-section-title">Assets</div>
+        <button
+          className={`nav-item ${currentPage === 'assets' ? 'active' : ''}`}
+          onClick={() => onNavigate('assets')}
+          data-testid="nav-assets"
+        >
+          <Package size={16} className="nav-icon" />
+          <span>Asset Management</span>
+        </button>
+      </div>
+
+      <div className="nav-section">
+        <div className="nav-section-title">Security</div>
+        <button
+          className={`nav-item ${currentPage === 'email-security' ? 'active' : ''}`}
+          onClick={() => onNavigate('email-security')}
+          data-testid="nav-email-security"
+        >
+          <Shield size={16} className="nav-icon" />
+          <span>Email Security</span>
+        </button>
+        <button
+          className={`nav-item ${currentPage === 'signatures' ? 'active' : ''}`}
+          onClick={() => onNavigate('signatures')}
+          data-testid="nav-signatures"
+        >
+          <PenTool size={16} className="nav-icon" />
+          <span>Signatures</span>
+        </button>
+        <button
+          className={`nav-item ${currentPage === 'security-events' ? 'active' : ''}`}
+          onClick={() => onNavigate('security-events')}
+          data-testid="nav-security-events"
+        >
+          <AlertCircle size={16} className="nav-icon" />
+          <span>Security Events</span>
+        </button>
+      </div>
+
+      <div className="nav-section">
+        <div className="nav-section-title">Automation</div>
+        <button className="nav-item" data-testid="nav-workflows">
+          <span className="nav-icon"><Zap size={16} /></span>
+          <span>Workflows</span>
+        </button>
+        <button className="nav-item" data-testid="nav-templates">
+          <span className="nav-icon"><FileText size={16} /></span>
+          <span>Templates</span>
+        </button>
+      </div>
+
+      <div className="nav-section">
+        <div className="nav-section-title">Insights</div>
+        <button className="nav-item" data-testid="nav-reports">
+          <span className="nav-icon"><TrendingUp size={16} /></span>
+          <span>Reports</span>
+        </button>
+        <button className="nav-item" data-testid="nav-analytics">
+          <span className="nav-icon"><Search size={16} /></span>
+          <span>Analytics</span>
+        </button>
+      </div>
+
+      <button
+        className={`nav-item ${currentPage === 'settings' ? 'active' : ''}`}
+        onClick={() => onNavigate('settings')}
+        data-testid="nav-settings"
+      >
+        <SettingsIcon size={16} className="nav-icon" />
+        <span>Settings</span>
+      </button>
+    </nav>
+  );
+};
+
+export default AdminNavigation;

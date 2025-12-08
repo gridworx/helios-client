@@ -27,10 +27,11 @@ import { MyProfile } from './pages/MyProfile'
 import { People } from './pages/People'
 import { MyTeam } from './pages/MyTeam'
 import { LabelsProvider, useLabels } from './contexts/LabelsContext'
-import { ENTITIES } from './config/entities'
+import { ViewProvider, useView } from './contexts/ViewContext'
+import { AdminNavigation, UserNavigation, ViewSwitcher } from './components/navigation'
 import { getWidgetData } from './utils/widget-data'
 import { getEnabledWidgets, type WidgetId } from './config/widgets'
-import { Zap, FileText, TrendingUp, Search, Home, Users as UsersIcon, UsersRound, MessageSquare, Package, Settings as SettingsIcon, UserPlus, Upload, Download, RefreshCw, AlertCircle, Info, Shield, Edit3, Network, PenTool, Bell, Building, HelpCircle, UserCheck } from 'lucide-react'
+import { UserPlus, Upload, Download, RefreshCw, AlertCircle, Info, Edit3, Bell, Building, HelpCircle, Search, Users as UsersIcon } from 'lucide-react'
 
 interface OrganizationConfig {
   organizationId: string;
@@ -103,7 +104,8 @@ function GroupDetailWrapper({ organizationId }: { organizationId: string }) {
 function getPageFromPath(pathname: string): string {
   if (pathname === '/' || pathname === '/dashboard') return 'dashboard';
   if (pathname.startsWith('/users')) return 'users';
-  if (pathname.startsWith('/groups')) return 'groups';
+  if (pathname.startsWith('/groups') && !pathname.startsWith('/my-groups')) return 'groups';
+  if (pathname.startsWith('/my-groups')) return 'my-groups';
   if (pathname.startsWith('/people')) return 'people';
   if (pathname.startsWith('/my-team')) return 'my-team';
   if (pathname.startsWith('/org-chart')) return 'orgChart';
@@ -113,6 +115,7 @@ function getPageFromPath(pathname: string): string {
   if (pathname.startsWith('/signatures')) return 'signatures';
   if (pathname.startsWith('/security-events')) return 'security-events';
   if (pathname.startsWith('/audit-logs')) return 'audit-logs';
+  if (pathname.startsWith('/user-settings')) return 'user-settings';
   if (pathname.startsWith('/settings')) return 'settings';
   if (pathname.startsWith('/administrators')) return 'administrators';
   if (pathname.startsWith('/console')) return 'console';
@@ -125,7 +128,10 @@ function AppContent() {
   const location = useLocation();
 
   // Custom labels from LabelsContext
-  const { labels, isEntityAvailable, refreshLabels, isLoading: labelsLoading } = useLabels();
+  const { refreshLabels, isLoading: labelsLoading } = useLabels();
+
+  // View context for admin/user view switching
+  const { currentView, setCapabilities } = useView();
 
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState<OrganizationConfig | null>(null);
@@ -142,10 +148,12 @@ function AppContent() {
   const setCurrentPage = (page: string) => {
     const pathMap: Record<string, string> = {
       'dashboard': '/',
+      'home': '/',  // User view home
       'users': '/users',
       'groups': '/groups',
       'people': '/people',
       'my-team': '/my-team',
+      'my-groups': '/my-groups',  // User's groups
       'orgChart': '/org-chart',
       'workspaces': '/workspaces',
       'assets': '/assets',
@@ -154,6 +162,7 @@ function AppContent() {
       'security-events': '/security-events',
       'audit-logs': '/audit-logs',
       'settings': '/settings',
+      'user-settings': '/user-settings',  // User personal settings
       'administrators': '/administrators',
       'console': '/console',
       'my-profile': '/my-profile',
@@ -457,6 +466,13 @@ function AppContent() {
         onLoginSuccess={(loginData) => {
           setCurrentUser(loginData.data.user);
 
+          // Set user capabilities for view switching
+          const user = loginData.data.user;
+          setCapabilities({
+            isAdmin: user.role === 'admin' || user.role === 'super_admin',
+            isEmployee: true, // All org users are employees
+          });
+
           // Use organization info from login response (backend now includes it)
           if (loginData.data.organization) {
             setConfig({
@@ -466,7 +482,6 @@ function AppContent() {
               dwdConfigured: false
             });
           }
-
 
           // Refresh labels now that we have a token (before showing dashboard!)
           refreshLabels().then(async () => {
@@ -568,6 +583,7 @@ function AppContent() {
           </div>
         </div>
         <div className="header-right">
+          <ViewSwitcher />
           <div className="welcome-stats">
             <span className="welcome-text">Welcome, {currentUser?.firstName || 'User'}!</span>
           </div>
@@ -630,159 +646,26 @@ function AppContent() {
               {sidebarCollapsed ? '→' : '←'}
             </button>
           </div>
-          <nav className="nav">
-            <button
-              className={`nav-item ${currentPage === 'dashboard' ? 'active' : ''}`}
-              onClick={() => {
-                setCurrentPage('dashboard');
-                if (config?.organizationId) {
+          {/* View-aware navigation - show admin or user navigation based on current view */}
+          {currentView === 'admin' ? (
+            <AdminNavigation
+              currentPage={currentPage}
+              onNavigate={(page) => {
+                setCurrentPage(page);
+                if (page === 'dashboard' && config?.organizationId) {
                   fetchOrganizationStats(config.organizationId);
                 }
               }}
-            >
-              <Home size={16} className="nav-icon" />
-              <span>Home</span>
-            </button>
-
-            <div className="nav-section" data-labels-loaded={labelsLoading ? 'false' : 'true'}>
-              <div className="nav-section-title">Directory</div>
-
-              {/* Debug info for tests */}
-              <div style={{ display: 'none' }} data-debug-access-group-available={String(isEntityAvailable(ENTITIES.ACCESS_GROUP))} />
-
-              {/* Users - Always available (core entity) */}
-              <button
-                className={`nav-item ${currentPage === 'users' ? 'active' : ''}`}
-                onClick={() => setCurrentPage('users')}
-                data-testid="nav-users"
-              >
-                <UsersIcon size={16} className="nav-icon" />
-                <span>{labels[ENTITIES.USER]?.plural || 'Users'}</span>
-              </button>
-
-              {/* People Directory - User-facing directory */}
-              <button
-                className={`nav-item ${currentPage === 'people' ? 'active' : ''}`}
-                onClick={() => setCurrentPage('people')}
-                data-testid="nav-people"
-              >
-                <UsersRound size={16} className="nav-icon" />
-                <span>People</span>
-              </button>
-
-              {/* My Team - Personal team view */}
-              <button
-                className={`nav-item ${currentPage === 'my-team' ? 'active' : ''}`}
-                onClick={() => setCurrentPage('my-team')}
-                data-testid="nav-my-team"
-              >
-                <UserCheck size={16} className="nav-icon" />
-                <span>My Team</span>
-              </button>
-
-              {/* Access Groups - Only if GWS or M365 enabled */}
-              {isEntityAvailable(ENTITIES.ACCESS_GROUP) && (
-                <button
-                  className={`nav-item ${currentPage === 'groups' ? 'active' : ''}`}
-                  onClick={() => setCurrentPage('groups')}
-                  data-testid="nav-access-groups"
-                >
-                  <UsersRound size={16} className="nav-icon" />
-                  <span>{labels[ENTITIES.ACCESS_GROUP]?.plural || 'Groups'}</span>
-                </button>
-              )}
-
-              {/* Workspaces - Only if M365 or Google Chat enabled */}
-              {isEntityAvailable(ENTITIES.WORKSPACE) && (
-                <button
-                  className={`nav-item ${currentPage === 'workspaces' ? 'active' : ''}`}
-                  onClick={() => setCurrentPage('workspaces')}
-                  data-testid="nav-workspaces"
-                >
-                  <MessageSquare size={16} className="nav-icon" />
-                  <span>{labels[ENTITIES.WORKSPACE]?.plural || 'Teams'}</span>
-                </button>
-              )}
-
-              {/* Org Chart - Shows manager relationships */}
-              <button
-                className={`nav-item ${currentPage === 'orgChart' ? 'active' : ''}`}
-                onClick={() => setCurrentPage('orgChart')}
-                data-testid="nav-org-chart"
-              >
-                <Network size={16} className="nav-icon" />
-                <span>Org Chart</span>
-              </button>
-            </div>
-
-            <div className="nav-section">
-              <div className="nav-section-title">Assets</div>
-              <button
-                className={`nav-item ${currentPage === 'assets' ? 'active' : ''}`}
-                onClick={() => setCurrentPage('assets')}
-              >
-                <Package size={16} className="nav-icon" />
-                <span>Asset Management</span>
-              </button>
-            </div>
-
-            <div className="nav-section">
-              <div className="nav-section-title">Security</div>
-              <button
-                className={`nav-item ${currentPage === 'email-security' ? 'active' : ''}`}
-                onClick={() => setCurrentPage('email-security')}
-              >
-                <Shield size={16} className="nav-icon" />
-                <span>Email Security</span>
-              </button>
-              <button
-                className={`nav-item ${currentPage === 'signatures' ? 'active' : ''}`}
-                onClick={() => setCurrentPage('signatures')}
-              >
-                <PenTool size={16} className="nav-icon" />
-                <span>Signatures</span>
-              </button>
-              <button
-                className={`nav-item ${currentPage === 'security-events' ? 'active' : ''}`}
-                onClick={() => setCurrentPage('security-events')}
-              >
-                <AlertCircle size={16} className="nav-icon" />
-                <span>Security Events</span>
-              </button>
-            </div>
-
-            <div className="nav-section">
-              <div className="nav-section-title">Automation</div>
-              <button className="nav-item">
-                <span className="nav-icon"><Zap size={16} /></span>
-                <span>Workflows</span>
-              </button>
-              <button className="nav-item">
-                <span className="nav-icon"><FileText size={16} /></span>
-                <span>Templates</span>
-              </button>
-            </div>
-
-            <div className="nav-section">
-              <div className="nav-section-title">Insights</div>
-              <button className="nav-item">
-                <span className="nav-icon"><TrendingUp size={16} /></span>
-                <span>Reports</span>
-              </button>
-              <button className="nav-item">
-                <span className="nav-icon"><Search size={16} /></span>
-                <span>Analytics</span>
-              </button>
-            </div>
-
-            <button
-              className={`nav-item ${currentPage === 'settings' ? 'active' : ''}`}
-              onClick={() => setCurrentPage('settings')}
-            >
-              <SettingsIcon size={16} className="nav-icon" />
-              <span>Settings</span>
-            </button>
-          </nav>
+              sidebarCollapsed={sidebarCollapsed}
+              labelsLoading={labelsLoading}
+            />
+          ) : (
+            <UserNavigation
+              currentPage={currentPage}
+              onNavigate={setCurrentPage}
+              sidebarCollapsed={sidebarCollapsed}
+            />
+          )}
         </aside>
 
         <main className="client-main">
@@ -1106,12 +989,14 @@ function AppContent() {
   );
 }
 
-// Main App wrapper with BrowserRouter and LabelsProvider
+// Main App wrapper with BrowserRouter, LabelsProvider, and ViewProvider
 function App() {
   return (
     <BrowserRouter>
       <LabelsProvider>
-        <AppContent />
+        <ViewProvider>
+          <AppContent />
+        </ViewProvider>
       </LabelsProvider>
     </BrowserRouter>
   );
