@@ -36,7 +36,7 @@ router.post('/login',
     const result = await db.query(
       `SELECT id, email, password_hash, first_name, last_name, role, is_active, organization_id,
               COALESCE(is_external_admin, false) as is_external_admin,
-              default_view, user_preferences
+              default_view
        FROM organization_users
        WHERE email = $1`,
       [email.toLowerCase()]
@@ -69,15 +69,18 @@ router.post('/login',
       });
     }
 
-    // Generate tokens
+    // Determine if user is external admin
+    const isExternalAdmin = user.is_external_admin === true;
+
+    // Generate tokens (include isExternalAdmin for access control)
     const accessToken = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role, organizationId: user.organization_id, type: 'access' },
+      { userId: user.id, email: user.email, role: user.role, organizationId: user.organization_id, isExternalAdmin, type: 'access' },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
 
     const refreshToken = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role, organizationId: user.organization_id, type: 'refresh' },
+      { userId: user.id, email: user.email, role: user.role, organizationId: user.organization_id, isExternalAdmin, type: 'refresh' },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -107,8 +110,8 @@ router.post('/login',
     });
 
     // Determine access capabilities
+    // isExternalAdmin already determined above for JWT
     const isAdmin = user.role === 'admin' || user.role === 'super_admin';
-    const isExternalAdmin = user.is_external_admin === true;
     const isEmployee = !isExternalAdmin; // Internal users are employees
 
     // Determine default view
@@ -119,9 +122,8 @@ router.post('/login',
     if (!isAdmin) {
       defaultView = 'user';
     } else if (isEmployee) {
-      // Internal admin - check for saved preference
-      const savedPreference = user.user_preferences?.viewPreference || user.default_view;
-      if (savedPreference === 'user') {
+      // Internal admin - check for saved preference from default_view column
+      if (user.default_view === 'user') {
         defaultView = 'user';
       }
     }
@@ -184,7 +186,7 @@ router.get('/verify', asyncHandler(async (req: Request, res: Response) => {
     const result = await db.query(
       `SELECT id, email, first_name, last_name, role, is_active, organization_id,
               COALESCE(is_external_admin, false) as is_external_admin,
-              default_view, user_preferences
+              default_view
        FROM organization_users
        WHERE id = $1`,
       [decoded.userId]
@@ -216,8 +218,7 @@ router.get('/verify', asyncHandler(async (req: Request, res: Response) => {
     if (!isAdmin) {
       defaultView = 'user';
     } else if (isEmployee) {
-      const savedPreference = user.user_preferences?.viewPreference || user.default_view;
-      if (savedPreference === 'user') {
+      if (user.default_view === 'user') {
         defaultView = 'user';
       }
     }

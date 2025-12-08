@@ -13,13 +13,11 @@ function isAdminRole(role: string): boolean {
 
 /**
  * Determine if user is an employee (can access user/employee UI)
- * Currently all organization_users are employees. In the future,
- * external admins (MSPs, consultants) would have isEmployee = false.
+ * External admins (MSPs, consultants) are NOT employees.
  */
-function isEmployeeUser(_role: string): boolean {
-  // For now, all authenticated users are employees
-  // External admins would be flagged differently in the future
-  return true;
+function isEmployeeUser(isExternalAdmin: boolean | undefined): boolean {
+  // External admins are not employees
+  return isExternalAdmin !== true;
 }
 
 // Extend Express Request type to include user
@@ -85,13 +83,14 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
   }
 
   // Attach user info to request with access flags
+  // isExternalAdmin comes from the JWT token payload
   req.user = {
     userId: decoded.userId,
     email: decoded.email,
     role: decoded.role,
     organizationId: decoded.organizationId,
     isAdmin: isAdminRole(decoded.role),
-    isEmployee: isEmployeeUser(decoded.role)
+    isEmployee: isEmployeeUser(decoded.isExternalAdmin)
   };
 
   next();
@@ -202,7 +201,7 @@ export const optionalAuth = (req: Request, res: Response, next: NextFunction) =>
           role: decoded.role,
           organizationId: decoded.organizationId,
           isAdmin: isAdminRole(decoded.role),
-          isEmployee: isEmployeeUser(decoded.role)
+          isEmployee: isEmployeeUser(decoded.isExternalAdmin)
         };
       }
     } catch (error) {
@@ -263,7 +262,7 @@ export const requirePermission = (permission: string) => {
       role: decoded.role,
       organizationId: decoded.organizationId,
       isAdmin: isAdminRole(decoded.role),
-      isEmployee: isEmployeeUser(decoded.role)
+      isEmployee: isEmployeeUser(decoded.isExternalAdmin)
     };
 
     // Now check permission
