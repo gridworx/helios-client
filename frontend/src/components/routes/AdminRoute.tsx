@@ -4,25 +4,41 @@ import { useView } from '../../contexts/ViewContext';
 
 interface AdminRouteProps {
   children: React.ReactNode;
-  redirectTo?: string;
 }
 
 /**
- * Admin Route Guard
+ * AdminRoute - Route guard for admin-only pages
  *
- * Protects routes that should only be accessible to admins.
- * Redirects non-admins to the specified path or home.
+ * Protects routes that require admin access:
+ * - Redirects non-admins to the user home page
+ * - Shows appropriate message via state
+ *
+ * Usage:
+ * ```tsx
+ * <Route path="/admin/users" element={
+ *   <AdminRoute>
+ *     <Users />
+ *   </AdminRoute>
+ * } />
+ * ```
  */
-export const AdminRoute: React.FC<AdminRouteProps> = ({
-  children,
-  redirectTo = '/',
-}) => {
+export const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   const { canAccessAdminView } = useView();
   const location = useLocation();
 
   if (!canAccessAdminView) {
-    // Redirect to home, preserving the attempted location for potential redirect after login
-    return <Navigate to={redirectTo} state={{ from: location }} replace />;
+    // Redirect to user home with a message
+    return (
+      <Navigate
+        to="/"
+        replace
+        state={{
+          from: location.pathname,
+          message: 'Admin access required',
+          type: 'warning'
+        }}
+      />
+    );
   }
 
   return <>{children}</>;

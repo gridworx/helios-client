@@ -88,38 +88,48 @@ function GroupDetailWrapper({ organizationId }: { organizationId: string }) {
   const navigate = useNavigate();
 
   if (!groupId) {
-    return <Navigate to="/groups" replace />;
+    return <Navigate to="/admin/groups" replace />;
   }
 
   return (
     <GroupDetail
       organizationId={organizationId}
       groupId={groupId}
-      onBack={() => navigate('/groups')}
+      onBack={() => navigate('/admin/groups')}
     />
   );
 }
 
 // Helper to map URL paths to page identifiers for active nav highlighting
 function getPageFromPath(pathname: string): string {
-  if (pathname === '/' || pathname === '/dashboard') return 'dashboard';
-  if (pathname.startsWith('/users')) return 'users';
-  if (pathname.startsWith('/groups') && !pathname.startsWith('/my-groups')) return 'groups';
-  if (pathname.startsWith('/my-groups')) return 'my-groups';
+  // Admin routes (with /admin prefix)
+  if (pathname === '/admin' || pathname === '/admin/dashboard') return 'dashboard';
+  if (pathname.startsWith('/admin/users')) return 'users';
+  if (pathname.startsWith('/admin/groups')) return 'groups';
+  if (pathname.startsWith('/admin/org-chart')) return 'orgChart';
+  if (pathname.startsWith('/admin/workspaces')) return 'workspaces';
+  if (pathname.startsWith('/admin/assets')) return 'assets';
+  if (pathname.startsWith('/admin/email-security')) return 'email-security';
+  if (pathname.startsWith('/admin/signatures')) return 'signatures';
+  if (pathname.startsWith('/admin/security-events')) return 'security-events';
+  if (pathname.startsWith('/admin/audit-logs')) return 'audit-logs';
+  if (pathname.startsWith('/admin/settings')) return 'settings';
+  if (pathname.startsWith('/admin/administrators')) return 'administrators';
+  if (pathname.startsWith('/admin/console')) return 'console';
+
+  // User routes (at root level)
+  if (pathname === '/' || pathname === '/home' || pathname === '/dashboard') return 'dashboard';
   if (pathname.startsWith('/people')) return 'people';
   if (pathname.startsWith('/my-team')) return 'my-team';
-  if (pathname.startsWith('/org-chart')) return 'orgChart';
-  if (pathname.startsWith('/workspaces')) return 'workspaces';
-  if (pathname.startsWith('/assets')) return 'assets';
-  if (pathname.startsWith('/email-security')) return 'email-security';
-  if (pathname.startsWith('/signatures')) return 'signatures';
-  if (pathname.startsWith('/security-events')) return 'security-events';
-  if (pathname.startsWith('/audit-logs')) return 'audit-logs';
-  if (pathname.startsWith('/user-settings')) return 'user-settings';
-  if (pathname.startsWith('/settings')) return 'settings';
-  if (pathname.startsWith('/administrators')) return 'administrators';
-  if (pathname.startsWith('/console')) return 'console';
+  if (pathname.startsWith('/my-groups')) return 'my-groups';
   if (pathname.startsWith('/my-profile')) return 'my-profile';
+  if (pathname.startsWith('/user-settings')) return 'user-settings';
+
+  // Legacy routes (for backwards compatibility - these will redirect)
+  if (pathname.startsWith('/users')) return 'users';
+  if (pathname.startsWith('/groups')) return 'groups';
+  if (pathname.startsWith('/settings')) return 'settings';
+
   return 'dashboard';
 }
 
@@ -144,30 +154,47 @@ function AppContent() {
   // Derive current page from URL path
   const currentPage = getPageFromPath(location.pathname);
 
-  // Navigation helper that uses React Router
+  // Navigation helper that uses React Router - routes based on current view
   const setCurrentPage = (page: string) => {
-    const pathMap: Record<string, string> = {
+    // Admin pages use /admin prefix
+    const adminPathMap: Record<string, string> = {
+      'dashboard': '/admin',
+      'users': '/admin/users',
+      'groups': '/admin/groups',
+      'orgChart': '/admin/org-chart',
+      'workspaces': '/admin/workspaces',
+      'assets': '/admin/assets',
+      'email-security': '/admin/email-security',
+      'signatures': '/admin/signatures',
+      'security-events': '/admin/security-events',
+      'audit-logs': '/admin/audit-logs',
+      'settings': '/admin/settings',
+      'administrators': '/admin/administrators',
+      'console': '/admin/console',
+    };
+
+    // User pages at root level
+    const userPathMap: Record<string, string> = {
       'dashboard': '/',
-      'home': '/',  // User view home
-      'users': '/users',
-      'groups': '/groups',
+      'home': '/',
       'people': '/people',
       'my-team': '/my-team',
-      'my-groups': '/my-groups',  // User's groups
-      'orgChart': '/org-chart',
-      'workspaces': '/workspaces',
-      'assets': '/assets',
-      'email-security': '/email-security',
-      'signatures': '/signatures',
-      'security-events': '/security-events',
-      'audit-logs': '/audit-logs',
-      'settings': '/settings',
-      'user-settings': '/user-settings',  // User personal settings
-      'administrators': '/administrators',
-      'console': '/console',
+      'my-groups': '/my-groups',
       'my-profile': '/my-profile',
+      'user-settings': '/user-settings',
     };
-    navigate(pathMap[page] || '/');
+
+    // Use appropriate path map based on current view
+    if (currentView === 'admin' && adminPathMap[page]) {
+      navigate(adminPathMap[page]);
+    } else if (userPathMap[page]) {
+      navigate(userPathMap[page]);
+    } else if (adminPathMap[page]) {
+      // Fallback to admin path if user path not found
+      navigate(adminPathMap[page]);
+    } else {
+      navigate('/');
+    }
   };
 
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -177,8 +204,8 @@ function AppContent() {
   const [widgetsLoading, setWidgetsLoading] = useState(true);
   const [widgetsError, setWidgetsError] = useState<string | null>(null);
 
-  // Helper to navigate to group detail
-  const navigateToGroup = (groupId: string) => navigate(`/groups/${groupId}`);
+  // Helper to navigate to group detail (admin route)
+  const navigateToGroup = (groupId: string) => navigate(`/admin/groups/${groupId}`);
 
   useEffect(() => {
     checkConfiguration();
@@ -893,17 +920,26 @@ function AppContent() {
           {currentPage === 'groups' && (
             <Routes>
               <Route
-                path="/groups/:groupId"
+                path="/admin/groups/:groupId"
                 element={<GroupDetailWrapper organizationId={config?.organizationId || ''} />}
               />
               <Route
-                path="/groups"
+                path="/admin/groups"
                 element={
                   <Groups
                     organizationId={config?.organizationId || ''}
                     onSelectGroup={navigateToGroup}
                   />
                 }
+              />
+              {/* Legacy route redirect */}
+              <Route
+                path="/groups/:groupId"
+                element={<Navigate to={`/admin/groups/${location.pathname.split('/').pop()}`} replace />}
+              />
+              <Route
+                path="/groups"
+                element={<Navigate to="/admin/groups" replace />}
               />
             </Routes>
           )}
@@ -952,7 +988,7 @@ function AppContent() {
             <MyTeam organizationId={config?.organizationId || ''} />
           )}
 
-          {currentPage !== 'dashboard' && currentPage !== 'settings' && currentPage !== 'users' && currentPage !== 'groups' && currentPage !== 'workspaces' && currentPage !== 'orgUnits' && currentPage !== 'assets' && currentPage !== 'email-security' && currentPage !== 'security-events' && currentPage !== 'audit-logs' && currentPage !== 'console' && currentPage !== 'administrators' && currentPage !== 'my-profile' && currentPage !== 'people' && currentPage !== 'my-team' && (
+          {currentPage !== 'dashboard' && currentPage !== 'settings' && currentPage !== 'users' && currentPage !== 'groups' && currentPage !== 'workspaces' && currentPage !== 'orgUnits' && currentPage !== 'assets' && currentPage !== 'email-security' && currentPage !== 'signatures' && currentPage !== 'security-events' && currentPage !== 'audit-logs' && currentPage !== 'console' && currentPage !== 'administrators' && currentPage !== 'my-profile' && currentPage !== 'people' && currentPage !== 'my-team' && currentPage !== 'orgChart' && (
             <div className="page-placeholder">
               <div className="placeholder-content">
                 <div className="placeholder-icon">🚧</div>

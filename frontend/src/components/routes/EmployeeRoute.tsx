@@ -4,25 +4,41 @@ import { useView } from '../../contexts/ViewContext';
 
 interface EmployeeRouteProps {
   children: React.ReactNode;
-  redirectTo?: string;
 }
 
 /**
- * Employee Route Guard
+ * EmployeeRoute - Route guard for employee-only pages
  *
- * Protects routes that should only be accessible to employees.
- * Redirects non-employees (external admins) to the specified path or admin dashboard.
+ * Protects routes that require employee access:
+ * - Redirects external admins to the admin dashboard
+ * - Shows appropriate message via state
+ *
+ * Usage:
+ * ```tsx
+ * <Route path="/people" element={
+ *   <EmployeeRoute>
+ *     <People />
+ *   </EmployeeRoute>
+ * } />
+ * ```
  */
-export const EmployeeRoute: React.FC<EmployeeRouteProps> = ({
-  children,
-  redirectTo = '/admin',
-}) => {
+export const EmployeeRoute: React.FC<EmployeeRouteProps> = ({ children }) => {
   const { canAccessUserView } = useView();
   const location = useLocation();
 
   if (!canAccessUserView) {
-    // Redirect to admin, preserving the attempted location
-    return <Navigate to={redirectTo} state={{ from: location }} replace />;
+    // Redirect to admin dashboard with a message
+    return (
+      <Navigate
+        to="/admin"
+        replace
+        state={{
+          from: location.pathname,
+          message: 'This feature is for employees only',
+          type: 'info'
+        }}
+      />
+    );
   }
 
   return <>{children}</>;
