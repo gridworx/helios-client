@@ -118,19 +118,20 @@ router.post('/setup', async (req: Request, res: Response) => {
         [organization.id]
       );
 
-      // Insert default modules
+      // Insert default modules (use underscores to match existing seeded modules)
+      // Skip if modules already exist from migrations/seeds
       const modules = [
-        { name: 'Google Workspace', slug: 'google-workspace', description: 'Sync users and groups from Google Workspace' },
-        { name: 'Microsoft 365', slug: 'microsoft-365', description: 'Sync users and groups from Microsoft 365' },
-        { name: 'User Management', slug: 'user-management', description: 'Manage organization users' },
-        { name: 'Audit Logs', slug: 'audit-logs', description: 'Track all system activities' }
+        { name: 'Google Workspace', slug: 'google_workspace', description: 'Sync users and groups from Google Workspace' },
+        { name: 'Microsoft 365', slug: 'microsoft_365', description: 'Sync users and groups from Microsoft 365' },
+        { name: 'User Management', slug: 'user_management', description: 'Manage organization users' },
+        { name: 'Audit Logs', slug: 'audit_logs', description: 'Track all system activities' }
       ];
 
       for (const module of modules) {
         await db.query(
           `INSERT INTO modules (name, slug, description, version, config_schema)
            VALUES ($1, $2, $3, '1.0.0', '{}')
-           ON CONFLICT (slug) DO NOTHING`,
+           ON CONFLICT (name) DO NOTHING`,
           [module.name, module.slug, module.description]
         );
       }
@@ -251,7 +252,7 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
       SELECT om.is_enabled
       FROM organization_modules om
       JOIN modules m ON m.id = om.module_id
-      WHERE om.organization_id = $1 AND m.slug = 'google-workspace'
+      WHERE om.organization_id = $1 AND m.slug = 'google_workspace'
     `, [organizationId]);
 
     const googleWorkspaceEnabled = moduleCheckResult.rows.length > 0 && moduleCheckResult.rows[0].is_enabled;
@@ -293,54 +294,54 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
       SELECT
         ou.id,
         ou.email,
-        ou.first_name as firstName,
-        ou.last_name as lastName,
+        ou.first_name as "firstName",
+        ou.last_name as "lastName",
         ou.role,
-        ou.is_active as isActive,
-        ou.user_status as userStatus,
-        ou.deleted_at as deletedAt,
-        ou.is_guest as isGuest,
-        ou.user_type as userType,
-        ou.guest_expires_at as guestExpiresAt,
-        ou.guest_invited_by as guestInvitedBy,
-        ou.guest_invited_at as guestInvitedAt,
+        ou.is_active as "isActive",
+        ou.user_status as "userStatus",
+        ou.deleted_at as "deletedAt",
+        ou.is_guest as "isGuest",
+        ou.user_type as "userType",
+        ou.guest_expires_at as "guestExpiresAt",
+        ou.guest_invited_by as "guestInvitedBy",
+        ou.guest_invited_at as "guestInvitedAt",
         ou.company,
-        ou.contact_tags as contactTags,
-        ou.added_by as addedBy,
-        ou.added_at as addedAt,
-        ou.created_at as createdAt,
-        ou.updated_at as updatedAt,
-        ou.job_title as jobTitle,
+        ou.contact_tags as "contactTags",
+        ou.added_by as "addedBy",
+        ou.added_at as "addedAt",
+        ou.created_at as "createdAt",
+        ou.updated_at as "updatedAt",
+        ou.job_title as "jobTitle",
         ou.department,
-        ou.department_id as departmentId,
-        d.name as departmentName,
-        d.org_unit_path as orgUnitPath,
-        ou.organizational_unit as organizationalUnit,
+        ou.department_id as "departmentId",
+        d.name as "departmentName",
+        d.org_unit_path as "orgUnitPath",
+        ou.organizational_unit as "organizationalUnit",
         ou.location,
-        ou.manager_id as reportingManagerId,
-        ou.employee_id as employeeId,
-        ou.employee_type as employeeType,
-        ou.cost_center as costCenter,
-        ou.start_date as startDate,
-        ou.end_date as endDate,
+        ou.reporting_manager_id as "reportingManagerId",
+        ou.employee_id as "employeeId",
+        ou.employee_type as "employeeType",
+        ou.cost_center as "costCenter",
+        ou.start_date as "startDate",
+        ou.end_date as "endDate",
         ou.bio,
-        ou.mobile_phone as mobilePhone,
-        ou.work_phone as workPhone,
-        ou.work_phone_extension as workPhoneExtension,
+        ou.mobile_phone as "mobilePhone",
+        ou.work_phone as "workPhone",
+        ou.work_phone_extension as "workPhoneExtension",
         ou.timezone,
-        ou.preferred_language as preferredLanguage,
+        ou.preferred_language as "preferredLanguage",
         ou.google_workspace_id as "googleWorkspaceId",
         ou.microsoft_365_id as "microsoft365Id",
-        ou.github_username as githubUsername,
-        ou.slack_user_id as slackUserId,
-        ou.jumpcloud_user_id as jumpcloudUserId,
-        ou.associate_id as associateId,
-        ou.avatar_url as avatarUrl,
-        ou.google_workspace_sync_status as googleWorkspaceSyncStatus,
-        ou.google_workspace_last_sync as googleWorkspaceLastSync,
-        ou.microsoft_365_sync_status as microsoft365SyncStatus,
-        ou.microsoft_365_last_sync as microsoft365LastSync,
-        ou.last_login as lastLogin
+        ou.github_username as "githubUsername",
+        ou.slack_user_id as "slackUserId",
+        ou.jumpcloud_user_id as "jumpcloudUserId",
+        ou.associate_id as "associateId",
+        ou.avatar_url as "avatarUrl",
+        ou.google_workspace_sync_status as "googleWorkspaceSyncStatus",
+        ou.google_workspace_last_sync as "googleWorkspaceLastSync",
+        ou.microsoft_365_sync_status as "microsoft365SyncStatus",
+        ou.microsoft_365_last_sync as "microsoft365LastSync",
+        ou.last_login as "lastLogin"
       FROM organization_users ou
       LEFT JOIN departments d ON ou.department_id = d.id
       WHERE ou.organization_id = $1 ${statusCondition}
@@ -372,9 +373,9 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
           id,
           google_id as external_id,
           email,
-          given_name as firstName,
-          family_name as lastName,
-          full_name as displayName,
+          given_name as "firstName",
+          family_name as "lastName",
+          full_name as "displayName",
           is_admin,
           is_suspended,
           org_unit_path as department,
@@ -528,47 +529,47 @@ router.get('/users/:userId', authenticateToken, async (req: Request, res: Respon
       SELECT
         ou.id,
         ou.email,
-        ou.first_name as firstName,
-        ou.last_name as lastName,
+        ou.first_name as "firstName",
+        ou.last_name as "lastName",
         ou.role,
-        ou.is_active as isActive,
-        ou.created_at as createdAt,
-        ou.updated_at as updatedAt,
-        ou.user_status as userStatus,
-        ou.job_title as jobTitle,
-        ou.professional_designations as professionalDesignations,
+        ou.is_active as "isActive",
+        ou.created_at as "createdAt",
+        ou.updated_at as "updatedAt",
+        ou.user_status as "userStatus",
+        ou.job_title as "jobTitle",
+        ou.professional_designations as "professionalDesignations",
         ou.pronouns,
         ou.department,
-        ou.department_id as departmentId,
-        d.name as departmentName,
-        d.org_unit_path as orgUnitPath,
-        ou.organizational_unit as organizationalUnit,
+        ou.department_id as "departmentId",
+        d.name as "departmentName",
+        d.org_unit_path as "orgUnitPath",
+        ou.organizational_unit as "organizationalUnit",
         ou.location,
-        ou.manager_id as reportingManagerId,
-        ou.employee_id as employeeId,
-        ou.employee_type as employeeType,
-        ou.cost_center as costCenter,
-        ou.start_date as startDate,
-        ou.end_date as endDate,
+        ou.reporting_manager_id as "reportingManagerId",
+        ou.employee_id as "employeeId",
+        ou.employee_type as "employeeType",
+        ou.cost_center as "costCenter",
+        ou.start_date as "startDate",
+        ou.end_date as "endDate",
         ou.bio,
-        ou.mobile_phone as mobilePhone,
-        ou.work_phone as workPhone,
-        ou.work_phone_extension as workPhoneExtension,
+        ou.mobile_phone as "mobilePhone",
+        ou.work_phone as "workPhone",
+        ou.work_phone_extension as "workPhoneExtension",
         ou.timezone,
-        ou.preferred_language as preferredLanguage,
+        ou.preferred_language as "preferredLanguage",
         ou.google_workspace_id as "googleWorkspaceId",
         ou.microsoft_365_id as "microsoft365Id",
-        ou.github_username as githubUsername,
-        ou.slack_user_id as slackUserId,
-        ou.jumpcloud_user_id as jumpcloudUserId,
-        ou.associate_id as associateId,
-        ou.avatar_url as avatarUrl,
-        ou.google_workspace_sync_status as googleWorkspaceSyncStatus,
-        ou.google_workspace_last_sync as googleWorkspaceLastSync,
-        ou.microsoft_365_sync_status as microsoft365SyncStatus,
-        ou.microsoft_365_last_sync as microsoft365LastSync,
-        ou.last_login as lastLogin,
-        ou.alternate_email as alternateEmail
+        ou.github_username as "githubUsername",
+        ou.slack_user_id as "slackUserId",
+        ou.jumpcloud_user_id as "jumpcloudUserId",
+        ou.associate_id as "associateId",
+        ou.avatar_url as "avatarUrl",
+        ou.google_workspace_sync_status as "googleWorkspaceSyncStatus",
+        ou.google_workspace_last_sync as "googleWorkspaceLastSync",
+        ou.microsoft_365_sync_status as "microsoft365SyncStatus",
+        ou.microsoft_365_last_sync as "microsoft365LastSync",
+        ou.last_login as "lastLogin",
+        ou.alternate_email as "alternateEmail"
       FROM organization_users ou
       LEFT JOIN departments d ON ou.department_id = d.id
       WHERE ou.id = $1 AND ou.organization_id = $2
@@ -747,7 +748,7 @@ router.post('/users', authenticateToken, async (req: Request, res: Response) => 
         role, organization_id, is_active, email_verified,
         alternate_email, password_setup_method, user_status,
         job_title, professional_designations, pronouns, department, department_id, organizational_unit, location,
-        manager_id, employee_id, employee_type, cost_center,
+        reporting_manager_id, employee_id, employee_type, cost_center,
         start_date, end_date, bio,
         mobile_phone, work_phone, work_phone_extension, timezone, preferred_language,
         google_workspace_id, microsoft_365_id, github_username, slack_user_id,
@@ -756,7 +757,7 @@ router.post('/users', authenticateToken, async (req: Request, res: Response) => 
         created_at
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, NOW())
-      RETURNING id, email, first_name, last_name, role, is_active, alternate_email, user_status as userStatus, job_title, department, department_id, location, created_at`,
+      RETURNING id, email, first_name, last_name, role, is_active, alternate_email, user_status as "userStatus", job_title, department, department_id, location, created_at`,
       [
         email.toLowerCase(),
         passwordHash,
@@ -927,7 +928,7 @@ router.put('/users/:userId', authenticateToken, async (req: Request, res: Respon
         department = COALESCE($7, department),
         organizational_unit = COALESCE($8, organizational_unit),
         location = COALESCE($9, location),
-        manager_id = $10,
+        reporting_manager_id = $10,
         employee_id = COALESCE($11, employee_id),
         employee_type = COALESCE($12, employee_type),
         cost_center = COALESCE($13, cost_center),

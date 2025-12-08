@@ -48,31 +48,26 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
   try {
     const organizationId = req.user?.organizationId;
 
-    // Get all modules from NEW schema (available_modules table)
+    // Get all modules from modules table
+    // Note: module_type, is_core, requires_modules columns don't exist in current schema
     const modulesResult = await db.query(`
       SELECT
-        am.id,
-        am.module_key as slug,
-        am.module_name as name,
-        am.module_type,
-        am.description,
-        am.version,
-        am.is_core,
-        am.requires_modules,
+        m.id,
+        m.slug as slug,
+        m.name as name,
+        m.description,
+        m.version,
+        m.icon,
+        m.is_available,
         COALESCE(om.is_enabled, false) as is_enabled,
         om.config,
         om.created_at as enabled_at
-      FROM available_modules am
+      FROM modules m
       LEFT JOIN organization_modules om
-        ON om.module_id = am.id
+        ON om.module_id = m.id
         AND om.organization_id = $1
-      ORDER BY
-        CASE am.module_type
-          WHEN 'infrastructure' THEN 1
-          WHEN 'integration' THEN 2
-          WHEN 'feature' THEN 3
-        END,
-        am.module_name
+      WHERE m.is_available = true
+      ORDER BY m.name
     `, [organizationId]);
 
     // Get stats for enabled modules
@@ -98,11 +93,10 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
         id: module.id,
         name: module.name,
         slug: module.slug,
-        moduleType: module.module_type,
         description: module.description,
         version: module.version,
-        isCore: module.is_core,
-        requiresModules: module.requires_modules || [],
+        icon: module.icon,
+        isAvailable: module.is_available,
         isEnabled: module.is_enabled,
         config: module.config,
         enabledAt: module.enabled_at,
@@ -132,25 +126,24 @@ router.get('/:id', requireAuth, async (req: Request, res: Response) => {
     const organizationId = req.user?.organizationId;
     const { id } = req.params;
 
-    // Get module from NEW schema
+    // Get module from modules table
     const moduleResult = await db.query(`
       SELECT
-        am.id,
-        am.module_key as slug,
-        am.module_name as name,
-        am.module_type,
-        am.description,
-        am.version,
-        am.is_core,
-        am.requires_modules,
+        m.id,
+        m.slug as slug,
+        m.name as name,
+        m.description,
+        m.version,
+        m.icon,
+        m.is_available,
         COALESCE(om.is_enabled, false) as is_enabled,
         om.config,
         om.created_at as enabled_at
-      FROM available_modules am
+      FROM modules m
       LEFT JOIN organization_modules om
-        ON om.module_id = am.id
+        ON om.module_id = m.id
         AND om.organization_id = $1
-      WHERE am.id = $2
+      WHERE m.id = $2
     `, [organizationId, id]);
 
     if (moduleResult.rows.length === 0) {
@@ -184,11 +177,10 @@ router.get('/:id', requireAuth, async (req: Request, res: Response) => {
         id: module.id,
         name: module.name,
         slug: module.slug,
-        moduleType: module.module_type,
         description: module.description,
         version: module.version,
-        isCore: module.is_core,
-        requiresModules: module.requires_modules || [],
+        icon: module.icon,
+        isAvailable: module.is_available,
         isEnabled: module.is_enabled,
         config: module.config,
         enabledAt: module.enabled_at,
@@ -215,19 +207,18 @@ router.post('/:moduleSlug/enable', requirePermission('admin'), async (req: Reque
     const { moduleSlug } = req.params;
     const { config } = req.body;
 
-    // Get module from NEW schema
+    // Get module from modules table
     const moduleResult = await db.query(`
       SELECT
-        am.id,
-        am.module_key,
-        am.module_name,
-        am.requires_modules,
+        m.id,
+        m.slug,
+        m.name,
         COALESCE(om.is_enabled, false) as is_enabled
-      FROM available_modules am
+      FROM modules m
       LEFT JOIN organization_modules om
-        ON om.module_id = am.id
+        ON om.module_id = m.id
         AND om.organization_id = $1
-      WHERE am.module_key = $2
+      WHERE m.slug = $2
     `, [organizationId, moduleSlug]);
 
     if (moduleResult.rows.length === 0) {
@@ -246,34 +237,7 @@ router.post('/:moduleSlug/enable', requirePermission('admin'), async (req: Reque
       });
     }
 
-    // Check dependencies using the database function
-    const dependenciesCheck = await db.query(`
-      SELECT check_module_dependencies($1, $2) as dependencies_met
-    `, [organizationId, moduleSlug]);
-
-    if (!dependenciesCheck.rows[0].dependencies_met) {
-      const requiredModules = module.requires_modules || [];
-      const enabledResult = await db.query(`
-        SELECT am.module_key, am.module_name
-        FROM available_modules am
-        JOIN organization_modules om
-          ON om.module_id = am.id
-          AND om.organization_id = $1
-        WHERE am.module_key = ANY($2::text[])
-          AND om.is_enabled = true
-      `, [organizationId, requiredModules]);
-
-      const enabledKeys = enabledResult.rows.map((row: any) => row.module_key);
-      const missingModules = requiredModules.filter((key: string) => !enabledKeys.includes(key));
-
-      return res.status(400).json({
-        success: false,
-        error: 'Module dependencies not met. Please enable required modules first.',
-        missing_modules: missingModules
-      });
-    }
-
-    // Enable module
+    // Enable module (dependencies check removed - columns don't exist in current schema)
     await db.query(`
       INSERT INTO organization_modules (
         organization_id, module_id, is_enabled, config
@@ -290,12 +254,12 @@ router.post('/:moduleSlug/enable', requirePermission('admin'), async (req: Reque
       organizationId,
       moduleKey: moduleSlug,
       userId,
-      moduleName: module.module_name
+      moduleName: module.name
     });
 
     res.json({
       success: true,
-      message: `${module.module_name} enabled successfully`
+      message: `${module.name} enabled successfully`
     });
   } catch (error: any) {
     logger.error('Failed to enable module', { error: error.message });
@@ -316,19 +280,18 @@ router.post('/:moduleSlug/disable', requirePermission('admin'), async (req: Requ
     const userId = req.user?.userId;
     const { moduleSlug } = req.params;
 
-    // Get module from NEW schema
+    // Get module from modules table
     const moduleResult = await db.query(`
       SELECT
-        am.id,
-        am.module_key,
-        am.module_name,
-        am.is_core,
+        m.id,
+        m.slug,
+        m.name,
         COALESCE(om.is_enabled, false) as is_enabled
-      FROM available_modules am
+      FROM modules m
       LEFT JOIN organization_modules om
-        ON om.module_id = am.id
+        ON om.module_id = m.id
         AND om.organization_id = $1
-      WHERE am.module_key = $2
+      WHERE m.slug = $2
     `, [organizationId, moduleSlug]);
 
     if (moduleResult.rows.length === 0) {
@@ -340,13 +303,6 @@ router.post('/:moduleSlug/disable', requirePermission('admin'), async (req: Requ
 
     const module = moduleResult.rows[0];
 
-    if (module.is_core) {
-      return res.status(400).json({
-        success: false,
-        error: 'Cannot disable core module'
-      });
-    }
-
     if (!module.is_enabled) {
       return res.status(400).json({
         success: false,
@@ -354,31 +310,7 @@ router.post('/:moduleSlug/disable', requirePermission('admin'), async (req: Requ
       });
     }
 
-    // Check if any enabled modules depend on this one
-    const dependentModules = await db.query(`
-      SELECT
-        am.module_key,
-        am.module_name
-      FROM available_modules am
-      JOIN organization_modules om
-        ON om.module_id = am.id
-        AND om.organization_id = $1
-      WHERE om.is_enabled = true
-        AND am.requires_modules @> $2::jsonb
-    `, [organizationId, JSON.stringify([moduleSlug])]);
-
-    if (dependentModules.rows.length > 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Cannot disable module - other modules depend on it',
-        dependent_modules: dependentModules.rows.map((m: any) => ({
-          key: m.module_key,
-          name: m.module_name
-        }))
-      });
-    }
-
-    // Disable module
+    // Disable module (dependency checks removed - columns don't exist in current schema)
     await db.query(`
       UPDATE organization_modules
       SET
@@ -392,12 +324,12 @@ router.post('/:moduleSlug/disable', requirePermission('admin'), async (req: Requ
       organizationId,
       moduleKey: moduleSlug,
       userId,
-      moduleName: module.module_name
+      moduleName: module.name
     });
 
     res.json({
       success: true,
-      message: `${module.module_name} disabled successfully`
+      message: `${module.name} disabled successfully`
     });
   } catch (error: any) {
     logger.error('Failed to disable module', { error: error.message });

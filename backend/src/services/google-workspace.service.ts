@@ -67,8 +67,9 @@ export class GoogleWorkspaceService {
         email: serviceAccount.client_email,
         key: serviceAccount.private_key,
         scopes: [
-          'https://www.googleapis.com/auth/admin.directory.user.readonly',
-          'https://www.googleapis.com/auth/admin.directory.group.readonly'
+          'https://www.googleapis.com/auth/admin.directory.user',
+          'https://www.googleapis.com/auth/admin.directory.group',
+          'https://www.googleapis.com/auth/admin.directory.orgunit'
         ],
         subject: adminEmail // Impersonate admin for domain-wide delegation
       });
@@ -156,13 +157,15 @@ export class GoogleWorkspaceService {
       const adminEmailToUse = adminEmail || `admin@${domain}`;
 
       await db.query(`
-        INSERT INTO gw_credentials (organization_id, service_account_key, admin_email, domain, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, NOW(), NOW())
+        INSERT INTO gw_credentials (organization_id, service_account_key, admin_email, domain, is_valid, last_validated_at, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, true, NOW(), NOW(), NOW())
         ON CONFLICT (organization_id)
         DO UPDATE SET
           service_account_key = EXCLUDED.service_account_key,
           admin_email = EXCLUDED.admin_email,
           domain = EXCLUDED.domain,
+          is_valid = true,
+          last_validated_at = NOW(),
           updated_at = NOW()
       `, [
         organizationId,
@@ -180,19 +183,20 @@ export class GoogleWorkspaceService {
 
       // Get the Google Workspace module ID
       const moduleResult = await db.query(
-        `SELECT id FROM modules WHERE slug = 'google-workspace' LIMIT 1`
+        `SELECT id FROM modules WHERE slug = 'google_workspace' LIMIT 1`
       );
 
       if (moduleResult.rows.length > 0) {
         const moduleId = moduleResult.rows[0].id;
 
-        // Mark the module as enabled for this organization
+        // Mark the module as enabled and configured for this organization
         await db.query(`
-          INSERT INTO organization_modules (organization_id, module_id, is_enabled, config, updated_at)
-          VALUES ($1, $2, true, $3, NOW())
+          INSERT INTO organization_modules (organization_id, module_id, is_enabled, is_configured, config, updated_at)
+          VALUES ($1, $2, true, true, $3, NOW())
           ON CONFLICT (organization_id, module_id)
           DO UPDATE SET
             is_enabled = true,
+            is_configured = true,
             config = $3,
             updated_at = NOW()
         `, [
@@ -597,7 +601,7 @@ export class GoogleWorkspaceService {
 
         // Get module ID for Google Workspace
         const moduleResult = await db.query(
-          `SELECT id FROM modules WHERE slug = 'google-workspace' LIMIT 1`
+          `SELECT id FROM modules WHERE slug = 'google_workspace' LIMIT 1`
         );
 
         if (moduleResult.rows.length > 0) {
@@ -1148,7 +1152,7 @@ export class GoogleWorkspaceService {
 
         // Update module sync timestamp
         const moduleResult = await db.query(
-          `SELECT id FROM modules WHERE slug = 'google-workspace' LIMIT 1`
+          `SELECT id FROM modules WHERE slug = 'google_workspace' LIMIT 1`
         );
 
         if (moduleResult.rows.length > 0) {
@@ -1294,7 +1298,7 @@ export class GoogleWorkspaceService {
       const jwtClient = new JWT({
         email: credentials.client_email,
         key: credentials.private_key,
-        scopes: ['https://www.googleapis.com/auth/admin.directory.group.readonly'],
+        scopes: ['https://www.googleapis.com/auth/admin.directory.group'],
         subject: adminEmail
       });
 

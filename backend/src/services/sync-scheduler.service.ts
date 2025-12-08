@@ -196,7 +196,7 @@ export class SyncSchedulerService {
 
       // Update organization_modules table with last sync
       const moduleResult = await db.query(
-        `SELECT id FROM modules WHERE slug = 'google-workspace' LIMIT 1`
+        `SELECT id FROM modules WHERE slug = 'google_workspace' LIMIT 1`
       );
 
       if (moduleResult.rows.length > 0) {

@@ -58,10 +58,35 @@ router.post('/setup', [
     );
 
     if (result.success) {
+      // Trigger initial sync after successful setup (do not wait for it)
+      logger.info('Triggering initial sync after Google Workspace setup', { organizationId, domain });
+      syncScheduler.manualSync(organizationId).then((syncResult) => {
+        if (syncResult.success) {
+          logger.info('Initial Google Workspace sync completed', {
+            organizationId,
+            domain,
+            userCount: syncResult.stats?.total_users || 0
+          });
+        } else {
+          logger.warn('Initial Google Workspace sync failed', {
+            organizationId,
+            domain,
+            error: syncResult.message
+          });
+        }
+      }).catch((err) => {
+        logger.error('Initial Google Workspace sync error', {
+          organizationId,
+          domain,
+          error: err.message
+        });
+      });
+
       res.json({
         success: true,
         message: result.message,
-        delegationInfo: googleWorkspaceService.getDomainWideDelegationInfo()
+        delegationInfo: googleWorkspaceService.getDomainWideDelegationInfo(),
+        syncTriggered: true
       });
     } else {
       res.status(400).json({
@@ -337,11 +362,12 @@ router.get('/module-status/:organizationId', async (req: Request, res: Response)
         om.is_enabled,
         om.config,
         om.updated_at,
-        am.module_name as name,
-        am.module_key as slug
+        om.last_sync_at,
+        m.name as name,
+        m.slug as slug
       FROM organization_modules om
-      JOIN available_modules am ON am.id = om.module_id
-      WHERE om.organization_id = $1 AND am.module_key = 'google_workspace'
+      JOIN modules m ON m.id = om.module_id
+      WHERE om.organization_id = $1 AND m.slug = 'google_workspace'
     `, [organizationId]);
 
     if (result.rows.length === 0) {
@@ -394,7 +420,7 @@ router.get('/module-status/:organizationId', async (req: Request, res: Response)
       data: {
         isEnabled: module.is_enabled,
         userCount: userCount,
-        lastSync: config.lastSync || null,
+        lastSync: module.last_sync_at || null,
         configuration: configurationDetails,
         updatedAt: module.updated_at
       }
@@ -628,7 +654,7 @@ router.post('/disable/:organizationId', async (req: Request, res: Response) => {
 
     // Get Google Workspace module ID
     const moduleResult = await db.query(
-      `SELECT id FROM modules WHERE slug = 'google-workspace' LIMIT 1`
+      `SELECT id FROM modules WHERE slug = 'google_workspace' LIMIT 1`
     );
 
     if (moduleResult.rows.length === 0) {
