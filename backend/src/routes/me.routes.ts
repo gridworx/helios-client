@@ -716,11 +716,11 @@ router.get('/team', requireAuth, async (req: express.Request, res: express.Respo
 
     // Get current user's manager
     const userResult = await db.query(
-      `SELECT manager_id FROM organization_users WHERE id = $1`,
+      `SELECT reporting_manager_id FROM organization_users WHERE id = $1`,
       [userId]
     );
 
-    const managerId = userResult.rows[0]?.manager_id;
+    const managerId = userResult.rows[0]?.reporting_manager_id;
 
     // Get manager info
     let manager = null;
@@ -750,7 +750,7 @@ router.get('/team', requireAuth, async (req: express.Request, res: express.Respo
       const peersResult = await db.query(
         `SELECT id, first_name, last_name, email, job_title, department, avatar_url
          FROM organization_users
-         WHERE manager_id = $1 AND id != $2 AND is_active = true
+         WHERE reporting_manager_id = $1 AND id != $2 AND is_active = true
          ORDER BY first_name, last_name`,
         [managerId, userId]
       );
@@ -769,7 +769,7 @@ router.get('/team', requireAuth, async (req: express.Request, res: express.Respo
     const reportsResult = await db.query(
       `SELECT id, first_name, last_name, email, job_title, department, avatar_url
        FROM organization_users
-       WHERE manager_id = $1 AND is_active = true
+       WHERE reporting_manager_id = $1 AND is_active = true
        ORDER BY first_name, last_name`,
       [userId]
     );

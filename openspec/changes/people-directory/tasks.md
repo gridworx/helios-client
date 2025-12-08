@@ -4,27 +4,27 @@
 
 ### Backend Tasks
 
-- [ ] **TASK-PD-001**: Create user media table migration
+- [x] **TASK-PD-001**: Create user media table migration
   - Store voice_intro, video_intro, name_pronunciation
   - Link to MinIO storage
-  - File: `database/migrations/031_user_media.sql`
+  - File: `database/migrations/033_add_people_directory_tables.sql`
 
-- [ ] **TASK-PD-002**: Create user profile extended fields migration
+- [x] **TASK-PD-002**: Create user profile extended fields migration
   - fun_facts, expertise_topics, interests tables
   - current_status field on organization_users
-  - File: `database/migrations/031_user_media.sql`
+  - File: `database/migrations/033_add_people_directory_tables.sql`
 
-- [ ] **TASK-PD-003**: Create /api/me/profile endpoints
+- [x] **TASK-PD-003**: Create /api/me/profile endpoints
   - GET - fetch own profile for editing
   - PUT - update own profile fields
   - File: `backend/src/routes/me.routes.ts`
 
-- [ ] **TASK-PD-004**: Create /api/me/media endpoints
+- [x] **TASK-PD-004**: Create /api/me/media endpoints
   - POST - upload media file to MinIO
   - DELETE - remove media file
   - File: `backend/src/routes/me.routes.ts`
 
-- [ ] **TASK-PD-005**: Create media upload service
+- [x] **TASK-PD-005**: Create media upload service
   - Handle file validation (type, size, duration)
   - Upload to MinIO with proper path structure
   - Generate presigned URLs for playback
@@ -32,7 +32,7 @@
 
 ### Frontend Tasks
 
-- [ ] **TASK-PD-006**: Create MyProfile page component
+- [x] **TASK-PD-006**: Create MyProfile page component
   - Profile editing form layout
   - Tab sections or collapsible sections
   - File: `frontend/src/pages/MyProfile.tsx`
@@ -42,23 +42,24 @@
   - Timer countdown to max duration
   - Preview and re-record options
   - File: `frontend/src/components/MediaRecorder.tsx`
+  - **Note:** Basic UI structure exists in MyProfile.tsx, needs separate component
 
-- [ ] **TASK-PD-008**: Create FunFactsEditor component
+- [x] **TASK-PD-008**: Create FunFactsEditor component
   - Add/edit/delete fun facts
   - Optional emoji picker
-  - Drag to reorder
-  - File: `frontend/src/components/FunFactsEditor.tsx`
+  - Drag to reorder (basic reorder API exists)
+  - File: `frontend/src/pages/MyProfile.tsx` (integrated inline)
 
-- [ ] **TASK-PD-009**: Create InterestTagsEditor component
+- [x] **TASK-PD-009**: Create InterestTagsEditor component
   - Tag input for interests
-  - Autocomplete from common interests
+  - Autocomplete from common interests (basic)
   - Category grouping (optional)
-  - File: `frontend/src/components/InterestTagsEditor.tsx`
+  - File: `frontend/src/pages/MyProfile.tsx` (integrated inline)
 
-- [ ] **TASK-PD-010**: Add profile completeness indicator
-  - Calculate completion percentage
+- [x] **TASK-PD-010**: Add profile completeness indicator
+  - Calculate completion percentage (backend function)
   - Show missing fields with prompts
-  - File: `frontend/src/components/ProfileCompleteness.tsx`
+  - File: `frontend/src/pages/MyProfile.tsx` (completeness ring)
 
 ## Phase 2: People Directory
 
