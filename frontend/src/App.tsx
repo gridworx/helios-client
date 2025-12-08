@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom'
 import './App.css'
 import { LoginPage } from './pages/LoginPage'
 import { ClientUserMenu } from './components/ClientUserMenu'
@@ -80,7 +81,48 @@ interface OrganizationStats {
   helios: HeliosStats;
 }
 
+// Wrapper component for GroupDetail to extract URL params
+function GroupDetailWrapper({ organizationId }: { organizationId: string }) {
+  const { groupId } = useParams<{ groupId: string }>();
+  const navigate = useNavigate();
+
+  if (!groupId) {
+    return <Navigate to="/groups" replace />;
+  }
+
+  return (
+    <GroupDetail
+      organizationId={organizationId}
+      groupId={groupId}
+      onBack={() => navigate('/groups')}
+    />
+  );
+}
+
+// Helper to map URL paths to page identifiers for active nav highlighting
+function getPageFromPath(pathname: string): string {
+  if (pathname === '/' || pathname === '/dashboard') return 'dashboard';
+  if (pathname.startsWith('/users')) return 'users';
+  if (pathname.startsWith('/groups')) return 'groups';
+  if (pathname.startsWith('/people')) return 'people';
+  if (pathname.startsWith('/my-team')) return 'my-team';
+  if (pathname.startsWith('/org-chart')) return 'orgChart';
+  if (pathname.startsWith('/workspaces')) return 'workspaces';
+  if (pathname.startsWith('/assets')) return 'assets';
+  if (pathname.startsWith('/email-security')) return 'email-security';
+  if (pathname.startsWith('/signatures')) return 'signatures';
+  if (pathname.startsWith('/security-events')) return 'security-events';
+  if (pathname.startsWith('/audit-logs')) return 'audit-logs';
+  if (pathname.startsWith('/settings')) return 'settings';
+  if (pathname.startsWith('/administrators')) return 'administrators';
+  if (pathname.startsWith('/console')) return 'console';
+  if (pathname.startsWith('/my-profile')) return 'my-profile';
+  return 'dashboard';
+}
+
 function AppContent() {
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Custom labels from LabelsContext
   const { labels, isEntityAvailable, refreshLabels, isLoading: labelsLoading } = useLabels();
@@ -92,11 +134,33 @@ function AppContent() {
   const [_syncLoading, setSyncLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [currentPage, setCurrentPage] = useState(() => {
-    // Restore current page from localStorage on mount
-    return localStorage.getItem('helios_current_page') || 'dashboard';
-  });
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+
+  // Derive current page from URL path
+  const currentPage = getPageFromPath(location.pathname);
+
+  // Navigation helper that uses React Router
+  const setCurrentPage = (page: string) => {
+    const pathMap: Record<string, string> = {
+      'dashboard': '/',
+      'users': '/users',
+      'groups': '/groups',
+      'people': '/people',
+      'my-team': '/my-team',
+      'orgChart': '/org-chart',
+      'workspaces': '/workspaces',
+      'assets': '/assets',
+      'email-security': '/email-security',
+      'signatures': '/signatures',
+      'security-events': '/security-events',
+      'audit-logs': '/audit-logs',
+      'settings': '/settings',
+      'administrators': '/administrators',
+      'console': '/console',
+      'my-profile': '/my-profile',
+    };
+    navigate(pathMap[page] || '/');
+  };
+
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [loginOrgName, setLoginOrgName] = useState<string>('');
   const [showCustomizer, setShowCustomizer] = useState(false);
@@ -104,13 +168,11 @@ function AppContent() {
   const [widgetsLoading, setWidgetsLoading] = useState(true);
   const [widgetsError, setWidgetsError] = useState<string | null>(null);
 
+  // Helper to navigate to group detail
+  const navigateToGroup = (groupId: string) => navigate(`/groups/${groupId}`);
+
   useEffect(() => {
     checkConfiguration();
-
-    // Redirect /login to root since we only have one login page now
-    if (window.location.pathname === '/login') {
-      window.history.replaceState({}, '', '/');
-    }
   }, []);
 
   // Fetch organization name for login screen
@@ -132,12 +194,7 @@ function AppContent() {
     }
   }, [step, loginOrgName]);
 
-  // Save current page to localStorage whenever it changes
-  useEffect(() => {
-    if (currentPage) {
-      localStorage.setItem('helios_current_page', currentPage);
-    }
-  }, [currentPage]);
+  // No need to save currentPage to localStorage - React Router handles URL state
 
   const checkConfiguration = async () => {
     try {
@@ -950,19 +1007,22 @@ function AppContent() {
             <Administrators />
           )}
 
-          {currentPage === 'groups' && !selectedGroupId && (
-            <Groups
-              organizationId={config?.organizationId || ''}
-              onSelectGroup={(groupId: string) => setSelectedGroupId(groupId)}
-            />
-          )}
-
-          {currentPage === 'groups' && selectedGroupId && (
-            <GroupDetail
-              organizationId={config?.organizationId || ''}
-              groupId={selectedGroupId}
-              onBack={() => setSelectedGroupId(null)}
-            />
+          {currentPage === 'groups' && (
+            <Routes>
+              <Route
+                path="/groups/:groupId"
+                element={<GroupDetailWrapper organizationId={config?.organizationId || ''} />}
+              />
+              <Route
+                path="/groups"
+                element={
+                  <Groups
+                    organizationId={config?.organizationId || ''}
+                    onSelectGroup={navigateToGroup}
+                  />
+                }
+              />
+            </Routes>
           )}
 
           {currentPage === 'workspaces' && (
@@ -1046,12 +1106,14 @@ function AppContent() {
   );
 }
 
-// Main App wrapper with LabelsProvider
+// Main App wrapper with BrowserRouter and LabelsProvider
 function App() {
   return (
-    <LabelsProvider>
-      <AppContent />
-    </LabelsProvider>
+    <BrowserRouter>
+      <LabelsProvider>
+        <AppContent />
+      </LabelsProvider>
+    </BrowserRouter>
   );
 }
 

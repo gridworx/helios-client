@@ -8,5 +8,10 @@ export default defineConfig({
     port: 3000,
     host: true,
     open: false
+  },
+  // Preview server config (for production build preview)
+  preview: {
+    port: 3000,
+    host: true
   }
 })
