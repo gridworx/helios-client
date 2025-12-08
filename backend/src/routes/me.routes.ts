@@ -4,6 +4,7 @@ import { requireAuth, requireEmployee } from '../middleware/auth';
 import { db } from '../database/connection';
 import { logger } from '../utils/logger';
 import { mediaUploadService, MediaType } from '../services/media-upload.service';
+import { activityTracker } from '../services/activity-tracker.service';
 
 const router = express.Router();
 
@@ -996,9 +997,11 @@ router.get('/view-preference', async (req: express.Request, res: express.Respons
 router.put('/view-preference', async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.user?.userId;
-    const { viewPreference } = req.body;
+    const organizationId = req.user?.organizationId;
+    const userEmail = req.user?.email;
+    const { viewPreference, fromView } = req.body;
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
@@ -1010,6 +1013,14 @@ router.put('/view-preference', async (req: express.Request, res: express.Respons
       });
     }
 
+    // Get current preference to detect changes
+    const currentResult = await db.query(
+      `SELECT user_preferences FROM organization_users WHERE id = $1`,
+      [userId]
+    );
+    const currentPreferences = currentResult.rows[0]?.user_preferences || {};
+    const previousView = fromView || currentPreferences.viewPreference || 'admin';
+
     // Update user preferences JSONB with view preference
     await db.query(
       `UPDATE organization_users
@@ -1019,7 +1030,20 @@ router.put('/view-preference', async (req: express.Request, res: express.Respons
       [JSON.stringify({ viewPreference }), userId]
     );
 
-    logger.info('View preference updated', { userId, viewPreference });
+    // Track view switch in audit log if view actually changed
+    if (previousView !== viewPreference && userEmail) {
+      await activityTracker.trackViewSwitch(
+        organizationId,
+        userId,
+        userEmail,
+        previousView as 'admin' | 'user',
+        viewPreference as 'admin' | 'user',
+        req.ip || undefined,
+        req.get('user-agent') || undefined
+      );
+    }
+
+    logger.info('View preference updated', { userId, viewPreference, previousView });
 
     res.json({
       success: true,

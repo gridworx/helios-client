@@ -76,7 +76,7 @@ async function fetchViewPreference(): Promise<ViewMode | null> {
 /**
  * Save view preference to API
  */
-async function saveViewPreference(viewPreference: ViewMode): Promise<boolean> {
+async function saveViewPreference(viewPreference: ViewMode, fromView?: ViewMode): Promise<boolean> {
   const token = localStorage.getItem('helios_token');
   if (!token) return false;
 
@@ -87,7 +87,7 @@ async function saveViewPreference(viewPreference: ViewMode): Promise<boolean> {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ viewPreference }),
+      body: JSON.stringify({ viewPreference, fromView }),
     });
 
     return response.ok;
@@ -202,6 +202,9 @@ export const ViewProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return;
     }
 
+    // Capture previous view for audit logging
+    const previousView = currentView;
+
     setCurrentViewState(view);
 
     // Persist preference for internal admins
@@ -209,12 +212,12 @@ export const ViewProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Save to localStorage immediately for fast access
       localStorage.setItem('helios_view_preference', view);
 
-      // Also save to API for cross-device sync (fire and forget)
-      saveViewPreference(view).catch(err => {
+      // Also save to API for cross-device sync with fromView for audit logging
+      saveViewPreference(view, previousView).catch(err => {
         console.error('Failed to save view preference to API:', err);
       });
     }
-  }, [canAccessAdminView, canAccessUserView, canSwitchViews]);
+  }, [canAccessAdminView, canAccessUserView, canSwitchViews, currentView]);
 
   // Load capabilities from stored user data on mount
   useEffect(() => {

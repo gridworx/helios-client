@@ -10,6 +10,8 @@ export type ActivityType =
   | 'user.deleted'
   | 'user.suspended'
   | 'user.activated'
+  | 'user.view_switched'
+  | 'user.access_denied'
   | 'group.created'
   | 'group.updated'
   | 'group.deleted'
@@ -234,6 +236,71 @@ class ActivityTrackerService {
       severity: type === 'suspicious_login' ? 'warning' : 'info',
       title: type.replace('_', ' ').charAt(0).toUpperCase() + type.slice(1).replace('_', ' '),
       metadata: details
+    });
+  }
+
+  /**
+   * Track view switch events (admin/user view switching)
+   */
+  async trackViewSwitch(
+    organizationId: string,
+    userId: string,
+    userEmail: string,
+    fromView: 'admin' | 'user',
+    toView: 'admin' | 'user',
+    ipAddress?: string,
+    userAgent?: string
+  ): Promise<void> {
+    const viewLabels = {
+      admin: 'Admin Console',
+      user: 'Employee View'
+    };
+
+    await this.track({
+      organizationId,
+      userId,
+      actorId: userId,
+      actorEmail: userEmail,
+      type: 'user.view_switched',
+      severity: 'info',
+      title: 'View switched',
+      description: `${userEmail} switched from ${viewLabels[fromView]} to ${viewLabels[toView]}`,
+      metadata: {
+        fromView,
+        toView
+      },
+      ipAddress,
+      userAgent
+    });
+  }
+
+  /**
+   * Track access denied events
+   */
+  async trackAccessDenied(
+    organizationId: string,
+    userId: string,
+    userEmail: string,
+    route: string,
+    reason: 'insufficient_permissions' | 'not_admin' | 'not_employee',
+    ipAddress?: string,
+    userAgent?: string
+  ): Promise<void> {
+    await this.track({
+      organizationId,
+      userId,
+      actorId: userId,
+      actorEmail: userEmail,
+      type: 'user.access_denied',
+      severity: 'warning',
+      title: 'Access denied',
+      description: `${userEmail} attempted to access ${route} but was denied`,
+      metadata: {
+        route,
+        reason
+      },
+      ipAddress,
+      userAgent
     });
   }
 

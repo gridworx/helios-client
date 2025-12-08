@@ -41,19 +41,19 @@
   - File: `frontend/src/App.tsx`
   - **Completed:** Routes restructured with /admin prefix, path mapping implemented
 
-- [ ] **TASK-AUS-006**: Create AdminRoute guard component
+- [x] **TASK-AUS-006**: Create AdminRoute guard component
   - Check user.isAdmin before rendering
   - Redirect to home if not admin
   - Show appropriate message
   - File: `frontend/src/components/routes/AdminRoute.tsx`
-  - **Note:** Currently using conditional rendering in App.tsx instead
+  - **Completed:** AdminRoute component created with canAccessAdminView check
 
-- [ ] **TASK-AUS-007**: Create EmployeeRoute guard component
+- [x] **TASK-AUS-007**: Create EmployeeRoute guard component
   - Check user.isEmployee before rendering
   - Redirect to /admin if not employee (for external admins)
   - Show appropriate message
   - File: `frontend/src/components/routes/EmployeeRoute.tsx`
-  - **Note:** Currently using conditional rendering in App.tsx instead
+  - **Completed:** EmployeeRoute component created with canAccessUserView check
 
 ## Phase 2: Navigation Separation
 
@@ -133,47 +133,53 @@
 
 ### Frontend Tasks
 
-- [ ] **TASK-AUS-018**: Move admin pages to /admin routes
+- [x] **TASK-AUS-018**: Move admin pages to /admin routes
   - /admin/dashboard - Admin Dashboard
   - /admin/users - User Management
   - /admin/groups - Group Management
   - /admin/settings/* - System Settings
   - File: `frontend/src/App.tsx`
+  - **Completed:** Admin pages accessible at /admin/* routes via adminPathMap
 
-- [ ] **TASK-AUS-019**: Configure user pages at root routes
+- [x] **TASK-AUS-019**: Configure user pages at root routes
   - /dashboard or /home - User Home
   - /people - People Directory
   - /my-team - My Team View
   - /my-profile - My Profile
   - /settings - Personal Settings
   - File: `frontend/src/App.tsx`
+  - **Completed:** User pages accessible at root routes via userPathMap
 
-- [ ] **TASK-AUS-020**: Create redirect handlers for legacy URLs
+- [x] **TASK-AUS-020**: Create redirect handlers for legacy URLs
   - /users → /admin/users
   - /groups → /admin/groups
   - Preserve query params
-  - File: `frontend/src/App.tsx`
+  - File: `frontend/src/components/routes/LegacyRedirects.tsx`
+  - **Completed:** LegacyRedirects component handles all legacy admin routes
 
-- [ ] **TASK-AUS-021**: Update all internal navigation links
+- [x] **TASK-AUS-021**: Update all internal navigation links
   - Update Link components in admin pages
   - Update Link components in user pages
   - Update breadcrumbs
   - Files: Multiple page and component files
+  - **Completed:** Navigation uses setCurrentPage which maps to appropriate /admin or root paths
 
 ## Phase 5: Access Control Polish
 
 ### Backend Tasks
 
-- [ ] **TASK-AUS-022**: Add API-level access checks for user endpoints
+- [x] **TASK-AUS-022**: Add API-level access checks for user endpoints
   - /api/people/* requires isEmployee
   - /api/me/team requires isEmployee
   - Return 403 for external admins
   - File: `backend/src/routes/people.routes.ts`
+  - **Completed:** requireEmployee middleware applied to /api/people and /api/me routes
 
-- [ ] **TASK-AUS-023**: Add audit logging for view switches
+- [x] **TASK-AUS-023**: Add audit logging for view switches
   - Log when user switches views
   - Track view preference changes
   - File: `backend/src/services/activity-tracker.service.ts`
+  - **Completed:** Added trackViewSwitch and trackAccessDenied methods, integrated with me.routes.ts
 
 ### Frontend Tasks
 
