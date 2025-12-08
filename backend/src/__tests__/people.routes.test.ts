@@ -26,7 +26,13 @@ jest.mock('../middleware/auth', () => ({
       email: 'viewer@example.com',
       organizationId: 'test-org-id',
       role: 'user',
+      isAdmin: false,
+      isEmployee: true,
     };
+    next();
+  },
+  requireEmployee: (_req: any, _res: any, next: any) => {
+    // Mock employee check - always passes in tests
     next();
   },
 }));
