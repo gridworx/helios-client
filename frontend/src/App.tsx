@@ -24,11 +24,12 @@ import AuditLogs from './pages/AuditLogs'
 import { DeveloperConsole } from './pages/DeveloperConsole'
 import { MyProfile } from './pages/MyProfile'
 import { People } from './pages/People'
+import { MyTeam } from './pages/MyTeam'
 import { LabelsProvider, useLabels } from './contexts/LabelsContext'
 import { ENTITIES } from './config/entities'
 import { getWidgetData } from './utils/widget-data'
 import { getEnabledWidgets, type WidgetId } from './config/widgets'
-import { Zap, FileText, TrendingUp, Search, Home, Users as UsersIcon, UsersRound, MessageSquare, Package, Settings as SettingsIcon, UserPlus, Upload, Download, RefreshCw, AlertCircle, Info, Shield, Edit3, Network, PenTool, Bell, Building, HelpCircle } from 'lucide-react'
+import { Zap, FileText, TrendingUp, Search, Home, Users as UsersIcon, UsersRound, MessageSquare, Package, Settings as SettingsIcon, UserPlus, Upload, Download, RefreshCw, AlertCircle, Info, Shield, Edit3, Network, PenTool, Bell, Building, HelpCircle, UserCheck } from 'lucide-react'
 
 interface OrganizationConfig {
   organizationId: string;
@@ -612,6 +613,16 @@ function AppContent() {
                 <span>People</span>
               </button>
 
+              {/* My Team - Personal team view */}
+              <button
+                className={`nav-item ${currentPage === 'my-team' ? 'active' : ''}`}
+                onClick={() => setCurrentPage('my-team')}
+                data-testid="nav-my-team"
+              >
+                <UserCheck size={16} className="nav-icon" />
+                <span>My Team</span>
+              </button>
+
               {/* Access Groups - Only if GWS or M365 enabled */}
               {isEntityAvailable(ENTITIES.ACCESS_GROUP) && (
                 <button
@@ -994,7 +1005,11 @@ function AppContent() {
             <People organizationId={config?.organizationId || ''} />
           )}
 
-          {currentPage !== 'dashboard' && currentPage !== 'settings' && currentPage !== 'users' && currentPage !== 'groups' && currentPage !== 'workspaces' && currentPage !== 'orgUnits' && currentPage !== 'assets' && currentPage !== 'email-security' && currentPage !== 'security-events' && currentPage !== 'audit-logs' && currentPage !== 'console' && currentPage !== 'administrators' && currentPage !== 'my-profile' && currentPage !== 'people' && (
+          {currentPage === 'my-team' && (
+            <MyTeam organizationId={config?.organizationId || ''} />
+          )}
+
+          {currentPage !== 'dashboard' && currentPage !== 'settings' && currentPage !== 'users' && currentPage !== 'groups' && currentPage !== 'workspaces' && currentPage !== 'orgUnits' && currentPage !== 'assets' && currentPage !== 'email-security' && currentPage !== 'security-events' && currentPage !== 'audit-logs' && currentPage !== 'console' && currentPage !== 'administrators' && currentPage !== 'my-profile' && currentPage !== 'people' && currentPage !== 'my-team' && (
             <div className="page-placeholder">
               <div className="placeholder-content">
                 <div className="placeholder-icon">🚧</div>

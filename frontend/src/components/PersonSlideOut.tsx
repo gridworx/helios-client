@@ -25,9 +25,10 @@ interface PersonSlideOutProps {
   personId: string;
   onClose: () => void;
   onViewProfile?: (personId: string) => void;
+  onSearchSkill?: (skill: string, type: 'expertise' | 'interest') => void;
 }
 
-export function PersonSlideOut({ personId, onClose, onViewProfile }: PersonSlideOutProps) {
+export function PersonSlideOut({ personId, onClose, onViewProfile, onSearchSkill }: PersonSlideOutProps) {
   const [profile, setProfile] = useState<PersonProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'about'>('overview');
@@ -287,7 +288,12 @@ export function PersonSlideOut({ personId, onClose, onViewProfile }: PersonSlide
                       </h3>
                       <div className="tag-list">
                         {profile.expertiseTopics.map((topic) => (
-                          <span key={topic.id} className="expertise-tag">
+                          <span
+                            key={topic.id}
+                            className={`expertise-tag ${onSearchSkill ? 'clickable' : ''}`}
+                            onClick={() => onSearchSkill?.(topic.topic, 'expertise')}
+                            title={onSearchSkill ? `Find others with this skill` : undefined}
+                          >
                             {topic.topic}
                             {topic.skillLevel && (
                               <span className="skill-level">{topic.skillLevel}</span>
@@ -307,7 +313,12 @@ export function PersonSlideOut({ personId, onClose, onViewProfile }: PersonSlide
                       </h3>
                       <div className="tag-list">
                         {profile.interests.map((interest) => (
-                          <span key={interest.id} className="interest-tag">
+                          <span
+                            key={interest.id}
+                            className={`interest-tag ${onSearchSkill ? 'clickable' : ''}`}
+                            onClick={() => onSearchSkill?.(interest.interest, 'interest')}
+                            title={onSearchSkill ? `Find others with this interest` : undefined}
+                          >
                             {interest.interest}
                           </span>
                         ))}

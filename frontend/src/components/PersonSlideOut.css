@@ -365,6 +365,17 @@
   color: #b45309;
   border-radius: 16px;
   font-size: 13px;
+  transition: all 0.15s;
+}
+
+.expertise-tag.clickable {
+  cursor: pointer;
+}
+
+.expertise-tag.clickable:hover {
+  background: #fde68a;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(180, 83, 9, 0.15);
 }
 
 .skill-level {
@@ -382,6 +393,17 @@
   color: #7c3aed;
   border-radius: 16px;
   font-size: 13px;
+  transition: all 0.15s;
+}
+
+.interest-tag.clickable {
+  cursor: pointer;
+}
+
+.interest-tag.clickable:hover {
+  background: #e9d5ff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(124, 58, 237, 0.15);
 }
 
 /* About Tab */

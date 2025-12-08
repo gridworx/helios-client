@@ -350,6 +350,12 @@ export function People({ organizationId: _organizationId }: PeopleProps) {
         <PersonSlideOut
           personId={selectedPersonId}
           onClose={() => setSelectedPersonId(null)}
+          onSearchSkill={(skill, _type) => {
+            // Close the slideout
+            setSelectedPersonId(null);
+            // Set search input to the skill/interest
+            setSearchInput(skill);
+          }}
         />
       )}
     </div>

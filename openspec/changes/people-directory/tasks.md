@@ -153,28 +153,32 @@
 
 ### Backend Tasks
 
-- [ ] **TASK-PD-022**: Create /api/me/team endpoint
+- [x] **TASK-PD-022**: Create /api/me/team endpoint
   - Return manager, peers, direct reports
   - Include basic profile info
   - File: `backend/src/routes/me.routes.ts`
+  - **Completed:** Full team endpoint with manager, peers, and direct reports
 
-- [ ] **TASK-PD-023**: Create /api/people/by-skill endpoint
+- [x] **TASK-PD-023**: Create /api/people/by-skill endpoint
   - Search people by "ask me about" topics
   - Return matching profiles
   - File: `backend/src/routes/people.routes.ts`
+  - **Completed:** /api/people/by-skill/:topic endpoint
 
 ### Frontend Tasks
 
-- [ ] **TASK-PD-024**: Create MyTeam page
+- [x] **TASK-PD-024**: Create MyTeam page
   - Manager section
   - Peers section
   - Direct reports section (if manager)
   - File: `frontend/src/pages/MyTeam.tsx`
+  - **Completed:** Full MyTeam page with responsive layout
 
-- [ ] **TASK-PD-025**: Add skill/interest search
+- [x] **TASK-PD-025**: Add skill/interest search
   - Click on skill tag → search
   - Find people with similar interests
   - File: `frontend/src/pages/People.tsx` (enhance)
+  - **Completed:** Clickable expertise/interest tags in PersonSlideOut
 
 ## Phase 5: Privacy Settings
 
