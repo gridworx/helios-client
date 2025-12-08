@@ -33,6 +33,7 @@ import orgChartRoutes from './routes/org-chart.routes';
 import signaturesRoutes from './routes/signatures.routes';
 import customFieldsRoutes from './routes/custom-fields.routes';
 import dashboardRoutes from './routes/dashboard.routes';
+import departmentsRoutes from './routes/departments.routes';
 import { authenticateApiKey } from './middleware/api-key-auth';
 import { SignatureSchedulerService } from './services/signature-scheduler.service';
 import { cacheService } from './services/cache.service';
@@ -399,6 +400,7 @@ app.use('/api/organization/access-groups', accessGroupsRoutes);
 app.use('/api/organization/security-events', securityEventsRoutes);
 app.use('/api/organization/audit-logs', auditLogsRoutes);
 app.use('/api/organization/custom-fields', customFieldsRoutes);
+app.use('/api/organization/departments', departmentsRoutes);
 app.use('/api/email-security', emailSecurityRoutes);
 app.use('/api/signatures', signaturesRoutes);
 app.use('/api/organization', orgChartRoutes); // Register org chart routes under /api/organization

@@ -369,9 +369,9 @@ class DynamicGroupService {
       'location': 'location',
       'location_id': 'location_id',
       'job_title': 'job_title',
-      'reports_to': 'reports_to',
-      'manager_id': 'manager_id',
-      'org_unit_path': 'org_unit_path',
+      'reports_to': 'reporting_manager_id',
+      'manager_id': 'reporting_manager_id',
+      'org_unit_path': 'organizational_unit',
       'employee_type': 'employee_type',
       'user_type': 'user_type',
       'cost_center': 'cost_center',
@@ -472,30 +472,34 @@ class DynamicGroupService {
 
       case 'is_under':
         // For hierarchical fields - includes the value itself and all children
-        // This is a simplified version - full implementation would use recursive queries
         if (rule.field === 'department' || rule.field === 'department_id') {
-          condition = `(${dbField} = $2 OR EXISTS (
-            SELECT 1 FROM departments d
-            WHERE d.id = organization_users.department_id
-            AND (d.id::text = $2 OR d.parent_department_id::text = $2)
-          ))`;
+          // Use recursive CTE to get all child departments
+          condition = `department_id IN (
+            WITH RECURSIVE dept_tree AS (
+              SELECT id FROM departments WHERE id::text = $2 OR name = $2
+              UNION ALL
+              SELECT d.id FROM departments d
+              JOIN dept_tree dt ON d.parent_department_id = dt.id
+            )
+            SELECT id FROM dept_tree
+          )`;
         } else if (rule.field === 'reports_to' || rule.field === 'manager_id') {
           // Include direct and nested reports
           if (rule.includeNested) {
             condition = `id IN (
               WITH RECURSIVE reports AS (
-                SELECT id FROM organization_users WHERE manager_id::text = $2
+                SELECT id FROM organization_users WHERE reporting_manager_id::text = $2
                 UNION ALL
                 SELECT ou.id FROM organization_users ou
-                JOIN reports r ON ou.manager_id = r.id
+                JOIN reports r ON ou.reporting_manager_id = r.id
               )
               SELECT id FROM reports
             )`;
           } else {
-            condition = `manager_id::text = $2`;
+            condition = `reporting_manager_id::text = $2`;
           }
         } else {
-          // Default to starts_with for paths
+          // Default to starts_with for paths (e.g., org unit paths)
           condition = `${dbField} LIKE $2 || '%'`;
         }
         params.push(rule.value);
@@ -525,7 +529,8 @@ class DynamicGroupService {
       SELECT id
       FROM organization_users
       WHERE organization_id = $1
-        AND status = 'active'
+        AND user_status = 'active'
+        AND deleted_at IS NULL
         AND ${condition}
     `;
 

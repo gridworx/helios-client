@@ -29,6 +29,12 @@ interface MatchingUser {
   jobTitle?: string;
 }
 
+interface Department {
+  id: string;
+  name: string;
+  parent_department_id: string | null;
+}
+
 interface GroupMember {
   id: string;
   user_id: string;
@@ -137,8 +143,12 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
   const [isApplyingRules, setIsApplyingRules] = useState(false);
   const [isMembershipTypeChanging, setIsMembershipTypeChanging] = useState(false);
 
+  // Departments for dropdown
+  const [departments, setDepartments] = useState<Department[]>([]);
+
   useEffect(() => {
     fetchGroupDetails();
+    fetchDepartments();
   }, [groupId]);
 
   // Fetch rules when switching to rules tab or when group membership type is dynamic
@@ -147,6 +157,27 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
       fetchRules();
     }
   }, [group?.membership_type, activeTab, groupId]);
+
+  const fetchDepartments = async () => {
+    try {
+      const token = localStorage.getItem('helios_token');
+      const response = await fetch(
+        'http://localhost:3001/api/organization/departments',
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          setDepartments(data.data);
+        }
+      }
+    } catch (err: any) {
+      console.error('Failed to fetch departments:', err);
+    }
+  };
 
   const fetchGroupDetails = async () => {
     setLoading(true);
@@ -945,13 +976,26 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
                         ))}
                       </select>
                       {!['is_empty', 'is_not_empty'].includes(newRule.operator) && (
-                        <input
-                          type="text"
-                          value={newRule.value}
-                          onChange={(e) => setNewRule({ ...newRule, value: e.target.value })}
-                          placeholder="Value..."
-                          className="rule-input"
-                        />
+                        newRule.field === 'department' && departments.length > 0 ? (
+                          <select
+                            value={newRule.value}
+                            onChange={(e) => setNewRule({ ...newRule, value: e.target.value })}
+                            className="rule-select"
+                          >
+                            <option value="">Select department...</option>
+                            {departments.map(dept => (
+                              <option key={dept.id} value={dept.name}>{dept.name}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            type="text"
+                            value={newRule.value}
+                            onChange={(e) => setNewRule({ ...newRule, value: e.target.value })}
+                            placeholder="Value..."
+                            className="rule-input"
+                          />
+                        )
                       )}
                       <button
                         className="btn-primary btn-sm"
