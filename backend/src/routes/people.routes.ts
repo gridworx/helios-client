@@ -1,5 +1,5 @@
 import express from 'express';
-import { requireAuth } from '../middleware/auth';
+import { requireAuth, requireEmployee } from '../middleware/auth';
 import { peopleService } from '../services/people.service';
 import { mediaUploadService } from '../services/media-upload.service';
 import { logger } from '../utils/logger';
@@ -7,10 +7,17 @@ import { logger } from '../utils/logger';
 const router = express.Router();
 
 /**
+ * All people routes require employee access
+ * External admins (MSPs, consultants) cannot access the people directory
+ */
+router.use(requireAuth);
+router.use(requireEmployee);
+
+/**
  * GET /api/people
  * List people in the directory with pagination and filtering
  */
-router.get('/', requireAuth, async (req: express.Request, res: express.Response) => {
+router.get('/', async (req: express.Request, res: express.Response) => {
   try {
     const organizationId = req.user?.organizationId;
 
@@ -63,7 +70,7 @@ router.get('/', requireAuth, async (req: express.Request, res: express.Response)
  * GET /api/people/search
  * Search people by name, skills, or interests
  */
-router.get('/search', requireAuth, async (req: express.Request, res: express.Response) => {
+router.get('/search', async (req: express.Request, res: express.Response) => {
   try {
     const organizationId = req.user?.organizationId;
 
@@ -105,7 +112,7 @@ router.get('/search', requireAuth, async (req: express.Request, res: express.Res
  * GET /api/people/new
  * Get recently joined people (new joiners)
  */
-router.get('/new', requireAuth, async (req: express.Request, res: express.Response) => {
+router.get('/new', async (req: express.Request, res: express.Response) => {
   try {
     const organizationId = req.user?.organizationId;
 
@@ -134,7 +141,7 @@ router.get('/new', requireAuth, async (req: express.Request, res: express.Respon
  * GET /api/people/filters
  * Get available filter options (departments, locations)
  */
-router.get('/filters', requireAuth, async (req: express.Request, res: express.Response) => {
+router.get('/filters', async (req: express.Request, res: express.Response) => {
   try {
     const organizationId = req.user?.organizationId;
 
@@ -158,7 +165,7 @@ router.get('/filters', requireAuth, async (req: express.Request, res: express.Re
  * GET /api/people/by-skill/:topic
  * Find people with specific expertise
  */
-router.get('/by-skill/:topic', requireAuth, async (req: express.Request, res: express.Response) => {
+router.get('/by-skill/:topic', async (req: express.Request, res: express.Response) => {
   try {
     const organizationId = req.user?.organizationId;
 
@@ -196,7 +203,7 @@ router.get('/by-skill/:topic', requireAuth, async (req: express.Request, res: ex
  * GET /api/people/:id
  * Get a single person's profile
  */
-router.get('/:id', requireAuth, async (req: express.Request, res: express.Response) => {
+router.get('/:id', async (req: express.Request, res: express.Response) => {
   try {
     const organizationId = req.user?.organizationId;
     const viewerId = req.user?.userId;
@@ -234,7 +241,7 @@ router.get('/:id', requireAuth, async (req: express.Request, res: express.Respon
  * Get a person's media (voice intro, video intro, name pronunciation)
  * Returns presigned URL for playback
  */
-router.get('/:id/media/:type', requireAuth, async (req: express.Request, res: express.Response) => {
+router.get('/:id/media/:type', async (req: express.Request, res: express.Response) => {
   try {
     const organizationId = req.user?.organizationId;
     const viewerId = req.user?.userId;

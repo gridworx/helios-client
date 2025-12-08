@@ -4,11 +4,12 @@
 
 ### Backend Tasks
 
-- [ ] **TASK-AUS-001**: Add isEmployee flag to user session
+- [x] **TASK-AUS-001**: Add isEmployee flag to user session
   - Check if user has linked employee profile
   - Add employeeProfileId to session data
   - Update auth middleware to populate flags
   - File: `backend/src/middleware/auth.ts`
+  - **Completed:** Added isAdmin and isEmployee flags to user session, with helper functions
 
 - [ ] **TASK-AUS-002**: Create view preference endpoints
   - GET /api/me/view-preference - get current view
@@ -16,11 +17,12 @@
   - Store in user settings or separate table
   - File: `backend/src/routes/me.routes.ts`
 
-- [ ] **TASK-AUS-003**: Add route-level access guards
+- [x] **TASK-AUS-003**: Add route-level access guards
   - AdminOnly middleware for /admin/* routes
   - EmployeeOnly middleware for user routes
   - Return appropriate error codes (403)
-  - File: `backend/src/middleware/route-guards.ts`
+  - File: `backend/src/middleware/auth.ts`
+  - **Completed:** requireAdmin and requireEmployee middleware added, applied to people.routes.ts and me.routes.ts
 
 ### Frontend Tasks
 

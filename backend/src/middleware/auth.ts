@@ -4,6 +4,24 @@ import { logger } from '../utils/logger';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secure_jwt_secret_key_here';
 
+/**
+ * Determine if a role has admin privileges
+ */
+function isAdminRole(role: string): boolean {
+  return role === 'admin' || role === 'super_admin' || role === 'platform_owner';
+}
+
+/**
+ * Determine if user is an employee (can access user/employee UI)
+ * Currently all organization_users are employees. In the future,
+ * external admins (MSPs, consultants) would have isEmployee = false.
+ */
+function isEmployeeUser(_role: string): boolean {
+  // For now, all authenticated users are employees
+  // External admins would be flagged differently in the future
+  return true;
+}
+
 // Extend Express Request type to include user
 declare global {
   namespace Express {
@@ -15,6 +33,9 @@ declare global {
         organizationId: string;
         firstName?: string;
         lastName?: string;
+        // Access control flags
+        isAdmin: boolean;       // Can access admin UI
+        isEmployee: boolean;    // Can access employee/user UI
         // API Key context
         keyType?: 'service' | 'vendor';
         apiKeyId?: string;
@@ -63,13 +84,73 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
     });
   }
 
-  // Attach user info to request
+  // Attach user info to request with access flags
   req.user = {
     userId: decoded.userId,
     email: decoded.email,
     role: decoded.role,
-    organizationId: decoded.organizationId
+    organizationId: decoded.organizationId,
+    isAdmin: isAdminRole(decoded.role),
+    isEmployee: isEmployeeUser(decoded.role)
   };
+
+  next();
+};
+
+/**
+ * Middleware to require admin privileges
+ * Use for routes that require administrative access
+ */
+export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required'
+    });
+  }
+
+  if (!req.user.isAdmin) {
+    logger.warn('Unauthorized admin access attempt', {
+      userId: req.user.userId,
+      role: req.user.role,
+      path: req.path
+    });
+
+    return res.status(403).json({
+      success: false,
+      error: 'Forbidden',
+      message: 'Admin access required'
+    });
+  }
+
+  next();
+};
+
+/**
+ * Middleware to require employee status
+ * Use for routes that require employee/user access (People, My Team, My Profile)
+ */
+export const requireEmployee = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required'
+    });
+  }
+
+  if (!req.user.isEmployee) {
+    logger.warn('Unauthorized employee access attempt', {
+      userId: req.user.userId,
+      role: req.user.role,
+      path: req.path
+    });
+
+    return res.status(403).json({
+      success: false,
+      error: 'Forbidden',
+      message: 'Employee access required. External admins cannot access this feature.'
+    });
+  }
 
   next();
 };
@@ -119,7 +200,9 @@ export const optionalAuth = (req: Request, res: Response, next: NextFunction) =>
           userId: decoded.userId,
           email: decoded.email,
           role: decoded.role,
-          organizationId: decoded.organizationId
+          organizationId: decoded.organizationId,
+          isAdmin: isAdminRole(decoded.role),
+          isEmployee: isEmployeeUser(decoded.role)
         };
       }
     } catch (error) {
@@ -178,11 +261,13 @@ export const requirePermission = (permission: string) => {
       userId: decoded.userId,
       email: decoded.email,
       role: decoded.role,
-      organizationId: decoded.organizationId
+      organizationId: decoded.organizationId,
+      isAdmin: isAdminRole(decoded.role),
+      isEmployee: isEmployeeUser(decoded.role)
     };
 
     // Now check permission
-    if (permission === 'admin' && req.user.role !== 'admin') {
+    if (permission === 'admin' && !req.user.isAdmin) {
       return res.status(403).json({
         success: false,
         error: 'Insufficient permissions',

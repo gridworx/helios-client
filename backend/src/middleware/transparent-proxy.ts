@@ -20,24 +20,10 @@ import { authenticateToken } from './auth';
 import axios from 'axios';
 
 // Extend Express Request type for API keys
+// Note: The base user type is declared in auth.ts with isAdmin/isEmployee flags
 declare global {
   namespace Express {
     interface Request {
-      user?: {
-        userId: string;
-        email: string;
-        role: string;
-        organizationId: string;
-        firstName?: string;
-        lastName?: string;
-        keyType?: 'service' | 'vendor';
-        apiKeyId?: string;
-        apiKeyName?: string;
-        serviceName?: string;
-        serviceEmail?: string;
-        serviceOwner?: string;
-        vendorName?: string;
-      };
       apiKey?: {
         id: string;
         name: string;
@@ -100,6 +86,8 @@ const combinedAuth = (req: Request, res: Response, next: NextFunction): void => 
       email: req.actorContext?.email || 'api-key',
       role: 'admin', // API keys have admin-level access
       organizationId: req.apiKey.organizationId,
+      isAdmin: true, // API keys have admin privileges
+      isEmployee: false, // API keys are not employees (service/vendor accounts)
       keyType: req.apiKey.type,
       apiKeyId: req.apiKey.id,
       apiKeyName: req.apiKey.name,

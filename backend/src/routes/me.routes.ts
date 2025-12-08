@@ -1,11 +1,19 @@
 import express from 'express';
 import multer from 'multer';
-import { requireAuth } from '../middleware/auth';
+import { requireAuth, requireEmployee } from '../middleware/auth';
 import { db } from '../database/connection';
 import { logger } from '../utils/logger';
 import { mediaUploadService, MediaType } from '../services/media-upload.service';
 
 const router = express.Router();
+
+/**
+ * All /me routes require employee access
+ * These are self-service features for employees only
+ * External admins cannot access their own profile (they don't have one)
+ */
+router.use(requireAuth);
+router.use(requireEmployee);
 
 // Configure multer for memory storage (files kept in memory as Buffer)
 const upload = multer({
@@ -22,7 +30,7 @@ const upload = multer({
 /**
  * GET /api/me/profile - Get current user's full profile for editing
  */
-router.get('/profile', requireAuth, async (req: express.Request, res: express.Response) => {
+router.get('/profile', async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.user?.userId;
 
@@ -165,7 +173,7 @@ router.get('/profile', requireAuth, async (req: express.Request, res: express.Re
 /**
  * PUT /api/me/profile - Update current user's profile
  */
-router.put('/profile', requireAuth, async (req: express.Request, res: express.Response) => {
+router.put('/profile', async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.user?.userId;
     const organizationId = req.user?.organizationId;
@@ -275,7 +283,7 @@ router.put('/profile', requireAuth, async (req: express.Request, res: express.Re
 /**
  * POST /api/me/fun-facts - Add a new fun fact
  */
-router.post('/fun-facts', requireAuth, async (req: express.Request, res: express.Response) => {
+router.post('/fun-facts', async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.user?.userId;
     const { emoji, content } = req.body;
@@ -330,7 +338,7 @@ router.post('/fun-facts', requireAuth, async (req: express.Request, res: express
 /**
  * PUT /api/me/fun-facts/:id - Update a fun fact
  */
-router.put('/fun-facts/:id', requireAuth, async (req: express.Request, res: express.Response) => {
+router.put('/fun-facts/:id', async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.user?.userId;
     const { id } = req.params;
@@ -370,7 +378,7 @@ router.put('/fun-facts/:id', requireAuth, async (req: express.Request, res: expr
 /**
  * DELETE /api/me/fun-facts/:id - Delete a fun fact
  */
-router.delete('/fun-facts/:id', requireAuth, async (req: express.Request, res: express.Response) => {
+router.delete('/fun-facts/:id', async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.user?.userId;
     const { id } = req.params;
@@ -407,7 +415,7 @@ router.delete('/fun-facts/:id', requireAuth, async (req: express.Request, res: e
 /**
  * PUT /api/me/fun-facts/reorder - Reorder fun facts
  */
-router.put('/fun-facts/reorder', requireAuth, async (req: express.Request, res: express.Response) => {
+router.put('/fun-facts/reorder', async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.user?.userId;
     const { order } = req.body; // Array of { id, displayOrder }
@@ -442,7 +450,7 @@ router.put('/fun-facts/reorder', requireAuth, async (req: express.Request, res: 
 /**
  * POST /api/me/interests - Add a new interest
  */
-router.post('/interests', requireAuth, async (req: express.Request, res: express.Response) => {
+router.post('/interests', async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.user?.userId;
     const { interest, category } = req.body;
@@ -495,7 +503,7 @@ router.post('/interests', requireAuth, async (req: express.Request, res: express
 /**
  * DELETE /api/me/interests/:id - Delete an interest
  */
-router.delete('/interests/:id', requireAuth, async (req: express.Request, res: express.Response) => {
+router.delete('/interests/:id', async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.user?.userId;
     const { id } = req.params;
@@ -536,7 +544,7 @@ router.delete('/interests/:id', requireAuth, async (req: express.Request, res: e
 /**
  * POST /api/me/expertise - Add a new expertise topic
  */
-router.post('/expertise', requireAuth, async (req: express.Request, res: express.Response) => {
+router.post('/expertise', async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.user?.userId;
     const { topic, skillLevel } = req.body;
@@ -589,7 +597,7 @@ router.post('/expertise', requireAuth, async (req: express.Request, res: express
 /**
  * DELETE /api/me/expertise/:id - Delete an expertise topic
  */
-router.delete('/expertise/:id', requireAuth, async (req: express.Request, res: express.Response) => {
+router.delete('/expertise/:id', async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.user?.userId;
     const { id } = req.params;
@@ -630,7 +638,7 @@ router.delete('/expertise/:id', requireAuth, async (req: express.Request, res: e
 /**
  * GET /api/me/privacy - Get privacy settings
  */
-router.get('/privacy', requireAuth, async (req: express.Request, res: express.Response) => {
+router.get('/privacy', async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.user?.userId;
 
@@ -661,7 +669,7 @@ router.get('/privacy', requireAuth, async (req: express.Request, res: express.Re
 /**
  * PUT /api/me/privacy - Update privacy settings
  */
-router.put('/privacy', requireAuth, async (req: express.Request, res: express.Response) => {
+router.put('/privacy', async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.user?.userId;
     const { settings } = req.body; // { fieldName: visibility }
@@ -705,7 +713,7 @@ router.put('/privacy', requireAuth, async (req: express.Request, res: express.Re
 /**
  * GET /api/me/team - Get current user's team (manager, peers, reports)
  */
-router.get('/team', requireAuth, async (req: express.Request, res: express.Response) => {
+router.get('/team', async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.user?.userId;
     const organizationId = req.user?.organizationId;
@@ -804,7 +812,7 @@ router.get('/team', requireAuth, async (req: express.Request, res: express.Respo
 /**
  * GET /api/me/media/constraints - Get media upload constraints for client validation
  */
-router.get('/media/constraints', requireAuth, async (_req: express.Request, res: express.Response) => {
+router.get('/media/constraints', async (_req: express.Request, res: express.Response) => {
   res.json({
     success: true,
     data: mediaUploadService.getMediaConstraints()
@@ -814,7 +822,7 @@ router.get('/media/constraints', requireAuth, async (_req: express.Request, res:
 /**
  * GET /api/me/media - Get all media for current user
  */
-router.get('/media', requireAuth, async (req: express.Request, res: express.Response) => {
+router.get('/media', async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.user?.userId;
 
@@ -834,7 +842,7 @@ router.get('/media', requireAuth, async (req: express.Request, res: express.Resp
 /**
  * GET /api/me/media/:type - Get specific media type
  */
-router.get('/media/:type', requireAuth, async (req: express.Request, res: express.Response) => {
+router.get('/media/:type', async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.user?.userId;
     const mediaType = req.params.type as MediaType;
@@ -864,7 +872,7 @@ router.get('/media/:type', requireAuth, async (req: express.Request, res: expres
 /**
  * POST /api/me/media/:type - Upload media
  */
-router.post('/media/:type', requireAuth, upload.single('file'), async (req: express.Request, res: express.Response) => {
+router.post('/media/:type', upload.single('file'), async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.user?.userId;
     const organizationId = req.user?.organizationId;
@@ -916,7 +924,7 @@ router.post('/media/:type', requireAuth, upload.single('file'), async (req: expr
 /**
  * DELETE /api/me/media/:type - Delete media
  */
-router.delete('/media/:type', requireAuth, async (req: express.Request, res: express.Response) => {
+router.delete('/media/:type', async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.user?.userId;
     const mediaType = req.params.type as MediaType;
@@ -950,7 +958,7 @@ router.delete('/media/:type', requireAuth, async (req: express.Request, res: exp
 /**
  * GET /api/me/groups - Get groups the current user belongs to
  */
-router.get('/groups', requireAuth, async (req: express.Request, res: express.Response) => {
+router.get('/groups', async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.user?.userId;
     const organizationId = req.user?.organizationId;
