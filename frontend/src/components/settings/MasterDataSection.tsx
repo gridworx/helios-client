@@ -93,7 +93,7 @@ export function MasterDataSection({ organizationId }: MasterDataSectionProps) {
 
   const fetchDepartments = async () => {
     const response = await fetch(
-      `http://localhost:3001/api/departments?organizationId=${organizationId}`,
+      `http://localhost:3001/api/organization/departments`,
       { headers: getAuthHeaders() }
     );
     const data = await response.json();
@@ -104,7 +104,7 @@ export function MasterDataSection({ organizationId }: MasterDataSectionProps) {
 
   const fetchLocations = async () => {
     const response = await fetch(
-      `http://localhost:3001/api/locations?organizationId=${organizationId}`,
+      `http://localhost:3001/api/organization/locations`,
       { headers: getAuthHeaders() }
     );
     const data = await response.json();
@@ -115,7 +115,7 @@ export function MasterDataSection({ organizationId }: MasterDataSectionProps) {
 
   const fetchCostCenters = async () => {
     const response = await fetch(
-      `http://localhost:3001/api/cost-centers?organizationId=${organizationId}`,
+      `http://localhost:3001/api/organization/cost-centers`,
       { headers: getAuthHeaders() }
     );
     const data = await response.json();
@@ -126,7 +126,7 @@ export function MasterDataSection({ organizationId }: MasterDataSectionProps) {
 
   const fetchQualityIssues = async () => {
     const response = await fetch(
-      `http://localhost:3001/api/data-quality/orphans?organizationId=${organizationId}`,
+      `http://localhost:3001/api/organization/data-quality/orphans`,
       { headers: getAuthHeaders() }
     );
     const data = await response.json();
@@ -241,7 +241,7 @@ export function MasterDataSection({ organizationId }: MasterDataSectionProps) {
 
     try {
       const response = await fetch(
-        `http://localhost:3001/api/${endpoints[type]}/${id}`,
+        `http://localhost:3001/api/organization/${endpoints[type]}/${id}`,
         {
           method: 'DELETE',
           headers: getAuthHeaders()
