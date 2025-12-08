@@ -243,23 +243,26 @@
 
 ## Testing Tasks
 
-- [ ] **TASK-025**: Unit tests for rule evaluation engine
+- [x] **TASK-025**: Unit tests for rule evaluation engine
   - Test each operator
   - Test AND/OR logic
   - Test edge cases (empty values, special chars)
-  - File: `backend/src/services/__tests__/dynamic-group.service.test.ts`
+  - File: `backend/src/__tests__/dynamic-group.service.test.ts`
+  - **39 tests passing**
 
-- [ ] **TASK-026**: Integration tests for group sync
+- [x] **TASK-026**: Integration tests for group sync
   - Test sync to Google Workspace
   - Test bidirectional sync
   - Test error handling
-  - File: `backend/src/routes/__tests__/access-groups.routes.test.ts`
+  - File: `backend/src/__tests__/access-groups.routes.test.ts`
+  - **29 tests passing**
 
-- [ ] **TASK-027**: E2E tests for GroupSlideOut
+- [x] **TASK-027**: E2E tests for GroupSlideOut
   - Test slideout open/close
   - Test edit mode
   - Test rule builder
   - File: `e2e/tests/groups.spec.ts`
+  - **20 test cases (Playwright)**
 
 ## Documentation Tasks
 
