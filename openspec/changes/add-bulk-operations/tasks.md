@@ -35,11 +35,11 @@
   - GET /api/bulk/status/:id - Check progress
   - GET /api/bulk/history - List operations
 
-- [ ] Implement WebSocket/SSE for progress
-  - Set up WebSocket server
-  - Create progress event emitter
-  - Add client reconnection logic
-  - Test real-time updates
+- [x] Implement WebSocket/SSE for progress
+  - Set up WebSocket server (BulkOperationsGateway)
+  - Create progress event emitter (bulkOperationEvents)
+  - Add client reconnection logic (socket.io-client with fallback)
+  - Test real-time updates (frontend with status indicator)
 
 - [x] Add CSV export endpoints
   - GET /api/export/users - Export users
