@@ -14,6 +14,7 @@ import {
   Settings as SettingsIcon,
   Network,
   MessageSquare,
+  ClipboardList,
 } from 'lucide-react';
 import { useLabels } from '../../contexts/LabelsContext';
 import { ENTITIES } from '../../config/entities';
@@ -140,6 +141,14 @@ export const AdminNavigation: React.FC<AdminNavigationProps> = ({
         >
           <AlertCircle size={16} className="nav-icon" />
           <span>Security Events</span>
+        </button>
+        <button
+          className={`nav-item ${currentPage === 'audit-logs' ? 'active' : ''}`}
+          onClick={() => onNavigate('audit-logs')}
+          data-testid="nav-audit-logs"
+        >
+          <ClipboardList size={16} className="nav-icon" />
+          <span>Audit Logs</span>
         </button>
       </div>
 
