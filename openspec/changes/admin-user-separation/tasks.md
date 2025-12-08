@@ -24,60 +24,69 @@
 
 ### Frontend Tasks
 
-- [ ] **TASK-AUS-004**: Create ViewContext for view state management
+- [x] **TASK-AUS-004**: Create ViewContext for view state management
   - Track current view ('admin' | 'user')
   - Persist preference to localStorage and API
   - Provide view switching function
   - File: `frontend/src/contexts/ViewContext.tsx`
+  - **Completed:** Full ViewContext with capabilities tracking, localStorage persistence
 
-- [ ] **TASK-AUS-005**: Restructure routes with /admin prefix
+- [x] **TASK-AUS-005**: Restructure routes with /admin prefix
   - Move admin pages under /admin/*
   - Keep user pages at root level
   - Add redirects for old URLs
   - File: `frontend/src/App.tsx`
+  - **Completed:** Routes restructured with /admin prefix, path mapping implemented
 
 - [ ] **TASK-AUS-006**: Create AdminRoute guard component
   - Check user.isAdmin before rendering
   - Redirect to home if not admin
   - Show appropriate message
   - File: `frontend/src/components/routes/AdminRoute.tsx`
+  - **Note:** Currently using conditional rendering in App.tsx instead
 
 - [ ] **TASK-AUS-007**: Create EmployeeRoute guard component
   - Check user.isEmployee before rendering
   - Redirect to /admin if not employee (for external admins)
   - Show appropriate message
   - File: `frontend/src/components/routes/EmployeeRoute.tsx`
+  - **Note:** Currently using conditional rendering in App.tsx instead
 
 ## Phase 2: Navigation Separation
 
 ### Frontend Tasks
 
-- [ ] **TASK-AUS-008**: Create AdminNavigation component
+- [x] **TASK-AUS-008**: Create AdminNavigation component
   - Dashboard, Directory (Users, Groups, Devices)
   - Security (Audit Logs, Policies)
   - Settings (Modules, Master Data, Organization, Integrations)
   - File: `frontend/src/components/navigation/AdminNavigation.tsx`
+  - **Completed:** Full AdminNavigation with all sections
 
-- [ ] **TASK-AUS-009**: Create UserNavigation component
+- [x] **TASK-AUS-009**: Create UserNavigation component
   - Home, People, My Team, My Groups
   - My Profile, Settings (personal)
   - File: `frontend/src/components/navigation/UserNavigation.tsx`
+  - **Completed:** UserNavigation with People, My Team, My Profile sections
 
-- [ ] **TASK-AUS-010**: Update Sidebar to use view-based navigation
+- [x] **TASK-AUS-010**: Update Sidebar to use view-based navigation
   - Render AdminNavigation or UserNavigation based on currentView
   - Pass appropriate props and handlers
   - File: `frontend/src/components/Sidebar.tsx`
+  - **Completed:** Sidebar renders view-specific navigation based on currentView
 
-- [ ] **TASK-AUS-011**: Create ViewSwitcher component
+- [x] **TASK-AUS-011**: Create ViewSwitcher component
   - Dropdown with Admin Console / Employee View options
   - Only visible for internal admins (isAdmin && isEmployee)
   - Navigate to appropriate home on switch
-  - File: `frontend/src/components/ViewSwitcher.tsx`
+  - File: `frontend/src/components/navigation/ViewSwitcher.tsx`
+  - **Completed:** Full ViewSwitcher with dropdown, icons, and styling
 
-- [ ] **TASK-AUS-012**: Add ViewSwitcher to Header
+- [x] **TASK-AUS-012**: Add ViewSwitcher to Header
   - Position before user avatar
   - Show current view label
-  - File: `frontend/src/components/Header.tsx`
+  - File: `frontend/src/components/Header.tsx` (in App.tsx)
+  - **Completed:** ViewSwitcher added to header in App.tsx
 
 ## Phase 3: User Type Detection
 
