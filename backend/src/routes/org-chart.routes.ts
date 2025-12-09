@@ -37,7 +37,7 @@ router.get('/org-chart', requireAuth, async (req: Request, res: Response) => {
         ou.last_name,
         ou.job_title,
         ou.department,
-        ou.photo_url,
+        ou.photo_data,
         ou.reporting_manager_id
       FROM organization_users ou
       WHERE ou.organization_id = $1
@@ -97,7 +97,7 @@ router.get('/org-chart', requireAuth, async (req: Request, res: Response) => {
         email: child.email,
         title: child.job_title,
         department: child.department,
-        photoUrl: child.photo_url,
+        photoUrl: child.photo_data,
         managerId: child.reporting_manager_id,
         level: child.level || 0,
         directReports: buildTree(nodes, child.user_id),
@@ -113,7 +113,7 @@ router.get('/org-chart', requireAuth, async (req: Request, res: Response) => {
       email: root.email,
       title: root.job_title,
       department: root.department,
-      photoUrl: root.photo_url,
+      photoUrl: root.photo_data,
       managerId: root.reporting_manager_id,
       level: 0,
       directReports: buildTree(hierarchyResult.rows, root.user_id),
@@ -127,7 +127,7 @@ router.get('/org-chart', requireAuth, async (req: Request, res: Response) => {
       email: orphan.email,
       title: orphan.job_title,
       department: orphan.department,
-      photoUrl: orphan.photo_url,
+      photoUrl: orphan.photo_data,
       managerId: orphan.reporting_manager_id,
       level: -1,
       directReports: new Array<any>(),
@@ -284,7 +284,7 @@ router.get('/users/:userId/direct-reports', requireAuth, async (req: Request, re
         last_name,
         job_title,
         department,
-        photo_url,
+        photo_data,
         get_direct_reports_count(id) as direct_reports_count
       FROM organization_users
       WHERE organization_id = $1
@@ -301,7 +301,7 @@ router.get('/users/:userId/direct-reports', requireAuth, async (req: Request, re
       email: user.email,
       title: user.job_title,
       department: user.department,
-      photoUrl: user.photo_url,
+      photoUrl: user.photo_data,
       directReportsCount: parseInt(user.direct_reports_count) || 0
     }));
 

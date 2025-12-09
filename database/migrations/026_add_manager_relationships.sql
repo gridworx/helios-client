@@ -1,16 +1,15 @@
 -- Migration: Add manager relationships for org chart visualization
 -- Purpose: Support hierarchical organization chart based on reporting relationships
 
--- Add manager_id to organization_users table
-ALTER TABLE organization_users
-ADD COLUMN IF NOT EXISTS manager_id UUID REFERENCES organization_users(id);
+-- Note: Column reporting_manager_id already exists in organization_users table
+-- This migration focuses on creating the hierarchy functions
 
 -- Add manager_email to Google Workspace synced users
 ALTER TABLE gw_synced_users
 ADD COLUMN IF NOT EXISTS manager_email VARCHAR(255);
 
 -- Create index for efficient hierarchy queries
-CREATE INDEX IF NOT EXISTS idx_users_manager ON organization_users(manager_id);
+CREATE INDEX IF NOT EXISTS idx_users_manager ON organization_users(reporting_manager_id);
 
 -- Create index for manager email lookups
 CREATE INDEX IF NOT EXISTS idx_gw_users_manager_email ON gw_synced_users(manager_email);
@@ -24,14 +23,14 @@ DECLARE
     depth INT := 0;
 BEGIN
     -- Check for self-reference
-    IF NEW.id = NEW.manager_id THEN
+    IF NEW.id = NEW.reporting_manager_id THEN
         RAISE EXCEPTION 'User cannot be their own manager';
     END IF;
 
     -- Check for circular references (limit depth to prevent infinite loops)
-    current_id := NEW.manager_id;
+    current_id := NEW.reporting_manager_id;
     WHILE current_id IS NOT NULL AND depth < 100 LOOP
-        SELECT manager_id INTO current_manager
+        SELECT reporting_manager_id INTO current_manager
         FROM organization_users
         WHERE id = current_id;
 
@@ -50,9 +49,9 @@ $$ LANGUAGE plpgsql;
 -- Create trigger for circular reference check
 DROP TRIGGER IF EXISTS check_manager_hierarchy_trigger ON organization_users;
 CREATE TRIGGER check_manager_hierarchy_trigger
-    BEFORE INSERT OR UPDATE OF manager_id ON organization_users
+    BEFORE INSERT OR UPDATE OF reporting_manager_id ON organization_users
     FOR EACH ROW
-    WHEN (NEW.manager_id IS NOT NULL)
+    WHEN (NEW.reporting_manager_id IS NOT NULL)
     EXECUTE FUNCTION check_manager_hierarchy();
 
 -- Add function to build org chart hierarchy
@@ -62,10 +61,10 @@ RETURNS TABLE (
     email VARCHAR(255),
     first_name VARCHAR(100),
     last_name VARCHAR(100),
-    title VARCHAR(255),
+    job_title VARCHAR(255),
     department VARCHAR(255),
-    photo_url TEXT,
-    manager_id UUID,
+    photo_data TEXT,
+    reporting_manager_id UUID,
     level INT,
     path UUID[]
 ) AS $$
@@ -78,17 +77,17 @@ BEGIN
             ou.email,
             ou.first_name,
             ou.last_name,
-            ou.title,
+            ou.job_title,
             ou.department,
-            ou.photo_url,
-            ou.manager_id,
+            ou.photo_data,
+            ou.reporting_manager_id,
             0 AS level,
             ARRAY[ou.id] AS path
         FROM organization_users ou
         WHERE
             ou.is_active = true
             AND (
-                (root_user_id IS NULL AND ou.manager_id IS NULL)
+                (root_user_id IS NULL AND ou.reporting_manager_id IS NULL)
                 OR ou.id = root_user_id
             )
 
@@ -100,14 +99,14 @@ BEGIN
             ou.email,
             ou.first_name,
             ou.last_name,
-            ou.title,
+            ou.job_title,
             ou.department,
-            ou.photo_url,
-            ou.manager_id,
+            ou.photo_data,
+            ou.reporting_manager_id,
             ot.level + 1 AS level,
             ot.path || ou.id AS path
         FROM organization_users ou
-        INNER JOIN org_tree ot ON ou.manager_id = ot.user_id
+        INNER JOIN org_tree ot ON ou.reporting_manager_id = ot.user_id
         WHERE
             ou.is_active = true
             AND NOT (ou.id = ANY(ot.path)) -- Prevent cycles
@@ -124,7 +123,7 @@ BEGIN
     RETURN (
         SELECT COUNT(*)
         FROM organization_users
-        WHERE manager_id = user_id
+        WHERE reporting_manager_id = user_id
         AND is_active = true
     );
 END;
@@ -137,13 +136,13 @@ BEGIN
     RETURN (
         WITH RECURSIVE subordinates AS (
             SELECT id FROM organization_users
-            WHERE manager_id = user_id AND is_active = true
+            WHERE reporting_manager_id = user_id AND is_active = true
 
             UNION ALL
 
             SELECT ou.id
             FROM organization_users ou
-            INNER JOIN subordinates s ON ou.manager_id = s.id
+            INNER JOIN subordinates s ON ou.reporting_manager_id = s.id
             WHERE ou.is_active = true
         )
         SELECT COUNT(*) FROM subordinates
@@ -157,8 +156,8 @@ BEGIN
     IF EXISTS (SELECT 1 FROM pg_settings WHERE name = 'application_name' AND setting LIKE '%development%') THEN
         -- Set Jack as CEO (no manager)
         UPDATE organization_users
-        SET manager_id = NULL,
-            title = COALESCE(title, 'CEO'),
+        SET reporting_manager_id = NULL,
+            job_title = COALESCE(job_title, 'CEO'),
             department = COALESCE(department, 'Executive')
         WHERE email = 'jack@gridworx.io';
 
