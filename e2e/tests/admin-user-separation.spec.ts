@@ -62,8 +62,8 @@ test.describe('Admin/User Separation', () => {
     test('external admin should login successfully', async ({ page }) => {
       await login(page, EXTERNAL_ADMIN);
 
-      // Should land on admin dashboard
-      await expect(page).toHaveURL(/.*admin.*|.*dashboard.*/);
+      // Should land on dashboard (URL may be / or /admin)
+      await expect(page.locator('h1')).toContainText('Dashboard');
     });
 
     test('external admin should not see People in navigation', async ({ page }) => {
@@ -152,7 +152,8 @@ test.describe('Admin/User Separation', () => {
     test('internal admin should login successfully', async ({ page }) => {
       await login(page, INTERNAL_ADMIN);
 
-      await expect(page).toHaveURL(/.*admin.*|.*dashboard.*/);
+      // Should land on dashboard (URL may be / or /admin)
+      await expect(page.locator('h1')).toContainText('Dashboard');
     });
 
     test('internal admin should see view switcher', async ({ page }) => {
@@ -175,12 +176,25 @@ test.describe('Admin/User Separation', () => {
     });
 
     test('internal admin should be able to switch to user view', async ({ page }) => {
+      // Set onboarding as completed to skip the modal
+      await page.goto('/');
+      await page.evaluate(() => {
+        localStorage.setItem('helios_view_onboarding_completed', 'true');
+      });
+
       await login(page, INTERNAL_ADMIN);
 
       await page.waitForTimeout(1500);
 
+      // Dismiss any onboarding modal that may appear
+      const onboardingClose = page.locator('.view-onboarding-close, button:has-text("Continue to Admin Console"), button[aria-label="Close"]');
+      if (await onboardingClose.first().isVisible().catch(() => false)) {
+        await onboardingClose.first().click();
+        await page.waitForTimeout(500);
+      }
+
       // Find and click the view switcher
-      const viewSwitcher = page.locator('[data-testid="view-switcher"], .view-switcher');
+      const viewSwitcher = page.locator('[data-testid="view-switcher-trigger"], .view-switcher-trigger');
 
       if (await viewSwitcher.isVisible().catch(() => false)) {
         await viewSwitcher.click();

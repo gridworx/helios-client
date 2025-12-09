@@ -153,6 +153,8 @@ function AppContent() {
   const [config, setConfig] = useState<OrganizationConfig | null>(null);
   const [step, setStep] = useState<'welcome' | 'setup' | 'login' | 'dashboard' | null>(null);
   const [stats, setStats] = useState<OrganizationStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [statsError, setStatsError] = useState<string | null>(null);
   const [_syncLoading, setSyncLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -314,6 +316,9 @@ function AppContent() {
   };
 
   const fetchOrganizationStats = async (_organizationId: string) => {
+    setStatsLoading(true);
+    setStatsError(null);
+
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
@@ -328,6 +333,7 @@ function AppContent() {
 
       if (!response.ok) {
         console.error('Failed to fetch dashboard stats: HTTP', response.status);
+        setStatsError(`Failed to load stats (HTTP ${response.status})`);
         return;
       }
 
@@ -335,13 +341,20 @@ function AppContent() {
 
       if (data.success) {
         setStats(data.data);
+        setStatsError(null);
+      } else {
+        setStatsError(data.error || 'Failed to load dashboard stats');
       }
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
         console.error('Dashboard stats request timed out');
+        setStatsError('Request timed out. Please refresh the page.');
       } else {
         console.error('Failed to fetch dashboard stats:', err);
+        setStatsError('Unable to connect to the server. Please check your connection.');
       }
+    } finally {
+      setStatsLoading(false);
     }
   };
 
@@ -725,15 +738,26 @@ function AppContent() {
 
               {/* Dashboard Widget Grid */}
               <div className="dashboard-widget-grid">
-                {widgetsLoading ? (
+                {widgetsLoading || statsLoading ? (
                   <div style={{ gridColumn: 'span 12', textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
                     <RefreshCw size={20} className="animate-spin" style={{ display: 'inline-block', marginRight: '0.5rem' }} />
-                    Loading dashboard widgets...
+                    Loading dashboard...
                   </div>
                 ) : widgetsError ? (
                   <div style={{ gridColumn: 'span 12', textAlign: 'center', padding: '2rem', color: '#ef4444' }}>
                     <AlertCircle size={20} style={{ display: 'inline-block', marginRight: '0.5rem', verticalAlign: 'middle' }} />
                     {widgetsError}
+                  </div>
+                ) : statsError ? (
+                  <div style={{ gridColumn: 'span 12', textAlign: 'center', padding: '2rem', color: '#d97706', background: '#fef3c7', borderRadius: '8px' }}>
+                    <AlertCircle size={20} style={{ display: 'inline-block', marginRight: '0.5rem', verticalAlign: 'middle' }} />
+                    {statsError}
+                    <button
+                      onClick={() => config?.organizationId && fetchOrganizationStats(config.organizationId)}
+                      style={{ marginLeft: '1rem', padding: '4px 12px', fontSize: '13px', background: 'white', border: '1px solid #d97706', borderRadius: '4px', cursor: 'pointer' }}
+                    >
+                      Retry
+                    </button>
                   </div>
                 ) : visibleWidgets.length === 0 ? (
                   <div style={{ gridColumn: 'span 12', textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
