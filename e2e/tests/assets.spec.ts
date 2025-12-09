@@ -24,25 +24,59 @@ async function loginAsAdmin(page: Page) {
 
   // Wait for navigation after login
   await page.waitForURL(/.*dashboard.*|.*admin.*|.*\/$/, { timeout: 15000 });
+
+  // Handle ViewOnboarding modal if it appears (first time login)
+  await page.waitForTimeout(500);
+  const onboardingModal = page.locator('.view-onboarding-overlay');
+  if (await onboardingModal.isVisible({ timeout: 2000 }).catch(() => false)) {
+    // Click "Admin Console" option to select admin view
+    const adminConsoleOption = page.locator('.view-option-card').filter({ hasText: 'Admin Console' });
+    if (await adminConsoleOption.isVisible()) {
+      await adminConsoleOption.click();
+      await page.waitForTimeout(300);
+    }
+    // Click the "Continue to Admin Console" button
+    const continueBtn = page.locator('.view-onboarding-button.primary');
+    if (await continueBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await continueBtn.click();
+      await page.waitForTimeout(500);
+    } else {
+      // If button not found, try clicking the close button to dismiss
+      const closeBtn = page.locator('.view-onboarding-close');
+      if (await closeBtn.isVisible()) {
+        await closeBtn.click();
+        await page.waitForTimeout(300);
+      }
+    }
+  }
 }
 
 /**
  * Navigate to Media Files page
  */
 async function navigateToMediaFiles(page: Page) {
-  // Look for Media Files link in navigation
-  const mediaFilesLink = page.locator('a[href="/admin/media-files"], a:has-text("Media Files")').first();
+  // Try using the nav button data-testid
+  const navButton = page.locator('[data-testid="nav-files-assets"]');
 
-  if (await mediaFilesLink.isVisible({ timeout: 5000 })) {
-    await mediaFilesLink.click();
-    await page.waitForURL(/.*media-files.*/, { timeout: 10000 });
+  if (await navButton.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await navButton.click();
+    await page.waitForTimeout(1000);
   } else {
-    // Try direct navigation
-    await page.goto('/admin/media-files');
+    // Fallback: look for Media Files link text
+    const mediaFilesLink = page.locator('button:has-text("Media Files"), a:has-text("Media Files")').first();
+    if (await mediaFilesLink.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await mediaFilesLink.click();
+      await page.waitForTimeout(1000);
+    } else {
+      // Last resort: direct navigation
+      await page.goto('/admin/files-assets');
+      await page.waitForTimeout(1000);
+    }
   }
 
-  // Wait for page to load
-  await expect(page.locator('h1')).toContainText(/Media|Files|Assets/, { timeout: 10000 });
+  // Wait for page to load - check for the page header or content
+  const pageHeader = page.locator('h1, h2').first();
+  await expect(pageHeader).toContainText(/Media|Files|Assets|Storage/, { timeout: 10000 });
 }
 
 test.describe('Asset Management', () => {
