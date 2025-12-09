@@ -316,34 +316,39 @@
 
 ### Backend Tasks
 
-- [ ] **TASK-SIG-037**: Create signature permissions service
+- [x] **TASK-SIG-037**: Create signature permissions service
   - Check user permission level
   - Grant/revoke permissions
   - File: `backend/src/services/signature-permissions.service.ts`
+  - **DONE**: Full service with getOrganizationPermissions, getUserPermission, grantPermission, revokePermission, bulkGrantPermissions, getAuditLog, getPermissionStats, hasPermission, hasCapabilityForUser
 
-- [ ] **TASK-SIG-038**: Add permission middleware
+- [x] **TASK-SIG-038**: Add permission middleware
   - requireSignaturePermission middleware
   - Apply to all signature routes
   - File: `backend/src/middleware/signature-auth.ts`
+  - **DONE**: Created requireSignaturePermission, requireSignatureCapability, attachSignaturePermission middlewares
 
-- [ ] **TASK-SIG-039**: Create permissions routes
+- [x] **TASK-SIG-039**: Create permissions routes
   - GET /api/signatures/permissions
   - POST /api/signatures/permissions
   - DELETE /api/signatures/permissions/:userId
   - File: `backend/src/routes/signature-permissions.routes.ts`
+  - **DONE**: Full REST API with /me, /levels, /stats, /users/:userId, /bulk, /audit endpoints
 
 ### Frontend Tasks
 
-- [ ] **TASK-SIG-040**: Create SignaturePermissions page
+- [x] **TASK-SIG-040**: Create SignaturePermissions page
   - List users with permission levels
   - Add/remove permissions
   - Role level selector
-  - File: `frontend/src/pages/admin/SignaturePermissions.tsx`
+  - File: `frontend/src/components/signatures/SignaturePermissions.tsx`
+  - **DONE**: Full component with users table, permission level info panel, stats cards, audit log tab, edit/revoke modals
 
-- [ ] **TASK-SIG-041**: Add permission checks to UI
+- [x] **TASK-SIG-041**: Add permission checks to UI
   - Hide/disable features based on permission
   - Show appropriate empty states
-  - File: Update all signature components
+  - File: Created `frontend/src/hooks/useSignaturePermissions.ts`
+  - **DONE**: Created useSignaturePermissions hook for checking permissions in UI components
 
 ## Phase 8: Navigation & Polish
 

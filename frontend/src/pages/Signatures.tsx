@@ -18,10 +18,11 @@ import {
   Star,
   AlertCircle,
   X,
-  Save
+  Save,
+  Shield
 } from 'lucide-react';
 import './Signatures.css';
-import { TemplateEditor, TemplatePreview, CampaignEditor, CampaignAnalytics } from '../components/signatures';
+import { TemplateEditor, TemplatePreview, CampaignEditor, CampaignAnalytics, SignaturePermissions } from '../components/signatures';
 
 interface SignatureTemplate {
   id: string;
@@ -74,7 +75,7 @@ interface TemplateFormData {
 }
 
 const Signatures: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'templates' | 'campaigns' | 'analytics'>('templates');
+  const [activeTab, setActiveTab] = useState<'templates' | 'campaigns' | 'analytics' | 'permissions'>('templates');
   const [templates, setTemplates] = useState<SignatureTemplate[]>([]);
   const [campaigns, setCampaigns] = useState<SignatureCampaign[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<SignatureTemplate | null>(null);
@@ -410,6 +411,13 @@ const Signatures: React.FC = () => {
           <BarChart3 size={16} />
           Analytics
         </button>
+        <button
+          className={`tab-button ${activeTab === 'permissions' ? 'active' : ''}`}
+          onClick={() => setActiveTab('permissions')}
+        >
+          <Shield size={16} />
+          Permissions
+        </button>
       </div>
 
       {activeTab === 'templates' && (
@@ -728,6 +736,12 @@ const Signatures: React.FC = () => {
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {activeTab === 'permissions' && (
+        <div className="permissions-section">
+          <SignaturePermissions />
         </div>
       )}
 

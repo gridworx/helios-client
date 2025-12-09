@@ -35,6 +35,7 @@ import signaturesRoutes from './routes/signatures.routes';
 import signatureAssignmentsRoutes from './routes/signature-assignments.routes';
 import signatureSyncRoutes from './routes/signature-sync.routes';
 import signatureCampaignsRoutes from './routes/signature-campaigns.routes';
+import signaturePermissionsRoutes from './routes/signature-permissions.routes';
 import customFieldsRoutes from './routes/custom-fields.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import departmentsRoutes from './routes/departments.routes';
@@ -437,6 +438,7 @@ app.use('/api/signatures', signaturesRoutes);
 app.use('/api/signatures/v2/assignments', signatureAssignmentsRoutes);
 app.use('/api/signatures/sync', signatureSyncRoutes);
 app.use('/api/signatures/campaigns', signatureCampaignsRoutes);
+app.use('/api/signatures/permissions', signaturePermissionsRoutes);
 app.use('/api/organization', orgChartRoutes); // Register org chart routes under /api/organization
 app.use('/api/organization', organizationRoutes);
 app.use('/api/auth', authRoutes);
