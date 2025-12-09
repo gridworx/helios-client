@@ -148,6 +148,11 @@
   background: white;
 }
 
+/* Add User Dropdown */
+.add-user-dropdown {
+  position: relative;
+}
+
 .btn-add-user-primary {
   padding: 7px 14px;
   background: var(--theme-primary);
@@ -159,10 +164,78 @@
   cursor: pointer;
   transition: background 0.2s;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .btn-add-user-primary:hover {
   background: var(--theme-primary-hover);
+}
+
+.dropdown-chevron {
+  transition: transform 0.2s;
+}
+
+.dropdown-chevron.open {
+  transform: rotate(180deg);
+}
+
+.add-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 260px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1), 0 2px 10px rgba(0, 0, 0, 0.05);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.add-dropdown-menu .dropdown-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 12px 16px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+  position: relative;
+}
+
+.add-dropdown-menu .dropdown-item svg {
+  position: absolute;
+  right: 16px;
+  top: 14px;
+  color: #9ca3af;
+}
+
+.add-dropdown-menu .dropdown-item:hover {
+  background: #f9fafb;
+}
+
+.add-dropdown-menu .dropdown-item.highlight {
+  background: #f5f3ff;
+}
+
+.add-dropdown-menu .dropdown-item.highlight:hover {
+  background: #ede9fe;
+}
+
+.add-dropdown-menu .dropdown-item-desc {
+  font-size: 12px;
+  font-weight: 400;
+  color: #6b7280;
+  max-width: 200px;
 }
 
 .actions-right {

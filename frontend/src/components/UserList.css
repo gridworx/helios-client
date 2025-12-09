@@ -556,6 +556,14 @@
   background: #fef2f2 !important;
 }
 
+.menu-item-warning {
+  color: #d97706 !important;
+}
+
+.menu-item-warning:hover {
+  background: #fffbeb !important;
+}
+
 .menu-divider {
   height: 1px;
   background: #e5e7eb;

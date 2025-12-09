@@ -246,35 +246,40 @@
 
 ## Phase 10: Frontend - Scheduled Actions
 
-- [ ] **TASK-LIFE-029**: Create ScheduledActions page
+- [x] **TASK-LIFE-029**: Create ScheduledActions page
   - Calendar/list view of upcoming actions
   - Filter by action type
   - Edit/cancel actions
   - File: `frontend/src/pages/admin/ScheduledActions.tsx`
+  - **DONE**: Full implementation with list/calendar views, filtering, search, detail panel, cancel/approve/reject workflows
 
-- [ ] **TASK-LIFE-030**: Create ActionTimeline component
+- [x] **TASK-LIFE-030**: Create ActionTimeline component
   - Visual timeline of action execution
   - Step-by-step status
   - Error display with retry option
   - File: `frontend/src/components/lifecycle/ActionTimeline.tsx`
+  - **DONE**: Visual timeline with step status icons, duration, error display, and retry button
 
 ## Phase 11: Integration
 
-- [ ] **TASK-LIFE-031**: Add Onboard action to People directory
-  - "Onboard User" button in header
-  - Opens onboarding wizard
-  - File: Update `frontend/src/pages/People.tsx`
+- [x] **TASK-LIFE-031**: Add Onboard action to Users page
+  - "Add User" dropdown in Users page header with Quick Add and Full Onboarding options
+  - Opens onboarding wizard when "Full Onboarding" is selected
+  - File: Updated `frontend/src/pages/Users.tsx` with dropdown menu
+  - **DONE**: Dropdown menu with "Quick Add" and "Full Onboarding" options added to Users page
 
-- [ ] **TASK-LIFE-032**: Add Offboard action to user context menu
-  - Right-click or dropdown menu on user row
-  - "Offboard User" option
-  - Opens offboarding wizard
-  - File: Update `frontend/src/pages/People.tsx`
+- [x] **TASK-LIFE-032**: Add Offboard action to user context menu
+  - Action menu on user row in UserList component
+  - "Offboard User..." option for active staff users
+  - Opens offboarding wizard with user pre-selected
+  - File: Updated `frontend/src/components/UserList.tsx`
+  - **DONE**: "Offboard User..." option added to user action menu with warning styling
 
-- [ ] **TASK-LIFE-033**: Add lifecycle sidebar nav items
+- [x] **TASK-LIFE-033**: Add lifecycle sidebar nav items
   - "User Lifecycle" section in admin nav
   - Links: Onboarding Templates, Offboarding Templates, Scheduled Actions
-  - File: Update `frontend/src/components/Layout/Sidebar.tsx`
+  - File: `frontend/src/components/navigation/AdminNavigation.tsx`
+  - **DONE**: Already exists in Automation section with Onboarding, Offboarding, and Scheduled Actions links
 
 ## Phase 12: Testing
 

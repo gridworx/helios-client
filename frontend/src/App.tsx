@@ -36,6 +36,7 @@ import OnboardingTemplateEditor from './components/lifecycle/OnboardingTemplateE
 import OffboardingTemplateEditor from './components/lifecycle/OffboardingTemplateEditor'
 import NewUserOnboarding from './pages/NewUserOnboarding'
 import UserOffboarding from './pages/UserOffboarding'
+import ScheduledActions from './pages/admin/ScheduledActions'
 import { LabelsProvider, useLabels } from './contexts/LabelsContext'
 import { ViewProvider, useView } from './contexts/ViewContext'
 import { AdminNavigation, UserNavigation, ViewSwitcher, ViewOnboarding } from './components/navigation'
@@ -966,7 +967,10 @@ function AppContent() {
           )}
 
           {currentPage === 'users' && (
-            <Users organizationId={config?.organizationId || ''} />
+            <Users
+              organizationId={config?.organizationId || ''}
+              onNavigate={setCurrentPage}
+            />
           )}
 
           {currentPage === 'administrators' && (
@@ -1121,16 +1125,7 @@ function AppContent() {
           )}
 
           {currentPage === 'scheduled-actions' && (
-            <div className="page-placeholder">
-              <div className="placeholder-content">
-                <div className="placeholder-icon">
-                  <RefreshCw size={48} style={{ color: '#9ca3af' }} />
-                </div>
-                <h2>Scheduled Actions</h2>
-                <p>View and manage scheduled user lifecycle actions.</p>
-                <p className="text-muted">Coming soon!</p>
-              </div>
-            </div>
+            <ScheduledActions organizationId={config?.organizationId || ''} />
           )}
 
           {currentPage === 'new-user-onboarding' && (

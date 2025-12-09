@@ -1,17 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { UserPlus, ChevronDown } from 'lucide-react';
 import { UserList } from '../components/UserList';
 import { useTabPersistence } from '../hooks/useTabPersistence';
 import './Users.css';
 
 interface UsersProps {
   organizationId: string;
+  onNavigate?: (page: string) => void;
 }
 
 type UserType = 'staff' | 'guests' | 'contacts';
 
 type StatusFilter = 'all' | 'active' | 'pending' | 'suspended' | 'expired' | 'deleted';
 
-export function Users({ organizationId }: UsersProps) {
+export function Users({ organizationId, onNavigate }: UsersProps) {
   const [activeTab, setActiveTab] = useTabPersistence<UserType>('helios_users_tab', 'staff');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -28,6 +30,19 @@ export function Users({ organizationId }: UsersProps) {
     expired: 0,
     deleted: 0
   });
+  const [showAddDropdown, setShowAddDropdown] = useState(false);
+  const addDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (addDropdownRef.current && !addDropdownRef.current.contains(event.target as Node)) {
+        setShowAddDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Fetch user counts for each type
   useEffect(() => {
@@ -177,9 +192,42 @@ export function Users({ organizationId }: UsersProps) {
 
       {/* Actions Bar */}
       <div className="actions-bar">
-        <button className="btn-add-user-primary">
-          + {activeTab === 'staff' ? 'Users' : activeTab === 'guests' ? 'Guests' : 'Contacts'}
-        </button>
+        <div className="add-user-dropdown" ref={addDropdownRef}>
+          <button
+            className="btn-add-user-primary"
+            onClick={() => setShowAddDropdown(!showAddDropdown)}
+          >
+            <UserPlus size={16} />
+            Add {activeTab === 'staff' ? 'User' : activeTab === 'guests' ? 'Guest' : 'Contact'}
+            <ChevronDown size={14} className={`dropdown-chevron ${showAddDropdown ? 'open' : ''}`} />
+          </button>
+          {showAddDropdown && (
+            <div className="add-dropdown-menu">
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  setShowAddDropdown(false);
+                  onNavigate?.('add-user');
+                }}
+              >
+                <UserPlus size={16} />
+                Quick Add
+                <span className="dropdown-item-desc">Create a basic user account</span>
+              </button>
+              <button
+                className="dropdown-item highlight"
+                onClick={() => {
+                  setShowAddDropdown(false);
+                  onNavigate?.('new-user-onboarding');
+                }}
+              >
+                <UserPlus size={16} />
+                Full Onboarding
+                <span className="dropdown-item-desc">Use template with groups, access & welcome email</span>
+              </button>
+            </div>
+          )}
+        </div>
 
         <div className="actions-right">
           <div className="search-box">
@@ -235,6 +283,13 @@ export function Users({ organizationId }: UsersProps) {
           searchQuery={searchQuery}
           statusFilter={statusFilter}
           onStatusCountsChange={setStatusCounts}
+          onNavigate={(page, params) => {
+            if (params?.userId) {
+              // Store the userId for the offboarding page
+              sessionStorage.setItem('offboard_user_id', params.userId);
+            }
+            onNavigate?.(page);
+          }}
         />
       </div>
     </div>

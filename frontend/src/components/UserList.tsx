@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './UserList.css';
 import { UserSlideOut } from './UserSlideOut';
-import { MoreVertical, Eye, PauseCircle, PlayCircle, Lock, Copy, Trash2, CheckCircle, Users, RefreshCw, UserPlus, Loader, Mail, Key } from 'lucide-react';
+import { MoreVertical, Eye, PauseCircle, PlayCircle, Lock, Copy, Trash2, CheckCircle, Users, RefreshCw, UserPlus, Loader, Mail, Key, UserMinus } from 'lucide-react';
 import { PlatformIcon } from './ui/PlatformIcon';
 
 interface User {
@@ -66,9 +66,10 @@ interface UserListProps {
   searchQuery?: string;
   statusFilter?: string;
   onStatusCountsChange?: (counts: any) => void;
+  onNavigate?: (page: string, params?: Record<string, string>) => void;
 }
 
-export function UserList({ organizationId, userType, onCountChange, searchQuery = '', statusFilter, onStatusCountsChange }: UserListProps) {
+export function UserList({ organizationId, userType, onCountChange, searchQuery = '', statusFilter, onStatusCountsChange, onNavigate }: UserListProps) {
   // Component for managing organization users
   const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
@@ -845,6 +846,23 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
                 <button onClick={() => handleQuickBlock(user)}>
                   <Lock size={14} /> Block Account
                 </button>
+
+                {user.isActive && userType === 'staff' && (
+                  <button
+                    className="menu-item-warning"
+                    onClick={() => {
+                      setActionMenuOpen(null);
+                      // Navigate to offboarding wizard with user pre-selected
+                      if (onNavigate) {
+                        onNavigate('user-offboarding', { userId: user.id });
+                      } else {
+                        navigate(`/admin/user-offboarding?userId=${user.id}`);
+                      }
+                    }}
+                  >
+                    <UserMinus size={14} /> Offboard User...
+                  </button>
+                )}
 
                 <div className="menu-divider"></div>
 
