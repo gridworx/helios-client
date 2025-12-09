@@ -31,12 +31,16 @@ async function login(page: Page) {
     const continueBtn = page.locator('.view-onboarding-button.primary');
     if (await continueBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
       await continueBtn.click();
+      // Wait for modal to be hidden
+      await onboardingModal.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
       await page.waitForTimeout(500);
     } else {
       // If button not found, try clicking the close button to dismiss
       const closeBtn = page.locator('.view-onboarding-close');
       if (await closeBtn.isVisible()) {
         await closeBtn.click();
+        // Wait for modal to be hidden
+        await onboardingModal.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
         await page.waitForTimeout(300);
       }
     }
@@ -302,6 +306,21 @@ test.describe('User Lifecycle Management', () => {
 
     test('should display action details when clicked', async ({ page }) => {
       await login(page);
+
+      // Dismiss ViewOnboarding if it appears again
+      const onboardingModal = page.locator('.view-onboarding-overlay');
+      if (await onboardingModal.isVisible({ timeout: 1000 }).catch(() => false)) {
+        const adminConsoleOption = page.locator('.view-option-card').filter({ hasText: 'Admin Console' });
+        if (await adminConsoleOption.isVisible()) {
+          await adminConsoleOption.click();
+          await page.waitForTimeout(300);
+        }
+        const continueBtn = page.locator('.view-onboarding-button.primary');
+        if (await continueBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+          await continueBtn.click();
+          await page.waitForTimeout(500);
+        }
+      }
 
       // Navigate to scheduled actions
       const scheduledLink = page.getByText('Scheduled Actions').or(page.getByText('Scheduled'));
