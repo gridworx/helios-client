@@ -35,9 +35,32 @@ async function login(page: Page) {
 }
 
 /**
+ * Helper to dismiss ViewOnboarding modal if it appears
+ */
+async function dismissOnboardingModal(page: Page) {
+  await page.waitForTimeout(300);
+  const onboardingModal = page.locator('.view-onboarding-overlay');
+  if (await onboardingModal.isVisible({ timeout: 1000 }).catch(() => false)) {
+    const adminConsoleOption = page.locator('.view-option-card').filter({ hasText: 'Admin Console' });
+    if (await adminConsoleOption.isVisible()) {
+      await adminConsoleOption.click();
+      await page.waitForTimeout(300);
+    }
+    const continueBtn = page.locator('.view-onboarding-button.primary');
+    if (await continueBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await continueBtn.click();
+      await page.waitForTimeout(500);
+    }
+  }
+}
+
+/**
  * Navigate to Signatures page
  */
 async function navigateToSignatures(page: Page) {
+  // Dismiss onboarding if visible before navigating
+  await dismissOnboardingModal(page);
+
   // Click on Signatures in sidebar
   const signaturesLink = page.locator('.sidebar-nav-link').filter({ hasText: 'Signatures' });
   if (await signaturesLink.isVisible()) {
@@ -48,6 +71,9 @@ async function navigateToSignatures(page: Page) {
     await page.goto('/admin/signatures');
     await page.waitForTimeout(500);
   }
+
+  // Dismiss onboarding again if it appeared after navigation
+  await dismissOnboardingModal(page);
 }
 
 test.describe('Signature Management', () => {
