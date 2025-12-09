@@ -199,41 +199,50 @@
   - File: `frontend/src/pages/OffboardingTemplates.tsx`
   - **DONE**: Similar structure to OnboardingTemplates
 
-- [ ] **TASK-LIFE-024**: Create OffboardingTemplateEditor component
-  - Data handling options
-  - Revocation checkboxes
-  - Account action selection
+- [x] **TASK-LIFE-024**: Create OffboardingTemplateEditor component
+  - Data handling options (Drive, Email, Calendar)
+  - Revocation checkboxes (groups, shared drives, OAuth, app passwords, devices, password)
+  - Account action selection (suspension, deletion)
+  - License handling options
+  - Signature management
+  - Mobile device wipe options
+  - Notification settings
   - File: `frontend/src/components/lifecycle/OffboardingTemplateEditor.tsx`
+  - **DONE**: Full form with 9 collapsible sections, radio groups for action selection, CSS styling for radio buttons added to shared stylesheet
 
 ## Phase 8: Frontend - Onboarding Flow
 
-- [ ] **TASK-LIFE-025**: Create NewUserOnboarding page
-  - Step 1: Basic info (name, email)
-  - Step 2: Select template
-  - Step 3: Review & customize
-  - Step 4: Confirm & create
-  - File: `frontend/src/pages/admin/NewUserOnboarding.tsx`
+- [x] **TASK-LIFE-025**: Create NewUserOnboarding page
+  - Step 1: Basic info (name, email, job title, department, manager, start date)
+  - Step 2: Select template (with template cards showing details)
+  - Step 3: Review & customize (groups, schedule, notifications)
+  - Step 4: Confirm & create (summary card with all details)
+  - File: `frontend/src/pages/NewUserOnboarding.tsx`
+  - **DONE**: Full 4-step wizard with progress indicator, form validation, template selection, customization options, and success state
 
-- [ ] **TASK-LIFE-026**: Create OnboardingReview component
+- [x] **TASK-LIFE-026**: Create OnboardingReview component
   - Shows what will be created
   - Allows override of template defaults
   - Preview email to send
-  - File: `frontend/src/components/lifecycle/OnboardingReview.tsx`
+  - File: Integrated into `frontend/src/pages/NewUserOnboarding.tsx` Step 3
+  - **DONE**: Review functionality built into the wizard's Step 3 with group customization, schedule options, and notification settings
 
 ## Phase 9: Frontend - Offboarding Flow
 
-- [ ] **TASK-LIFE-027**: Create UserOffboarding page
-  - Select user to offboard
-  - Select template or customize
-  - Choose immediate or scheduled
-  - Confirmation dialog
-  - File: `frontend/src/pages/admin/UserOffboarding.tsx`
+- [x] **TASK-LIFE-027**: Create UserOffboarding page
+  - Step 1: Select user to offboard (with search)
+  - Step 2: Select template (with preview of actions)
+  - Step 3: Schedule (immediate, last day, or custom date)
+  - Step 4: Confirmation with warnings
+  - File: `frontend/src/pages/UserOffboarding.tsx`
+  - **DONE**: Full 4-step wizard with user search, template selection, scheduling options, and confirmation
 
-- [ ] **TASK-LIFE-028**: Create OffboardingReview component
+- [x] **TASK-LIFE-028**: Create OffboardingReview component
   - Shows what will happen
   - Data transfer preview
   - Timeline of scheduled actions
-  - File: `frontend/src/components/lifecycle/OffboardingReview.tsx`
+  - File: Integrated into `frontend/src/pages/UserOffboarding.tsx` Steps 3-4
+  - **DONE**: Review functionality built into wizard's Step 4 with summary card showing all offboarding actions
 
 ## Phase 10: Frontend - Scheduled Actions
 

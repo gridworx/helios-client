@@ -33,6 +33,9 @@ import { UserSettings } from './pages/UserSettings'
 import OnboardingTemplates from './pages/OnboardingTemplates'
 import OffboardingTemplates from './pages/OffboardingTemplates'
 import OnboardingTemplateEditor from './components/lifecycle/OnboardingTemplateEditor'
+import OffboardingTemplateEditor from './components/lifecycle/OffboardingTemplateEditor'
+import NewUserOnboarding from './pages/NewUserOnboarding'
+import UserOffboarding from './pages/UserOffboarding'
 import { LabelsProvider, useLabels } from './contexts/LabelsContext'
 import { ViewProvider, useView } from './contexts/ViewContext'
 import { AdminNavigation, UserNavigation, ViewSwitcher, ViewOnboarding } from './components/navigation'
@@ -1091,8 +1094,28 @@ function AppContent() {
             <OffboardingTemplates
               organizationId={config?.organizationId || ''}
               onNavigateToEditor={(templateId) => {
-                // TODO: Implement offboarding template editor
-                console.log('Edit offboarding template:', templateId);
+                setCurrentPage(templateId ? 'edit-offboarding-template' : 'new-offboarding-template');
+                // Store templateId for editor
+                if (templateId) {
+                  sessionStorage.setItem('editOffboardingTemplateId', templateId);
+                } else {
+                  sessionStorage.removeItem('editOffboardingTemplateId');
+                }
+              }}
+            />
+          )}
+
+          {(currentPage === 'new-offboarding-template' || currentPage === 'edit-offboarding-template') && (
+            <OffboardingTemplateEditor
+              templateId={currentPage === 'edit-offboarding-template' ? sessionStorage.getItem('editOffboardingTemplateId') || undefined : undefined}
+              organizationId={config?.organizationId || ''}
+              onSave={() => {
+                setCurrentPage('offboarding-templates');
+                sessionStorage.removeItem('editOffboardingTemplateId');
+              }}
+              onCancel={() => {
+                setCurrentPage('offboarding-templates');
+                sessionStorage.removeItem('editOffboardingTemplateId');
               }}
             />
           )}
@@ -1110,7 +1133,23 @@ function AppContent() {
             </div>
           )}
 
-          {currentPage !== 'dashboard' && currentPage !== 'settings' && currentPage !== 'users' && currentPage !== 'groups' && currentPage !== 'workspaces' && currentPage !== 'orgUnits' && currentPage !== 'assets' && currentPage !== 'files-assets' && currentPage !== 'email-security' && currentPage !== 'signatures' && currentPage !== 'security-events' && currentPage !== 'audit-logs' && currentPage !== 'console' && currentPage !== 'administrators' && currentPage !== 'my-profile' && currentPage !== 'people' && currentPage !== 'my-team' && currentPage !== 'my-groups' && currentPage !== 'user-settings' && currentPage !== 'orgChart' && currentPage !== 'add-user' && currentPage !== 'onboarding-templates' && currentPage !== 'new-onboarding-template' && currentPage !== 'edit-onboarding-template' && currentPage !== 'offboarding-templates' && currentPage !== 'scheduled-actions' && (
+          {currentPage === 'new-user-onboarding' && (
+            <NewUserOnboarding
+              organizationId={config?.organizationId || ''}
+              onComplete={() => setCurrentPage('people')}
+              onCancel={() => setCurrentPage('people')}
+            />
+          )}
+
+          {currentPage === 'user-offboarding' && (
+            <UserOffboarding
+              organizationId={config?.organizationId || ''}
+              onComplete={() => setCurrentPage('people')}
+              onCancel={() => setCurrentPage('people')}
+            />
+          )}
+
+          {currentPage !== 'dashboard' && currentPage !== 'settings' && currentPage !== 'users' && currentPage !== 'groups' && currentPage !== 'workspaces' && currentPage !== 'orgUnits' && currentPage !== 'assets' && currentPage !== 'files-assets' && currentPage !== 'email-security' && currentPage !== 'signatures' && currentPage !== 'security-events' && currentPage !== 'audit-logs' && currentPage !== 'console' && currentPage !== 'administrators' && currentPage !== 'my-profile' && currentPage !== 'people' && currentPage !== 'my-team' && currentPage !== 'my-groups' && currentPage !== 'user-settings' && currentPage !== 'orgChart' && currentPage !== 'add-user' && currentPage !== 'onboarding-templates' && currentPage !== 'new-onboarding-template' && currentPage !== 'edit-onboarding-template' && currentPage !== 'offboarding-templates' && currentPage !== 'new-offboarding-template' && currentPage !== 'edit-offboarding-template' && currentPage !== 'scheduled-actions' && currentPage !== 'new-user-onboarding' && currentPage !== 'user-offboarding' && (
             <div className="page-placeholder">
               <div className="placeholder-content">
                 <div className="placeholder-icon">🚧</div>
