@@ -103,7 +103,7 @@ export class DataQualityService {
       WHERE organization_id = $1
         AND (department IS NULL OR department = '')
         AND department_id IS NULL
-        AND status = 'active'
+        AND is_active = true
     `, [organizationId]);
     const unmapped = parseInt(unmappedResult.rows[0].count) || 0;
 
@@ -160,7 +160,7 @@ export class DataQualityService {
       WHERE organization_id = $1
         AND (location IS NULL OR location = '')
         AND location_id IS NULL
-        AND status = 'active'
+        AND is_active = true
     `, [organizationId]);
     const unmapped = parseInt(unmappedResult.rows[0].count) || 0;
 
@@ -211,7 +211,7 @@ export class DataQualityService {
       WHERE organization_id = $1
         AND (cost_center IS NULL OR cost_center = '')
         AND cost_center_id IS NULL
-        AND status = 'active'
+        AND is_active = true
     `, [organizationId]);
     const unmapped = parseInt(unmappedResult.rows[0].count) || 0;
 
@@ -227,27 +227,27 @@ export class DataQualityService {
       SELECT COUNT(*) as count
       FROM organization_users ou
       WHERE ou.organization_id = $1
-        AND ou.manager_id IS NOT NULL
+        AND ou.reporting_manager_id IS NOT NULL
         AND EXISTS (
           SELECT 1 FROM organization_users m
-          WHERE m.id = ou.manager_id
+          WHERE m.id = ou.reporting_manager_id
           AND m.organization_id = $1
-          AND m.status = 'active'
+          AND m.is_active = true
         )
     `, [organizationId]);
     const valid = parseInt(validResult.rows[0].count) || 0;
 
-    // Count orphaned manager relationships (manager_id points to non-existent or inactive user)
+    // Count orphaned manager relationships (reporting_manager_id points to non-existent or inactive user)
     const orphanedResult = await db.query(`
       SELECT COUNT(*) as count
       FROM organization_users ou
       WHERE ou.organization_id = $1
-        AND ou.manager_id IS NOT NULL
+        AND ou.reporting_manager_id IS NOT NULL
         AND NOT EXISTS (
           SELECT 1 FROM organization_users m
-          WHERE m.id = ou.manager_id
+          WHERE m.id = ou.reporting_manager_id
           AND m.organization_id = $1
-          AND m.status = 'active'
+          AND m.is_active = true
         )
     `, [organizationId]);
     const orphaned = parseInt(orphanedResult.rows[0].count) || 0;
@@ -255,15 +255,15 @@ export class DataQualityService {
     // Detect circular relationships (A reports to B reports to A)
     const circularResult = await db.query(`
       WITH RECURSIVE manager_chain AS (
-        SELECT id, manager_id, ARRAY[id] as chain, false as is_circular
+        SELECT id, reporting_manager_id, ARRAY[id] as chain, false as is_circular
         FROM organization_users
-        WHERE organization_id = $1 AND manager_id IS NOT NULL
+        WHERE organization_id = $1 AND reporting_manager_id IS NOT NULL
 
         UNION ALL
 
-        SELECT mc.id, ou.manager_id, mc.chain || ou.id, ou.id = ANY(mc.chain)
+        SELECT mc.id, ou.reporting_manager_id, mc.chain || ou.id, ou.id = ANY(mc.chain)
         FROM manager_chain mc
-        JOIN organization_users ou ON ou.id = mc.manager_id
+        JOIN organization_users ou ON ou.id = mc.reporting_manager_id
         WHERE NOT mc.is_circular AND array_length(mc.chain, 1) < 10
       )
       SELECT COUNT(DISTINCT id) as count

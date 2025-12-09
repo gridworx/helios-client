@@ -34,7 +34,8 @@ router.get('/stats', async (req: Request, res: Response): Promise<void> => {
         googleUsers,
         localUsers,
         guestUsers,
-        admins
+        admins,
+        orphanedUsers
       ] = await Promise.all([
         db.query('SELECT COUNT(*) as count FROM organization_users WHERE organization_id = $1', [organizationId]),
         db.query('SELECT COUNT(*) as count FROM organization_users WHERE organization_id = $1 AND is_active = true', [organizationId]),
@@ -44,7 +45,17 @@ router.get('/stats', async (req: Request, res: Response): Promise<void> => {
         db.query('SELECT COUNT(*) as count FROM organization_users WHERE organization_id = $1 AND google_workspace_id IS NOT NULL', [organizationId]),
         db.query('SELECT COUNT(*) as count FROM organization_users WHERE organization_id = $1 AND google_workspace_id IS NULL', [organizationId]),
         db.query('SELECT COUNT(*) as count FROM organization_users WHERE organization_id = $1 AND user_type = \'guest\'', [organizationId]),
-        db.query('SELECT COUNT(*) as count FROM organization_users WHERE organization_id = $1 AND role = \'admin\'', [organizationId])
+        db.query('SELECT COUNT(*) as count FROM organization_users WHERE organization_id = $1 AND role = \'admin\'', [organizationId]),
+        // Orphaned users: no manager assigned, not CEO, active
+        db.query(`
+          SELECT COUNT(*) as count FROM organization_users
+          WHERE organization_id = $1
+            AND is_active = true
+            AND deleted_at IS NULL
+            AND reporting_manager_id IS NULL
+            AND job_title NOT LIKE '%Chief Executive%'
+            AND COALESCE(job_title, '') NOT IN ('CEO', '')
+        `, [organizationId])
       ]);
 
       // Check if Google Workspace is configured
@@ -83,7 +94,8 @@ router.get('/stats', async (req: Request, res: Response): Promise<void> => {
         },
         helios: {
           totalUsers: parseInt(localUsers.rows[0].count),
-          guestUsers: parseInt(guestUsers.rows[0].count)
+          guestUsers: parseInt(guestUsers.rows[0].count),
+          orphanedUsers: parseInt(orphanedUsers.rows[0].count)
         },
         microsoft: {
           connected: false,

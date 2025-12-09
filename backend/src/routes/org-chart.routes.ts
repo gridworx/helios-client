@@ -35,15 +35,15 @@ router.get('/org-chart', requireAuth, async (req: Request, res: Response) => {
         ou.email,
         ou.first_name,
         ou.last_name,
-        ou.title,
+        ou.job_title,
         ou.department,
         ou.photo_url,
-        ou.manager_id
+        ou.reporting_manager_id
       FROM organization_users ou
       WHERE ou.organization_id = $1
         AND ou.is_active = true
-        AND ou.manager_id IS NOT NULL
-        AND ou.manager_id NOT IN (
+        AND ou.reporting_manager_id IS NOT NULL
+        AND ou.reporting_manager_id NOT IN (
           SELECT id FROM organization_users
           WHERE organization_id = $1 AND is_active = true
         )
@@ -68,13 +68,13 @@ router.get('/org-chart', requireAuth, async (req: Request, res: Response) => {
           AVG(report_count) as avg_span
         FROM (
           SELECT
-            manager_id,
+            reporting_manager_id,
             COUNT(*) as report_count
           FROM organization_users
           WHERE organization_id = $1
             AND is_active = true
-            AND manager_id IS NOT NULL
-          GROUP BY manager_id
+            AND reporting_manager_id IS NOT NULL
+          GROUP BY reporting_manager_id
         ) as reports
       )
       SELECT
@@ -90,15 +90,15 @@ router.get('/org-chart', requireAuth, async (req: Request, res: Response) => {
 
     // Build the tree structure
     const buildTree = (nodes: any[], parentId: string | null = null): any[] => {
-      const children = nodes.filter(node => node.manager_id === parentId);
+      const children = nodes.filter(node => node.reporting_manager_id === parentId);
       return children.map(child => ({
         userId: child.user_id,
         name: `${child.first_name || ''} ${child.last_name || ''}`.trim() || child.email,
         email: child.email,
-        title: child.title,
+        title: child.job_title,
         department: child.department,
         photoUrl: child.photo_url,
-        managerId: child.manager_id,
+        managerId: child.reporting_manager_id,
         level: child.level || 0,
         directReports: buildTree(nodes, child.user_id),
         totalReports: 0 // Will be calculated on frontend if needed
@@ -106,15 +106,15 @@ router.get('/org-chart', requireAuth, async (req: Request, res: Response) => {
     };
 
     // Find root nodes (users with no manager)
-    const rootNodes = hierarchyResult.rows.filter((node: any) => !node.manager_id);
+    const rootNodes = hierarchyResult.rows.filter((node: any) => !node.reporting_manager_id);
     const tree = rootNodes.map((root: any) => ({
       userId: root.user_id,
       name: `${root.first_name || ''} ${root.last_name || ''}`.trim() || root.email,
       email: root.email,
-      title: root.title,
+      title: root.job_title,
       department: root.department,
       photoUrl: root.photo_url,
-      managerId: root.manager_id,
+      managerId: root.reporting_manager_id,
       level: 0,
       directReports: buildTree(hierarchyResult.rows, root.user_id),
       totalReports: 0
@@ -125,10 +125,10 @@ router.get('/org-chart', requireAuth, async (req: Request, res: Response) => {
       userId: orphan.user_id,
       name: `${orphan.first_name || ''} ${orphan.last_name || ''}`.trim() || orphan.email,
       email: orphan.email,
-      title: orphan.title,
+      title: orphan.job_title,
       department: orphan.department,
       photoUrl: orphan.photo_url,
-      managerId: orphan.manager_id,
+      managerId: orphan.reporting_manager_id,
       level: -1,
       directReports: new Array<any>(),
       totalReports: 0
@@ -216,9 +216,9 @@ router.put('/users/:userId/manager', requireAuth, async (req: Request, res: Resp
     // Update the manager relationship
     const updateQuery = `
       UPDATE organization_users
-      SET manager_id = $1, updated_at = CURRENT_TIMESTAMP
+      SET reporting_manager_id = $1, updated_at = CURRENT_TIMESTAMP
       WHERE id = $2 AND organization_id = $3
-      RETURNING id, email, first_name, last_name, manager_id
+      RETURNING id, email, first_name, last_name, reporting_manager_id
     `;
 
     const updateResult = await db.query(updateQuery, [
@@ -282,13 +282,13 @@ router.get('/users/:userId/direct-reports', requireAuth, async (req: Request, re
         email,
         first_name,
         last_name,
-        title,
+        job_title,
         department,
         photo_url,
         get_direct_reports_count(id) as direct_reports_count
       FROM organization_users
       WHERE organization_id = $1
-        AND manager_id = $2
+        AND reporting_manager_id = $2
         AND is_active = true
       ORDER BY last_name, first_name
     `;
@@ -299,7 +299,7 @@ router.get('/users/:userId/direct-reports', requireAuth, async (req: Request, re
       userId: user.user_id,
       name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email,
       email: user.email,
-      title: user.title,
+      title: user.job_title,
       department: user.department,
       photoUrl: user.photo_url,
       directReportsCount: parseInt(user.direct_reports_count) || 0

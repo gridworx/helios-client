@@ -78,6 +78,7 @@ interface HeliosStats {
   totalUsers: number;
   guestUsers: number;
   activeUsers: number;
+  orphanedUsers?: number;
 }
 
 interface OrganizationStats {
@@ -899,6 +900,18 @@ function AppContent() {
                       </div>
                     )}
 
+                    {stats?.helios?.orphanedUsers && stats.helios.orphanedUsers > 0 && (
+                      <div className="alert-item warning">
+                        <AlertCircle size={16} className="alert-icon" />
+                        <div className="alert-content">
+                          <div className="alert-text">
+                            <strong>{stats.helios.orphanedUsers} {stats.helios.orphanedUsers === 1 ? 'user has' : 'users have'} no manager assigned</strong> - Assign managers for org chart accuracy
+                          </div>
+                          <button className="alert-action" onClick={() => setCurrentPage('org-chart')}>View Org Chart</button>
+                        </div>
+                      </div>
+                    )}
+
                     {stats?.google?.connected && !stats.google.lastSync && (
                       <div className="alert-item info">
                         <Info size={16} className="alert-icon" />
@@ -921,7 +934,9 @@ function AppContent() {
                       </div>
                     )}
 
-                    {(!stats?.google?.suspendedUsers || stats.google.suspendedUsers === 0) && stats?.google?.lastSync && (
+                    {(!stats?.google?.suspendedUsers || stats.google.suspendedUsers === 0) &&
+                     (!stats?.helios?.orphanedUsers || stats.helios.orphanedUsers === 0) &&
+                     stats?.google?.lastSync && (
                       <div className="empty-state">
                         <Info size={24} className="empty-icon" />
                         <p>No alerts at this time</p>

@@ -70,34 +70,52 @@
   - Excludes CEO (job_title LIKE '%Chief Executive%')
   - Returns count of users with no manager
 
-- [ ] **TASK-SEED-012**: Add orphan warning UI
-  - Show warning badge if orphans exist
-  - Link to orphan list
-  - Allow admin to assign manager
-  - File: Frontend dashboard or admin panel
-  - Status: Not yet implemented
+- [x] **TASK-SEED-012**: Add orphan warning UI
+  - Added orphanedUsers count to dashboard stats API
+  - Added orphan warning alert in dashboard Alerts section
+  - Alert links to org-chart page for manager assignment
+  - Fixed data-quality.service.ts to use correct column names (reporting_manager_id, is_active)
+  - Files:
+    - `backend/src/routes/dashboard.routes.ts` - Added orphan count query
+    - `frontend/src/App.tsx` - Added alert UI + orphanedUsers interface field
+    - `backend/src/services/data-quality.service.ts` - Fixed column name bugs
 
 ## Phase 5: Testing
 
-- [ ] **TASK-SEED-T01**: Write seed data verification tests
+- [x] **TASK-SEED-T01**: Write seed data verification tests
   - Test user count = 28+
   - Test department assignments
   - Test manager chain integrity
   - Test orphan count = 3
   - File: `backend/src/__tests__/seed-data.test.ts`
+  - **DONE**: Created tests for user stats API structure, orphan detection, department/group structure
 
-- [ ] **TASK-SEED-T02**: Write org chart API tests
+- [x] **TASK-SEED-T02**: Write org chart API tests
   - Test hierarchy query
   - Test direct reports count
   - Test total reports count
   - File: `backend/src/__tests__/org-chart.test.ts`
+  - **DONE**: Created tests for:
+    - GET /api/org-chart (hierarchy, orphans, tree structure)
+    - PUT /api/users/:userId/manager (update, circular refs, self-manager)
+    - GET /api/users/:userId/direct-reports
+    - Hierarchy validation (CEO, C-Suite, VPs)
+    - Orphan detection
+  - **ALSO FIXED**: org-chart.routes.ts column names (manager_id->reporting_manager_id, title->job_title)
 
-- [ ] **TASK-SEED-T03**: E2E test for placeholder removal
+- [x] **TASK-SEED-T03**: E2E test for placeholder removal
   - Navigate to Dashboard
   - Verify stats match database
   - Navigate to People
   - Verify user count matches
   - File: `e2e/tests/real-data.spec.ts`
+  - **DONE**: Created E2E tests for:
+    - Dashboard real stats (not placeholders)
+    - Orphan warning display
+    - Activity section real data
+    - People directory real user counts
+    - Org chart hierarchy
+    - Roles management real counts
 
 ## Estimated Effort
 
