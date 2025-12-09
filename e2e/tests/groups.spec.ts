@@ -1,10 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-
-// Test fixtures
-const TEST_CREDENTIALS = {
-  email: 'mike@gridworx.io',
-  password: 'admin123',
-};
+import { TEST_CREDENTIALS } from './utils/test-helpers';
 
 // Helper to login and navigate to groups
 async function loginAndNavigateToGroups(page: Page) {
@@ -22,6 +17,18 @@ async function loginAndNavigateToGroups(page: Page) {
 
   // Wait for dashboard
   await page.waitForURL(/.*dashboard.*|.*\/$/, { timeout: 15000 });
+
+  // Dismiss ViewOnboarding modal if present (appears for internal admins on first login)
+  // Wait a moment for the modal to potentially appear
+  await page.waitForTimeout(1000);
+  const onboardingModal = page.locator('.view-onboarding-overlay');
+  const modalCount = await onboardingModal.count();
+  if (modalCount > 0) {
+    // Click the continue button to dismiss
+    const continueBtn = page.locator('.view-onboarding-button.primary');
+    await continueBtn.click();
+    await onboardingModal.waitFor({ state: 'hidden', timeout: 5000 });
+  }
 
   // Navigate to groups page - click the Groups link in sidebar
   await page.click('[data-testid="nav-access-groups"]');

@@ -1,10 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-
-// Test fixtures
-const TEST_CREDENTIALS = {
-  email: 'mike@gridworx.io',
-  password: 'admin123',
-};
+import { TEST_CREDENTIALS, dismissViewOnboarding } from './utils/test-helpers';
 
 // Helper to login and navigate to My Profile
 async function loginAndNavigateToMyProfile(page: Page) {
@@ -22,6 +17,9 @@ async function loginAndNavigateToMyProfile(page: Page) {
 
   // Wait for dashboard
   await page.waitForURL(/.*dashboard.*|.*\/$/);
+
+  // Dismiss ViewOnboarding modal if present (appears for internal admins on first login)
+  await dismissViewOnboarding(page);
 
   // Navigate to My Profile page via Settings
   await page.click('text=Settings');
