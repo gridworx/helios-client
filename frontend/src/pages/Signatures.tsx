@@ -6,7 +6,6 @@ import {
   BarChart3,
   Search,
   Filter,
-  Settings,
   Play,
   Pause,
   Edit3,
@@ -23,7 +22,7 @@ import {
   Save
 } from 'lucide-react';
 import './Signatures.css';
-import { TemplateEditor, TemplatePreview } from '../components/signatures';
+import { TemplateEditor, TemplatePreview, CampaignEditor } from '../components/signatures';
 
 interface SignatureTemplate {
   id: string;
@@ -80,7 +79,7 @@ const Signatures: React.FC = () => {
   const [templates, setTemplates] = useState<SignatureTemplate[]>([]);
   const [campaigns, setCampaigns] = useState<SignatureCampaign[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<SignatureTemplate | null>(null);
-  const [_selectedCampaign, setSelectedCampaign] = useState<SignatureCampaign | null>(null);
+  const [editingCampaign, setEditingCampaign] = useState<SignatureCampaign | null>(null);
   const [showCampaignWizard, setShowCampaignWizard] = useState(false);
   const [showTemplateEditor, setShowTemplateEditor] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -650,8 +649,15 @@ const Signatures: React.FC = () => {
                         Resume
                       </button>
                     )}
-                    <button className="btn-icon" onClick={() => setSelectedCampaign(campaign)}>
-                      <Settings size={16} />
+                    <button
+                      className="btn-icon"
+                      onClick={() => {
+                        setEditingCampaign(campaign);
+                        setShowCampaignWizard(true);
+                      }}
+                      title="Edit campaign"
+                    >
+                      <Edit3 size={16} />
                     </button>
                   </div>
                 </div>
@@ -833,33 +839,31 @@ const Signatures: React.FC = () => {
         </div>
       )}
 
-      {/* Campaign Wizard Modal */}
+      {/* Campaign Editor Modal */}
       {showCampaignWizard && (
-        <div className="modal-overlay" onClick={() => setShowCampaignWizard(false)}>
-          <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Create Campaign</h2>
-              <button className="btn-close" onClick={() => setShowCampaignWizard(false)}>
-                <X size={20} />
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="coming-soon-placeholder">
-                <Target size={48} />
-                <h3>Campaign Wizard Coming Soon</h3>
-                <p>
-                  This feature will allow you to create signature campaigns with targeting options,
-                  scheduling, and deployment settings.
-                </p>
-                {selectedTemplate && (
-                  <p className="selected-template-info">
-                    Selected template: <strong>{selectedTemplate.name}</strong>
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        <CampaignEditor
+          campaign={editingCampaign ? {
+            id: editingCampaign.id,
+            name: editingCampaign.name,
+            description: editingCampaign.description,
+            template_id: editingCampaign.template_id,
+            start_date: editingCampaign.start_date,
+            end_date: editingCampaign.end_date,
+            status: editingCampaign.status,
+          } : undefined}
+          preselectedTemplateId={selectedTemplate?.id}
+          onClose={() => {
+            setShowCampaignWizard(false);
+            setSelectedTemplate(null);
+            setEditingCampaign(null);
+          }}
+          onSave={() => {
+            setShowCampaignWizard(false);
+            setSelectedTemplate(null);
+            setEditingCampaign(null);
+            fetchCampaigns();
+          }}
+        />
       )}
     </div>
   );

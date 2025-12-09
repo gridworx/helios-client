@@ -226,24 +226,33 @@
 
 ### Frontend Tasks
 
-- [ ] **TASK-SIG-027**: Create CampaignsList page
+- [x] **TASK-SIG-027**: Create CampaignsList page
   - Table with campaign name, status, dates
   - Status badges (draft, scheduled, active, completed)
   - Quick actions (launch, pause, view analytics)
-  - File: `frontend/src/pages/admin/SignatureCampaigns.tsx`
+  - File: `frontend/src/pages/Signatures.tsx` (campaigns tab integrated)
+  - **DONE**: Campaigns tab with list view, status badges, lifecycle actions (pause/resume), edit button
 
-- [ ] **TASK-SIG-028**: Create CampaignEditor component
+- [x] **TASK-SIG-028**: Create CampaignEditor component
   - Campaign details form
   - Schedule picker with timezone
   - Template and banner selection
   - Audience assignment (reuse AssignmentManager)
   - File: `frontend/src/components/signatures/CampaignEditor.tsx`
+  - **DONE**: Multi-step wizard with:
+    - Step 1: Campaign details (name, description, dates, timezone, auto-revert)
+    - Step 2: Template selection with preview + banner upload
+    - Step 3: Audience targeting (users, groups, departments, OUs, organization)
+    - Step 4: Review and launch
+    - Edit mode for existing campaigns
+    - Save as draft or launch options
 
-- [ ] **TASK-SIG-029**: Create CampaignBannerUploader component
+- [x] **TASK-SIG-029**: Create CampaignBannerUploader component
   - Drag-drop image upload
   - Preview at correct dimensions
   - Upload to MinIO
-  - File: `frontend/src/components/signatures/CampaignBannerUploader.tsx`
+  - File: Integrated into `frontend/src/components/signatures/CampaignEditor.tsx`
+  - **DONE**: Banner upload with file validation, preview, remove option, link URL and alt text fields
 
 ## Phase 6: Tracking System
 
