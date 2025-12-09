@@ -587,37 +587,129 @@ export function MyProfile({ organizationId: _organizationId }: MyProfileProps) {
             <div className="form-section">
               <h3>Field Visibility</h3>
               <p className="section-description">
-                Control who can see your personal information.
+                Control who can see your personal information in the People Directory.
               </p>
 
-              <div className="privacy-settings">
-                {[
-                  { field: 'email', label: 'Email Address' },
-                  { field: 'phone', label: 'Phone Number' },
-                  { field: 'bio', label: 'Bio' },
-                  { field: 'voice_intro', label: 'Voice Introduction' },
-                  { field: 'video_intro', label: 'Video Introduction' },
-                  { field: 'fun_facts', label: 'Fun Facts' },
-                  { field: 'interests', label: 'Interests' },
-                ].map((item) => (
-                  <div key={item.field} className="privacy-row">
-                    <span className="field-label">{item.label}</span>
-                    <select
-                      value={profileData.visibility[item.field] || 'everyone'}
-                      onChange={async (e) => {
-                        await profileService.updatePrivacySettings({
-                          [item.field]: e.target.value,
-                        });
-                        loadProfile();
-                      }}
-                    >
-                      <option value="everyone">Everyone</option>
-                      <option value="team">My Team Only</option>
-                      <option value="manager">Manager Only</option>
-                      <option value="none">Only Me</option>
-                    </select>
-                  </div>
-                ))}
+              {/* Contact Information */}
+              <div className="privacy-group">
+                <h4 className="privacy-group-title">Contact Information</h4>
+                <div className="privacy-settings">
+                  {[
+                    { field: 'email', label: 'Work Email' },
+                    { field: 'personal_email', label: 'Personal Email' },
+                    { field: 'phone', label: 'Phone Number' },
+                    { field: 'work_phone', label: 'Work Phone' },
+                    { field: 'mobile_phone', label: 'Mobile Phone' },
+                  ].map((item) => (
+                    <div key={item.field} className="privacy-row">
+                      <span className="field-label">{item.label}</span>
+                      <select
+                        value={profileData.visibility[item.field] || 'everyone'}
+                        onChange={async (e) => {
+                          await profileService.updatePrivacySettings({
+                            [item.field]: e.target.value,
+                          });
+                          loadProfile();
+                        }}
+                      >
+                        <option value="everyone">Everyone</option>
+                        <option value="team">My Team Only</option>
+                        <option value="manager">Manager Only</option>
+                        <option value="none">Only Me</option>
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Professional Information */}
+              <div className="privacy-group">
+                <h4 className="privacy-group-title">Professional Information</h4>
+                <div className="privacy-settings">
+                  {[
+                    { field: 'job_title', label: 'Job Title' },
+                    { field: 'location', label: 'Location' },
+                    { field: 'timezone', label: 'Timezone' },
+                  ].map((item) => (
+                    <div key={item.field} className="privacy-row">
+                      <span className="field-label">{item.label}</span>
+                      <select
+                        value={profileData.visibility[item.field] || 'everyone'}
+                        onChange={async (e) => {
+                          await profileService.updatePrivacySettings({
+                            [item.field]: e.target.value,
+                          });
+                          loadProfile();
+                        }}
+                      >
+                        <option value="everyone">Everyone</option>
+                        <option value="team">My Team Only</option>
+                        <option value="manager">Manager Only</option>
+                        <option value="none">Only Me</option>
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Personal Information */}
+              <div className="privacy-group">
+                <h4 className="privacy-group-title">Personal Information</h4>
+                <div className="privacy-settings">
+                  {[
+                    { field: 'pronouns', label: 'Pronouns' },
+                    { field: 'bio', label: 'Bio' },
+                    { field: 'fun_facts', label: 'Fun Facts' },
+                    { field: 'interests', label: 'Interests' },
+                  ].map((item) => (
+                    <div key={item.field} className="privacy-row">
+                      <span className="field-label">{item.label}</span>
+                      <select
+                        value={profileData.visibility[item.field] || 'everyone'}
+                        onChange={async (e) => {
+                          await profileService.updatePrivacySettings({
+                            [item.field]: e.target.value,
+                          });
+                          loadProfile();
+                        }}
+                      >
+                        <option value="everyone">Everyone</option>
+                        <option value="team">My Team Only</option>
+                        <option value="manager">Manager Only</option>
+                        <option value="none">Only Me</option>
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Media */}
+              <div className="privacy-group">
+                <h4 className="privacy-group-title">Media</h4>
+                <div className="privacy-settings">
+                  {[
+                    { field: 'voice_intro', label: 'Voice Introduction' },
+                    { field: 'video_intro', label: 'Video Introduction' },
+                  ].map((item) => (
+                    <div key={item.field} className="privacy-row">
+                      <span className="field-label">{item.label}</span>
+                      <select
+                        value={profileData.visibility[item.field] || 'everyone'}
+                        onChange={async (e) => {
+                          await profileService.updatePrivacySettings({
+                            [item.field]: e.target.value,
+                          });
+                          loadProfile();
+                        }}
+                      >
+                        <option value="everyone">Everyone</option>
+                        <option value="team">My Team Only</option>
+                        <option value="manager">Manager Only</option>
+                        <option value="none">Only Me</option>
+                      </select>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

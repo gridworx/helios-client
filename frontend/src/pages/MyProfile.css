@@ -431,6 +431,25 @@
 }
 
 /* Privacy Settings */
+.privacy-group {
+  margin-bottom: 24px;
+}
+
+.privacy-group:last-child {
+  margin-bottom: 0;
+}
+
+.privacy-group-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
 .privacy-settings {
   display: flex;
   flex-direction: column;
