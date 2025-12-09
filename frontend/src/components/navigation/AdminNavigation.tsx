@@ -8,7 +8,6 @@ import {
   PenTool,
   AlertCircle,
   Zap,
-  FileText,
   TrendingUp,
   Search,
   Settings as SettingsIcon,
@@ -16,6 +15,9 @@ import {
   MessageSquare,
   ClipboardList,
   Image,
+  UserPlus,
+  UserMinus,
+  Clock,
 } from 'lucide-react';
 import { useLabels } from '../../contexts/LabelsContext';
 import { ENTITIES } from '../../config/entities';
@@ -163,13 +165,33 @@ export const AdminNavigation: React.FC<AdminNavigationProps> = ({
 
       <div className="nav-section">
         <div className="nav-section-title">Automation</div>
+        <button
+          className={`nav-item ${currentPage === 'onboarding-templates' ? 'active' : ''}`}
+          onClick={() => onNavigate('onboarding-templates')}
+          data-testid="nav-onboarding-templates"
+        >
+          <UserPlus size={16} className="nav-icon" />
+          <span>Onboarding</span>
+        </button>
+        <button
+          className={`nav-item ${currentPage === 'offboarding-templates' ? 'active' : ''}`}
+          onClick={() => onNavigate('offboarding-templates')}
+          data-testid="nav-offboarding-templates"
+        >
+          <UserMinus size={16} className="nav-icon" />
+          <span>Offboarding</span>
+        </button>
+        <button
+          className={`nav-item ${currentPage === 'scheduled-actions' ? 'active' : ''}`}
+          onClick={() => onNavigate('scheduled-actions')}
+          data-testid="nav-scheduled-actions"
+        >
+          <Clock size={16} className="nav-icon" />
+          <span>Scheduled Actions</span>
+        </button>
         <button className="nav-item" data-testid="nav-workflows">
           <span className="nav-icon"><Zap size={16} /></span>
           <span>Workflows</span>
-        </button>
-        <button className="nav-item" data-testid="nav-templates">
-          <span className="nav-icon"><FileText size={16} /></span>
-          <span>Templates</span>
         </button>
       </div>
 

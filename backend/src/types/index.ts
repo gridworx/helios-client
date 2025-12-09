@@ -3,6 +3,9 @@
 // Re-export media asset types
 export * from './media-assets';
 
+// Re-export user lifecycle types
+export * from './user-lifecycle';
+
 export interface User {
   id: string;
   email: string;

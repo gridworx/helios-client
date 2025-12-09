@@ -30,6 +30,9 @@ import { People } from './pages/People'
 import { MyTeam } from './pages/MyTeam'
 import { MyGroups } from './pages/MyGroups'
 import { UserSettings } from './pages/UserSettings'
+import OnboardingTemplates from './pages/OnboardingTemplates'
+import OffboardingTemplates from './pages/OffboardingTemplates'
+import OnboardingTemplateEditor from './components/lifecycle/OnboardingTemplateEditor'
 import { LabelsProvider, useLabels } from './contexts/LabelsContext'
 import { ViewProvider, useView } from './contexts/ViewContext'
 import { AdminNavigation, UserNavigation, ViewSwitcher, ViewOnboarding } from './components/navigation'
@@ -1054,7 +1057,60 @@ function AppContent() {
             <AddUser />
           )}
 
-          {currentPage !== 'dashboard' && currentPage !== 'settings' && currentPage !== 'users' && currentPage !== 'groups' && currentPage !== 'workspaces' && currentPage !== 'orgUnits' && currentPage !== 'assets' && currentPage !== 'files-assets' && currentPage !== 'email-security' && currentPage !== 'signatures' && currentPage !== 'security-events' && currentPage !== 'audit-logs' && currentPage !== 'console' && currentPage !== 'administrators' && currentPage !== 'my-profile' && currentPage !== 'people' && currentPage !== 'my-team' && currentPage !== 'my-groups' && currentPage !== 'user-settings' && currentPage !== 'orgChart' && currentPage !== 'add-user' && (
+          {currentPage === 'onboarding-templates' && (
+            <OnboardingTemplates
+              organizationId={config?.organizationId || ''}
+              onNavigateToEditor={(templateId) => {
+                setCurrentPage(templateId ? 'edit-onboarding-template' : 'new-onboarding-template');
+                // Store templateId for editor
+                if (templateId) {
+                  sessionStorage.setItem('editOnboardingTemplateId', templateId);
+                } else {
+                  sessionStorage.removeItem('editOnboardingTemplateId');
+                }
+              }}
+            />
+          )}
+
+          {(currentPage === 'new-onboarding-template' || currentPage === 'edit-onboarding-template') && (
+            <OnboardingTemplateEditor
+              templateId={currentPage === 'edit-onboarding-template' ? sessionStorage.getItem('editOnboardingTemplateId') || undefined : undefined}
+              organizationId={config?.organizationId || ''}
+              onSave={() => {
+                setCurrentPage('onboarding-templates');
+                sessionStorage.removeItem('editOnboardingTemplateId');
+              }}
+              onCancel={() => {
+                setCurrentPage('onboarding-templates');
+                sessionStorage.removeItem('editOnboardingTemplateId');
+              }}
+            />
+          )}
+
+          {currentPage === 'offboarding-templates' && (
+            <OffboardingTemplates
+              organizationId={config?.organizationId || ''}
+              onNavigateToEditor={(templateId) => {
+                // TODO: Implement offboarding template editor
+                console.log('Edit offboarding template:', templateId);
+              }}
+            />
+          )}
+
+          {currentPage === 'scheduled-actions' && (
+            <div className="page-placeholder">
+              <div className="placeholder-content">
+                <div className="placeholder-icon">
+                  <RefreshCw size={48} style={{ color: '#9ca3af' }} />
+                </div>
+                <h2>Scheduled Actions</h2>
+                <p>View and manage scheduled user lifecycle actions.</p>
+                <p className="text-muted">Coming soon!</p>
+              </div>
+            </div>
+          )}
+
+          {currentPage !== 'dashboard' && currentPage !== 'settings' && currentPage !== 'users' && currentPage !== 'groups' && currentPage !== 'workspaces' && currentPage !== 'orgUnits' && currentPage !== 'assets' && currentPage !== 'files-assets' && currentPage !== 'email-security' && currentPage !== 'signatures' && currentPage !== 'security-events' && currentPage !== 'audit-logs' && currentPage !== 'console' && currentPage !== 'administrators' && currentPage !== 'my-profile' && currentPage !== 'people' && currentPage !== 'my-team' && currentPage !== 'my-groups' && currentPage !== 'user-settings' && currentPage !== 'orgChart' && currentPage !== 'add-user' && currentPage !== 'onboarding-templates' && currentPage !== 'new-onboarding-template' && currentPage !== 'edit-onboarding-template' && currentPage !== 'offboarding-templates' && currentPage !== 'scheduled-actions' && (
             <div className="page-placeholder">
               <div className="placeholder-content">
                 <div className="placeholder-icon">🚧</div>
