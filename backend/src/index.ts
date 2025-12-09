@@ -51,6 +51,7 @@ import transparentProxyRouter from './middleware/transparent-proxy';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 import assetProxyRoutes from './routes/asset-proxy.routes';
+import assetsRoutes from './routes/assets.routes';
 const app = express();
 const httpServer = createServer(app);
 const PORT = process.env['PORT'] || 3001;
@@ -432,6 +433,7 @@ app.use('/api/bulk', bulkOperationsRoutes);
 // app.use('/api/platform', platformRoutes);
 app.use('/api/google-workspace', GoogleWorkspaceRoutes);
 app.use('/api/modules', modulesRoutes);
+app.use('/api/assets', assetsRoutes);
 // Transparent Proxy for Google Workspace APIs (must be before catch-all)
 app.use(transparentProxyRouter);
 
