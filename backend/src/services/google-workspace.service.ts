@@ -2351,6 +2351,228 @@ export class GoogleWorkspaceService {
       };
     }
   }
+
+  // =====================================================
+  // EMAIL SIGNATURE MANAGEMENT
+  // =====================================================
+
+  /**
+   * Get a user's current email signature from Gmail
+   */
+  async getUserSignature(
+    organizationId: string,
+    userEmail: string
+  ): Promise<{ success: boolean; signature?: string; error?: string }> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        return { success: false, error: 'Google Workspace credentials not configured' };
+      }
+
+      const jwtClient = new JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: ['https://www.googleapis.com/auth/gmail.settings.basic'],
+        subject: userEmail, // Impersonate the user
+      });
+
+      const gmail = google.gmail({ version: 'v1', auth: jwtClient });
+
+      // Get the user's primary sendAs address
+      const sendAsResponse = await gmail.users.settings.sendAs.list({
+        userId: 'me',
+      });
+
+      const primarySendAs = sendAsResponse.data.sendAs?.find(
+        (sa) => sa.isPrimary === true
+      );
+
+      if (!primarySendAs) {
+        return { success: false, error: 'Primary email address not found' };
+      }
+
+      return {
+        success: true,
+        signature: primarySendAs.signature || '',
+      };
+    } catch (error: any) {
+      logger.error('Failed to get user signature', {
+        organizationId,
+        userEmail,
+        error: error.message,
+      });
+      return {
+        success: false,
+        error: error.message || 'Failed to get signature',
+      };
+    }
+  }
+
+  /**
+   * Set a user's email signature in Gmail
+   */
+  async setUserSignature(
+    organizationId: string,
+    userEmail: string,
+    signatureHtml: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        return { success: false, error: 'Google Workspace credentials not configured' };
+      }
+
+      const jwtClient = new JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: ['https://www.googleapis.com/auth/gmail.settings.basic'],
+        subject: userEmail, // Impersonate the user
+      });
+
+      const gmail = google.gmail({ version: 'v1', auth: jwtClient });
+
+      // Update the user's primary sendAs signature
+      await gmail.users.settings.sendAs.update({
+        userId: 'me',
+        sendAsEmail: userEmail,
+        requestBody: {
+          signature: signatureHtml,
+        },
+      });
+
+      logger.info('User signature updated in Gmail', {
+        organizationId,
+        userEmail,
+        signatureLength: signatureHtml.length,
+      });
+
+      return { success: true };
+    } catch (error: any) {
+      logger.error('Failed to set user signature', {
+        organizationId,
+        userEmail,
+        error: error.message,
+      });
+      return {
+        success: false,
+        error: error.message || 'Failed to set signature',
+      };
+    }
+  }
+
+  /**
+   * Set signatures for multiple users in batch
+   * Uses Promise.allSettled to handle individual failures
+   */
+  async setUserSignaturesBatch(
+    organizationId: string,
+    signatures: { userEmail: string; signatureHtml: string }[],
+    options: { concurrency?: number } = {}
+  ): Promise<{
+    success: boolean;
+    results: { userEmail: string; success: boolean; error?: string }[];
+    successCount: number;
+    failureCount: number;
+  }> {
+    const { concurrency = 5 } = options;
+    const results: { userEmail: string; success: boolean; error?: string }[] = [];
+
+    // Process in batches for rate limiting
+    for (let i = 0; i < signatures.length; i += concurrency) {
+      const batch = signatures.slice(i, i + concurrency);
+
+      const batchResults = await Promise.allSettled(
+        batch.map(async ({ userEmail, signatureHtml }) => {
+          const result = await this.setUserSignature(organizationId, userEmail, signatureHtml);
+          return { userEmail, ...result };
+        })
+      );
+
+      for (const result of batchResults) {
+        if (result.status === 'fulfilled') {
+          results.push(result.value);
+        } else {
+          // Extract userEmail from the batch
+          const idx = batchResults.indexOf(result);
+          results.push({
+            userEmail: batch[idx].userEmail,
+            success: false,
+            error: result.reason?.message || 'Unknown error',
+          });
+        }
+      }
+
+      // Small delay between batches to avoid rate limiting
+      if (i + concurrency < signatures.length) {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
+    }
+
+    const successCount = results.filter((r) => r.success).length;
+    const failureCount = results.filter((r) => !r.success).length;
+
+    logger.info('Batch signature update completed', {
+      organizationId,
+      total: signatures.length,
+      successCount,
+      failureCount,
+    });
+
+    return {
+      success: failureCount === 0,
+      results,
+      successCount,
+      failureCount,
+    };
+  }
+
+  /**
+   * Get signatures for multiple users
+   */
+  async getUserSignaturesBatch(
+    organizationId: string,
+    userEmails: string[]
+  ): Promise<{
+    success: boolean;
+    results: { userEmail: string; signature?: string; error?: string }[];
+  }> {
+    const results: { userEmail: string; signature?: string; error?: string }[] = [];
+
+    // Process in batches of 5 for rate limiting
+    const batchSize = 5;
+    for (let i = 0; i < userEmails.length; i += batchSize) {
+      const batch = userEmails.slice(i, i + batchSize);
+
+      const batchResults = await Promise.allSettled(
+        batch.map(async (userEmail) => {
+          const result = await this.getUserSignature(organizationId, userEmail);
+          return { userEmail, ...result };
+        })
+      );
+
+      for (const result of batchResults) {
+        if (result.status === 'fulfilled') {
+          results.push(result.value);
+        } else {
+          const idx = batchResults.indexOf(result);
+          results.push({
+            userEmail: batch[idx],
+            error: result.reason?.message || 'Unknown error',
+          });
+        }
+      }
+
+      // Small delay between batches
+      if (i + batchSize < userEmails.length) {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
+    }
+
+    return {
+      success: results.every((r) => !r.error),
+      results,
+    };
+  }
 }
 
 export const googleWorkspaceService = new GoogleWorkspaceService();

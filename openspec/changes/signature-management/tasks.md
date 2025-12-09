@@ -141,17 +141,22 @@
 
 ### Backend Tasks
 
-- [ ] **TASK-SIG-017**: Extend GoogleWorkspaceService for signatures
-  - setUserSignature method
-  - getUserSignature method
-  - Batch signature updates
+- [x] **TASK-SIG-017**: Extend GoogleWorkspaceService for signatures
+  - getUserSignature, setUserSignature methods
+  - getUserSignaturesBatch, setUserSignaturesBatch for bulk operations
+  - Rate limiting with concurrency control
   - File: `backend/src/services/google-workspace.service.ts`
+  - **DONE**: Full Gmail signature API integration with batch support
 
-- [ ] **TASK-SIG-018**: Create signature sync service
-  - Queue-based deployment
-  - Retry logic for failures
-  - Status tracking per user
+- [x] **TASK-SIG-018**: Create signature sync service
+  - syncUserSignature for single user sync
+  - syncOrganizationSignatures for pending users
+  - forceSyncAllUsers for force resync
+  - getOrganizationSyncSummary, getUserSyncStatuses
+  - Hash comparison to detect external changes
+  - Retry logic with configurable max retries
   - File: `backend/src/services/signature-sync.service.ts`
+  - **DONE**: Full sync service with status tracking and batch processing
 
 - [ ] **TASK-SIG-019**: Create signature deployment routes
   - POST /api/signatures/deploy (all pending)
