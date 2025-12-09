@@ -634,6 +634,9 @@ function AppContent() {
             onNavigateToSettings={() => {
               setCurrentPage('settings');
             }}
+            onNavigateToUserSettings={() => {
+              setCurrentPage('user-settings');
+            }}
             onNavigateToAdministrators={() => {
               setCurrentPage('administrators');
             }}

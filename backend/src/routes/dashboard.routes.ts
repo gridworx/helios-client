@@ -39,7 +39,7 @@ router.get('/stats', async (req: Request, res: Response): Promise<void> => {
         db.query('SELECT COUNT(*) as count FROM organization_users WHERE organization_id = $1', [organizationId]),
         db.query('SELECT COUNT(*) as count FROM organization_users WHERE organization_id = $1 AND is_active = true', [organizationId]),
         db.query('SELECT COUNT(*) as count FROM organization_users WHERE organization_id = $1 AND is_active = false', [organizationId]),
-        db.query('SELECT COUNT(*) as count FROM organization_users WHERE organization_id = $1 AND status = \'deleted\'', [organizationId]),
+        db.query('SELECT COUNT(*) as count FROM organization_users WHERE organization_id = $1 AND user_status = \'deleted\'', [organizationId]),
         db.query('SELECT COUNT(*) as count FROM access_groups WHERE organization_id = $1', [organizationId]),
         db.query('SELECT COUNT(*) as count FROM organization_users WHERE organization_id = $1 AND google_workspace_id IS NOT NULL', [organizationId]),
         db.query('SELECT COUNT(*) as count FROM organization_users WHERE organization_id = $1 AND google_workspace_id IS NULL', [organizationId]),
@@ -56,13 +56,13 @@ router.get('/stats', async (req: Request, res: Response): Promise<void> => {
       const isGoogleConfigured = gwConfig.rows[0].count > 0;
 
       // Get last sync time if Google Workspace is configured
+      // Use gw_synced_users updated_at as a proxy for last sync
       let lastSync: string | null = null;
       if (isGoogleConfigured) {
         const syncResult = await db.query(`
-          SELECT MAX(created_at) as last_sync
-          FROM security_events
+          SELECT MAX(updated_at) as last_sync
+          FROM gw_synced_users
           WHERE organization_id = $1
-          AND event_type = 'sync.completed'
         `, [organizationId]);
         lastSync = syncResult.rows[0]?.last_sync || null;
       }

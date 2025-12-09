@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Terminal, Key, Users, Lock, Settings as SettingsIcon, LogOut, Book, ChevronDown, User } from 'lucide-react';
+import { useView } from '../contexts/ViewContext';
 import './ClientUserMenu.css';
 
 interface ClientUserMenuProps {
@@ -9,12 +10,14 @@ interface ClientUserMenuProps {
   onLogout: () => void;
   onChangePassword?: () => void;
   onNavigateToSettings?: () => void;
+  onNavigateToUserSettings?: () => void;
   onNavigateToAdministrators?: () => void;
   onNavigateToConsole?: () => void;
   onNavigateToMyProfile?: () => void;
 }
 
-export function ClientUserMenu({ userName, userEmail, userRole, onLogout, onChangePassword, onNavigateToSettings, onNavigateToAdministrators, onNavigateToConsole, onNavigateToMyProfile }: ClientUserMenuProps) {
+export function ClientUserMenu({ userName, userEmail, userRole, onLogout, onChangePassword, onNavigateToSettings, onNavigateToUserSettings, onNavigateToAdministrators, onNavigateToConsole, onNavigateToMyProfile }: ClientUserMenuProps) {
+  const { currentView } = useView();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -93,38 +96,46 @@ export function ClientUserMenu({ userName, userEmail, userRole, onLogout, onChan
               <Key size={14} className="menu-icon-svg" />
               <span>Change Password</span>
             </button>
+            {/* Admin-only menu items - hidden in user view */}
+            {currentView === 'admin' && (
+              <>
+                <button className="menu-item" onClick={() => {
+                  setIsOpen(false);
+                  if (onNavigateToAdministrators) {
+                    onNavigateToAdministrators();
+                  }
+                }}>
+                  <Users size={14} className="menu-icon-svg" />
+                  <span>Administrators</span>
+                </button>
+                <button className="menu-item" onClick={() => alert('API Keys coming soon!')}>
+                  <Lock size={14} className="menu-icon-svg" />
+                  <span>My API Keys</span>
+                </button>
+                <button className="menu-item" onClick={() => {
+                  setIsOpen(false);
+                  window.open('http://localhost:3001/api/docs', '_blank');
+                }}>
+                  <Book size={14} className="menu-icon-svg" />
+                  <span>API Documentation</span>
+                </button>
+                <button className="menu-item" onClick={() => {
+                  setIsOpen(false);
+                  if (onNavigateToConsole) {
+                    onNavigateToConsole();
+                  }
+                }}>
+                  <Terminal size={14} className="menu-icon-svg" />
+                  <span>Developer Console</span>
+                </button>
+              </>
+            )}
             <button className="menu-item" onClick={() => {
               setIsOpen(false);
-              if (onNavigateToAdministrators) {
-                onNavigateToAdministrators();
-              }
-            }}>
-              <Users size={14} className="menu-icon-svg" />
-              <span>Administrators</span>
-            </button>
-            <button className="menu-item" onClick={() => alert('API Keys coming soon!')}>
-              <Lock size={14} className="menu-icon-svg" />
-              <span>My API Keys</span>
-            </button>
-            <button className="menu-item" onClick={() => {
-              setIsOpen(false);
-              window.open('http://localhost:3001/api/docs', '_blank');
-            }}>
-              <Book size={14} className="menu-icon-svg" />
-              <span>API Documentation</span>
-            </button>
-            <button className="menu-item" onClick={() => {
-              setIsOpen(false);
-              if (onNavigateToConsole) {
-                onNavigateToConsole();
-              }
-            }}>
-              <Terminal size={14} className="menu-icon-svg" />
-              <span>Developer Console</span>
-            </button>
-            <button className="menu-item" onClick={() => {
-              setIsOpen(false);
-              if (onNavigateToSettings) {
+              // Navigate based on current view context
+              if (currentView === 'user' && onNavigateToUserSettings) {
+                onNavigateToUserSettings();
+              } else if (onNavigateToSettings) {
                 onNavigateToSettings();
               } else {
                 alert('Settings coming soon!');
