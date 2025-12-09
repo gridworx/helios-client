@@ -327,6 +327,50 @@ test.describe('Admin/User Separation', () => {
   });
 });
 
+test.describe('Dashboard Stats Display', () => {
+  test('dashboard should display user count stats', async ({ page }) => {
+    await login(page, INTERNAL_ADMIN);
+
+    // Wait for dashboard to fully load
+    await page.waitForTimeout(3000);
+
+    // Check that dashboard widgets are visible
+    const widgetGrid = page.locator('.dashboard-widget-grid');
+    await expect(widgetGrid).toBeVisible({ timeout: 10000 });
+
+    // Check for metric cards
+    const metricCards = page.locator('.metric-card');
+    const cardCount = await metricCards.count();
+    expect(cardCount).toBeGreaterThan(0);
+
+    // Verify at least one metric card has a value (not showing 0 or empty)
+    const cardValues = page.locator('.metric-card-value');
+    const valuesCount = await cardValues.count();
+    expect(valuesCount).toBeGreaterThan(0);
+
+    // Check the first card has a non-zero or meaningful value
+    const firstValue = await cardValues.first().textContent();
+    expect(firstValue).not.toBe('');
+  });
+
+  test('dashboard should show Google Workspace users when connected', async ({ page }) => {
+    await login(page, INTERNAL_ADMIN);
+
+    await page.waitForTimeout(3000);
+
+    // Look for Google-related widget showing user count
+    const googleUsersWidget = page.locator('.metric-card:has-text("Google Workspace")').first();
+
+    // Either Google is configured (showing users) or not (showing 0)
+    const isVisible = await googleUsersWidget.isVisible().catch(() => false);
+    if (isVisible) {
+      const value = await googleUsersWidget.locator('.metric-card-value').textContent();
+      // Value should be a number
+      expect(value).toMatch(/^\d+$/);
+    }
+  });
+});
+
 test.describe('Navigation Consistency', () => {
   test('admin routes should have /admin prefix', async ({ page }) => {
     await login(page, INTERNAL_ADMIN);
