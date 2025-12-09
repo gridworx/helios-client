@@ -1,269 +1,224 @@
 # Tasks: Google Drive Asset Proxy
 
-## Phase 1: Database & Models
+## Phase 1: Database Schema
 
-- [x] **TASK-ASSET-001**: Create assets database migration
-  - media_assets table (renamed to avoid conflict with IT assets table)
-  - media_asset_folders table
-  - media_asset_settings table
-  - Indexes and constraints
+- [x] **TASK-ASSET-001**: Create database migration for assets tables
+  - Create `media_assets` table with columns per proposal.md
+  - Create `media_asset_folders` table
+  - Create `media_asset_settings` table
+  - Add indexes for performance
   - File: `database/migrations/038_create_assets_tables.sql`
+  - **DONE**: Tables created with correct schema
 
-- [x] **TASK-ASSET-002**: Create asset TypeScript types
-  - MediaAsset interface
-  - MediaAssetFolder interface
-  - MediaAssetSettings interface
-  - CreateAsset/UpdateAsset DTOs
-  - File: `backend/src/types/media-assets.ts`
+- [x] **TASK-ASSET-002**: Run migration and verify schema
+  - Execute migration against development database
+  - Verify tables created with correct structure
+  - **DONE**: Tables exist: media_assets, media_asset_folders, media_asset_settings
 
-## Phase 2: Google Drive Integration
+## Phase 2: Basic Proxy Endpoint (MVP)
 
-- [x] **TASK-ASSET-003**: Extend GoogleWorkspaceService for Drive
-  - Created separate GoogleDriveService for separation of concerns
-  - createSharedDrive method
-  - createFolder method
-  - uploadFile method
-  - downloadFile method (binary)
-  - deleteFile method
-  - listFiles method
-  - File: `backend/src/services/google-drive.service.ts`
-
-- [x] **TASK-ASSET-004**: Create asset storage service
-  - MediaAssetStorageService with multi-backend support
-  - Google Drive implementation (complete)
-  - MinIO implementation (placeholder)
+- [x] **TASK-ASSET-003**: Create asset service for storage operations
+  - Google Drive file retrieval via service account
+  - Redis caching layer (1 hour TTL)
+  - Access counting and stats tracking
   - File: `backend/src/services/media-asset-storage.service.ts`
+  - **DONE**: Full implementation with Google Drive + MinIO support
 
-- [x] **TASK-ASSET-005**: Create asset caching service
-  - Redis cache for binary file content (base64 encoded)
-  - Cache key generation with "asset:" prefix
-  - TTL management (1 hour default, configurable)
-  - Max cacheable size limit (5MB)
-  - Cache invalidation
-  - File: `backend/src/services/media-asset-cache.service.ts`
-
-## Phase 3: Asset Proxy Endpoint
-
-- [x] **TASK-ASSET-006**: Create public proxy endpoint
-  - GET /a/:token route (registered BEFORE auth middleware)
-  - GET /a/:token/:filename route
-  - Fetch from cache or storage
-  - Set correct Content-Type
-  - Set Cache-Control headers
-  - Async access tracking (non-blocking)
+- [x] **TASK-ASSET-004**: Create public proxy endpoint
+  - GET `/a/:accessToken` - serve file with correct Content-Type
+  - GET `/a/:accessToken/:filename` - serve with friendly filename
+  - No authentication required (public by design)
+  - Cache-Control headers for browser caching
+  - Rate limiting (100 req/min per IP)
   - File: `backend/src/routes/asset-proxy.routes.ts`
+  - **DONE**: Fully implemented with caching, rate limiting, access tracking
 
-- [x] **TASK-ASSET-007**: Add rate limiting to proxy (included in TASK-ASSET-006)
-  - IP-based rate limiting (100 req/min per IP)
-  - 429 response for exceeded limits with Retry-After header
-  - Integrated directly into asset-proxy.routes.ts
+- [ ] **TASK-ASSET-005**: Write tests for proxy endpoint
+  - Test asset retrieval from cache
+  - Test cache miss -> Drive fetch -> cache store
+  - Test 404 for missing assets
+  - Test rate limiting
+  - Test Content-Type header matching
+  - File: `backend/src/__tests__/asset-proxy.test.ts`
 
-- [x] **TASK-ASSET-008**: Add access tracking (included in TASK-ASSET-006)
-  - Increment access_count
-  - Update last_accessed_at
-  - Async (non-blocking) - doesn't slow down response
+## Phase 3: Asset Management API
 
-## Phase 4: Asset Management API
-
-- [x] **TASK-ASSET-009**: Create asset CRUD routes
-  - GET /api/assets - list with filters
-  - GET /api/assets/:id - get single
-  - POST /api/assets - register existing Drive file
-  - DELETE /api/assets/:id - remove
+- [x] **TASK-ASSET-006**: Create asset management routes
+  - GET `/api/assets` - list assets with filters
+  - GET `/api/assets/:id` - get single asset details
+  - POST `/api/assets` - register existing Drive file
+  - DELETE `/api/assets/:id` - remove asset (optionally delete from Drive)
+  - PUT `/api/assets/:id` - update asset metadata
   - File: `backend/src/routes/assets.routes.ts`
-  - **COMPLETED**: Full CRUD with filtering, pagination, public URL generation
+  - **DONE**: Full CRUD implementation
 
-- [x] **TASK-ASSET-010**: Create asset upload endpoint
-  - POST /api/assets/upload - multipart upload
-  - Validate file type and size
-  - Upload to Drive via service
-  - Register in database
-  - Return asset with public URL
+- [x] **TASK-ASSET-007**: Create asset upload endpoint
+  - POST `/api/assets/upload` - upload file to Drive
+  - Validate file type (allowed MIME types)
+  - Validate file size (max 10MB default)
+  - Upload to Google Drive via service account
+  - Create asset record with public token
   - File: `backend/src/routes/assets.routes.ts`
-  - **COMPLETED**: Multipart upload with mime type/size validation
+  - **DONE**: With multer, validation, Drive integration
 
-- [x] **TASK-ASSET-011**: Create folder management endpoints
-  - GET /api/assets/folders - folder tree
-  - POST /api/assets/folders - create folder
-  - DELETE /api/assets/folders/:id - delete folder
+- [x] **TASK-ASSET-008**: Create folder management endpoints
+  - GET `/api/assets/folders` - list folders (tree structure)
+  - POST `/api/assets/folders` - create folder (in Drive + DB)
+  - DELETE `/api/assets/folders/:id` - delete folder (must be empty)
   - File: `backend/src/routes/assets.routes.ts`
-  - **COMPLETED**: Tree structure API, folder creation in Drive
+  - **DONE**: With Drive sync
 
-- [x] **TASK-ASSET-012**: Create asset settings endpoints
-  - GET /api/assets/settings - get settings
-  - PUT /api/assets/settings - update settings
-  - POST /api/assets/setup - initial setup (create Shared Drive)
-  - File: `backend/src/routes/assets.routes.ts`
-  - **COMPLETED**: Settings CRUD, status check, setup endpoint
+## Phase 4: Google Drive Integration
 
-## Phase 5: Setup Flow
-
-- [x] **TASK-ASSET-013**: Create Shared Drive setup service
-  - Create "Helios Assets" Shared Drive
-  - Add service account as manager
+- [x] **TASK-ASSET-009**: Create Shared Drive setup service
+  - Create "Helios Assets" Shared Drive via Admin SDK
+  - Add service account as Content Manager
   - Create default folder structure
-  - Store IDs in asset_settings
-  - File: `backend/src/services/google-drive.service.ts` (setupAssetsDrive method)
-  - **COMPLETED**: Already implemented in GoogleDriveService.setupAssetsDrive()
+  - File: `backend/src/services/google-drive.service.ts`
+  - **DONE**: setupAssetsDrive() implemented
 
-- [x] **TASK-ASSET-014**: Add setup status check
-  - Check if Shared Drive exists
-  - Check if service account has access
-  - Return setup status
-  - File: `backend/src/services/media-asset-storage.service.ts` (getStatus method)
-  - **COMPLETED**: Already implemented in MediaAssetStorageService.getStatus()
+- [x] **TASK-ASSET-010**: Create asset settings endpoints
+  - GET `/api/assets/settings` - get asset storage settings
+  - PUT `/api/assets/settings` - update settings
+  - GET `/api/assets/status` - get setup status
+  - POST `/api/assets/setup` - run initial setup wizard
+  - File: `backend/src/routes/assets.routes.ts`
+  - **DONE**: All endpoints implemented
 
-## Phase 6: Frontend - Settings Page
+## Phase 5: Frontend - Setup Wizard
 
-- [x] **TASK-ASSET-015**: Create Files & Assets settings page
-  - Add to admin navigation
-  - Storage backend selector
-  - Setup wizard for Google Drive
+- [x] **TASK-ASSET-011**: Create asset settings page
+  - Settings > Files & Assets navigation item
+  - Show setup wizard if not configured
+  - Show status if configured
   - File: `frontend/src/pages/FilesAssets.tsx`
-  - **COMPLETED**: Full page with Overview, Assets, and Settings tabs. Navigation added as "Media Files" in admin sidebar.
+  - **DONE**: Integrated with setup wizard
 
-- [x] **TASK-ASSET-016**: Create AssetSetupWizard component
-  - Step 1: Choose storage (Drive vs MinIO)
-  - Step 2: Create/connect Shared Drive
-  - Step 3: Verify connection
-  - Step 4: Create folder structure
-  - File: Integrated into `frontend/src/pages/FilesAssets.tsx`
-  - **COMPLETED**: Setup wizard modal with prerequisite checking and Shared Drive creation.
+- [x] **TASK-ASSET-012**: Create setup wizard component
+  - Step 1: Verify Google Workspace connected
+  - Step 2: Create Shared Drive button
+  - Step 3: Confirmation and status
+  - File: `frontend/src/pages/FilesAssets.tsx` (inline)
+  - **DONE**: Integrated into FilesAssets page
 
-## Phase 7: Frontend - Asset Browser
+## Phase 6: Frontend - Asset Browser
 
-- [x] **TASK-ASSET-017**: Create FolderTree component
-  - Hierarchical folder display
-  - Expand/collapse
-  - Select folder
-  - Context menu (rename, delete)
-  - File: Integrated into `frontend/src/pages/FilesAssets.tsx`
-  - **COMPLETED**: FolderTreeItem component with nested folder support and expand/collapse.
+- [x] **TASK-ASSET-013**: Create asset browser page
+  - Settings > Files & Assets > Browse
+  - Folder tree sidebar
+  - Asset grid view
+  - Asset detail panel
+  - File: `frontend/src/pages/FilesAssets.tsx`
+  - **DONE**: Full implementation with tabs (Overview, Assets, Settings)
 
-- [x] **TASK-ASSET-018**: Create AssetGrid component
-  - Thumbnail grid view
-  - List view toggle
-  - Select asset
-  - Multi-select for bulk actions
-  - File: Integrated into `frontend/src/pages/FilesAssets.tsx`
-  - **COMPLETED**: Responsive grid with image previews and file icons.
-
-- [x] **TASK-ASSET-019**: Create AssetDetail panel
-  - Preview (image, video)
-  - Metadata display
-  - Public URL with copy button
-  - Replace/Download/Delete actions
-  - File: Integrated into `frontend/src/pages/FilesAssets.tsx`
-  - **COMPLETED**: Right sidebar panel with full asset details, copy URL, open in new tab, delete.
-
-- [x] **TASK-ASSET-020**: Create AssetUploader component
-  - Drag-and-drop zone
-  - File type validation
+- [x] **TASK-ASSET-014**: Create asset upload component
+  - Upload button + drag-and-drop zone
+  - File validation (type, size)
   - Progress indicator
-  - Multiple file support
-  - File: Integrated into `frontend/src/pages/FilesAssets.tsx`
-  - **COMPLETED**: UploadModal component with drag-and-drop support.
+  - Success/error feedback
+  - File: `frontend/src/pages/FilesAssets.tsx` (UploadModal component)
+  - **DONE**: Modal with drag-and-drop
 
-## Phase 8: Integration
+- [x] **TASK-ASSET-015**: Create asset detail component
+  - Thumbnail preview
+  - Metadata display (name, size, type, dates)
+  - Public URL with copy button
+  - Access stats
+  - Actions: Replace, Download, Delete
+  - File: `frontend/src/pages/FilesAssets.tsx` (selectedAsset panel)
+  - **DONE**: Inline detail panel
 
-- [x] **TASK-ASSET-021**: Integrate with Signature Management
-  - Asset picker in template editor
-  - Use asset URLs for signature images
-  - File: `frontend/src/pages/TemplateStudio.tsx`
-  - **COMPLETED**: Created AssetPickerModal component, added "Insert Image" button to editor toolbar
+## Phase 7: MinIO Fallback
 
-- [x] **TASK-ASSET-022**: Integrate with User Profiles
-  - Profile photo upload uses asset service
-  - Photos stored in /profiles/ folder
-  - **COMPLETED**: Integrated AssetPickerModal with MyProfile "Change Photo" button
-  - File: Update `frontend/src/pages/MyProfile.tsx`
+- [ ] **TASK-ASSET-016**: Add MinIO storage backend
+  - If Google Workspace not configured, use MinIO
+  - Same API interface, different storage
+  - File: `backend/src/services/minio-asset.service.ts`
+  - **PARTIAL**: Interface exists in media-asset-storage.service.ts but implementation returns "not yet implemented"
 
-## Phase 9: Testing
+- [x] **TASK-ASSET-017**: Update asset service for multi-backend
+  - Factory pattern to select storage backend
+  - Configuration in asset_settings table
+  - File: `backend/src/services/media-asset-storage.service.ts`
+  - **DONE**: Backend selection based on settings
 
-- [x] **TASK-ASSET-T01**: Unit tests for asset storage service
-  - Upload, retrieve, delete
-  - Both Drive and MinIO backends
-  - File: `backend/src/__tests__/media-asset-storage.service.test.ts`
-  - **COMPLETED**: 24 tests covering getSettings, updateSettings, uploadFile, getFile, deleteFile, createFolder, listFiles, setupStorage, isConfigured, getStatus
+## Phase 8: Testing
 
-- [x] **TASK-ASSET-T02**: Unit tests for asset caching
-  - Cache hit/miss scenarios
-  - TTL expiration
-  - Invalidation
-  - File: `backend/src/__tests__/media-asset-cache.service.test.ts`
-  - **COMPLETED**: 24 tests covering get, set, invalidate, has, getTTL, getStats, close, and disconnected state handling
+- [ ] **TASK-ASSET-T01**: Write unit tests for asset service
+  - Cache operations
+  - Drive API calls (mocked)
+  - Access tracking
+  - File: `backend/src/__tests__/asset.service.test.ts`
 
-- [x] **TASK-ASSET-T03**: Integration test for proxy endpoint
-  - Public access without auth
-  - Correct Content-Type
-  - Rate limiting
-  - File: `backend/src/__tests__/asset-proxy.routes.test.ts`
-  - **COMPLETED**: 20 tests covering health endpoint, cache hit/miss, 403 for private assets, 503 for storage errors, rate limiting, access tracking, content headers, and file type handling
-
-- [x] **TASK-ASSET-T04**: E2E tests for asset management
-  - Upload file
+- [ ] **TASK-ASSET-T02**: Write E2E tests for asset management
+  - Upload asset via UI
+  - View asset in browser
   - Copy public URL
-  - Verify URL works in <img>
-  - Delete file
+  - Delete asset
   - File: `e2e/tests/assets.spec.ts`
-  - **COMPLETED**: E2E tests for Media Files page, Assets tab, Settings tab, Asset Proxy endpoints, Upload flow, and Asset Detail view
+
+- [ ] **TASK-ASSET-T03**: Test public URLs in email clients
+  - Embed URL in test email
+  - Verify displays in Gmail
+  - Verify displays in Outlook
+  - File: Manual testing documentation
 
 ## Estimated Effort
 
 | Phase | Tasks | Effort |
 |-------|-------|--------|
 | Phase 1: Database | 2 tasks | 0.5 day |
-| Phase 2: Drive Integration | 3 tasks | 2 days |
-| Phase 3: Proxy Endpoint | 3 tasks | 1 day |
-| Phase 4: Management API | 4 tasks | 1.5 days |
-| Phase 5: Setup Flow | 2 tasks | 1 day |
-| Phase 6: Frontend Settings | 2 tasks | 1 day |
-| Phase 7: Asset Browser | 4 tasks | 2 days |
-| Phase 8: Integration | 2 tasks | 1 day |
-| Phase 9: Testing | 4 tasks | 1.5 days |
+| Phase 2: Proxy Endpoint | 3 tasks | 2 days |
+| Phase 3: Management API | 3 tasks | 2 days |
+| Phase 4: Drive Integration | 2 tasks | 1.5 days |
+| Phase 5: Setup Wizard | 2 tasks | 1 day |
+| Phase 6: Asset Browser | 3 tasks | 2 days |
+| Phase 7: MinIO Fallback | 2 tasks | 1 day |
+| Phase 8: Testing | 3 tasks | 1.5 days |
 
 **Total: ~11.5 days**
 
 ## Dependencies
 
 ```
-TASK-ASSET-001 (database)
-  └── TASK-ASSET-002 (types)
-       └── TASK-ASSET-003 (Drive integration)
-            └── TASK-ASSET-004 (storage service)
-                 └── TASK-ASSET-005 (caching)
-                      └── TASK-ASSET-006 (proxy endpoint)
-
-TASK-ASSET-004 (storage service)
-  └── TASK-ASSET-009 to 012 (API routes)
-       └── TASK-ASSET-015 to 020 (frontend)
-
-TASK-ASSET-013 (setup service)
-  └── TASK-ASSET-016 (setup wizard)
-
-All backend complete
-  └── TASK-ASSET-021, 022 (integrations)
+Phase 1 (Database)
+  └── Phase 2 (Proxy Endpoint)
+       └── Phase 3 (Management API)
+            └── Phase 4 (Drive Integration)
+                 └── Phase 5 (Setup Wizard)
+                      └── Phase 6 (Asset Browser)
+                           └── Phase 7 (MinIO Fallback)
+                                └── Phase 8 (Testing)
 ```
 
-## Implementation Notes
+## Notes
 
-### Token Generation
-```typescript
-// Use URL-safe base64 encoded UUID
-const token = base64url(uuidv4()); // e.g., "x7k9m2pL4nQ"
+### Required Google API Scopes
+The service account needs these scopes for Drive access:
+```
+https://www.googleapis.com/auth/drive
+https://www.googleapis.com/auth/drive.file
 ```
 
-### Content-Type Detection
-```typescript
-// Use mime-types package
-import mime from 'mime-types';
-const contentType = mime.lookup(filename) || 'application/octet-stream';
-```
+### Cache Configuration
+- Redis key: `asset:{access_token}`
+- Default TTL: 3600 seconds (1 hour)
+- Max cached file size: 5MB
+- Larger files served directly from Drive
 
-### Drive API Quotas
-- 1,000,000 queries/day
-- 12,000 queries/100 seconds/user
-- With caching, should never hit limits
+### Rate Limiting
+- Public proxy: 100 requests/min per IP
+- Admin API: Uses existing JWT auth + standard rate limits
 
-### MinIO Fallback
-When Google Workspace not configured, automatically use MinIO. No code changes needed in asset consumers - just different storage backend.
+### File Type Restrictions
+Default allowed MIME types:
+- image/png
+- image/jpeg
+- image/gif
+- image/webp
+- image/svg+xml
+
+### Security
+- Access tokens are random UUIDs (not guessable)
+- Files must be registered in assets table to be served
+- No direct Drive ID exposure in public URLs
