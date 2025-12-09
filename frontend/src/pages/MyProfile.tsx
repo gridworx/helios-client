@@ -72,6 +72,7 @@ export function MyProfile({ organizationId: _organizationId }: MyProfileProps) {
         timezone: data.profile.timezone || '',
         preferredLanguage: data.profile.preferredLanguage || '',
       });
+      setHasChanges(false);
     }
     setLoading(false);
   }, []);
