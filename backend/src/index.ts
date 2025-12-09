@@ -34,6 +34,7 @@ import orgChartRoutes from './routes/org-chart.routes';
 import signaturesRoutes from './routes/signatures.routes';
 import signatureAssignmentsRoutes from './routes/signature-assignments.routes';
 import signatureSyncRoutes from './routes/signature-sync.routes';
+import signatureCampaignsRoutes from './routes/signature-campaigns.routes';
 import customFieldsRoutes from './routes/custom-fields.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import departmentsRoutes from './routes/departments.routes';
@@ -50,6 +51,7 @@ import { activityTracker } from './services/activity-tracker.service';
 import { initializeBulkOperationsGateway } from './websocket/bulk-operations.gateway';
 import { startScheduledActionProcessor, stopScheduledActionProcessor } from './jobs/scheduled-action-processor';
 import { startSignatureSyncJob, stopSignatureSyncJob } from './jobs/signature-sync.job';
+import { startCampaignSchedulerJob, stopCampaignSchedulerJob } from './jobs/campaign-scheduler.job';
 
 import transparentProxyRouter from './middleware/transparent-proxy';
 import swaggerUi from 'swagger-ui-express';
@@ -429,6 +431,7 @@ app.use('/api/email-security', emailSecurityRoutes);
 app.use('/api/signatures', signaturesRoutes);
 app.use('/api/signatures/v2/assignments', signatureAssignmentsRoutes);
 app.use('/api/signatures/sync', signatureSyncRoutes);
+app.use('/api/signatures/campaigns', signatureCampaignsRoutes);
 app.use('/api/organization', orgChartRoutes); // Register org chart routes under /api/organization
 app.use('/api/organization', organizationRoutes);
 app.use('/api/auth', authRoutes);
@@ -556,6 +559,18 @@ async function startServer(): Promise<void> {
       logger.info('📧 Signature sync job disabled');
     }
 
+    // Start campaign scheduler job (manages campaign lifecycle)
+    const campaignSchedulerEnabled = process.env['CAMPAIGN_SCHEDULER_ENABLED'] !== 'false';
+    if (campaignSchedulerEnabled) {
+      startCampaignSchedulerJob({
+        enabled: true,
+        intervalMs: parseInt(process.env['CAMPAIGN_SCHEDULER_INTERVAL_MS'] || '60000'), // 1 minute default
+      });
+      logger.info('📧 Campaign scheduler job started');
+    } else {
+      logger.info('📧 Campaign scheduler job disabled');
+    }
+
     // Initialize WebSocket gateway for bulk operations
     initializeBulkOperationsGateway(httpServer);
     logger.info('🔌 WebSocket gateway initialized for bulk operations');
@@ -594,6 +609,7 @@ process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully');
   stopScheduledActionProcessor();
   stopSignatureSyncJob();
+  stopCampaignSchedulerJob();
   await db.close();
   process.exit(0);
 });
@@ -602,6 +618,7 @@ process.on('SIGINT', async () => {
   logger.info('SIGINT received, shutting down gracefully');
   stopScheduledActionProcessor();
   stopSignatureSyncJob();
+  stopCampaignSchedulerJob();
   await db.close();
   process.exit(0);
 });

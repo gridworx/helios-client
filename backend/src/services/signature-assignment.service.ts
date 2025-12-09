@@ -50,7 +50,10 @@ interface EffectiveSignatureRow {
   organization_id: string;
   assignment_id: string;
   template_id: string;
-  source: AssignmentType;
+  source: string;  // Can be AssignmentType or 'campaign'
+  banner_url: string | null;
+  banner_link: string | null;
+  banner_alt_text: string | null;
 }
 
 class SignatureAssignmentService {
@@ -314,7 +317,8 @@ class SignatureAssignmentService {
 
   /**
    * Get the effective signature template for a user
-   * This resolves the priority chain: user > dynamic_group > group > department > ou > organization
+   * This resolves the priority chain: campaign > user > dynamic_group > group > department > ou > organization
+   * Campaigns always take highest priority when active.
    */
   async getEffectiveSignature(userId: string): Promise<UserEffectiveSignature | null> {
     // Use the database view for consistent priority resolution
@@ -331,7 +335,10 @@ class SignatureAssignmentService {
       organizationId: row.organization_id,
       assignmentId: row.assignment_id,
       templateId: row.template_id,
-      source: row.source,
+      source: row.source as UserEffectiveSignature['source'],
+      bannerUrl: row.banner_url,
+      bannerLink: row.banner_link,
+      bannerAltText: row.banner_alt_text,
     };
   }
 
@@ -351,7 +358,10 @@ class SignatureAssignmentService {
       organizationId: row.organization_id,
       assignmentId: row.assignment_id,
       templateId: row.template_id,
-      source: row.source,
+      source: row.source as UserEffectiveSignature['source'],
+      bannerUrl: row.banner_url,
+      bannerLink: row.banner_link,
+      bannerAltText: row.banner_alt_text,
     }));
   }
 

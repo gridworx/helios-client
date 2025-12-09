@@ -1,544 +1,1039 @@
+/**
+ * Signature Campaign Service
+ *
+ * Handles CRUD operations for signature campaigns,
+ * campaign scheduling, audience resolution, and tracking.
+ */
+
 import { db } from '../database/connection';
-import { google } from 'googleapis';
-import * as Handlebars from 'handlebars';
+import { logger } from '../utils/logger';
 
-interface SignatureTemplate {
-  id: string;
-  name: string;
-  description: string;
-  html_template: string;
-  text_template?: string;
-  available_variables: string[];
-}
+// ==========================================
+// TYPES
+// ==========================================
 
-interface SignatureCampaign {
+export type CampaignStatus = 'draft' | 'scheduled' | 'active' | 'paused' | 'completed' | 'cancelled';
+
+export interface SignatureCampaign {
   id: string;
+  organizationId: string;
   name: string;
   description?: string;
-  template_id: string;
-  template_name?: string;
-  html_template?: string;
-  campaign_banner_html?: string;
-  campaign_banner_position: 'top' | 'bottom';
-  target_type: 'all' | 'users' | 'groups' | 'departments' | 'org_units' | 'rules';
-  target_ids?: string[];
-  target_rules?: any;
-  priority: number;
-  start_date?: Date;
-  end_date?: Date;
-  status: 'draft' | 'pending_approval' | 'approved' | 'active' | 'paused' | 'completed';
-  requires_approval: boolean;
+  templateId: string;
+  bannerUrl?: string;
+  bannerLink?: string;
+  bannerAltText?: string;
+  startDate: Date;
+  endDate: Date;
+  timezone: string;
+  trackingEnabled: boolean;
+  trackingOptions: {
+    opens: boolean;
+    unique: boolean;
+    geo: boolean;
+  };
+  status: CampaignStatus;
+  autoRevert: boolean;
+  createdBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  launchedAt?: Date;
+  completedAt?: Date;
 }
 
-interface UserSignatureData {
+export interface CampaignWithDetails extends SignatureCampaign {
+  templateName: string;
+  templateStatus: string;
+  createdByName?: string;
+  createdByEmail?: string;
+  assignmentCount: number;
+  enrolledUserCount: number;
+}
+
+export interface CreateCampaignDTO {
   name: string;
-  email: string;
-  title?: string;
-  department?: string;
-  phone?: string;
-  company: string;
-  photoUrl?: string;
-  calendar_link?: string;
+  description?: string;
+  templateId: string;
+  bannerUrl?: string;
+  bannerLink?: string;
+  bannerAltText?: string;
+  startDate: Date | string;
+  endDate: Date | string;
+  timezone?: string;
+  trackingEnabled?: boolean;
+  trackingOptions?: {
+    opens?: boolean;
+    unique?: boolean;
+    geo?: boolean;
+  };
+  autoRevert?: boolean;
 }
 
-export class SignatureCampaignService {
+export interface UpdateCampaignDTO {
+  name?: string;
+  description?: string;
+  templateId?: string;
+  bannerUrl?: string;
+  bannerLink?: string;
+  bannerAltText?: string;
+  startDate?: Date | string;
+  endDate?: Date | string;
+  timezone?: string;
+  trackingEnabled?: boolean;
+  trackingOptions?: {
+    opens?: boolean;
+    unique?: boolean;
+    geo?: boolean;
+  };
+  status?: CampaignStatus;
+  autoRevert?: boolean;
+}
+
+export interface CampaignAssignment {
+  id: string;
+  campaignId: string;
+  assignmentType: 'user' | 'group' | 'dynamic_group' | 'department' | 'ou' | 'organization';
+  targetId?: string;
+  targetValue?: string;
+  createdAt: Date;
+}
+
+export interface CampaignStats {
+  totalOpens: number;
+  uniqueOpens: number;
+  uniqueRecipients: number;
+  topPerformerUserId?: string;
+  topPerformerOpens?: number;
+}
+
+interface CampaignRow {
+  id: string;
+  organization_id: string;
+  name: string;
+  description: string | null;
+  template_id: string;
+  banner_url: string | null;
+  banner_link: string | null;
+  banner_alt_text: string | null;
+  start_date: Date;
+  end_date: Date;
+  timezone: string;
+  tracking_enabled: boolean;
+  tracking_options: Record<string, boolean>;
+  status: CampaignStatus;
+  auto_revert: boolean;
+  created_by: string | null;
+  created_at: Date;
+  updated_at: Date;
+  launched_at: Date | null;
+  completed_at: Date | null;
+}
+
+interface CampaignRowWithDetails extends CampaignRow {
+  template_name: string;
+  template_status: string;
+  created_by_name: string | null;
+  created_by_email: string | null;
+  assignment_count: number;
+  enrolled_user_count: number;
+}
+
+// ==========================================
+// SERVICE CLASS
+// ==========================================
+
+class SignatureCampaignService {
+  // ==========================================
+  // CAMPAIGN CRUD OPERATIONS
+  // ==========================================
+
   /**
-   * Create a new signature template
+   * Get all campaigns for an organization
    */
-  async createTemplate(
+  async getCampaigns(
     organizationId: string,
-    name: string,
-    htmlTemplate: string,
-    textTemplate?: string,
-    description?: string,
-    createdBy?: string
-  ): Promise<SignatureTemplate> {
-    const query = `
-      INSERT INTO signature_templates (
-        organization_id, name, description, html_template, text_template, created_by
-      ) VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING *
-    `;
+    options: {
+      status?: CampaignStatus | CampaignStatus[];
+      templateId?: string;
+      includeDetails?: boolean;
+    } = {}
+  ): Promise<SignatureCampaign[] | CampaignWithDetails[]> {
+    const values: unknown[] = [organizationId];
+    let paramIndex = 2;
 
-    const result = await db.query(query, [
-      organizationId,
-      name,
-      description,
-      htmlTemplate,
-      textTemplate,
-      createdBy
-    ]);
+    let query: string;
 
-    return result.rows[0];
+    if (options.includeDetails) {
+      query = `
+        SELECT
+          sc.*,
+          st.name AS template_name,
+          st.status AS template_status,
+          u.first_name || ' ' || u.last_name AS created_by_name,
+          u.email AS created_by_email,
+          (SELECT COUNT(*) FROM campaign_assignments ca WHERE ca.campaign_id = sc.id)::integer AS assignment_count,
+          (SELECT COUNT(*) FROM signature_tracking_pixels stp WHERE stp.campaign_id = sc.id)::integer AS enrolled_user_count
+        FROM signature_campaigns sc
+        JOIN signature_templates st ON st.id = sc.template_id
+        LEFT JOIN organization_users u ON u.id = sc.created_by
+        WHERE sc.organization_id = $1
+      `;
+    } else {
+      query = `
+        SELECT sc.*
+        FROM signature_campaigns sc
+        WHERE sc.organization_id = $1
+      `;
+    }
+
+    // Filter by status
+    if (options.status) {
+      if (Array.isArray(options.status)) {
+        query += ` AND sc.status = ANY($${paramIndex}::text[])`;
+        values.push(options.status);
+      } else {
+        query += ` AND sc.status = $${paramIndex}`;
+        values.push(options.status);
+      }
+      paramIndex++;
+    }
+
+    // Filter by template
+    if (options.templateId) {
+      query += ` AND sc.template_id = $${paramIndex}`;
+      values.push(options.templateId);
+      paramIndex++;
+    }
+
+    query += ` ORDER BY sc.start_date DESC, sc.created_at DESC`;
+
+    const result = await db.query(query, values);
+
+    if (options.includeDetails) {
+      return result.rows.map((row: CampaignRowWithDetails) =>
+        this.mapRowToCampaignWithDetails(row)
+      );
+    }
+
+    return result.rows.map((row: CampaignRow) => this.mapRowToCampaign(row));
   }
 
   /**
-   * Get all templates for an organization
+   * Get a single campaign by ID
    */
-  async getTemplates(organizationId: string): Promise<SignatureTemplate[]> {
-    const query = `
-      SELECT * FROM signature_templates
-      WHERE organization_id = $1 AND is_active = true
-      ORDER BY created_at DESC
-    `;
+  async getCampaign(
+    id: string,
+    includeDetails: boolean = false
+  ): Promise<SignatureCampaign | CampaignWithDetails | null> {
+    let query: string;
 
-    const result = await db.query(query, [organizationId]);
-    return result.rows;
+    if (includeDetails) {
+      query = `
+        SELECT
+          sc.*,
+          st.name AS template_name,
+          st.status AS template_status,
+          u.first_name || ' ' || u.last_name AS created_by_name,
+          u.email AS created_by_email,
+          (SELECT COUNT(*) FROM campaign_assignments ca WHERE ca.campaign_id = sc.id)::integer AS assignment_count,
+          (SELECT COUNT(*) FROM signature_tracking_pixels stp WHERE stp.campaign_id = sc.id)::integer AS enrolled_user_count
+        FROM signature_campaigns sc
+        JOIN signature_templates st ON st.id = sc.template_id
+        LEFT JOIN organization_users u ON u.id = sc.created_by
+        WHERE sc.id = $1
+      `;
+    } else {
+      query = 'SELECT * FROM signature_campaigns WHERE id = $1';
+    }
+
+    const result = await db.query(query, [id]);
+
+    if (result.rows.length === 0) return null;
+
+    if (includeDetails) {
+      return this.mapRowToCampaignWithDetails(result.rows[0]);
+    }
+
+    return this.mapRowToCampaign(result.rows[0]);
   }
 
   /**
-   * Create a new signature campaign
+   * Create a new campaign
    */
   async createCampaign(
     organizationId: string,
-    campaign: Partial<SignatureCampaign>,
+    data: CreateCampaignDTO,
     createdBy?: string
   ): Promise<SignatureCampaign> {
-    const query = `
-      INSERT INTO signature_campaigns (
-        organization_id, name, description, template_id,
-        campaign_banner_html, campaign_banner_position,
-        target_type, target_ids, target_rules,
-        priority, start_date, end_date,
-        status, requires_approval, created_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-      RETURNING *
-    `;
+    // Validate dates
+    const startDate = new Date(data.startDate);
+    const endDate = new Date(data.endDate);
 
-    const result = await db.query(query, [
-      organizationId,
-      campaign.name,
-      campaign.description,
-      campaign.template_id,
-      campaign.campaign_banner_html,
-      campaign.campaign_banner_position || 'bottom',
-      campaign.target_type,
-      campaign.target_ids,
-      campaign.target_rules ? JSON.stringify(campaign.target_rules) : null,
-      campaign.priority || 50,
-      campaign.start_date,
-      campaign.end_date,
-      campaign.status || 'draft',
-      campaign.requires_approval !== false,
-      createdBy
-    ]);
-
-    const createdCampaign = result.rows[0];
-
-    // If targeting specific users, create assignments
-    if (campaign.target_type === 'users' && campaign.target_ids?.length) {
-      await this.createUserAssignments(organizationId, createdCampaign.id, campaign.target_ids);
+    if (endDate <= startDate) {
+      throw new Error('End date must be after start date');
     }
 
-    return createdCampaign;
-  }
+    // Validate template exists
+    const templateCheck = await db.query(
+      'SELECT id FROM signature_templates WHERE id = $1 AND organization_id = $2',
+      [data.templateId, organizationId]
+    );
 
-  /**
-   * Create user assignments for a campaign
-   */
-  private async createUserAssignments(
-    organizationId: string,
-    campaignId: string,
-    userIds: string[]
-  ): Promise<void> {
-    const values = userIds.map(userId =>
-      `('${organizationId}', '${userId}', '${campaignId}')`
-    ).join(',');
-
-    const query = `
-      INSERT INTO user_signature_assignments (organization_id, user_id, campaign_id)
-      VALUES ${values}
-      ON CONFLICT (user_id, campaign_id) DO NOTHING
-    `;
-
-    await db.query(query);
-  }
-
-  /**
-   * Get active campaigns for an organization
-   */
-  async getActiveCampaigns(organizationId: string): Promise<SignatureCampaign[]> {
-    const query = `
-      SELECT c.*, t.name as template_name, t.html_template
-      FROM signature_campaigns c
-      JOIN signature_templates t ON c.template_id = t.id
-      WHERE c.organization_id = $1
-        AND c.status IN ('active', 'approved')
-        AND (c.start_date IS NULL OR c.start_date <= CURRENT_TIMESTAMP)
-        AND (c.end_date IS NULL OR c.end_date >= CURRENT_TIMESTAMP)
-      ORDER BY c.priority DESC, c.created_at DESC
-    `;
-
-    const result = await db.query(query, [organizationId]);
-    return result.rows;
-  }
-
-  /**
-   * Get campaigns for a specific user based on targeting
-   */
-  async getUserCampaigns(userId: string): Promise<SignatureCampaign | null> {
-    const query = `
-      SELECT * FROM get_user_active_campaign($1)
-    `;
-
-    const result = await db.query(query, [userId]);
-
-    if (!result.rows[0]?.get_user_active_campaign) {
-      return null;
+    if (templateCheck.rows.length === 0) {
+      throw new Error('Template not found');
     }
 
-    // Fetch the full campaign details
-    const campaignQuery = `
-      SELECT c.*, t.html_template, t.text_template
-      FROM signature_campaigns c
-      JOIN signature_templates t ON c.template_id = t.id
-      WHERE c.id = $1
-    `;
-
-    const campaignResult = await db.query(campaignQuery, [result.rows[0].get_user_active_campaign]);
-    return campaignResult.rows[0];
-  }
-
-  /**
-   * Build signature HTML for a user
-   */
-  async buildUserSignature(userId: string): Promise<string | null> {
-    // Get user data
-    const userQuery = `
-      SELECT
-        u.id, u.email, u.first_name, u.last_name,
-        u.title, u.department, u.phone_number, u.photo_url,
-        o.name as company
-      FROM organization_users u
-      JOIN organizations o ON u.organization_id = o.id
-      WHERE u.id = $1
-    `;
-
-    const userResult = await db.query(userQuery, [userId]);
-
-    if (!userResult.rows[0]) {
-      return null;
+    // Determine initial status based on start date
+    const now = new Date();
+    let status: CampaignStatus = 'draft';
+    if (startDate <= now && endDate > now) {
+      status = 'scheduled'; // Will be activated by scheduler
+    } else if (startDate > now) {
+      status = 'scheduled';
     }
 
-    const user = userResult.rows[0];
-    const userData: UserSignatureData = {
-      name: `${user.first_name} ${user.last_name}`.trim() || user.email,
-      email: user.email,
-      title: user.title,
-      department: user.department,
-      phone: user.phone_number,
-      company: user.company,
-      photoUrl: user.photo_url,
-      calendar_link: `https://calendar.google.com/calendar/u/0/appointments/schedules/${user.email}`
+    const trackingOptions = {
+      opens: data.trackingOptions?.opens ?? true,
+      unique: data.trackingOptions?.unique ?? true,
+      geo: data.trackingOptions?.geo ?? true,
     };
 
-    // Get active campaign for user
-    const campaign = await this.getUserCampaigns(userId);
+    const result = await db.query(
+      `INSERT INTO signature_campaigns (
+        organization_id,
+        name,
+        description,
+        template_id,
+        banner_url,
+        banner_link,
+        banner_alt_text,
+        start_date,
+        end_date,
+        timezone,
+        tracking_enabled,
+        tracking_options,
+        status,
+        auto_revert,
+        created_by
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      RETURNING *`,
+      [
+        organizationId,
+        data.name,
+        data.description || null,
+        data.templateId,
+        data.bannerUrl || null,
+        data.bannerLink || null,
+        data.bannerAltText || null,
+        startDate,
+        endDate,
+        data.timezone || 'UTC',
+        data.trackingEnabled ?? true,
+        JSON.stringify(trackingOptions),
+        status,
+        data.autoRevert ?? true,
+        createdBy || null,
+      ]
+    );
 
+    const campaign = this.mapRowToCampaign(result.rows[0]);
+
+    logger.info('Created signature campaign', {
+      campaignId: campaign.id,
+      name: campaign.name,
+      templateId: data.templateId,
+      organizationId,
+    });
+
+    return campaign;
+  }
+
+  /**
+   * Update an existing campaign
+   */
+  async updateCampaign(
+    id: string,
+    data: UpdateCampaignDTO
+  ): Promise<SignatureCampaign | null> {
+    const existing = await this.getCampaign(id);
+    if (!existing) return null;
+
+    // Validate dates if provided
+    if (data.startDate || data.endDate) {
+      const startDate = new Date(data.startDate || existing.startDate);
+      const endDate = new Date(data.endDate || existing.endDate);
+
+      if (endDate <= startDate) {
+        throw new Error('End date must be after start date');
+      }
+    }
+
+    // Validate template if provided
+    if (data.templateId) {
+      const templateCheck = await db.query(
+        'SELECT id FROM signature_templates WHERE id = $1 AND organization_id = $2',
+        [data.templateId, existing.organizationId]
+      );
+
+      if (templateCheck.rows.length === 0) {
+        throw new Error('Template not found');
+      }
+    }
+
+    // Build dynamic update query
+    const updates: string[] = [];
+    const values: unknown[] = [];
+    let paramIndex = 1;
+
+    if (data.name !== undefined) {
+      updates.push(`name = $${paramIndex++}`);
+      values.push(data.name);
+    }
+    if (data.description !== undefined) {
+      updates.push(`description = $${paramIndex++}`);
+      values.push(data.description);
+    }
+    if (data.templateId !== undefined) {
+      updates.push(`template_id = $${paramIndex++}`);
+      values.push(data.templateId);
+    }
+    if (data.bannerUrl !== undefined) {
+      updates.push(`banner_url = $${paramIndex++}`);
+      values.push(data.bannerUrl);
+    }
+    if (data.bannerLink !== undefined) {
+      updates.push(`banner_link = $${paramIndex++}`);
+      values.push(data.bannerLink);
+    }
+    if (data.bannerAltText !== undefined) {
+      updates.push(`banner_alt_text = $${paramIndex++}`);
+      values.push(data.bannerAltText);
+    }
+    if (data.startDate !== undefined) {
+      updates.push(`start_date = $${paramIndex++}`);
+      values.push(new Date(data.startDate));
+    }
+    if (data.endDate !== undefined) {
+      updates.push(`end_date = $${paramIndex++}`);
+      values.push(new Date(data.endDate));
+    }
+    if (data.timezone !== undefined) {
+      updates.push(`timezone = $${paramIndex++}`);
+      values.push(data.timezone);
+    }
+    if (data.trackingEnabled !== undefined) {
+      updates.push(`tracking_enabled = $${paramIndex++}`);
+      values.push(data.trackingEnabled);
+    }
+    if (data.trackingOptions !== undefined) {
+      updates.push(`tracking_options = $${paramIndex++}`);
+      values.push(JSON.stringify({
+        opens: data.trackingOptions.opens ?? existing.trackingOptions.opens,
+        unique: data.trackingOptions.unique ?? existing.trackingOptions.unique,
+        geo: data.trackingOptions.geo ?? existing.trackingOptions.geo,
+      }));
+    }
+    if (data.status !== undefined) {
+      updates.push(`status = $${paramIndex++}`);
+      values.push(data.status);
+    }
+    if (data.autoRevert !== undefined) {
+      updates.push(`auto_revert = $${paramIndex++}`);
+      values.push(data.autoRevert);
+    }
+
+    if (updates.length === 0) {
+      return existing;
+    }
+
+    values.push(id);
+    const result = await db.query(
+      `UPDATE signature_campaigns SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+      values
+    );
+
+    if (result.rows.length === 0) return null;
+
+    const campaign = this.mapRowToCampaign(result.rows[0]);
+
+    logger.info('Updated signature campaign', {
+      campaignId: id,
+      updates: Object.keys(data),
+    });
+
+    return campaign;
+  }
+
+  /**
+   * Delete a campaign
+   */
+  async deleteCampaign(id: string): Promise<boolean> {
+    const existing = await this.getCampaign(id);
+    if (!existing) return false;
+
+    // Can't delete active campaigns - must cancel first
+    if (existing.status === 'active') {
+      throw new Error('Cannot delete active campaign. Cancel it first.');
+    }
+
+    const result = await db.query(
+      'DELETE FROM signature_campaigns WHERE id = $1 RETURNING id',
+      [id]
+    );
+
+    if (result.rows.length > 0) {
+      logger.info('Deleted signature campaign', { campaignId: id });
+      return true;
+    }
+
+    return false;
+  }
+
+  // ==========================================
+  // CAMPAIGN LIFECYCLE OPERATIONS
+  // ==========================================
+
+  /**
+   * Launch a campaign (transition from scheduled to active)
+   */
+  async launchCampaign(id: string): Promise<SignatureCampaign | null> {
+    const campaign = await this.getCampaign(id);
+    if (!campaign) return null;
+
+    if (campaign.status !== 'draft' && campaign.status !== 'scheduled') {
+      throw new Error(`Cannot launch campaign with status '${campaign.status}'`);
+    }
+
+    const result = await db.query(
+      `UPDATE signature_campaigns
+       SET status = 'active', launched_at = NOW()
+       WHERE id = $1
+       RETURNING *`,
+      [id]
+    );
+
+    if (result.rows.length === 0) return null;
+
+    logger.info('Launched signature campaign', { campaignId: id });
+
+    return this.mapRowToCampaign(result.rows[0]);
+  }
+
+  /**
+   * Pause an active campaign
+   */
+  async pauseCampaign(id: string): Promise<SignatureCampaign | null> {
+    const campaign = await this.getCampaign(id);
+    if (!campaign) return null;
+
+    if (campaign.status !== 'active') {
+      throw new Error('Can only pause active campaigns');
+    }
+
+    const result = await db.query(
+      `UPDATE signature_campaigns SET status = 'paused' WHERE id = $1 RETURNING *`,
+      [id]
+    );
+
+    if (result.rows.length === 0) return null;
+
+    logger.info('Paused signature campaign', { campaignId: id });
+
+    return this.mapRowToCampaign(result.rows[0]);
+  }
+
+  /**
+   * Resume a paused campaign
+   */
+  async resumeCampaign(id: string): Promise<SignatureCampaign | null> {
+    const campaign = await this.getCampaign(id);
+    if (!campaign) return null;
+
+    if (campaign.status !== 'paused') {
+      throw new Error('Can only resume paused campaigns');
+    }
+
+    // Check if still within date range
+    const now = new Date();
+    if (campaign.endDate <= now) {
+      throw new Error('Campaign has already ended. Cannot resume.');
+    }
+
+    const result = await db.query(
+      `UPDATE signature_campaigns SET status = 'active' WHERE id = $1 RETURNING *`,
+      [id]
+    );
+
+    if (result.rows.length === 0) return null;
+
+    logger.info('Resumed signature campaign', { campaignId: id });
+
+    return this.mapRowToCampaign(result.rows[0]);
+  }
+
+  /**
+   * Cancel a campaign
+   */
+  async cancelCampaign(id: string): Promise<SignatureCampaign | null> {
+    const campaign = await this.getCampaign(id);
+    if (!campaign) return null;
+
+    if (campaign.status === 'completed' || campaign.status === 'cancelled') {
+      throw new Error(`Campaign already ${campaign.status}`);
+    }
+
+    const result = await db.query(
+      `UPDATE signature_campaigns
+       SET status = 'cancelled', completed_at = NOW()
+       WHERE id = $1
+       RETURNING *`,
+      [id]
+    );
+
+    if (result.rows.length === 0) return null;
+
+    logger.info('Cancelled signature campaign', { campaignId: id });
+
+    return this.mapRowToCampaign(result.rows[0]);
+  }
+
+  /**
+   * Complete a campaign (called when end date is reached)
+   */
+  async completeCampaign(id: string): Promise<SignatureCampaign | null> {
+    const result = await db.query(
+      `UPDATE signature_campaigns
+       SET status = 'completed', completed_at = NOW()
+       WHERE id = $1 AND status = 'active'
+       RETURNING *`,
+      [id]
+    );
+
+    if (result.rows.length === 0) return null;
+
+    logger.info('Completed signature campaign', { campaignId: id });
+
+    return this.mapRowToCampaign(result.rows[0]);
+  }
+
+  // ==========================================
+  // CAMPAIGN ASSIGNMENTS
+  // ==========================================
+
+  /**
+   * Get assignments for a campaign
+   */
+  async getCampaignAssignments(campaignId: string): Promise<CampaignAssignment[]> {
+    const result = await db.query(
+      'SELECT * FROM campaign_assignments WHERE campaign_id = $1',
+      [campaignId]
+    );
+
+    return result.rows.map((row: {
+      id: string;
+      campaign_id: string;
+      assignment_type: CampaignAssignment['assignmentType'];
+      target_id: string | null;
+      target_value: string | null;
+      created_at: Date;
+    }) => ({
+      id: row.id,
+      campaignId: row.campaign_id,
+      assignmentType: row.assignment_type,
+      targetId: row.target_id || undefined,
+      targetValue: row.target_value || undefined,
+      createdAt: row.created_at,
+    }));
+  }
+
+  /**
+   * Add assignment to a campaign
+   */
+  async addCampaignAssignment(
+    campaignId: string,
+    assignmentType: CampaignAssignment['assignmentType'],
+    targetId?: string,
+    targetValue?: string
+  ): Promise<CampaignAssignment> {
+    // Validate campaign exists and is not active/completed
+    const campaign = await this.getCampaign(campaignId);
     if (!campaign) {
-      // Use default template if no campaign
-      const defaultTemplateQuery = `
-        SELECT html_template FROM signature_templates
-        WHERE organization_id = $1 AND name = 'Professional Standard'
-        LIMIT 1
-      `;
-
-      const templateResult = await db.query(defaultTemplateQuery, [user.organization_id]);
-
-      if (!templateResult.rows[0]) {
-        return this.buildBasicSignature(userData);
-      }
-
-      const template = Handlebars.compile(templateResult.rows[0].html_template);
-      return template(userData);
+      throw new Error('Campaign not found');
     }
 
-    // Build signature with campaign
-    if (!campaign.html_template) {
-      // Fallback to template without campaign data
-      const templateResult = await db.query(
-        'SELECT html_template FROM signature_templates WHERE id = $1',
-        [campaign.template_id]
-      );
-      const template = Handlebars.compile(templateResult.rows[0].html_template);
-      return template(userData);
+    if (campaign.status === 'completed' || campaign.status === 'cancelled') {
+      throw new Error('Cannot add assignments to completed or cancelled campaigns');
     }
 
-    const template = Handlebars.compile(campaign.html_template);
-    let signature = template(userData);
+    const result = await db.query(
+      `INSERT INTO campaign_assignments (campaign_id, assignment_type, target_id, target_value)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT DO NOTHING
+       RETURNING *`,
+      [campaignId, assignmentType, targetId || null, targetValue || null]
+    );
 
-    // Add campaign banner if exists
-    if (campaign.campaign_banner_html) {
-      if (campaign.campaign_banner_position === 'top') {
-        signature = campaign.campaign_banner_html + signature;
-      } else {
-        signature = signature + campaign.campaign_banner_html;
-      }
+    if (result.rows.length === 0) {
+      throw new Error('Assignment already exists');
     }
 
-    return signature;
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      campaignId: row.campaign_id,
+      assignmentType: row.assignment_type,
+      targetId: row.target_id || undefined,
+      targetValue: row.target_value || undefined,
+      createdAt: row.created_at,
+    };
   }
 
   /**
-   * Build a basic signature if no templates exist
+   * Remove assignment from a campaign
    */
-  private buildBasicSignature(userData: UserSignatureData): string {
-    return `
-      <div style="font-family: Arial, sans-serif; color: #333; font-size: 14px;">
-        <strong>${userData.name}</strong><br>
-        ${userData.title || ''}<br>
-        ${userData.company}<br>
-        ${userData.email}
-        ${userData.phone ? `| ${userData.phone}` : ''}
-      </div>
-    `;
+  async removeCampaignAssignment(assignmentId: string): Promise<boolean> {
+    const result = await db.query(
+      'DELETE FROM campaign_assignments WHERE id = $1 RETURNING id',
+      [assignmentId]
+    );
+
+    return result.rows.length > 0;
   }
 
   /**
-   * Apply signature to user's Gmail account
+   * Get users affected by a campaign (based on assignments)
    */
-  async applySignatureToGmail(
-    userId: string,
-    serviceAccountKey: any,
-    adminEmail: string
-  ): Promise<void> {
-    try {
-      // Get user email
-      const userQuery = `SELECT email FROM organization_users WHERE id = $1`;
-      const userResult = await db.query(userQuery, [userId]);
-      const userEmail = userResult.rows[0]?.email;
+  async getCampaignAffectedUsers(
+    campaignId: string
+  ): Promise<{ userId: string; email: string; firstName: string; lastName: string }[]> {
+    const campaign = await this.getCampaign(campaignId) as SignatureCampaign;
+    if (!campaign) return [];
 
-      if (!userEmail) {
-        throw new Error('User not found');
-      }
+    const assignments = await this.getCampaignAssignments(campaignId);
+    if (assignments.length === 0) return [];
 
-      // Build signature HTML
-      const signatureHtml = await this.buildUserSignature(userId);
+    const userIds = new Set<string>();
+    const users: { userId: string; email: string; firstName: string; lastName: string }[] = [];
 
-      if (!signatureHtml) {
-        throw new Error('Could not build signature');
-      }
-
-      // Initialize Gmail API with domain-wide delegation
-      const auth = new google.auth.JWT({
-        email: serviceAccountKey.client_email,
-        key: serviceAccountKey.private_key,
-        scopes: ['https://www.googleapis.com/auth/gmail.settings.basic'],
-        subject: userEmail // Impersonate this user
-      });
-
-      const gmail = google.gmail({ version: 'v1', auth });
-
-      // Get current signatures
-      const signaturesResponse = await gmail.users.settings.sendAs.list({
-        userId: 'me'
-      });
-
-      const primaryAddress = signaturesResponse.data.sendAs?.find(
-        sendAs => sendAs.isPrimary
+    for (const assignment of assignments) {
+      const affectedUsers = await this.getAffectedUsersForAssignment(
+        campaign.organizationId,
+        assignment.assignmentType,
+        assignment.targetId,
+        assignment.targetValue
       );
 
-      if (primaryAddress) {
-        // Update the signature
-        await gmail.users.settings.sendAs.update({
-          userId: 'me',
-          sendAsEmail: primaryAddress.sendAsEmail!,
-          requestBody: {
-            signature: signatureHtml
-          }
-        });
-
-        // Log the successful update
-        await this.logSignatureUpdate(userId, 'applied');
-      }
-    } catch (error) {
-      console.error(`Failed to apply signature for user ${userId}:`, error);
-      await this.logSignatureUpdate(userId, 'failed', error instanceof Error ? error.message : 'Unknown error');
-      throw error;
-    }
-  }
-
-  /**
-   * Log signature update status
-   */
-  private async logSignatureUpdate(
-    userId: string,
-    status: 'applied' | 'failed',
-    error?: string
-  ): Promise<void> {
-    const query = `
-      UPDATE user_signature_assignments
-      SET
-        last_applied_at = CURRENT_TIMESTAMP,
-        apply_status = $1,
-        apply_error = $2
-      WHERE user_id = $3
-    `;
-
-    await db.query(query, [status, error, userId]);
-  }
-
-  /**
-   * Sync signatures for all users in organization
-   */
-  async syncOrganizationSignatures(
-    organizationId: string,
-    serviceAccountKey: any,
-    adminEmail: string,
-    syncType: 'scheduled' | 'manual' | 'campaign_launch' = 'manual',
-    triggeredBy?: string
-  ): Promise<void> {
-    // Create sync log entry
-    const logQuery = `
-      INSERT INTO signature_sync_logs (
-        organization_id, sync_type, triggered_by
-      ) VALUES ($1, $2, $3)
-      RETURNING id
-    `;
-
-    const logResult = await db.query(logQuery, [organizationId, syncType, triggeredBy]);
-    const syncLogId = logResult.rows[0].id;
-
-    try {
-      // Get all active users
-      const usersQuery = `
-        SELECT id FROM organization_users
-        WHERE organization_id = $1 AND is_active = true
-      `;
-
-      const usersResult = await db.query(usersQuery, [organizationId]);
-      const users = usersResult.rows;
-
-      let succeeded = 0;
-      let failed = 0;
-      const errors: any[] = [];
-
-      // Process users in batches to avoid rate limits
-      const batchSize = 10;
-      for (let i = 0; i < users.length; i += batchSize) {
-        const batch = users.slice(i, i + batchSize);
-
-        await Promise.all(
-          batch.map(async (user: any) => {
-            try {
-              await this.applySignatureToGmail(user.id, serviceAccountKey, adminEmail);
-              succeeded++;
-            } catch (error) {
-              failed++;
-              errors.push({
-                userId: user.id,
-                error: error instanceof Error ? error.message : 'Unknown error'
-              });
-            }
-          })
-        );
-
-        // Add delay between batches to respect rate limits
-        if (i + batchSize < users.length) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+      for (const user of affectedUsers) {
+        if (!userIds.has(user.userId)) {
+          userIds.add(user.userId);
+          users.push(user);
         }
       }
+    }
 
-      // Update sync log
-      const updateLogQuery = `
-        UPDATE signature_sync_logs
-        SET
-          completed_at = CURRENT_TIMESTAMP,
-          users_processed = $1,
-          users_succeeded = $2,
-          users_failed = $3,
-          detailed_errors = $4
-        WHERE id = $5
-      `;
+    return users;
+  }
 
-      await db.query(updateLogQuery, [
-        users.length,
-        succeeded,
-        failed,
-        JSON.stringify(errors),
-        syncLogId
-      ]);
-    } catch (error) {
-      // Update sync log with error
-      const updateLogQuery = `
-        UPDATE signature_sync_logs
-        SET
-          completed_at = CURRENT_TIMESTAMP,
-          error_summary = $1
-        WHERE id = $2
-      `;
+  private async getAffectedUsersForAssignment(
+    organizationId: string,
+    assignmentType: CampaignAssignment['assignmentType'],
+    targetId?: string,
+    targetValue?: string
+  ): Promise<{ userId: string; email: string; firstName: string; lastName: string }[]> {
+    let query: string;
+    const values: unknown[] = [organizationId];
 
-      await db.query(updateLogQuery, [
-        error instanceof Error ? error.message : 'Sync failed',
-        syncLogId
-      ]);
+    switch (assignmentType) {
+      case 'user':
+        if (!targetId) return [];
+        query = `
+          SELECT id AS user_id, email, first_name, last_name
+          FROM organization_users
+          WHERE id = $2 AND organization_id = $1 AND is_active = true
+        `;
+        values.push(targetId);
+        break;
 
-      throw error;
+      case 'group':
+      case 'dynamic_group':
+        if (!targetId) return [];
+        query = `
+          SELECT ou.id AS user_id, ou.email, ou.first_name, ou.last_name
+          FROM organization_users ou
+          JOIN access_group_members agm ON agm.user_id = ou.id AND agm.is_active = true
+          WHERE agm.access_group_id = $2 AND ou.organization_id = $1 AND ou.is_active = true
+        `;
+        values.push(targetId);
+        break;
+
+      case 'department':
+        if (!targetId) return [];
+        query = `
+          SELECT id AS user_id, email, first_name, last_name
+          FROM organization_users
+          WHERE department_id = $2 AND organization_id = $1 AND is_active = true
+        `;
+        values.push(targetId);
+        break;
+
+      case 'ou':
+        if (!targetValue) return [];
+        query = `
+          SELECT ou.id AS user_id, ou.email, ou.first_name, ou.last_name
+          FROM organization_users ou
+          JOIN gw_synced_users gsu ON gsu.email = ou.email AND gsu.organization_id = ou.organization_id
+          WHERE gsu.org_unit_path = $2 AND ou.organization_id = $1 AND ou.is_active = true
+        `;
+        values.push(targetValue);
+        break;
+
+      case 'organization':
+        query = `
+          SELECT id AS user_id, email, first_name, last_name
+          FROM organization_users
+          WHERE organization_id = $1 AND is_active = true
+        `;
+        break;
+
+      default:
+        return [];
+    }
+
+    const result = await db.query(query, values);
+    return result.rows.map((row: {
+      user_id: string;
+      email: string;
+      first_name: string;
+      last_name: string;
+    }) => ({
+      userId: row.user_id,
+      email: row.email,
+      firstName: row.first_name,
+      lastName: row.last_name,
+    }));
+  }
+
+  // ==========================================
+  // CAMPAIGN ANALYTICS
+  // ==========================================
+
+  /**
+   * Get campaign statistics
+   */
+  async getCampaignStats(campaignId: string): Promise<CampaignStats> {
+    const result = await db.query(
+      'SELECT * FROM get_campaign_stats($1)',
+      [campaignId]
+    );
+
+    const row = result.rows[0] || {};
+    return {
+      totalOpens: row.total_opens || 0,
+      uniqueOpens: row.unique_opens || 0,
+      uniqueRecipients: row.unique_recipients || 0,
+      topPerformerUserId: row.top_performer_user_id,
+      topPerformerOpens: row.top_performer_opens,
+    };
+  }
+
+  /**
+   * Get opens by day for a campaign
+   */
+  async getCampaignOpensByDay(
+    campaignId: string,
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<{ day: Date; totalOpens: number; uniqueOpens: number }[]> {
+    const result = await db.query(
+      'SELECT * FROM get_campaign_opens_by_day($1, $2, $3)',
+      [campaignId, startDate || null, endDate || null]
+    );
+
+    return result.rows.map((row: {
+      day: Date;
+      total_opens: number;
+      unique_opens: number;
+    }) => ({
+      day: row.day,
+      totalOpens: row.total_opens,
+      uniqueOpens: row.unique_opens,
+    }));
+  }
+
+  /**
+   * Get geographic distribution for a campaign
+   */
+  async getCampaignGeoDistribution(
+    campaignId: string
+  ): Promise<{ countryCode: string; opens: number; percentage: number }[]> {
+    const result = await db.query(
+      'SELECT * FROM get_campaign_geo_distribution($1)',
+      [campaignId]
+    );
+
+    return result.rows.map((row: {
+      country_code: string;
+      opens: number;
+      percentage: number;
+    }) => ({
+      countryCode: row.country_code,
+      opens: row.opens,
+      percentage: row.percentage,
+    }));
+  }
+
+  // ==========================================
+  // SCHEDULER HELPERS
+  // ==========================================
+
+  /**
+   * Get campaigns that should be activated (start date reached)
+   */
+  async getCampaignsToActivate(): Promise<SignatureCampaign[]> {
+    const result = await db.query(
+      `SELECT * FROM signature_campaigns
+       WHERE status = 'scheduled'
+         AND start_date <= NOW()
+         AND end_date > NOW()`
+    );
+
+    return result.rows.map((row: CampaignRow) => this.mapRowToCampaign(row));
+  }
+
+  /**
+   * Get campaigns that should be completed (end date reached)
+   */
+  async getCampaignsToComplete(): Promise<SignatureCampaign[]> {
+    const result = await db.query(
+      `SELECT * FROM signature_campaigns
+       WHERE status = 'active'
+         AND end_date <= NOW()`
+    );
+
+    return result.rows.map((row: CampaignRow) => this.mapRowToCampaign(row));
+  }
+
+  // ==========================================
+  // ACTIVE CAMPAIGN RESOLUTION
+  // ==========================================
+
+  /**
+   * Get the active campaign for a user (if any)
+   */
+  async getActiveCampaignForUser(
+    userId: string,
+    organizationId: string
+  ): Promise<SignatureCampaign | null> {
+    // Get active campaigns for the organization
+    const campaigns = await this.getCampaigns(organizationId, { status: 'active' }) as SignatureCampaign[];
+
+    for (const campaign of campaigns) {
+      const assignments = await this.getCampaignAssignments(campaign.id);
+
+      // Check if user matches any assignment
+      for (const assignment of assignments) {
+        const matches = await this.userMatchesAssignment(userId, organizationId, assignment);
+        if (matches) {
+          return campaign;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private async userMatchesAssignment(
+    userId: string,
+    _organizationId: string,
+    assignment: CampaignAssignment
+  ): Promise<boolean> {
+    switch (assignment.assignmentType) {
+      case 'user':
+        return assignment.targetId === userId;
+
+      case 'group':
+      case 'dynamic_group':
+        if (!assignment.targetId) return false;
+        const groupResult = await db.query(
+          `SELECT 1 FROM access_group_members
+           WHERE access_group_id = $1 AND user_id = $2 AND is_active = true`,
+          [assignment.targetId, userId]
+        );
+        return groupResult.rows.length > 0;
+
+      case 'department':
+        if (!assignment.targetId) return false;
+        const deptResult = await db.query(
+          `SELECT 1 FROM organization_users
+           WHERE id = $1 AND department_id = $2`,
+          [userId, assignment.targetId]
+        );
+        return deptResult.rows.length > 0;
+
+      case 'ou':
+        if (!assignment.targetValue) return false;
+        const ouResult = await db.query(
+          `SELECT 1 FROM organization_users ou
+           JOIN gw_synced_users gsu ON gsu.email = ou.email AND gsu.organization_id = ou.organization_id
+           WHERE ou.id = $1 AND gsu.org_unit_path = $2`,
+          [userId, assignment.targetValue]
+        );
+        return ouResult.rows.length > 0;
+
+      case 'organization':
+        // Organization assignment matches all users
+        return true;
+
+      default:
+        return false;
     }
   }
 
-  /**
-   * Approve a campaign
-   */
-  async approveCampaign(
-    campaignId: string,
-    approvedBy: string,
-    notes?: string
-  ): Promise<void> {
-    const query = `
-      UPDATE signature_campaigns
-      SET
-        status = 'approved',
-        approved_by = $1,
-        approved_at = CURRENT_TIMESTAMP,
-        approval_notes = $2
-      WHERE id = $3
-    `;
+  // ==========================================
+  // PRIVATE HELPERS
+  // ==========================================
 
-    await db.query(query, [approvedBy, notes, campaignId]);
+  private mapRowToCampaign(row: CampaignRow): SignatureCampaign {
+    return {
+      id: row.id,
+      organizationId: row.organization_id,
+      name: row.name,
+      description: row.description || undefined,
+      templateId: row.template_id,
+      bannerUrl: row.banner_url || undefined,
+      bannerLink: row.banner_link || undefined,
+      bannerAltText: row.banner_alt_text || undefined,
+      startDate: row.start_date,
+      endDate: row.end_date,
+      timezone: row.timezone,
+      trackingEnabled: row.tracking_enabled,
+      trackingOptions: {
+        opens: row.tracking_options?.opens ?? true,
+        unique: row.tracking_options?.unique ?? true,
+        geo: row.tracking_options?.geo ?? true,
+      },
+      status: row.status,
+      autoRevert: row.auto_revert,
+      createdBy: row.created_by || undefined,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      launchedAt: row.launched_at || undefined,
+      completedAt: row.completed_at || undefined,
+    };
   }
 
-  /**
-   * Launch a campaign (make it active)
-   */
-  async launchCampaign(campaignId: string): Promise<void> {
-    const query = `
-      UPDATE signature_campaigns
-      SET status = 'active'
-      WHERE id = $1 AND status = 'approved'
-    `;
-
-    await db.query(query, [campaignId]);
-  }
-
-  /**
-   * Get campaign analytics
-   */
-  async getCampaignAnalytics(campaignId: string): Promise<any> {
-    const query = `
-      SELECT
-        c.*,
-        COUNT(DISTINCT usa.user_id) as total_users,
-        COUNT(DISTINCT CASE WHEN usa.apply_status = 'applied' THEN usa.user_id END) as users_applied,
-        COUNT(DISTINCT CASE WHEN usa.user_opted_out = true THEN usa.user_id END) as users_opted_out
-      FROM signature_campaigns c
-      LEFT JOIN user_signature_assignments usa ON c.id = usa.campaign_id
-      WHERE c.id = $1
-      GROUP BY c.id
-    `;
-
-    const result = await db.query(query, [campaignId]);
-    return result.rows[0];
-  }
-
-  /**
-   * Check if user has permission for signature management
-   */
-  async checkUserPermission(userId: string, permission: string): Promise<boolean> {
-    const query = `SELECT user_has_signature_permission($1, $2) as has_permission`;
-    const result = await db.query(query, [userId, permission]);
-    return result.rows[0]?.has_permission || false;
+  private mapRowToCampaignWithDetails(row: CampaignRowWithDetails): CampaignWithDetails {
+    return {
+      ...this.mapRowToCampaign(row),
+      templateName: row.template_name,
+      templateStatus: row.template_status,
+      createdByName: row.created_by_name || undefined,
+      createdByEmail: row.created_by_email || undefined,
+      assignmentCount: row.assignment_count,
+      enrolledUserCount: row.enrolled_user_count,
+    };
   }
 }
 
 export const signatureCampaignService = new SignatureCampaignService();
+export default signatureCampaignService;

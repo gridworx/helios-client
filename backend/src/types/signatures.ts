@@ -518,12 +518,18 @@ export function hasCapability(level: PermissionLevel, capability: string): boole
 // EFFECTIVE SIGNATURE (view result)
 // ==========================================
 
+export type EffectiveSignatureSource = AssignmentType | 'campaign';
+
 export interface UserEffectiveSignature {
   userId: string;
   organizationId: string;
   assignmentId: string;
   templateId: string;
-  source: AssignmentType;
+  source: EffectiveSignatureSource;
+  // Campaign banner overlay (only present when source is 'campaign')
+  bannerUrl?: string | null;
+  bannerLink?: string | null;
+  bannerAltText?: string | null;
 }
 
 // ==========================================

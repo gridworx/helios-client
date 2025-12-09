@@ -439,6 +439,49 @@ class SignatureTemplateService {
   }
 
   /**
+   * Render a template with user data and optional campaign banner overlay
+   */
+  async renderTemplateWithBanner(
+    templateId: string,
+    userId: string,
+    banner?: {
+      url?: string | null;
+      link?: string | null;
+      altText?: string | null;
+    }
+  ): Promise<RenderedSignature> {
+    // Get base signature
+    const signature = await this.renderTemplate(templateId, userId);
+
+    // Add campaign banner if provided
+    if (banner?.url) {
+      const bannerHtml = this.generateBannerHtml(banner.url, banner.link, banner.altText);
+      // Append banner below signature (standard position)
+      signature.html = signature.html + bannerHtml;
+    }
+
+    return signature;
+  }
+
+  /**
+   * Generate HTML for campaign banner
+   */
+  private generateBannerHtml(
+    imageUrl: string,
+    linkUrl?: string | null,
+    altText?: string | null
+  ): string {
+    const alt = altText || 'Campaign Banner';
+    const imgTag = `<img src="${imageUrl}" alt="${alt}" style="max-width: 100%; height: auto; display: block; margin-top: 16px;" />`;
+
+    if (linkUrl) {
+      return `<a href="${linkUrl}" target="_blank" rel="noopener noreferrer">${imgTag}</a>`;
+    }
+
+    return imgTag;
+  }
+
+  /**
    * Preview a template with sample or selected user data
    */
   async previewTemplate(

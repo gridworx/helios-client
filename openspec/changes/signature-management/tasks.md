@@ -196,29 +196,33 @@
 
 ### Backend Tasks
 
-- [ ] **TASK-SIG-023**: Create campaigns service
+- [x] **TASK-SIG-023**: Create campaigns service
   - CRUD operations for campaigns
   - Schedule management (start/end)
   - Audience resolution
   - File: `backend/src/services/signature-campaign.service.ts`
+  - **DONE**: Full service with getCampaigns, getCampaign, createCampaign, updateCampaign, deleteCampaign, launchCampaign, pauseCampaign, resumeCampaign, cancelCampaign, completeCampaign, getCampaignAssignments, addCampaignAssignment, removeCampaignAssignment, getCampaignAffectedUsers, getCampaignStats, getCampaignOpensByDay, getCampaignGeoDistribution, getCampaignsToActivate, getCampaignsToComplete, getActiveCampaignForUser
 
-- [ ] **TASK-SIG-024**: Create campaigns routes
+- [x] **TASK-SIG-024**: Create campaigns routes
   - GET/POST/PUT/DELETE /api/signatures/campaigns
   - POST /api/signatures/campaigns/:id/launch
   - POST /api/signatures/campaigns/:id/pause
   - POST /api/signatures/campaigns/:id/cancel
   - File: `backend/src/routes/signature-campaigns.routes.ts`
+  - **DONE**: Full REST API with CRUD, lifecycle actions (launch, pause, resume, cancel), assignments (GET/POST/DELETE), affected-users preview, stats, opens-by-day, geo-distribution
 
-- [ ] **TASK-SIG-025**: Create campaign scheduler job
+- [x] **TASK-SIG-025**: Create campaign scheduler job
   - Check for campaigns to start/end
   - Deploy campaign signatures at start
   - Revert to normal signatures at end
   - File: `backend/src/jobs/campaign-scheduler.job.ts`
+  - **DONE**: Campaign lifecycle job that activates scheduled campaigns, completes expired campaigns, triggers signature sync for affected users. Integrated into backend startup/shutdown.
 
-- [ ] **TASK-SIG-026**: Integrate campaigns with template resolution
+- [x] **TASK-SIG-026**: Integrate campaigns with template resolution
   - Active campaign overrides normal assignment
   - Handle campaign priority (if multiple)
-  - File: `backend/src/services/assignment-resolver.service.ts` (extend)
+  - File: Database view `user_effective_signatures` updated in migration 047
+  - **DONE**: Updated user_effective_signatures view to prioritize active campaigns over regular assignments. Campaigns now take highest priority. Added banner fields (banner_url, banner_link, banner_alt_text) to the view. Updated signature-assignment.service.ts and signature-sync.service.ts to handle campaign banners during rendering.
 
 ### Frontend Tasks
 

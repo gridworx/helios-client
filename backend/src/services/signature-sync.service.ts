@@ -129,14 +129,30 @@ class SignatureSyncService {
         };
       }
 
-      // Render template with user data
+      // Render template with user data (include campaign banner if applicable)
       let renderedHtml: string;
       try {
-        const renderResult = await signatureTemplateService.renderTemplate(
-          effectiveSignature.templateId,
-          userId
-        );
-        renderedHtml = renderResult.html;
+        // Check if this is from a campaign with a banner
+        const hasCampaignBanner = effectiveSignature.source === 'campaign' && effectiveSignature.bannerUrl;
+
+        if (hasCampaignBanner) {
+          const renderResult = await signatureTemplateService.renderTemplateWithBanner(
+            effectiveSignature.templateId,
+            userId,
+            {
+              url: effectiveSignature.bannerUrl,
+              link: effectiveSignature.bannerLink,
+              altText: effectiveSignature.bannerAltText,
+            }
+          );
+          renderedHtml = renderResult.html;
+        } else {
+          const renderResult = await signatureTemplateService.renderTemplate(
+            effectiveSignature.templateId,
+            userId
+          );
+          renderedHtml = renderResult.html;
+        }
       } catch (renderError: any) {
         await this.updateUserSyncStatus(userId, organizationId, {
           syncStatus: 'error',
