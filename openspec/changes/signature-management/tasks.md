@@ -1,0 +1,404 @@
+# Tasks: Email Signature Management
+
+## Phase 1: Database Foundation
+
+### Backend Tasks
+
+- [x] **TASK-SIG-001**: Create signature tables migration
+  - signature_templates table
+  - signature_assignments table
+  - user_signature_status table
+  - user_effective_signatures view (priority resolution)
+  - File: `database/migrations/044_create_signature_tables.sql`
+  - **DONE**: Tables created with triggers, indexes, and helper view
+
+- [x] **TASK-SIG-002**: Create campaign tables migration
+  - signature_campaigns table
+  - campaign_assignments table
+  - signature_tracking_pixels table
+  - signature_tracking_events table
+  - campaign_analytics_summary view
+  - Helper functions: get_campaign_stats, get_campaign_opens_by_day, get_campaign_geo_distribution
+  - File: `database/migrations/045_create_campaign_tables.sql`
+  - **DONE**: Tables created with analytics views and helper functions
+
+- [x] **TASK-SIG-003**: Create signature permissions table
+  - signature_permissions table with role levels (admin, designer, campaign_manager, helpdesk, viewer)
+  - signature_permission_audit table for audit logging
+  - Helper functions: user_has_signature_permission, get_user_signature_permission_level
+  - user_signature_permissions view
+  - File: `database/migrations/046_create_signature_permissions.sql`
+  - **DONE**: Tables created with audit triggers and helper functions
+
+## Phase 2: Template Management
+
+### Backend Tasks
+
+- [ ] **TASK-SIG-004**: Create signature templates service
+  - CRUD operations for templates
+  - Merge field parsing and validation
+  - Template rendering with user data
+  - File: `backend/src/services/signature-template.service.ts`
+
+- [ ] **TASK-SIG-005**: Create signature templates routes
+  - GET/POST/PUT/DELETE /api/signatures/templates
+  - POST /api/signatures/templates/:id/preview
+  - POST /api/signatures/templates/:id/clone
+  - File: `backend/src/routes/signature-templates.routes.ts`
+
+- [ ] **TASK-SIG-006**: Implement merge field system
+  - Define available merge fields
+  - Map fields to database columns
+  - Handle missing/null values gracefully
+  - File: `backend/src/services/merge-fields.service.ts`
+
+### Frontend Tasks
+
+- [ ] **TASK-SIG-007**: Create SignatureTemplates list page
+  - Table with template name, status, assignments
+  - Create, edit, delete actions
+  - Filter by status (draft, active, archived)
+  - File: `frontend/src/pages/admin/SignatureTemplates.tsx`
+
+- [ ] **TASK-SIG-008**: Create TemplateEditor component
+  - Rich text editor for HTML signature
+  - Merge field insertion toolbar
+  - Live preview panel
+  - File: `frontend/src/components/signatures/TemplateEditor.tsx`
+
+- [ ] **TASK-SIG-009**: Create MergeFieldPicker component
+  - Dropdown/palette of available fields
+  - Field descriptions and examples
+  - Insert at cursor position
+  - File: `frontend/src/components/signatures/MergeFieldPicker.tsx`
+
+- [ ] **TASK-SIG-010**: Create TemplatePreview component
+  - Render template with selected user's data
+  - User selector dropdown
+  - Show both HTML and plain text versions
+  - File: `frontend/src/components/signatures/TemplatePreview.tsx`
+
+## Phase 3: Assignment System
+
+### Backend Tasks
+
+- [ ] **TASK-SIG-011**: Create signature assignments service
+  - CRUD for assignments
+  - Resolve effective template for user (priority logic)
+  - Preview affected users
+  - File: `backend/src/services/signature-assignment.service.ts`
+
+- [ ] **TASK-SIG-012**: Create signature assignments routes
+  - GET/POST/PUT/DELETE /api/signatures/assignments
+  - GET /api/signatures/assignments/preview
+  - GET /api/signatures/user/:id/effective - get user's effective template
+  - File: `backend/src/routes/signature-assignments.routes.ts`
+
+- [ ] **TASK-SIG-013**: Implement assignment priority resolver
+  - Direct user > Dynamic group > Static group > Department > OU > Default
+  - Handle multiple assignments at same level
+  - Cache resolved assignments
+  - File: `backend/src/services/assignment-resolver.service.ts`
+
+### Frontend Tasks
+
+- [ ] **TASK-SIG-014**: Create AssignmentManager component
+  - Assignment method radio buttons
+  - Department/OU/Group/User selectors
+  - Checkbox-based multi-select
+  - File: `frontend/src/components/signatures/AssignmentManager.tsx`
+
+- [ ] **TASK-SIG-015**: Create AssignmentPreview component
+  - Show list of affected users
+  - Count by assignment source
+  - Search/filter affected users
+  - File: `frontend/src/components/signatures/AssignmentPreview.tsx`
+
+- [ ] **TASK-SIG-016**: Create UserSignatureStatus component
+  - Show user's current signature
+  - Assignment source indicator
+  - Re-sync button
+  - File: `frontend/src/components/signatures/UserSignatureStatus.tsx`
+
+## Phase 4: Google Workspace Sync
+
+### Backend Tasks
+
+- [ ] **TASK-SIG-017**: Extend GoogleWorkspaceService for signatures
+  - setUserSignature method
+  - getUserSignature method
+  - Batch signature updates
+  - File: `backend/src/services/google-workspace.service.ts`
+
+- [ ] **TASK-SIG-018**: Create signature sync service
+  - Queue-based deployment
+  - Retry logic for failures
+  - Status tracking per user
+  - File: `backend/src/services/signature-sync.service.ts`
+
+- [ ] **TASK-SIG-019**: Create signature deployment routes
+  - POST /api/signatures/deploy (all pending)
+  - POST /api/signatures/deploy/user/:id (single user)
+  - GET /api/signatures/status
+  - File: `backend/src/routes/signature-sync.routes.ts`
+
+- [ ] **TASK-SIG-020**: Add signature sync to scheduled jobs
+  - Periodic sync check
+  - Detect external changes
+  - Auto-deploy on assignment changes
+  - File: `backend/src/jobs/signature-sync.job.ts`
+
+### Frontend Tasks
+
+- [ ] **TASK-SIG-021**: Create DeploymentStatus component
+  - Overall sync status summary
+  - Users pending/synced/failed counts
+  - Deploy all button
+  - File: `frontend/src/components/signatures/DeploymentStatus.tsx`
+
+- [ ] **TASK-SIG-022**: Create UserSyncStatus table
+  - List of users with sync status
+  - Last synced timestamp
+  - Error messages for failures
+  - Individual re-sync action
+  - File: `frontend/src/components/signatures/UserSyncStatus.tsx`
+
+## Phase 5: Campaign System
+
+### Backend Tasks
+
+- [ ] **TASK-SIG-023**: Create campaigns service
+  - CRUD operations for campaigns
+  - Schedule management (start/end)
+  - Audience resolution
+  - File: `backend/src/services/signature-campaign.service.ts`
+
+- [ ] **TASK-SIG-024**: Create campaigns routes
+  - GET/POST/PUT/DELETE /api/signatures/campaigns
+  - POST /api/signatures/campaigns/:id/launch
+  - POST /api/signatures/campaigns/:id/pause
+  - POST /api/signatures/campaigns/:id/cancel
+  - File: `backend/src/routes/signature-campaigns.routes.ts`
+
+- [ ] **TASK-SIG-025**: Create campaign scheduler job
+  - Check for campaigns to start/end
+  - Deploy campaign signatures at start
+  - Revert to normal signatures at end
+  - File: `backend/src/jobs/campaign-scheduler.job.ts`
+
+- [ ] **TASK-SIG-026**: Integrate campaigns with template resolution
+  - Active campaign overrides normal assignment
+  - Handle campaign priority (if multiple)
+  - File: `backend/src/services/assignment-resolver.service.ts` (extend)
+
+### Frontend Tasks
+
+- [ ] **TASK-SIG-027**: Create CampaignsList page
+  - Table with campaign name, status, dates
+  - Status badges (draft, scheduled, active, completed)
+  - Quick actions (launch, pause, view analytics)
+  - File: `frontend/src/pages/admin/SignatureCampaigns.tsx`
+
+- [ ] **TASK-SIG-028**: Create CampaignEditor component
+  - Campaign details form
+  - Schedule picker with timezone
+  - Template and banner selection
+  - Audience assignment (reuse AssignmentManager)
+  - File: `frontend/src/components/signatures/CampaignEditor.tsx`
+
+- [ ] **TASK-SIG-029**: Create CampaignBannerUploader component
+  - Drag-drop image upload
+  - Preview at correct dimensions
+  - Upload to MinIO
+  - File: `frontend/src/components/signatures/CampaignBannerUploader.tsx`
+
+## Phase 6: Tracking System
+
+### Backend Tasks
+
+- [ ] **TASK-SIG-030**: Create tracking pixel service
+  - Generate unique pixel tokens
+  - Encode/decode pixel URLs
+  - File: `backend/src/services/tracking-pixel.service.ts`
+
+- [ ] **TASK-SIG-031**: Create tracking pixel endpoint
+  - GET /api/t/p/:token.gif (public, no auth)
+  - Log tracking event
+  - Return 1x1 transparent GIF
+  - Rate limiting to prevent abuse
+  - File: `backend/src/routes/tracking.routes.ts`
+
+- [ ] **TASK-SIG-032**: Create tracking events service
+  - Record tracking events
+  - IP hashing for privacy
+  - GeoIP lookup (optional)
+  - Unique detection logic
+  - File: `backend/src/services/tracking-events.service.ts`
+
+- [ ] **TASK-SIG-033**: Create campaign analytics service
+  - Aggregate tracking data
+  - Calculate open rates
+  - Top performers
+  - Geographic distribution
+  - Time series data
+  - File: `backend/src/services/campaign-analytics.service.ts`
+
+- [ ] **TASK-SIG-034**: Create analytics routes
+  - GET /api/signatures/campaigns/:id/analytics
+  - GET /api/signatures/campaigns/:id/analytics/export
+  - File: `backend/src/routes/signature-campaigns.routes.ts` (extend)
+
+### Frontend Tasks
+
+- [ ] **TASK-SIG-035**: Create CampaignAnalytics page
+  - Summary stats cards (opens, unique, rate)
+  - Time series chart
+  - Top performers table
+  - Geographic distribution
+  - File: `frontend/src/pages/admin/CampaignAnalytics.tsx`
+
+- [ ] **TASK-SIG-036**: Create analytics chart components
+  - OpensOverTimeChart (line chart)
+  - GeographicDistribution (bar or map)
+  - TopPerformersTable
+  - File: `frontend/src/components/signatures/analytics/*.tsx`
+
+## Phase 7: Permissions
+
+### Backend Tasks
+
+- [ ] **TASK-SIG-037**: Create signature permissions service
+  - Check user permission level
+  - Grant/revoke permissions
+  - File: `backend/src/services/signature-permissions.service.ts`
+
+- [ ] **TASK-SIG-038**: Add permission middleware
+  - requireSignaturePermission middleware
+  - Apply to all signature routes
+  - File: `backend/src/middleware/signature-auth.ts`
+
+- [ ] **TASK-SIG-039**: Create permissions routes
+  - GET /api/signatures/permissions
+  - POST /api/signatures/permissions
+  - DELETE /api/signatures/permissions/:userId
+  - File: `backend/src/routes/signature-permissions.routes.ts`
+
+### Frontend Tasks
+
+- [ ] **TASK-SIG-040**: Create SignaturePermissions page
+  - List users with permission levels
+  - Add/remove permissions
+  - Role level selector
+  - File: `frontend/src/pages/admin/SignaturePermissions.tsx`
+
+- [ ] **TASK-SIG-041**: Add permission checks to UI
+  - Hide/disable features based on permission
+  - Show appropriate empty states
+  - File: Update all signature components
+
+## Phase 8: Navigation & Polish
+
+### Frontend Tasks
+
+- [ ] **TASK-SIG-042**: Add Signatures section to admin navigation
+  - Templates, Campaigns, Permissions sub-items
+  - Deployment status indicator
+  - File: `frontend/src/components/navigation/AdminNavigation.tsx`
+
+- [ ] **TASK-SIG-043**: Create SignatureDashboard overview page
+  - Quick stats (active templates, campaigns, sync status)
+  - Recent activity
+  - Quick actions
+  - File: `frontend/src/pages/admin/SignatureDashboard.tsx`
+
+- [ ] **TASK-SIG-044**: Add signature status to user detail page
+  - Show user's current signature
+  - Assignment source
+  - Active campaign (if any)
+  - Re-sync action
+  - File: `frontend/src/pages/admin/UserDetail.tsx` (extend)
+
+## Testing Tasks
+
+- [ ] **TASK-SIG-T01**: Unit tests for template service
+  - CRUD operations
+  - Merge field parsing
+  - Template rendering
+  - File: `backend/src/__tests__/signature-template.service.test.ts`
+
+- [ ] **TASK-SIG-T02**: Unit tests for assignment resolver
+  - Priority resolution
+  - Edge cases (no assignment, multiple matches)
+  - File: `backend/src/__tests__/assignment-resolver.service.test.ts`
+
+- [ ] **TASK-SIG-T03**: Unit tests for tracking service
+  - Pixel generation
+  - Event logging
+  - Analytics aggregation
+  - File: `backend/src/__tests__/tracking.service.test.ts`
+
+- [ ] **TASK-SIG-T04**: E2E tests for template management
+  - Create, edit, delete templates
+  - Preview with user data
+  - File: `e2e/tests/signature-templates.spec.ts`
+
+- [ ] **TASK-SIG-T05**: E2E tests for campaigns
+  - Create campaign, set audience
+  - Launch and verify override
+  - View analytics
+  - File: `e2e/tests/signature-campaigns.spec.ts`
+
+## Estimated Effort
+
+| Phase | Tasks | Effort |
+|-------|-------|--------|
+| Phase 1: Database | 3 tasks | 0.5 day |
+| Phase 2: Templates | 7 tasks | 2-3 days |
+| Phase 3: Assignments | 6 tasks | 2 days |
+| Phase 4: Google Sync | 6 tasks | 2-3 days |
+| Phase 5: Campaigns | 7 tasks | 2-3 days |
+| Phase 6: Tracking | 7 tasks | 2-3 days |
+| Phase 7: Permissions | 5 tasks | 1-2 days |
+| Phase 8: Navigation | 3 tasks | 1 day |
+| Testing | 5 tasks | 2 days |
+
+**Total: ~15-20 days**
+
+## Dependencies
+
+```
+Phase 1 (Database)
+  └── Phase 2 (Templates)
+       └── Phase 3 (Assignments)
+            └── Phase 4 (Google Sync)
+
+Phase 2 (Templates)
+  └── Phase 5 (Campaigns)
+       └── Phase 6 (Tracking)
+
+Phase 1 (Database)
+  └── Phase 7 (Permissions)
+
+All phases complete
+  └── Phase 8 (Navigation)
+  └── Testing
+```
+
+## Implementation Notes
+
+### MinIO Usage
+- Store template assets (logos, icons) at: `signatures/assets/{org_id}/{filename}`
+- Store campaign banners at: `signatures/campaigns/{campaign_id}/{filename}`
+- Generate presigned URLs for signature images (1 hour expiry, auto-refresh)
+
+### Tracking Pixel
+- Pixel endpoint MUST be public (no auth) - recipient's email client fetches it
+- Keep pixel response minimal (43 bytes for 1x1 transparent GIF)
+- Rate limit by IP to prevent DoS
+- Don't store recipient email (privacy) - only hash IP for uniqueness
+
+### Performance
+- Cache resolved assignments (invalidate on change)
+- Batch Google API calls where possible
+- Use background jobs for bulk operations
+- Index tracking_events by campaign_id for fast analytics
