@@ -46,12 +46,14 @@ import { SignatureSchedulerService } from './services/signature-scheduler.servic
 import { cacheService } from './services/cache.service';
 import { activityTracker } from './services/activity-tracker.service';
 import { initializeBulkOperationsGateway } from './websocket/bulk-operations.gateway';
+import { startScheduledActionProcessor, stopScheduledActionProcessor } from './jobs/scheduled-action-processor';
 
 import transparentProxyRouter from './middleware/transparent-proxy';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 import assetProxyRoutes from './routes/asset-proxy.routes';
 import assetsRoutes from './routes/assets.routes';
+import lifecycleRoutes from './routes/lifecycle.routes';
 const app = express();
 const httpServer = createServer(app);
 const PORT = process.env['PORT'] || 3001;
@@ -434,6 +436,7 @@ app.use('/api/bulk', bulkOperationsRoutes);
 app.use('/api/google-workspace', GoogleWorkspaceRoutes);
 app.use('/api/modules', modulesRoutes);
 app.use('/api/assets', assetsRoutes);
+app.use('/api/lifecycle', lifecycleRoutes);
 // Transparent Proxy for Google Workspace APIs (must be before catch-all)
 app.use(transparentProxyRouter);
 
@@ -537,6 +540,20 @@ async function startServer(): Promise<void> {
     initializeBulkOperationsGateway(httpServer);
     logger.info('🔌 WebSocket gateway initialized for bulk operations');
 
+    // Start scheduled action processor for user lifecycle
+    const scheduledActionsEnabled = process.env['SCHEDULED_ACTIONS_ENABLED'] !== 'false';
+    if (scheduledActionsEnabled) {
+      startScheduledActionProcessor({
+        enabled: true,
+        intervalMs: parseInt(process.env['SCHEDULED_ACTIONS_INTERVAL_MS'] || '60000'), // 1 minute default
+        batchSize: parseInt(process.env['SCHEDULED_ACTIONS_BATCH_SIZE'] || '10'),
+        maxRetries: parseInt(process.env['SCHEDULED_ACTIONS_MAX_RETRIES'] || '3')
+      });
+      logger.info('📅 Scheduled action processor started');
+    } else {
+      logger.info('📅 Scheduled action processor disabled');
+    }
+
     // Start server (use httpServer instead of app.listen for WebSocket support)
     httpServer.listen(PORT, () => {
       logger.info(`🚀 Helios Platform Backend running on port ${PORT}`);
@@ -555,12 +572,14 @@ async function startServer(): Promise<void> {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully');
+  stopScheduledActionProcessor();
   await db.close();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   logger.info('SIGINT received, shutting down gracefully');
+  stopScheduledActionProcessor();
   await db.close();
   process.exit(0);
 });

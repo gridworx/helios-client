@@ -1596,6 +1596,662 @@ export class GoogleWorkspaceService {
     }
   }
 
+  // ==========================================
+  // USER LIFECYCLE METHODS
+  // ==========================================
+
+  /**
+   * Create a new user in Google Workspace
+   * Used during onboarding to provision new accounts
+   */
+  async createUser(
+    organizationId: string,
+    userData: {
+      email: string;
+      firstName: string;
+      lastName: string;
+      password: string;
+      orgUnitPath?: string;
+      jobTitle?: string;
+      department?: string;
+      managerEmail?: string;
+      phones?: { type: string; value: string }[];
+      changePasswordAtNextLogin?: boolean;
+    }
+  ): Promise<{ success: boolean; userId?: string; error?: string }> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        return { success: false, error: 'Google Workspace not configured' };
+      }
+
+      const adminEmail = await this.getAdminEmail(organizationId);
+      if (!adminEmail) {
+        return { success: false, error: 'Admin email not configured' };
+      }
+
+      const jwtClient = new JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: ['https://www.googleapis.com/auth/admin.directory.user'],
+        subject: adminEmail
+      });
+
+      const admin = google.admin({ version: 'directory_v1', auth: jwtClient });
+
+      // Build request body
+      const requestBody: any = {
+        primaryEmail: userData.email,
+        name: {
+          givenName: userData.firstName,
+          familyName: userData.lastName
+        },
+        password: userData.password,
+        changePasswordAtNextLogin: userData.changePasswordAtNextLogin !== false // Default to true
+      };
+
+      // Set org unit path
+      if (userData.orgUnitPath) {
+        requestBody.orgUnitPath = userData.orgUnitPath;
+      }
+
+      // Set organization info
+      if (userData.jobTitle || userData.department) {
+        requestBody.organizations = [{
+          title: userData.jobTitle || '',
+          department: userData.department || '',
+          primary: true
+        }];
+      }
+
+      // Set manager relationship
+      if (userData.managerEmail) {
+        requestBody.relations = [{
+          value: userData.managerEmail,
+          type: 'manager'
+        }];
+      }
+
+      // Set phone numbers
+      if (userData.phones && userData.phones.length > 0) {
+        requestBody.phones = userData.phones.map(phone => ({
+          value: phone.value,
+          type: phone.type === 'mobile' ? 'mobile' : 'work',
+          primary: phone.type === 'work'
+        }));
+      }
+
+      // Create the user
+      const response = await admin.users.insert({
+        requestBody
+      });
+
+      logger.info('User created in Google Workspace', {
+        organizationId,
+        email: userData.email,
+        userId: response.data.id
+      });
+
+      return {
+        success: true,
+        userId: response.data.id || undefined
+      };
+    } catch (error: any) {
+      logger.error('Failed to create user in Google Workspace', {
+        organizationId,
+        email: userData.email,
+        error: error.message
+      });
+
+      // Provide helpful error messages
+      let errorMessage = error.message;
+      if (error.message?.includes('Entity already exists')) {
+        errorMessage = 'A user with this email already exists in Google Workspace';
+      } else if (error.message?.includes('Invalid Ou')) {
+        errorMessage = 'Invalid organizational unit path';
+      } else if (error.message?.includes('Invalid Input')) {
+        errorMessage = 'Invalid user data provided';
+      }
+
+      return { success: false, error: errorMessage };
+    }
+  }
+
+  /**
+   * Set or change a user's organizational unit
+   */
+  async setOrgUnit(
+    organizationId: string,
+    googleWorkspaceId: string,
+    orgUnitPath: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        return { success: false, error: 'Google Workspace not configured' };
+      }
+
+      const adminEmail = await this.getAdminEmail(organizationId);
+      if (!adminEmail) {
+        return { success: false, error: 'Admin email not configured' };
+      }
+
+      const jwtClient = new JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: ['https://www.googleapis.com/auth/admin.directory.user'],
+        subject: adminEmail
+      });
+
+      const admin = google.admin({ version: 'directory_v1', auth: jwtClient });
+
+      await admin.users.update({
+        userKey: googleWorkspaceId,
+        requestBody: {
+          orgUnitPath
+        }
+      });
+
+      logger.info('User org unit updated in Google Workspace', {
+        googleWorkspaceId,
+        orgUnitPath
+      });
+
+      return { success: true };
+    } catch (error: any) {
+      logger.error('Failed to set org unit in Google Workspace', {
+        googleWorkspaceId,
+        orgUnitPath,
+        error: error.message
+      });
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Sign out user from all devices and revoke application tokens
+   * Used during offboarding to ensure immediate access revocation
+   */
+  async signOutAllDevices(
+    organizationId: string,
+    googleWorkspaceId: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        return { success: false, error: 'Google Workspace not configured' };
+      }
+
+      const adminEmail = await this.getAdminEmail(organizationId);
+      if (!adminEmail) {
+        return { success: false, error: 'Admin email not configured' };
+      }
+
+      const jwtClient = new JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: ['https://www.googleapis.com/auth/admin.directory.user.security'],
+        subject: adminEmail
+      });
+
+      const admin = google.admin({ version: 'directory_v1', auth: jwtClient });
+
+      // Sign out from all web and device sessions
+      await admin.users.signOut({
+        userKey: googleWorkspaceId
+      });
+
+      logger.info('User signed out from all devices', { googleWorkspaceId });
+
+      return { success: true };
+    } catch (error: any) {
+      logger.error('Failed to sign out user from all devices', {
+        googleWorkspaceId,
+        error: error.message
+      });
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Revoke all OAuth tokens for a user
+   * This revokes all third-party app access
+   */
+  async revokeOAuthTokens(
+    organizationId: string,
+    userEmail: string
+  ): Promise<{ success: boolean; revokedCount?: number; error?: string }> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        return { success: false, error: 'Google Workspace not configured' };
+      }
+
+      const adminEmail = await this.getAdminEmail(organizationId);
+      if (!adminEmail) {
+        return { success: false, error: 'Admin email not configured' };
+      }
+
+      const jwtClient = new JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: ['https://www.googleapis.com/auth/admin.directory.user.security'],
+        subject: adminEmail
+      });
+
+      const admin = google.admin({ version: 'directory_v1', auth: jwtClient });
+
+      // Get list of tokens
+      const tokensResponse = await admin.tokens.list({
+        userKey: userEmail
+      });
+
+      const tokens = tokensResponse.data.items || [];
+      let revokedCount = 0;
+
+      // Revoke each token
+      for (const token of tokens) {
+        if (token.clientId) {
+          try {
+            await admin.tokens.delete({
+              userKey: userEmail,
+              clientId: token.clientId
+            });
+            revokedCount++;
+          } catch (tokenError: any) {
+            logger.warn('Failed to revoke individual token', {
+              userEmail,
+              clientId: token.clientId,
+              error: tokenError.message
+            });
+          }
+        }
+      }
+
+      logger.info('OAuth tokens revoked', {
+        userEmail,
+        revokedCount,
+        totalTokens: tokens.length
+      });
+
+      return { success: true, revokedCount };
+    } catch (error: any) {
+      logger.error('Failed to revoke OAuth tokens', {
+        userEmail,
+        error: error.message
+      });
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Set up email auto-forwarding for a user
+   * Used during offboarding to forward emails to manager or replacement
+   */
+  async setupEmailForwarding(
+    organizationId: string,
+    userEmail: string,
+    forwardToEmail: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        return { success: false, error: 'Google Workspace not configured' };
+      }
+
+      // For email forwarding, we need to impersonate the user being forwarded
+      const jwtClient = new JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: ['https://www.googleapis.com/auth/gmail.settings.sharing'],
+        subject: userEmail // Impersonate the user whose email is being forwarded
+      });
+
+      const gmail = google.gmail({ version: 'v1', auth: jwtClient });
+
+      // First, create the forwarding address
+      try {
+        await gmail.users.settings.forwardingAddresses.create({
+          userId: 'me',
+          requestBody: {
+            forwardingEmail: forwardToEmail
+          }
+        });
+      } catch (createError: any) {
+        // Address might already exist, which is fine
+        if (!createError.message?.includes('already exists')) {
+          throw createError;
+        }
+      }
+
+      // Enable forwarding with disposition to keep in inbox
+      await gmail.users.settings.updateAutoForwarding({
+        userId: 'me',
+        requestBody: {
+          enabled: true,
+          emailAddress: forwardToEmail,
+          disposition: 'leaveInInbox' // Keep original in inbox, forward copy
+        }
+      });
+
+      logger.info('Email forwarding configured', {
+        userEmail,
+        forwardToEmail
+      });
+
+      return { success: true };
+    } catch (error: any) {
+      logger.error('Failed to set up email forwarding', {
+        userEmail,
+        forwardToEmail,
+        error: error.message
+      });
+
+      // Provide helpful error message
+      let errorMessage = error.message;
+      if (error.message?.includes('Delegation denied')) {
+        errorMessage = 'Cannot set up forwarding - user may be suspended or delegation is not enabled';
+      }
+
+      return { success: false, error: errorMessage };
+    }
+  }
+
+  /**
+   * Set vacation/out-of-office auto-reply message
+   * Used during offboarding to notify senders the employee has left
+   */
+  async setVacationResponder(
+    organizationId: string,
+    userEmail: string,
+    message: {
+      subject: string;
+      body: string;
+      htmlBody?: string;
+      restrictToContacts?: boolean;
+      restrictToDomain?: boolean;
+    }
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        return { success: false, error: 'Google Workspace not configured' };
+      }
+
+      // Impersonate the user to set their vacation responder
+      const jwtClient = new JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: ['https://www.googleapis.com/auth/gmail.settings.basic'],
+        subject: userEmail
+      });
+
+      const gmail = google.gmail({ version: 'v1', auth: jwtClient });
+
+      await gmail.users.settings.updateVacation({
+        userId: 'me',
+        requestBody: {
+          enableAutoReply: true,
+          responseSubject: message.subject,
+          responseBodyPlainText: message.body,
+          responseBodyHtml: message.htmlBody || message.body.replace(/\n/g, '<br>'),
+          restrictToContacts: message.restrictToContacts || false,
+          restrictToDomain: message.restrictToDomain || false
+          // Note: Not setting startTime/endTime means it stays active indefinitely
+        }
+      });
+
+      logger.info('Vacation responder configured', {
+        userEmail,
+        subject: message.subject
+      });
+
+      return { success: true };
+    } catch (error: any) {
+      logger.error('Failed to set vacation responder', {
+        userEmail,
+        error: error.message
+      });
+
+      let errorMessage = error.message;
+      if (error.message?.includes('Delegation denied')) {
+        errorMessage = 'Cannot set vacation responder - user may be suspended';
+      }
+
+      return { success: false, error: errorMessage };
+    }
+  }
+
+  /**
+   * Transfer Drive file ownership to another user
+   * Note: This requires the Data Transfer API which has limitations
+   * For now, this will transfer specific files, not bulk transfer
+   */
+  async transferDriveOwnership(
+    organizationId: string,
+    fromUserEmail: string,
+    toUserEmail: string,
+    fileIds?: string[]
+  ): Promise<{ success: boolean; transferredCount?: number; error?: string }> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        return { success: false, error: 'Google Workspace not configured' };
+      }
+
+      const adminEmail = await this.getAdminEmail(organizationId);
+      if (!adminEmail) {
+        return { success: false, error: 'Admin email not configured' };
+      }
+
+      // If no specific files provided, use the Admin SDK Data Transfer API
+      // for bulk transfer (requires admin.datatransfer scope)
+      if (!fileIds || fileIds.length === 0) {
+        const jwtClient = new JWT({
+          email: credentials.client_email,
+          key: credentials.private_key,
+          scopes: ['https://www.googleapis.com/auth/admin.datatransfer'],
+          subject: adminEmail
+        });
+
+        const datatransfer = google.admin({ version: 'datatransfer_v1', auth: jwtClient });
+
+        // Get user IDs
+        const adminClient = this.createAdminClient(credentials, adminEmail);
+
+        const fromUserResponse = await adminClient.users.get({ userKey: fromUserEmail });
+        const toUserResponse = await adminClient.users.get({ userKey: toUserEmail });
+
+        if (!fromUserResponse.data.id || !toUserResponse.data.id) {
+          return { success: false, error: 'Could not find user IDs' };
+        }
+
+        // Create data transfer request for Drive
+        const transferResponse = await datatransfer.transfers.insert({
+          requestBody: {
+            oldOwnerUserId: fromUserResponse.data.id,
+            newOwnerUserId: toUserResponse.data.id,
+            applicationDataTransfers: [{
+              applicationId: '55656082996', // Google Drive application ID
+              applicationTransferParams: [{
+                key: 'PRIVACY_LEVEL',
+                value: ['PRIVATE', 'SHARED'] // Transfer both private and shared files
+              }]
+            }]
+          }
+        });
+
+        logger.info('Drive data transfer initiated', {
+          fromUserEmail,
+          toUserEmail,
+          transferId: transferResponse.data.id
+        });
+
+        return {
+          success: true,
+          transferredCount: -1 // Unknown count for bulk transfer
+        };
+      }
+
+      // For specific files, use Drive API with user impersonation
+      const jwtClient = new JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: ['https://www.googleapis.com/auth/drive'],
+        subject: fromUserEmail
+      });
+
+      const drive = google.drive({ version: 'v3', auth: jwtClient });
+
+      let transferredCount = 0;
+      for (const fileId of fileIds) {
+        try {
+          // Create permission for new owner
+          await drive.permissions.create({
+            fileId,
+            transferOwnership: true,
+            requestBody: {
+              type: 'user',
+              role: 'owner',
+              emailAddress: toUserEmail
+            }
+          });
+          transferredCount++;
+        } catch (fileError: any) {
+          logger.warn('Failed to transfer file ownership', {
+            fileId,
+            fromUserEmail,
+            toUserEmail,
+            error: fileError.message
+          });
+        }
+      }
+
+      logger.info('Drive files transferred', {
+        fromUserEmail,
+        toUserEmail,
+        transferredCount,
+        totalFiles: fileIds.length
+      });
+
+      return {
+        success: transferredCount > 0,
+        transferredCount
+      };
+    } catch (error: any) {
+      logger.error('Failed to transfer Drive ownership', {
+        fromUserEmail,
+        toUserEmail,
+        error: error.message
+      });
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get data transfer status
+   */
+  async getDataTransferStatus(
+    organizationId: string,
+    transferId: string
+  ): Promise<{ success: boolean; status?: string; error?: string }> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        return { success: false, error: 'Google Workspace not configured' };
+      }
+
+      const adminEmail = await this.getAdminEmail(organizationId);
+      if (!adminEmail) {
+        return { success: false, error: 'Admin email not configured' };
+      }
+
+      const jwtClient = new JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: ['https://www.googleapis.com/auth/admin.datatransfer'],
+        subject: adminEmail
+      });
+
+      const datatransfer = google.admin({ version: 'datatransfer_v1', auth: jwtClient });
+
+      const response = await datatransfer.transfers.get({
+        dataTransferId: transferId
+      });
+
+      return {
+        success: true,
+        status: response.data.overallTransferStatusCode || 'unknown'
+      };
+    } catch (error: any) {
+      logger.error('Failed to get data transfer status', {
+        transferId,
+        error: error.message
+      });
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get a single user from Google Workspace by email or ID
+   */
+  async getUser(
+    organizationId: string,
+    userKey: string
+  ): Promise<{ success: boolean; user?: WorkspaceUser; error?: string }> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        return { success: false, error: 'Google Workspace not configured' };
+      }
+
+      const adminEmail = await this.getAdminEmail(organizationId);
+      if (!adminEmail) {
+        return { success: false, error: 'Admin email not configured' };
+      }
+
+      const adminClient = this.createAdminClient(credentials, adminEmail);
+
+      const response = await adminClient.users.get({
+        userKey,
+        projection: 'full'
+      });
+
+      const user = response.data;
+
+      return {
+        success: true,
+        user: {
+          id: user.id || '',
+          primaryEmail: user.primaryEmail || '',
+          name: {
+            givenName: user.name?.givenName || '',
+            familyName: user.name?.familyName || '',
+            fullName: user.name?.fullName || ''
+          },
+          isAdmin: user.isAdmin || false,
+          isDelegatedAdmin: user.isDelegatedAdmin || false,
+          suspended: user.suspended || false,
+          orgUnitPath: user.orgUnitPath || '/',
+          creationTime: user.creationTime || '',
+          lastLoginTime: user.lastLoginTime || undefined,
+          organizations: user.organizations || [],
+          phones: user.phones || [],
+          relations: user.relations || [],
+          department: user.organizations?.[0]?.department || '',
+          jobTitle: user.organizations?.[0]?.title || '',
+          managerEmail: user.relations?.find((r: any) => r.type === 'manager')?.value || ''
+        }
+      };
+    } catch (error: any) {
+      logger.error('Failed to get user from Google Workspace', {
+        userKey,
+        error: error.message
+      });
+      return { success: false, error: error.message };
+    }
+  }
+
   /**
    * Sync group members from Helios to Google Workspace
    * @param direction 'push' = Helios -> Google, 'pull' = Google -> Helios, 'bidirectional' = merge both
