@@ -6,4 +6,5 @@ export { default as UserSignatureStatus } from './UserSignatureStatus';
 export { default as DeploymentStatus } from './DeploymentStatus';
 export { default as UserSyncStatusTable } from './UserSyncStatusTable';
 export { default as CampaignEditor } from './CampaignEditor';
+export { default as CampaignAnalytics } from './CampaignAnalytics';
 export type { MergeField } from './MergeFieldPicker';

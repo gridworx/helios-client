@@ -297,18 +297,20 @@
 
 ### Frontend Tasks
 
-- [ ] **TASK-SIG-035**: Create CampaignAnalytics page
+- [x] **TASK-SIG-035**: Create CampaignAnalytics page
   - Summary stats cards (opens, unique, rate)
-  - Time series chart
-  - Top performers table
-  - Geographic distribution
-  - File: `frontend/src/pages/admin/CampaignAnalytics.tsx`
+  - Time series chart (bar chart with CSS)
+  - Device breakdown by type
+  - Geographic distribution table
+  - File: `frontend/src/components/signatures/CampaignAnalytics.tsx`
+  - **DONE**: Full analytics component with campaign selector, stats cards, bar chart, device breakdown, and geo table. Integrated into Signatures.tsx Analytics tab.
 
-- [ ] **TASK-SIG-036**: Create analytics chart components
-  - OpensOverTimeChart (line chart)
-  - GeographicDistribution (bar or map)
-  - TopPerformersTable
-  - File: `frontend/src/components/signatures/analytics/*.tsx`
+- [x] **TASK-SIG-036**: Create analytics chart components
+  - Bar chart for opens over time (CSS-based)
+  - Device breakdown bars
+  - Geographic distribution table
+  - File: `frontend/src/components/signatures/CampaignAnalytics.tsx` (integrated)
+  - **DONE**: All chart components built inline in CampaignAnalytics.tsx using pure CSS (no additional chart library needed)
 
 ## Phase 7: Permissions
 

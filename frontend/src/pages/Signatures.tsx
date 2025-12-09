@@ -13,7 +13,6 @@ import {
   CheckCircle,
   Clock,
   Target,
-  TrendingUp,
   Copy,
   Eye,
   Star,
@@ -22,7 +21,7 @@ import {
   Save
 } from 'lucide-react';
 import './Signatures.css';
-import { TemplateEditor, TemplatePreview, CampaignEditor } from '../components/signatures';
+import { TemplateEditor, TemplatePreview, CampaignEditor, CampaignAnalytics } from '../components/signatures';
 
 interface SignatureTemplate {
   id: string;
@@ -80,6 +79,7 @@ const Signatures: React.FC = () => {
   const [campaigns, setCampaigns] = useState<SignatureCampaign[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<SignatureTemplate | null>(null);
   const [editingCampaign, setEditingCampaign] = useState<SignatureCampaign | null>(null);
+  const [analyticsCampaignId, setAnalyticsCampaignId] = useState<string | null>(null);
   const [showCampaignWizard, setShowCampaignWizard] = useState(false);
   const [showTemplateEditor, setShowTemplateEditor] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -102,7 +102,7 @@ const Signatures: React.FC = () => {
   useEffect(() => {
     if (activeTab === 'templates') {
       fetchTemplates();
-    } else if (activeTab === 'campaigns') {
+    } else if (activeTab === 'campaigns' || activeTab === 'analytics') {
       fetchCampaigns();
     }
   }, [activeTab]);
@@ -669,66 +669,65 @@ const Signatures: React.FC = () => {
 
       {activeTab === 'analytics' && (
         <div className="analytics-section">
-          <div className="empty-state" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
-            <BarChart3 size={64} style={{ color: '#9ca3af', marginBottom: '1rem' }} />
-            <h2 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#1f2937', marginBottom: '0.5rem' }}>
-              Analytics Dashboard Coming Soon
-            </h2>
-            <p style={{ color: '#6b7280', marginBottom: '1rem', maxWidth: '600px', margin: '0 auto' }}>
-              Campaign performance metrics, template usage statistics, and signature sync analytics will be available here.
-            </p>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: '1rem',
-              maxWidth: '900px',
-              margin: '2rem auto 0',
-              textAlign: 'left'
-            }}>
-              <div style={{
-                padding: '1rem',
-                backgroundColor: '#f9fafb',
-                borderRadius: '8px',
-                border: '1px solid #e5e7eb'
-              }}>
-                <TrendingUp size={20} style={{ color: 'var(--theme-primary)', marginBottom: '0.5rem' }} />
-                <h4 style={{ fontSize: '0.875rem', fontWeight: '600', color: '#4b5563', marginBottom: '0.25rem' }}>
-                  Campaign Performance
-                </h4>
-                <p style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                  Track active campaigns, success rates, and signature deployment metrics
-                </p>
+          {analyticsCampaignId ? (
+            <CampaignAnalytics
+              campaignId={analyticsCampaignId}
+              onBack={() => setAnalyticsCampaignId(null)}
+            />
+          ) : (
+            <div className="analytics-campaign-selector">
+              <div className="selector-header">
+                <h2>Campaign Analytics</h2>
+                <p>Select a campaign to view detailed analytics and performance metrics</p>
               </div>
-              <div style={{
-                padding: '1rem',
-                backgroundColor: '#f9fafb',
-                borderRadius: '8px',
-                border: '1px solid #e5e7eb'
-              }}>
-                <FileText size={20} style={{ color: 'var(--theme-primary)', marginBottom: '0.5rem' }} />
-                <h4 style={{ fontSize: '0.875rem', fontWeight: '600', color: '#4b5563', marginBottom: '0.25rem' }}>
-                  Template Analytics
-                </h4>
-                <p style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                  Monitor template usage, assignments, and email delivery statistics
-                </p>
-              </div>
-              <div style={{
-                padding: '1rem',
-                backgroundColor: '#f9fafb',
-                borderRadius: '8px',
-                border: '1px solid #e5e7eb'
-              }}>
-                <Clock size={20} style={{ color: 'var(--theme-primary)', marginBottom: '0.5rem' }} />
-                <h4 style={{ fontSize: '0.875rem', fontWeight: '600', color: '#4b5563', marginBottom: '0.25rem' }}>
-                  Sync Monitoring
-                </h4>
-                <p style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                  View sync schedules, completion status, and error logs
-                </p>
-              </div>
+              {campaigns.length === 0 ? (
+                <div className="empty-state">
+                  <BarChart3 size={48} />
+                  <h3>No campaigns available</h3>
+                  <p>Create a campaign to start tracking analytics</p>
+                  <button className="btn-primary" onClick={() => {
+                    setActiveTab('campaigns');
+                    setShowCampaignWizard(true);
+                  }}>
+                    <Plus size={16} />
+                    Create Campaign
+                  </button>
+                </div>
+              ) : (
+                <div className="campaign-cards-grid">
+                  {campaigns.map(campaign => (
+                    <div
+                      key={campaign.id}
+                      className="campaign-analytics-card"
+                      onClick={() => setAnalyticsCampaignId(campaign.id)}
+                    >
+                      <div className="card-header">
+                        <h3>{campaign.name}</h3>
+                        <span className={`status-badge ${getStatusBadgeClass(campaign.status)}`}>
+                          {campaign.status.replace('_', ' ')}
+                        </span>
+                      </div>
+                      <p className="card-description">{campaign.description || 'No description'}</p>
+                      <div className="card-meta">
+                        <span>
+                          <Clock size={14} />
+                          {new Date(campaign.start_date).toLocaleDateString()} - {new Date(campaign.end_date).toLocaleDateString()}
+                        </span>
+                        <span>
+                          <Users size={14} />
+                          {campaign.applied_count}/{campaign.total_target_count} users
+                        </span>
+                      </div>
+                      <button className="btn-view-analytics">
+                        <BarChart3 size={16} />
+                        View Analytics
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
+          )}
         </div>
       )}
 
