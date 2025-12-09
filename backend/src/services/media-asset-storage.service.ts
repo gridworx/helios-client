@@ -1,6 +1,8 @@
 import { logger } from '../utils/logger';
 import { db } from '../database/connection';
 import { googleDriveService } from './google-drive.service';
+import { s3Service } from './s3.service';
+import crypto from 'crypto';
 import type {
   StorageBackend,
   StorageUploadResult,
@@ -182,10 +184,44 @@ export class MediaAssetStorageService {
     mimeType: string,
     folderId?: string
   ): Promise<{ success: boolean; result?: StorageUploadResult; error?: string }> {
-    // MinIO implementation would go here
-    // For now, return not implemented
-    logger.warn('MinIO upload not yet implemented', { organizationId, filename });
-    return { success: false, error: 'MinIO storage not yet implemented' };
+    try {
+      // Generate a unique storage path for assets
+      const timestamp = Date.now();
+      const hash = crypto.randomBytes(8).toString('hex');
+      const extension = filename.split('.').pop() || 'bin';
+      const folderPrefix = folderId ? `${folderId}/` : 'assets/';
+      const key = `${organizationId}/${folderPrefix}${timestamp}_${hash}.${extension}`;
+
+      // Upload to MinIO via S3 service (public bucket for assets)
+      const uploadResult = await s3Service.uploadFile(
+        file,
+        {
+          organizationId,
+          category: 'public',
+          originalName: filename,
+          mimeType,
+          size: file.length,
+        },
+        true // Assets are public
+      );
+
+      if (!uploadResult.success) {
+        return { success: false, error: uploadResult.error };
+      }
+
+      logger.info('File uploaded to MinIO', { organizationId, filename, key: uploadResult.key });
+
+      return {
+        success: true,
+        result: {
+          storagePath: uploadResult.key!,
+          webViewLink: uploadResult.url,
+        },
+      };
+    } catch (error: any) {
+      logger.error('Failed to upload file to MinIO', { organizationId, filename, error: error.message });
+      return { success: false, error: error.message };
+    }
   }
 
   /**
@@ -212,9 +248,40 @@ export class MediaAssetStorageService {
     organizationId: string,
     storagePath: string
   ): Promise<{ success: boolean; data?: Buffer; mimeType?: string; error?: string }> {
-    // MinIO implementation would go here
-    logger.warn('MinIO download not yet implemented', { organizationId, storagePath });
-    return { success: false, error: 'MinIO storage not yet implemented' };
+    try {
+      // Download from MinIO via S3 service (public bucket for assets)
+      const data = await s3Service.downloadFile(storagePath, true);
+
+      if (!data) {
+        return { success: false, error: 'File not found in MinIO storage' };
+      }
+
+      // Determine mime type from extension
+      const extension = storagePath.split('.').pop()?.toLowerCase() || '';
+      const mimeTypes: Record<string, string> = {
+        'png': 'image/png',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'gif': 'image/gif',
+        'webp': 'image/webp',
+        'svg': 'image/svg+xml',
+        'mp4': 'video/mp4',
+        'webm': 'video/webm',
+        'pdf': 'application/pdf',
+      };
+      const mimeType = mimeTypes[extension] || 'application/octet-stream';
+
+      logger.debug('File downloaded from MinIO', { organizationId, storagePath, size: data.length });
+
+      return {
+        success: true,
+        data,
+        mimeType,
+      };
+    } catch (error: any) {
+      logger.error('Failed to get file from MinIO', { organizationId, storagePath, error: error.message });
+      return { success: false, error: error.message };
+    }
   }
 
   /**
@@ -228,8 +295,17 @@ export class MediaAssetStorageService {
     if (storageType === 'google_drive') {
       return googleDriveService.deleteFile(organizationId, storagePath);
     } else if (storageType === 'minio') {
-      logger.warn('MinIO delete not yet implemented', { organizationId, storagePath });
-      return { success: false, error: 'MinIO storage not yet implemented' };
+      try {
+        const deleted = await s3Service.deleteFile(storagePath, true);
+        if (!deleted) {
+          return { success: false, error: 'Failed to delete file from MinIO' };
+        }
+        logger.info('File deleted from MinIO', { organizationId, storagePath });
+        return { success: true };
+      } catch (error: any) {
+        logger.error('Failed to delete file from MinIO', { organizationId, storagePath, error: error.message });
+        return { success: false, error: error.message };
+      }
     } else {
       return { success: false, error: `Unsupported storage type: ${storageType}` };
     }
@@ -300,8 +376,40 @@ export class MediaAssetStorageService {
 
       return googleDriveService.listFiles(organizationId, driveFolderId, settings?.driveSharedDriveId || undefined);
     } else if (backend === 'minio') {
-      logger.warn('MinIO list files not yet implemented', { organizationId, folderId });
-      return { success: false, error: 'MinIO storage not yet implemented' };
+      try {
+        // MinIO uses object prefixes as "folders"
+        const prefix = folderId ? `${organizationId}/${folderId}/` : `${organizationId}/assets/`;
+        const keys = await s3Service.listFiles(prefix, true);
+
+        // Convert keys to StorageFile format
+        const now = new Date();
+        const files: StorageFile[] = keys.map((key) => {
+          const filename = key.split('/').pop() || key;
+          const extension = filename.split('.').pop()?.toLowerCase() || '';
+          const mimeTypes: Record<string, string> = {
+            'png': 'image/png',
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'gif': 'image/gif',
+            'webp': 'image/webp',
+            'svg': 'image/svg+xml',
+          };
+
+          return {
+            id: key,
+            name: filename,
+            mimeType: mimeTypes[extension] || 'application/octet-stream',
+            size: 0, // Size not available without head call
+            createdTime: now, // MinIO list doesn't return timestamps
+            modifiedTime: now,
+          };
+        });
+
+        return { success: true, files };
+      } catch (error: any) {
+        logger.error('Failed to list files from MinIO', { organizationId, folderId, error: error.message });
+        return { success: false, error: error.message };
+      }
     } else {
       return { success: false, error: `Unsupported storage backend: ${backend}` };
     }
@@ -390,9 +498,22 @@ export class MediaAssetStorageService {
   private async setupMinIOStorage(
     organizationId: string
   ): Promise<{ success: boolean; error?: string }> {
-    // MinIO implementation would go here
-    logger.warn('MinIO setup not yet implemented', { organizationId });
-    return { success: false, error: 'MinIO storage setup not yet implemented' };
+    try {
+      // Initialize S3 service (creates buckets if they don't exist)
+      await s3Service.initialize();
+
+      // Save settings to database
+      await this.updateSettings(organizationId, {
+        storageBackend: 'minio',
+        isConfigured: true,
+      });
+
+      logger.info('MinIO storage setup complete', { organizationId });
+      return { success: true };
+    } catch (error: any) {
+      logger.error('Failed to setup MinIO storage', { organizationId, error: error.message });
+      return { success: false, error: error.message };
+    }
   }
 
   /**
@@ -433,6 +554,26 @@ export class MediaAssetStorageService {
         canUpload: testResult.success,
         error: testResult.error,
       };
+    }
+
+    if (settings.storageBackend === 'minio') {
+      try {
+        // Test MinIO by checking if we can list files
+        await s3Service.initialize();
+        const testFiles = await s3Service.listFiles(`${organizationId}/`, true);
+        return {
+          isConfigured: true,
+          backend: 'minio',
+          canUpload: true,
+        };
+      } catch (error: any) {
+        return {
+          isConfigured: true,
+          backend: 'minio',
+          canUpload: false,
+          error: error.message,
+        };
+      }
     }
 
     return {
