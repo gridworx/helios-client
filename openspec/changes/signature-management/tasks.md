@@ -158,32 +158,39 @@
   - File: `backend/src/services/signature-sync.service.ts`
   - **DONE**: Full sync service with status tracking and batch processing
 
-- [ ] **TASK-SIG-019**: Create signature deployment routes
-  - POST /api/signatures/deploy (all pending)
-  - POST /api/signatures/deploy/user/:id (single user)
-  - GET /api/signatures/status
+- [x] **TASK-SIG-019**: Create signature deployment routes
+  - POST /api/signatures/sync/deploy (all pending)
+  - POST /api/signatures/sync/deploy/all (force all)
+  - POST /api/signatures/sync/users/:userId (single user)
+  - POST /api/signatures/sync/retry (retry failed)
+  - GET /api/signatures/sync/status (summary)
+  - GET /api/signatures/sync/users (paginated statuses)
   - File: `backend/src/routes/signature-sync.routes.ts`
+  - **DONE**: Full sync API with deploy, retry, and status endpoints
 
-- [ ] **TASK-SIG-020**: Add signature sync to scheduled jobs
+- [x] **TASK-SIG-020**: Add signature sync to scheduled jobs
   - Periodic sync check
   - Detect external changes
   - Auto-deploy on assignment changes
   - File: `backend/src/jobs/signature-sync.job.ts`
+  - **DONE**: Created signature-sync.job.ts with periodic sync processing, integrated into index.ts startup/shutdown
 
 ### Frontend Tasks
 
-- [ ] **TASK-SIG-021**: Create DeploymentStatus component
+- [x] **TASK-SIG-021**: Create DeploymentStatus component
   - Overall sync status summary
   - Users pending/synced/failed counts
   - Deploy all button
   - File: `frontend/src/components/signatures/DeploymentStatus.tsx`
+  - **DONE**: Full component with stats grid, progress bar, deploy/retry/force-resync actions, health indicator
 
-- [ ] **TASK-SIG-022**: Create UserSyncStatus table
+- [x] **TASK-SIG-022**: Create UserSyncStatus table
   - List of users with sync status
   - Last synced timestamp
   - Error messages for failures
   - Individual re-sync action
-  - File: `frontend/src/components/signatures/UserSyncStatus.tsx`
+  - File: `frontend/src/components/signatures/UserSyncStatusTable.tsx`
+  - **DONE**: Full table component with search, status filter, pagination, individual sync actions
 
 ## Phase 5: Campaign System
 

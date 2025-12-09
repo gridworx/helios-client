@@ -49,6 +49,7 @@ import { cacheService } from './services/cache.service';
 import { activityTracker } from './services/activity-tracker.service';
 import { initializeBulkOperationsGateway } from './websocket/bulk-operations.gateway';
 import { startScheduledActionProcessor, stopScheduledActionProcessor } from './jobs/scheduled-action-processor';
+import { startSignatureSyncJob, stopSignatureSyncJob } from './jobs/signature-sync.job';
 
 import transparentProxyRouter from './middleware/transparent-proxy';
 import swaggerUi from 'swagger-ui-express';
@@ -535,10 +536,25 @@ async function startServer(): Promise<void> {
       throw error;
     }
 
-    // Initialize signature scheduler
+    // Initialize signature scheduler (daily cron sync)
     const signatureScheduler = new SignatureSchedulerService();
     await signatureScheduler.initializeScheduler();
     logger.info('📧 Signature scheduler ready');
+
+    // Start signature sync job (periodic pending sync processing)
+    const signatureSyncEnabled = process.env['SIGNATURE_SYNC_JOB_ENABLED'] !== 'false';
+    if (signatureSyncEnabled) {
+      startSignatureSyncJob({
+        enabled: true,
+        intervalMs: parseInt(process.env['SIGNATURE_SYNC_INTERVAL_MS'] || '300000'), // 5 minutes default
+        batchSize: parseInt(process.env['SIGNATURE_SYNC_BATCH_SIZE'] || '50'),
+        maxRetries: 3,
+        detectExternalChanges: process.env['SIGNATURE_DETECT_EXTERNAL_CHANGES'] === 'true'
+      });
+      logger.info('📧 Signature sync job started');
+    } else {
+      logger.info('📧 Signature sync job disabled');
+    }
 
     // Initialize WebSocket gateway for bulk operations
     initializeBulkOperationsGateway(httpServer);
@@ -577,6 +593,7 @@ async function startServer(): Promise<void> {
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully');
   stopScheduledActionProcessor();
+  stopSignatureSyncJob();
   await db.close();
   process.exit(0);
 });
@@ -584,6 +601,7 @@ process.on('SIGTERM', async () => {
 process.on('SIGINT', async () => {
   logger.info('SIGINT received, shutting down gracefully');
   stopScheduledActionProcessor();
+  stopSignatureSyncJob();
   await db.close();
   process.exit(0);
 });
