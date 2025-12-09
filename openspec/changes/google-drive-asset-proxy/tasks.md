@@ -178,29 +178,33 @@
 
 ## Phase 9: Testing
 
-- [ ] **TASK-ASSET-T01**: Unit tests for asset storage service
+- [x] **TASK-ASSET-T01**: Unit tests for asset storage service
   - Upload, retrieve, delete
   - Both Drive and MinIO backends
-  - File: `backend/src/__tests__/asset-storage.service.test.ts`
+  - File: `backend/src/__tests__/media-asset-storage.service.test.ts`
+  - **COMPLETED**: 24 tests covering getSettings, updateSettings, uploadFile, getFile, deleteFile, createFolder, listFiles, setupStorage, isConfigured, getStatus
 
-- [ ] **TASK-ASSET-T02**: Unit tests for asset caching
+- [x] **TASK-ASSET-T02**: Unit tests for asset caching
   - Cache hit/miss scenarios
   - TTL expiration
   - Invalidation
-  - File: `backend/src/__tests__/asset-cache.service.test.ts`
+  - File: `backend/src/__tests__/media-asset-cache.service.test.ts`
+  - **COMPLETED**: 24 tests covering get, set, invalidate, has, getTTL, getStats, close, and disconnected state handling
 
-- [ ] **TASK-ASSET-T03**: Integration test for proxy endpoint
+- [x] **TASK-ASSET-T03**: Integration test for proxy endpoint
   - Public access without auth
   - Correct Content-Type
   - Rate limiting
   - File: `backend/src/__tests__/asset-proxy.routes.test.ts`
+  - **COMPLETED**: 20 tests covering health endpoint, cache hit/miss, 403 for private assets, 503 for storage errors, rate limiting, access tracking, content headers, and file type handling
 
-- [ ] **TASK-ASSET-T04**: E2E tests for asset management
+- [x] **TASK-ASSET-T04**: E2E tests for asset management
   - Upload file
   - Copy public URL
   - Verify URL works in <img>
   - Delete file
   - File: `e2e/tests/assets.spec.ts`
+  - **COMPLETED**: E2E tests for Media Files page, Assets tab, Settings tab, Asset Proxy endpoints, Upload flow, and Asset Detail view
 
 ## Estimated Effort
 
