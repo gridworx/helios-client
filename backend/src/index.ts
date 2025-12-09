@@ -50,6 +50,7 @@ import { initializeBulkOperationsGateway } from './websocket/bulk-operations.gat
 import transparentProxyRouter from './middleware/transparent-proxy';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
+import assetProxyRoutes from './routes/asset-proxy.routes';
 const app = express();
 const httpServer = createServer(app);
 const PORT = process.env['PORT'] || 3001;
@@ -356,6 +357,11 @@ app.get('/api/openapi.json', (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerSpec);
 });
+
+// Public Asset Proxy - NO AUTHENTICATION REQUIRED
+// This serves media assets for email signatures with direct URLs
+// Must be registered BEFORE API auth middleware
+app.use('/a', assetProxyRoutes);
 
 // API Key Authentication Middleware - Applied BEFORE JWT
 // This allows API key authentication to take priority

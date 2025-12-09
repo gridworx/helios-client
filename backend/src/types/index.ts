@@ -1,5 +1,8 @@
 // Shared TypeScript types for Helios Client Portal
 
+// Re-export media asset types
+export * from './media-assets';
+
 export interface User {
   id: string;
   email: string;
