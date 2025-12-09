@@ -258,37 +258,42 @@
 
 ### Backend Tasks
 
-- [ ] **TASK-SIG-030**: Create tracking pixel service
+- [x] **TASK-SIG-030**: Create tracking pixel service
   - Generate unique pixel tokens
   - Encode/decode pixel URLs
   - File: `backend/src/services/tracking-pixel.service.ts`
+  - **DONE**: Generates URL-safe tokens, getOrCreate pixel per user+campaign, batch pixel generation
 
-- [ ] **TASK-SIG-031**: Create tracking pixel endpoint
+- [x] **TASK-SIG-031**: Create tracking pixel endpoint
   - GET /api/t/p/:token.gif (public, no auth)
   - Log tracking event
   - Return 1x1 transparent GIF
   - Rate limiting to prevent abuse
   - File: `backend/src/routes/tracking.routes.ts`
+  - **DONE**: Public endpoint returns 1x1 GIF, rate limiting, async event recording
 
-- [ ] **TASK-SIG-032**: Create tracking events service
+- [x] **TASK-SIG-032**: Create tracking events service
   - Record tracking events
   - IP hashing for privacy
   - GeoIP lookup (optional)
   - Unique detection logic
   - File: `backend/src/services/tracking-events.service.ts`
+  - **DONE**: SHA-256 IP hashing, unique open detection, device type detection, bot filtering
 
-- [ ] **TASK-SIG-033**: Create campaign analytics service
+- [x] **TASK-SIG-033**: Create campaign analytics service
   - Aggregate tracking data
   - Calculate open rates
   - Top performers
   - Geographic distribution
   - Time series data
   - File: `backend/src/services/campaign-analytics.service.ts`
+  - **DONE**: Campaign stats, daily opens, geo distribution, top performers, hourly distribution
 
-- [ ] **TASK-SIG-034**: Create analytics routes
+- [x] **TASK-SIG-034**: Create analytics routes
   - GET /api/signatures/campaigns/:id/analytics
   - GET /api/signatures/campaigns/:id/analytics/export
   - File: `backend/src/routes/signature-campaigns.routes.ts` (extend)
+  - **DONE**: Routes already existed in signature-campaigns.routes.ts (stats, opens-by-day, geo-distribution)
 
 ### Frontend Tasks
 

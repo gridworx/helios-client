@@ -59,6 +59,7 @@ import { swaggerSpec } from './config/swagger';
 import assetProxyRoutes from './routes/asset-proxy.routes';
 import assetsRoutes from './routes/assets.routes';
 import lifecycleRoutes from './routes/lifecycle.routes';
+import trackingRoutes from './routes/tracking.routes';
 const app = express();
 const httpServer = createServer(app);
 const PORT = process.env['PORT'] || 3001;
@@ -370,6 +371,10 @@ app.get('/api/openapi.json', (req, res) => {
 // This serves media assets for email signatures with direct URLs
 // Must be registered BEFORE API auth middleware
 app.use('/a', assetProxyRoutes);
+
+// Tracking pixel endpoints - PUBLIC (no auth required)
+// These are loaded by email clients when recipients view emails
+app.use('/api/t', trackingRoutes);
 
 // API Key Authentication Middleware - Applied BEFORE JWT
 // This allows API key authentication to take priority
