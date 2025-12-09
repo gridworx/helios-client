@@ -178,23 +178,26 @@
 
 ## Phase 7: Frontend - Templates
 
-- [ ] **TASK-LIFE-021**: Create OnboardingTemplateList page
+- [x] **TASK-LIFE-021**: Create OnboardingTemplateList page
   - Grid/list of templates
   - Create/Edit/Delete actions
   - Filter by department
-  - File: `frontend/src/pages/admin/OnboardingTemplates.tsx`
+  - File: `frontend/src/pages/OnboardingTemplates.tsx`
+  - **DONE**: Created with card grid, search, filters, duplicate/set-default actions
 
-- [ ] **TASK-LIFE-022**: Create OnboardingTemplateEditor component
+- [x] **TASK-LIFE-022**: Create OnboardingTemplateEditor component
   - Form for all template settings
   - Group selector (multi-select)
   - Shared Drive access configuration
   - Signature template picker
   - File: `frontend/src/components/lifecycle/OnboardingTemplateEditor.tsx`
+  - **DONE**: Collapsible sections, welcome email config, Google services toggle
 
-- [ ] **TASK-LIFE-023**: Create OffboardingTemplateList page
+- [x] **TASK-LIFE-023**: Create OffboardingTemplateList page
   - List of offboarding templates
   - Set default template
-  - File: `frontend/src/pages/admin/OffboardingTemplates.tsx`
+  - File: `frontend/src/pages/OffboardingTemplates.tsx`
+  - **DONE**: Similar structure to OnboardingTemplates
 
 - [ ] **TASK-LIFE-024**: Create OffboardingTemplateEditor component
   - Data handling options
