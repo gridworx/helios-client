@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom'
 import './App.css'
 import { LoginPage } from './pages/LoginPage'
@@ -17,14 +17,10 @@ import { GroupDetail } from './pages/GroupDetail'
 // import { OrgUnits } from './pages/OrgUnits'
 import OrgChart from './pages/OrgChart'
 import { AssetManagement } from './pages/AssetManagement'
-import { FilesAssets } from './pages/FilesAssets'
 import { Workspaces } from './pages/Workspaces'
 import SecurityEvents from './pages/SecurityEvents'
 import { EmailSecurity } from './pages/EmailSecurity'
-import Signatures from './pages/Signatures'
 import AuditLogs from './pages/AuditLogs'
-import { DeveloperConsole } from './pages/DeveloperConsole'
-import { AddUser } from './pages/AddUser'
 import { MyProfile } from './pages/MyProfile'
 import { People } from './pages/People'
 import { MyTeam } from './pages/MyTeam'
@@ -34,15 +30,29 @@ import OnboardingTemplates from './pages/OnboardingTemplates'
 import OffboardingTemplates from './pages/OffboardingTemplates'
 import OnboardingTemplateEditor from './components/lifecycle/OnboardingTemplateEditor'
 import OffboardingTemplateEditor from './components/lifecycle/OffboardingTemplateEditor'
-import NewUserOnboarding from './pages/NewUserOnboarding'
-import UserOffboarding from './pages/UserOffboarding'
-import ScheduledActions from './pages/admin/ScheduledActions'
+
+// Lazy-loaded large page components for better initial bundle size
+const DeveloperConsole = lazy(() => import('./pages/DeveloperConsole').then(m => ({ default: m.DeveloperConsole })))
+const AddUser = lazy(() => import('./pages/AddUser').then(m => ({ default: m.AddUser })))
+const FilesAssets = lazy(() => import('./pages/FilesAssets').then(m => ({ default: m.FilesAssets })))
+const Signatures = lazy(() => import('./pages/Signatures'))
+const NewUserOnboarding = lazy(() => import('./pages/NewUserOnboarding'))
+const UserOffboarding = lazy(() => import('./pages/UserOffboarding'))
+const ScheduledActions = lazy(() => import('./pages/admin/ScheduledActions'))
 import { LabelsProvider, useLabels } from './contexts/LabelsContext'
 import { ViewProvider, useView } from './contexts/ViewContext'
 import { AdminNavigation, UserNavigation, ViewSwitcher, ViewOnboarding } from './components/navigation'
 import { getWidgetData } from './utils/widget-data'
 import { getEnabledWidgets, type WidgetId } from './config/widgets'
-import { UserPlus, Upload, Download, RefreshCw, AlertCircle, Info, Edit3, Bell, Building, HelpCircle, Search, Users as UsersIcon } from 'lucide-react'
+import { UserPlus, Upload, Download, RefreshCw, AlertCircle, Info, Edit3, Bell, Building, HelpCircle, Search, Users as UsersIcon, Loader2 } from 'lucide-react'
+
+// Loading fallback for lazy-loaded components
+const PageLoader = () => (
+  <div className="page-loader">
+    <Loader2 className="page-loader-spinner" size={32} />
+    <span>Loading...</span>
+  </div>
+)
 
 interface OrganizationConfig {
   organizationId: string;
@@ -1027,7 +1037,9 @@ function AppContent() {
           )}
 
           {currentPage === 'files-assets' && (
-            <FilesAssets organizationId={config?.organizationId || ''} />
+            <Suspense fallback={<PageLoader />}>
+              <FilesAssets organizationId={config?.organizationId || ''} />
+            </Suspense>
           )}
 
           {currentPage === 'email-security' && (
@@ -1035,7 +1047,9 @@ function AppContent() {
           )}
 
           {currentPage === 'signatures' && (
-            <Signatures />
+            <Suspense fallback={<PageLoader />}>
+              <Signatures />
+            </Suspense>
           )}
 
           {currentPage === 'security-events' && (
@@ -1047,7 +1061,9 @@ function AppContent() {
           )}
 
           {currentPage === 'console' && (
-            <DeveloperConsole organizationId={config?.organizationId || ''} />
+            <Suspense fallback={<PageLoader />}>
+              <DeveloperConsole organizationId={config?.organizationId || ''} />
+            </Suspense>
           )}
 
           {currentPage === 'my-profile' && (
@@ -1071,7 +1087,9 @@ function AppContent() {
           )}
 
           {currentPage === 'add-user' && (
-            <AddUser />
+            <Suspense fallback={<PageLoader />}>
+              <AddUser />
+            </Suspense>
           )}
 
           {currentPage === 'onboarding-templates' && (
@@ -1135,23 +1153,29 @@ function AppContent() {
           )}
 
           {currentPage === 'scheduled-actions' && (
-            <ScheduledActions organizationId={config?.organizationId || ''} />
+            <Suspense fallback={<PageLoader />}>
+              <ScheduledActions organizationId={config?.organizationId || ''} />
+            </Suspense>
           )}
 
           {currentPage === 'new-user-onboarding' && (
-            <NewUserOnboarding
-              organizationId={config?.organizationId || ''}
-              onComplete={() => setCurrentPage('people')}
-              onCancel={() => setCurrentPage('people')}
-            />
+            <Suspense fallback={<PageLoader />}>
+              <NewUserOnboarding
+                organizationId={config?.organizationId || ''}
+                onComplete={() => setCurrentPage('people')}
+                onCancel={() => setCurrentPage('people')}
+              />
+            </Suspense>
           )}
 
           {currentPage === 'user-offboarding' && (
-            <UserOffboarding
-              organizationId={config?.organizationId || ''}
-              onComplete={() => setCurrentPage('people')}
-              onCancel={() => setCurrentPage('people')}
-            />
+            <Suspense fallback={<PageLoader />}>
+              <UserOffboarding
+                organizationId={config?.organizationId || ''}
+                onComplete={() => setCurrentPage('people')}
+                onCancel={() => setCurrentPage('people')}
+              />
+            </Suspense>
           )}
 
           {currentPage !== 'dashboard' && currentPage !== 'settings' && currentPage !== 'users' && currentPage !== 'groups' && currentPage !== 'workspaces' && currentPage !== 'orgUnits' && currentPage !== 'assets' && currentPage !== 'files-assets' && currentPage !== 'email-security' && currentPage !== 'signatures' && currentPage !== 'security-events' && currentPage !== 'audit-logs' && currentPage !== 'console' && currentPage !== 'administrators' && currentPage !== 'my-profile' && currentPage !== 'people' && currentPage !== 'my-team' && currentPage !== 'my-groups' && currentPage !== 'user-settings' && currentPage !== 'orgChart' && currentPage !== 'add-user' && currentPage !== 'onboarding-templates' && currentPage !== 'new-onboarding-template' && currentPage !== 'edit-onboarding-template' && currentPage !== 'offboarding-templates' && currentPage !== 'new-offboarding-template' && currentPage !== 'edit-offboarding-template' && currentPage !== 'scheduled-actions' && currentPage !== 'new-user-onboarding' && currentPage !== 'user-offboarding' && (

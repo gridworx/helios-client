@@ -13,5 +13,17 @@ export default defineConfig({
   preview: {
     port: 3000,
     host: true
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split large dependencies into separate chunks
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-ui': ['lucide-react'],
+          'vendor-charts': ['html2canvas'],
+        }
+      }
+    }
   }
 })
