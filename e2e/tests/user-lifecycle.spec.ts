@@ -16,6 +16,31 @@ async function login(page: Page) {
   await page.fill('input[type="password"]', ADMIN_USER.password);
   await page.click('button[type="submit"]');
   await page.waitForURL(/.*dashboard.*|.*admin.*|.*\/$/, { timeout: 15000 });
+
+  // Handle ViewOnboarding modal if it appears (first time login)
+  await page.waitForTimeout(500);
+  const onboardingModal = page.locator('.view-onboarding-overlay');
+  if (await onboardingModal.isVisible({ timeout: 2000 }).catch(() => false)) {
+    // Click "Admin Console" option to select admin view
+    const adminConsoleOption = page.locator('.view-option-card').filter({ hasText: 'Admin Console' });
+    if (await adminConsoleOption.isVisible()) {
+      await adminConsoleOption.click();
+      await page.waitForTimeout(300);
+    }
+    // Click the "Continue to Admin Console" button
+    const continueBtn = page.locator('.view-onboarding-button.primary');
+    if (await continueBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await continueBtn.click();
+      await page.waitForTimeout(500);
+    } else {
+      // If button not found, try clicking the close button to dismiss
+      const closeBtn = page.locator('.view-onboarding-close');
+      if (await closeBtn.isVisible()) {
+        await closeBtn.click();
+        await page.waitForTimeout(300);
+      }
+    }
+  }
 }
 
 /**
@@ -40,22 +65,42 @@ test.describe('User Lifecycle Management', () => {
     test('should display onboarding templates page', async ({ page }) => {
       await login(page);
 
-      // Navigate to lifecycle section - look for it in sidebar
-      const lifecycleSection = page.locator('[data-testid="nav-lifecycle"]').or(page.getByText('Lifecycle')).or(page.getByText('User Lifecycle'));
-      if (await lifecycleSection.isVisible()) {
-        await lifecycleSection.click();
-        await page.waitForTimeout(500);
+      // Wait for page load
+      await page.waitForTimeout(1000);
+
+      // Check if we need to switch to admin view first
+      // Look for the admin navigation - if not visible, we might be in user view
+      const adminNav = page.locator('[data-testid="nav-onboarding-templates"]');
+
+      if (!(await adminNav.isVisible({ timeout: 2000 }).catch(() => false))) {
+        // Try to switch to admin view via ViewSwitcher
+        const viewSwitcher = page.locator('.view-switcher-button, [data-testid="view-switcher"]');
+        if (await viewSwitcher.isVisible({ timeout: 2000 }).catch(() => false)) {
+          await viewSwitcher.click();
+          await page.waitForTimeout(300);
+          // Click Admin Console option
+          const adminOption = page.getByText('Admin Console');
+          if (await adminOption.isVisible({ timeout: 1000 }).catch(() => false)) {
+            await adminOption.click();
+            await page.waitForTimeout(1000);
+          }
+        }
       }
 
-      // Look for onboarding templates link
-      const onboardingLink = page.getByText('Onboarding Templates').or(page.getByText('Onboarding'));
-      if (await onboardingLink.count() > 0) {
-        await onboardingLink.first().click();
+      // Click the onboarding templates nav item using data-testid
+      const onboardingNavItem = page.locator('[data-testid="nav-onboarding-templates"]');
+      if (await onboardingNavItem.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await onboardingNavItem.click();
         await page.waitForTimeout(1000);
 
         // Should see templates page
         const heading = page.locator('h1, h2');
         await expect(heading.first()).toContainText(/Onboarding|Templates/i);
+      } else {
+        // If we can't find the nav item, fail the test with a helpful message
+        // Take a screenshot for debugging
+        await page.screenshot({ path: 'test-results/onboarding-nav-not-found.png' });
+        expect.soft(await adminNav.isVisible()).toBe(true);
       }
     });
 

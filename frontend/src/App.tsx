@@ -121,6 +121,7 @@ function getPageFromPath(pathname: string): string {
   if (pathname.startsWith('/admin/org-chart')) return 'orgChart';
   if (pathname.startsWith('/admin/workspaces')) return 'workspaces';
   if (pathname.startsWith('/admin/assets')) return 'assets';
+  if (pathname.startsWith('/admin/files-assets') || pathname.startsWith('/admin/media-files')) return 'files-assets';
   if (pathname.startsWith('/admin/email-security')) return 'email-security';
   if (pathname.startsWith('/admin/signatures')) return 'signatures';
   if (pathname.startsWith('/admin/security-events')) return 'security-events';
@@ -128,6 +129,10 @@ function getPageFromPath(pathname: string): string {
   if (pathname.startsWith('/admin/settings')) return 'settings';
   if (pathname.startsWith('/admin/administrators')) return 'administrators';
   if (pathname.startsWith('/admin/console')) return 'console';
+  // Automation routes
+  if (pathname.startsWith('/admin/onboarding-templates')) return 'onboarding-templates';
+  if (pathname.startsWith('/admin/offboarding-templates')) return 'offboarding-templates';
+  if (pathname.startsWith('/admin/scheduled-actions')) return 'scheduled-actions';
 
   // User routes (at root level)
   if (pathname === '/' || pathname === '/home' || pathname === '/dashboard') return 'dashboard';
@@ -181,6 +186,7 @@ function AppContent() {
       'orgChart': '/admin/org-chart',
       'workspaces': '/admin/workspaces',
       'assets': '/admin/assets',
+      'files-assets': '/admin/files-assets',
       'email-security': '/admin/email-security',
       'signatures': '/admin/signatures',
       'security-events': '/admin/security-events',
@@ -188,6 +194,10 @@ function AppContent() {
       'settings': '/admin/settings',
       'administrators': '/admin/administrators',
       'console': '/admin/console',
+      // Automation routes
+      'onboarding-templates': '/admin/onboarding-templates',
+      'offboarding-templates': '/admin/offboarding-templates',
+      'scheduled-actions': '/admin/scheduled-actions',
     };
 
     // User pages at root level
