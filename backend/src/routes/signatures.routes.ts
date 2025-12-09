@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { db } from '../database/connection';
 import { requireAuth, requirePermission } from '../middleware/auth';
+import { signatureTemplateService } from '../services/signature-template.service';
+import { MERGE_FIELDS } from '../types/signatures';
 
 const router = Router();
 
@@ -27,6 +29,108 @@ router.get('/template-types', requireAuth, async (req: Request, res: Response) =
     return res.status(500).json({
       success: false,
       error: error.message || 'Failed to fetch template types',
+    });
+  }
+});
+
+// =====================================================
+// MERGE FIELDS
+// =====================================================
+
+/**
+ * GET /api/signatures/merge-fields
+ * Get available merge fields grouped by category
+ */
+router.get('/merge-fields', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const grouped = signatureTemplateService.getAvailableMergeFields();
+    return res.json({ success: true, data: grouped });
+  } catch (error: any) {
+    console.error('Error getting merge fields:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get merge fields',
+    });
+  }
+});
+
+/**
+ * GET /api/signatures/merge-fields/list
+ * Get flat list of all merge fields
+ */
+router.get('/merge-fields/list', requireAuth, async (req: Request, res: Response) => {
+  try {
+    return res.json({ success: true, data: MERGE_FIELDS });
+  } catch (error: any) {
+    console.error('Error getting merge fields list:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get merge fields list',
+    });
+  }
+});
+
+/**
+ * POST /api/signatures/templates/validate
+ * Validate merge fields in HTML content
+ */
+router.post('/templates/validate', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { html_content } = req.body;
+
+    if (!html_content) {
+      return res.status(400).json({
+        success: false,
+        error: 'html_content is required',
+      });
+    }
+
+    const mergeFields = signatureTemplateService.extractMergeFields(html_content);
+    const invalidFields = signatureTemplateService.validateMergeFields(mergeFields);
+
+    return res.json({
+      success: true,
+      data: {
+        mergeFields,
+        invalidFields,
+        isValid: invalidFields.length === 0,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error validating template:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to validate template',
+    });
+  }
+});
+
+/**
+ * POST /api/signatures/templates/preview
+ * Preview HTML content rendered with user data or sample data
+ */
+router.post('/templates/preview', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { html_content, user_id } = req.body;
+
+    if (!html_content) {
+      return res.status(400).json({
+        success: false,
+        error: 'html_content is required',
+      });
+    }
+
+    const rendered = await signatureTemplateService.previewTemplate(html_content, user_id);
+
+    return res.json({
+      success: true,
+      data: rendered,
+    });
+  } catch (error: any) {
+    console.error('Error previewing template:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to preview template',
     });
   }
 });

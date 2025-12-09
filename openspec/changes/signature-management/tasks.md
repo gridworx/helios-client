@@ -34,23 +34,26 @@
 
 ### Backend Tasks
 
-- [ ] **TASK-SIG-004**: Create signature templates service
+- [x] **TASK-SIG-004**: Create signature templates service
   - CRUD operations for templates
   - Merge field parsing and validation
   - Template rendering with user data
   - File: `backend/src/services/signature-template.service.ts`
+  - **DONE**: Full service with getTemplates, getTemplate, createTemplate, updateTemplate, deleteTemplate, cloneTemplate, extractMergeFields, validateMergeFields, renderTemplate, previewTemplate
 
-- [ ] **TASK-SIG-005**: Create signature templates routes
+- [x] **TASK-SIG-005**: Create signature templates routes
   - GET/POST/PUT/DELETE /api/signatures/templates
   - POST /api/signatures/templates/:id/preview
   - POST /api/signatures/templates/:id/clone
-  - File: `backend/src/routes/signature-templates.routes.ts`
+  - File: `backend/src/routes/signatures.routes.ts` (integrated with existing routes)
+  - **DONE**: Added merge-fields endpoints, validate, and preview endpoints to existing signatures.routes.ts
 
-- [ ] **TASK-SIG-006**: Implement merge field system
+- [x] **TASK-SIG-006**: Implement merge field system
   - Define available merge fields
   - Map fields to database columns
   - Handle missing/null values gracefully
-  - File: `backend/src/services/merge-fields.service.ts`
+  - File: `backend/src/types/signatures.ts`
+  - **DONE**: Created MERGE_FIELDS constant with 18 fields across 5 categories (Personal, Professional, Contact, Organization, Social). Added getMergeField, getMergeFieldsByCategory, getMergeFieldCategories helper functions.
 
 ### Frontend Tasks
 
