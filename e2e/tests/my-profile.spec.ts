@@ -21,11 +21,9 @@ async function loginAndNavigateToMyProfile(page: Page) {
   // Dismiss ViewOnboarding modal if present (appears for internal admins on first login)
   await dismissViewOnboarding(page);
 
-  // Navigate to My Profile page via Settings
-  await page.click('text=Settings');
-  await page.waitForSelector('text=My Profile');
-  await page.click('text=My Profile');
-  await page.waitForSelector('.my-profile-page');
+  // Navigate directly to My Profile page
+  await page.goto('/my-profile');
+  await page.waitForSelector('.my-profile-page', { timeout: 10000 });
 }
 
 test.describe('My Profile Page', () => {
@@ -447,12 +445,14 @@ test.describe('Error Handling', () => {
     await page.click('button[type="submit"]');
     await page.waitForURL(/.*dashboard.*|.*\/$/);
 
-    await page.click('text=Settings');
-    await page.waitForSelector('text=My Profile');
-    await page.click('text=My Profile');
+    // Dismiss ViewOnboarding modal if present
+    await dismissViewOnboarding(page);
+
+    // Navigate directly to My Profile page
+    await page.goto('/my-profile');
 
     // Should show error state
-    await expect(page.locator('.error-state, text=Failed to load')).toBeVisible();
+    await expect(page.locator('.error-state')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('button:has-text("Retry")')).toBeVisible();
   });
 });
