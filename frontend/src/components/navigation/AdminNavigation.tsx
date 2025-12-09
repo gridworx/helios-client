@@ -15,6 +15,7 @@ import {
   Network,
   MessageSquare,
   ClipboardList,
+  Image,
 } from 'lucide-react';
 import { useLabels } from '../../contexts/LabelsContext';
 import { ENTITIES } from '../../config/entities';
@@ -112,7 +113,15 @@ export const AdminNavigation: React.FC<AdminNavigationProps> = ({
           data-testid="nav-assets"
         >
           <Package size={16} className="nav-icon" />
-          <span>Asset Management</span>
+          <span>IT Assets</span>
+        </button>
+        <button
+          className={`nav-item ${currentPage === 'files-assets' ? 'active' : ''}`}
+          onClick={() => onNavigate('files-assets')}
+          data-testid="nav-files-assets"
+        >
+          <Image size={16} className="nav-icon" />
+          <span>Media Files</span>
         </button>
       </div>
 

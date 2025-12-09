@@ -17,6 +17,7 @@ import { GroupDetail } from './pages/GroupDetail'
 // import { OrgUnits } from './pages/OrgUnits'
 import OrgChart from './pages/OrgChart'
 import { AssetManagement } from './pages/AssetManagement'
+import { FilesAssets } from './pages/FilesAssets'
 import { Workspaces } from './pages/Workspaces'
 import SecurityEvents from './pages/SecurityEvents'
 import { EmailSecurity } from './pages/EmailSecurity'
@@ -990,6 +991,10 @@ function AppContent() {
             <AssetManagement organizationId={config?.organizationId || ''} />
           )}
 
+          {currentPage === 'files-assets' && (
+            <FilesAssets organizationId={config?.organizationId || ''} />
+          )}
+
           {currentPage === 'email-security' && (
             <EmailSecurity />
           )}
@@ -1034,7 +1039,7 @@ function AppContent() {
             <AddUser />
           )}
 
-          {currentPage !== 'dashboard' && currentPage !== 'settings' && currentPage !== 'users' && currentPage !== 'groups' && currentPage !== 'workspaces' && currentPage !== 'orgUnits' && currentPage !== 'assets' && currentPage !== 'email-security' && currentPage !== 'signatures' && currentPage !== 'security-events' && currentPage !== 'audit-logs' && currentPage !== 'console' && currentPage !== 'administrators' && currentPage !== 'my-profile' && currentPage !== 'people' && currentPage !== 'my-team' && currentPage !== 'my-groups' && currentPage !== 'user-settings' && currentPage !== 'orgChart' && currentPage !== 'add-user' && (
+          {currentPage !== 'dashboard' && currentPage !== 'settings' && currentPage !== 'users' && currentPage !== 'groups' && currentPage !== 'workspaces' && currentPage !== 'orgUnits' && currentPage !== 'assets' && currentPage !== 'files-assets' && currentPage !== 'email-security' && currentPage !== 'signatures' && currentPage !== 'security-events' && currentPage !== 'audit-logs' && currentPage !== 'console' && currentPage !== 'administrators' && currentPage !== 'my-profile' && currentPage !== 'people' && currentPage !== 'my-team' && currentPage !== 'my-groups' && currentPage !== 'user-settings' && currentPage !== 'orgChart' && currentPage !== 'add-user' && (
             <div className="page-placeholder">
               <div className="placeholder-content">
                 <div className="placeholder-icon">🚧</div>

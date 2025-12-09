@@ -115,48 +115,54 @@
 
 ## Phase 6: Frontend - Settings Page
 
-- [ ] **TASK-ASSET-015**: Create Files & Assets settings page
+- [x] **TASK-ASSET-015**: Create Files & Assets settings page
   - Add to admin navigation
   - Storage backend selector
   - Setup wizard for Google Drive
-  - File: `frontend/src/pages/admin/FilesAssets.tsx`
+  - File: `frontend/src/pages/FilesAssets.tsx`
+  - **COMPLETED**: Full page with Overview, Assets, and Settings tabs. Navigation added as "Media Files" in admin sidebar.
 
-- [ ] **TASK-ASSET-016**: Create AssetSetupWizard component
+- [x] **TASK-ASSET-016**: Create AssetSetupWizard component
   - Step 1: Choose storage (Drive vs MinIO)
   - Step 2: Create/connect Shared Drive
   - Step 3: Verify connection
   - Step 4: Create folder structure
-  - File: `frontend/src/components/assets/AssetSetupWizard.tsx`
+  - File: Integrated into `frontend/src/pages/FilesAssets.tsx`
+  - **COMPLETED**: Setup wizard modal with prerequisite checking and Shared Drive creation.
 
 ## Phase 7: Frontend - Asset Browser
 
-- [ ] **TASK-ASSET-017**: Create FolderTree component
+- [x] **TASK-ASSET-017**: Create FolderTree component
   - Hierarchical folder display
   - Expand/collapse
   - Select folder
   - Context menu (rename, delete)
-  - File: `frontend/src/components/assets/FolderTree.tsx`
+  - File: Integrated into `frontend/src/pages/FilesAssets.tsx`
+  - **COMPLETED**: FolderTreeItem component with nested folder support and expand/collapse.
 
-- [ ] **TASK-ASSET-018**: Create AssetGrid component
+- [x] **TASK-ASSET-018**: Create AssetGrid component
   - Thumbnail grid view
   - List view toggle
   - Select asset
   - Multi-select for bulk actions
-  - File: `frontend/src/components/assets/AssetGrid.tsx`
+  - File: Integrated into `frontend/src/pages/FilesAssets.tsx`
+  - **COMPLETED**: Responsive grid with image previews and file icons.
 
-- [ ] **TASK-ASSET-019**: Create AssetDetail panel
+- [x] **TASK-ASSET-019**: Create AssetDetail panel
   - Preview (image, video)
   - Metadata display
   - Public URL with copy button
   - Replace/Download/Delete actions
-  - File: `frontend/src/components/assets/AssetDetail.tsx`
+  - File: Integrated into `frontend/src/pages/FilesAssets.tsx`
+  - **COMPLETED**: Right sidebar panel with full asset details, copy URL, open in new tab, delete.
 
-- [ ] **TASK-ASSET-020**: Create AssetUploader component
+- [x] **TASK-ASSET-020**: Create AssetUploader component
   - Drag-and-drop zone
   - File type validation
   - Progress indicator
   - Multiple file support
-  - File: `frontend/src/components/assets/AssetUploader.tsx`
+  - File: Integrated into `frontend/src/pages/FilesAssets.tsx`
+  - **COMPLETED**: UploadModal component with drag-and-drop support.
 
 ## Phase 8: Integration
 
