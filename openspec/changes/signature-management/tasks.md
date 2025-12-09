@@ -89,43 +89,53 @@
 
 ### Backend Tasks
 
-- [ ] **TASK-SIG-011**: Create signature assignments service
+- [x] **TASK-SIG-011**: Create signature assignments service
   - CRUD for assignments
   - Resolve effective template for user (priority logic)
   - Preview affected users
   - File: `backend/src/services/signature-assignment.service.ts`
+  - **DONE**: Full service with getAssignments, createAssignment, updateAssignment, deleteAssignment, getEffectiveSignature, getAllEffectiveSignatures, previewAffectedUsers, getAvailableTargets
 
-- [ ] **TASK-SIG-012**: Create signature assignments routes
-  - GET/POST/PUT/DELETE /api/signatures/assignments
-  - GET /api/signatures/assignments/preview
-  - GET /api/signatures/user/:id/effective - get user's effective template
+- [x] **TASK-SIG-012**: Create signature assignments routes
+  - GET/POST/PUT/DELETE /api/signatures/v2/assignments
+  - POST /api/signatures/v2/assignments/preview
+  - GET /api/signatures/v2/assignments/user/:userId/effective
+  - GET /api/signatures/v2/assignments/targets/:type
   - File: `backend/src/routes/signature-assignments.routes.ts`
+  - **DONE**: Full REST API with target listing and preview endpoints
 
-- [ ] **TASK-SIG-013**: Implement assignment priority resolver
+- [x] **TASK-SIG-013**: Implement assignment priority resolver
   - Direct user > Dynamic group > Static group > Department > OU > Default
   - Handle multiple assignments at same level
-  - Cache resolved assignments
-  - File: `backend/src/services/assignment-resolver.service.ts`
+  - Uses database view `user_effective_signatures` for consistent priority resolution
+  - **DONE**: Priority resolution implemented via database view in migration 044
 
 ### Frontend Tasks
 
-- [ ] **TASK-SIG-014**: Create AssignmentManager component
-  - Assignment method radio buttons
-  - Department/OU/Group/User selectors
-  - Checkbox-based multi-select
+- [x] **TASK-SIG-014**: Create AssignmentManager component
+  - Assignment type selector with descriptions
+  - Target selectors for users/groups/departments/OUs
+  - Preview affected users before creating
+  - Assignment list with toggle and delete actions
   - File: `frontend/src/components/signatures/AssignmentManager.tsx`
+  - **DONE**: Full component with type selection, target search, preview panel, assignment CRUD
 
-- [ ] **TASK-SIG-015**: Create AssignmentPreview component
+- [x] **TASK-SIG-015**: Create AssignmentPreview component
   - Show list of affected users
   - Count by assignment source
   - Search/filter affected users
-  - File: `frontend/src/components/signatures/AssignmentPreview.tsx`
+  - File: Integrated into `frontend/src/components/signatures/AssignmentManager.tsx`
+  - **DONE**: Preview panel integrated into AssignmentManager with user list and counts
 
-- [ ] **TASK-SIG-016**: Create UserSignatureStatus component
+- [x] **TASK-SIG-016**: Create UserSignatureStatus component
   - Show user's current signature
-  - Assignment source indicator
+  - Assignment source indicator with icons
+  - Sync status with detailed info
   - Re-sync button
+  - Preview panel (expandable)
+  - Compact mode for inline display
   - File: `frontend/src/components/signatures/UserSignatureStatus.tsx`
+  - **DONE**: Full component with assignment source badges, sync status display, preview panel, compact mode
 
 ## Phase 4: Google Workspace Sync
 

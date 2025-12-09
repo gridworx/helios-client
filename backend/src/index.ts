@@ -32,6 +32,7 @@ import userPreferencesRoutes from './routes/user-preferences.routes';
 import emailSecurityRoutes from './routes/email-security.routes';
 import orgChartRoutes from './routes/org-chart.routes';
 import signaturesRoutes from './routes/signatures.routes';
+import signatureAssignmentsRoutes from './routes/signature-assignments.routes';
 import customFieldsRoutes from './routes/custom-fields.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import departmentsRoutes from './routes/departments.routes';
@@ -424,6 +425,7 @@ app.use('/api/organization/cost-centers', costCentersRoutes);
 app.use('/api/organization/data-quality', dataQualityRoutes);
 app.use('/api/email-security', emailSecurityRoutes);
 app.use('/api/signatures', signaturesRoutes);
+app.use('/api/signatures/v2/assignments', signatureAssignmentsRoutes);
 app.use('/api/organization', orgChartRoutes); // Register org chart routes under /api/organization
 app.use('/api/organization', organizationRoutes);
 app.use('/api/auth', authRoutes);
