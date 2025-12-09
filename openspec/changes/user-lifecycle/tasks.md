@@ -283,35 +283,40 @@
 
 ## Phase 12: Testing
 
-- [ ] **TASK-LIFE-T01**: Unit tests for UserOnboardingService
+- [x] **TASK-LIFE-T01**: Unit tests for UserOnboardingService
   - Template validation
   - Step execution
   - Error handling
   - File: `backend/src/__tests__/user-onboarding.service.test.ts`
+  - **DONE**: 28 tests covering template CRUD, validation, Helios user creation, Google account creation, group membership, welcome emails, and error handling
 
-- [ ] **TASK-LIFE-T02**: Unit tests for UserOffboardingService
+- [x] **TASK-LIFE-T02**: Unit tests for UserOffboardingService
   - Data transfer
   - Access revocation
   - Account suspension
   - File: `backend/src/__tests__/user-offboarding.service.test.ts`
+  - **DONE**: 25 tests covering template CRUD, validation, group removal, OAuth revocation, device signout, password reset, account suspension, and error handling
 
-- [ ] **TASK-LIFE-T03**: Integration tests for scheduled actions
+- [x] **TASK-LIFE-T03**: Integration tests for scheduled actions
   - Schedule action
   - Execute on time
   - Handle failures
   - File: `backend/src/__tests__/scheduled-action.service.test.ts`
+  - **DONE**: 28 tests covering action CRUD, approval workflow, action execution, recurring actions, retry logic, and error handling
 
-- [ ] **TASK-LIFE-T04**: E2E tests for onboarding flow
+- [x] **TASK-LIFE-T04**: E2E tests for onboarding flow
   - Create template
   - Onboard user with template
   - Verify user exists with correct settings
-  - File: `e2e/tests/onboarding.spec.ts`
+  - File: `e2e/tests/user-lifecycle.spec.ts`
+  - **DONE**: E2E tests for onboarding templates page, new user form, validation, and template selection
 
-- [ ] **TASK-LIFE-T05**: E2E tests for offboarding flow
+- [x] **TASK-LIFE-T05**: E2E tests for offboarding flow
   - Offboard user
   - Verify data transfer
   - Verify account suspended
-  - File: `e2e/tests/offboarding.spec.ts`
+  - File: `e2e/tests/user-lifecycle.spec.ts`
+  - **DONE**: E2E tests for offboarding templates, user offboarding page, confirmation dialogs, scheduled actions, and activity feed
 
 ## Estimated Effort
 
