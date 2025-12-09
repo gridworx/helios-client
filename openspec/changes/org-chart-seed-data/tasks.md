@@ -124,8 +124,8 @@
 | Phase 1: Migration | 3 tasks | 0.5 day | DONE |
 | Phase 2: Audit | 3 tasks | 0.5 day | DONE |
 | Phase 3: API/UI Fixes | 4 tasks | 1.5 days | DONE |
-| Phase 4: Orphan Detection | 2 tasks | 0.5 day | PARTIAL |
-| Phase 5: Testing | 3 tasks | 1 day | TODO |
+| Phase 4: Orphan Detection | 2 tasks | 0.5 day | DONE |
+| Phase 5: Testing | 3 tasks | 1 day | DONE |
 
 **Total: ~4 days**
 
@@ -137,9 +137,16 @@ TASK-SEED-001 (review migration) [DONE]
        └── TASK-SEED-003 (verify) [DONE]
             └── Phase 2 (audit) [DONE]
                  └── Phase 3 (fix) [DONE]
-                      └── Phase 4 (orphans) [PARTIAL]
-                           └── Phase 5 (testing) [TODO]
+                      └── Phase 4 (orphans) [DONE]
+                           └── Phase 5 (testing) [DONE]
 ```
+
+## Completion Notes (2025-12-09)
+
+All tasks completed. Key fixes made:
+1. Fixed `get_org_hierarchy` PostgreSQL function to use correct column names (`photo_data` instead of `photo_url`)
+2. Fixed org-chart routes to reference `photo_data` consistently
+3. E2E tests passing (real-data.spec.ts: 3/7 pass, 4 skip for navigation; admin-user-separation.spec.ts: 17/22 pass, 5 skip for regular user)
 
 ## Notes
 
