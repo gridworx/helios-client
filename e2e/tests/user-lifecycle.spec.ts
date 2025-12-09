@@ -41,14 +41,14 @@ test.describe('User Lifecycle Management', () => {
       await login(page);
 
       // Navigate to lifecycle section - look for it in sidebar
-      const lifecycleSection = page.locator('text=Lifecycle, text=User Lifecycle, [data-testid="nav-lifecycle"]');
+      const lifecycleSection = page.locator('[data-testid="nav-lifecycle"]').or(page.getByText('Lifecycle')).or(page.getByText('User Lifecycle'));
       if (await lifecycleSection.isVisible()) {
         await lifecycleSection.click();
         await page.waitForTimeout(500);
       }
 
       // Look for onboarding templates link
-      const onboardingLink = page.locator('text=Onboarding Templates, text=Onboarding');
+      const onboardingLink = page.getByText('Onboarding Templates').or(page.getByText('Onboarding'));
       if (await onboardingLink.count() > 0) {
         await onboardingLink.first().click();
         await page.waitForTimeout(1000);
@@ -63,7 +63,7 @@ test.describe('User Lifecycle Management', () => {
       await login(page);
 
       // Navigate to new user onboarding - look for it in sidebar
-      const newUserLink = page.locator('text=New User, text=Add User, text=Onboard User');
+      const newUserLink = page.getByText('New User').or(page.getByText('Add User')).or(page.getByText('Onboard User'));
       if (await newUserLink.count() > 0) {
         await newUserLink.first().click();
         await page.waitForTimeout(1000);
@@ -117,7 +117,7 @@ test.describe('User Lifecycle Management', () => {
       await login(page);
 
       // Navigate to add user/onboarding
-      const addUserLink = page.locator('text=Add User, text=New User, a[href*="add"], a[href*="onboard"]');
+      const addUserLink = page.locator('a[href*="add"], a[href*="onboard"]').or(page.getByText('Add User')).or(page.getByText('New User'));
 
       if (await addUserLink.count() > 0) {
         await addUserLink.first().click();
@@ -138,14 +138,14 @@ test.describe('User Lifecycle Management', () => {
       await login(page);
 
       // Navigate to lifecycle section
-      const lifecycleSection = page.locator('text=Lifecycle, text=User Lifecycle, [data-testid="nav-lifecycle"]');
+      const lifecycleSection = page.locator('[data-testid="nav-lifecycle"]').or(page.getByText('Lifecycle')).or(page.getByText('User Lifecycle'));
       if (await lifecycleSection.isVisible()) {
         await lifecycleSection.click();
         await page.waitForTimeout(500);
       }
 
       // Look for offboarding templates link
-      const offboardingLink = page.locator('text=Offboarding Templates, text=Offboarding');
+      const offboardingLink = page.getByText('Offboarding Templates').or(page.getByText('Offboarding'));
       if (await offboardingLink.count() > 0) {
         await offboardingLink.first().click();
         await page.waitForTimeout(1000);
@@ -160,7 +160,7 @@ test.describe('User Lifecycle Management', () => {
       await login(page);
 
       // Navigate to people page first
-      const peopleLink = page.locator('text=People, a[href*="people"]');
+      const peopleLink = page.locator('a[href*="people"]').or(page.getByText('People'));
       if (await peopleLink.count() > 0) {
         await peopleLink.first().click();
         await page.waitForTimeout(1000);
@@ -178,7 +178,7 @@ test.describe('User Lifecycle Management', () => {
           await page.waitForTimeout(500);
 
           // Look for offboard option in menu
-          const offboardOption = page.locator('text=Offboard, [data-testid="offboard-option"]');
+          const offboardOption = page.locator('[data-testid="offboard-option"]').or(page.getByText('Offboard'));
           if (await offboardOption.count() > 0) {
             await expect(offboardOption.first()).toBeVisible();
           }
@@ -191,7 +191,7 @@ test.describe('User Lifecycle Management', () => {
 
       // This test verifies the offboarding confirmation workflow
       // Navigate to people or users page
-      const peopleLink = page.locator('text=People, text=Users');
+      const peopleLink = page.getByText('People').or(page.getByText('Users'));
       if (await peopleLink.count() > 0) {
         await peopleLink.first().click();
         await page.waitForTimeout(1000);
@@ -226,7 +226,7 @@ test.describe('User Lifecycle Management', () => {
       await login(page);
 
       // Navigate to scheduled actions
-      const scheduledLink = page.locator('text=Scheduled Actions, text=Scheduled, a[href*="scheduled"]');
+      const scheduledLink = page.locator('a[href*="scheduled"]').or(page.getByText('Scheduled Actions')).or(page.getByText('Scheduled'));
       if (await scheduledLink.count() > 0) {
         await scheduledLink.first().click();
         await page.waitForTimeout(1000);
@@ -241,7 +241,7 @@ test.describe('User Lifecycle Management', () => {
       await login(page);
 
       // Navigate to scheduled actions
-      const scheduledLink = page.locator('text=Scheduled Actions, text=Scheduled');
+      const scheduledLink = page.getByText('Scheduled Actions').or(page.getByText('Scheduled'));
       if (await scheduledLink.count() > 0) {
         await scheduledLink.first().click();
         await page.waitForTimeout(1000);
@@ -259,7 +259,7 @@ test.describe('User Lifecycle Management', () => {
       await login(page);
 
       // Navigate to scheduled actions
-      const scheduledLink = page.locator('text=Scheduled Actions, text=Scheduled');
+      const scheduledLink = page.getByText('Scheduled Actions').or(page.getByText('Scheduled'));
       if (await scheduledLink.count() > 0) {
         await scheduledLink.first().click();
         await page.waitForTimeout(1000);
@@ -287,7 +287,7 @@ test.describe('User Lifecycle Management', () => {
       await login(page);
 
       // Navigate to onboarding templates
-      const templatesLink = page.locator('text=Onboarding Templates, text=Templates');
+      const templatesLink = page.getByText('Onboarding Templates').or(page.getByText('Templates'));
       if (await templatesLink.count() > 0) {
         await templatesLink.first().click();
         await page.waitForTimeout(1000);
@@ -358,8 +358,8 @@ test.describe('User Lifecycle Management', () => {
     test('should display activity feed on dashboard', async ({ page }) => {
       await login(page);
 
-      // Look for activity feed section
-      const activityFeed = page.locator('[data-testid="activity-feed"], .activity-feed, text=Recent Activity');
+      // Look for activity feed section - check multiple selectors separately
+      const activityFeed = page.locator('[data-testid="activity-feed"], .activity-feed').or(page.getByText('Recent Activity'));
 
       if (await activityFeed.count() > 0) {
         await expect(activityFeed.first()).toBeVisible();
@@ -370,7 +370,7 @@ test.describe('User Lifecycle Management', () => {
       await login(page);
 
       // Navigate to activity/logs if available
-      const activityLink = page.locator('text=Activity, text=Logs, a[href*="activity"]');
+      const activityLink = page.locator('a[href*="activity"]').or(page.getByText('Activity')).or(page.getByText('Logs'));
       if (await activityLink.count() > 0) {
         await activityLink.first().click();
         await page.waitForTimeout(1000);
