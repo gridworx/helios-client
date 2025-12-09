@@ -65,12 +65,17 @@
   - File: `frontend/src/components/ClientUserMenu.tsx`
   - **FIXED**: Added useView hook, context-aware Settings navigation, hid admin-only items in user view
 
-- [ ] **TASK-FIX-009**: Add user-specific settings page if missing
+- [x] **TASK-FIX-009**: Add user-specific settings page if missing
   - /settings or /my-profile should show personal preferences
   - NOT admin configuration (modules, master data, etc.)
   - Should include: profile, notifications, privacy, appearance
-  - File: `frontend/src/pages/Settings.tsx` or `MyProfile.tsx`
-  - **STATUS**: UserSettings page already exists at /user-settings
+  - File: `frontend/src/pages/UserSettings.tsx`
+  - **VERIFIED**: UserSettings page fully implemented at /user-settings with:
+    - Appearance (theme: light/dark/system)
+    - Notifications (email, desktop, digest)
+    - Regional (timezone, language)
+    - Security (password change, 2FA placeholder)
+    - Context-aware Settings link in ClientUserMenu navigates here in user view
 
 ## Phase 4: Dashboard Design Fix
 
