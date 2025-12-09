@@ -354,23 +354,26 @@
 
 ### Frontend Tasks
 
-- [ ] **TASK-SIG-042**: Add Signatures section to admin navigation
+- [x] **TASK-SIG-042**: Add Signatures section to admin navigation
   - Templates, Campaigns, Permissions sub-items
   - Deployment status indicator
   - File: `frontend/src/components/navigation/AdminNavigation.tsx`
+  - **DONE**: Signatures already present in admin navigation under Security section
 
-- [ ] **TASK-SIG-043**: Create SignatureDashboard overview page
+- [x] **TASK-SIG-043**: Create SignatureDashboard overview page
   - Quick stats (active templates, campaigns, sync status)
   - Recent activity
   - Quick actions
-  - File: `frontend/src/pages/admin/SignatureDashboard.tsx`
+  - File: `frontend/src/pages/Signatures.tsx` (Overview tab)
+  - **DONE**: Added Overview tab to Signatures page with DeploymentStatus component, quick stats cards (templates, active campaigns, scheduled, completed), quick actions (create template, new campaign, manual sync), and recent campaigns list
 
-- [ ] **TASK-SIG-044**: Add signature status to user detail page
+- [x] **TASK-SIG-044**: Add signature status to user detail page
   - Show user's current signature
   - Assignment source
   - Active campaign (if any)
   - Re-sync action
-  - File: `frontend/src/pages/admin/UserDetail.tsx` (extend)
+  - File: `frontend/src/components/UserSlideOut.tsx`
+  - **DONE**: Added Signature tab to UserSlideOut component with UserSignatureStatus integration showing assignment info, sync status, and resync capability
 
 ## Testing Tasks
 

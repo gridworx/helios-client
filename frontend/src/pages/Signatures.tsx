@@ -19,10 +19,12 @@ import {
   AlertCircle,
   X,
   Save,
-  Shield
+  Shield,
+  LayoutDashboard,
+  TrendingUp
 } from 'lucide-react';
 import './Signatures.css';
-import { TemplateEditor, TemplatePreview, CampaignEditor, CampaignAnalytics, SignaturePermissions } from '../components/signatures';
+import { TemplateEditor, TemplatePreview, CampaignEditor, CampaignAnalytics, SignaturePermissions, DeploymentStatus } from '../components/signatures';
 
 interface SignatureTemplate {
   id: string;
@@ -75,7 +77,7 @@ interface TemplateFormData {
 }
 
 const Signatures: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'templates' | 'campaigns' | 'analytics' | 'permissions'>('templates');
+  const [activeTab, setActiveTab] = useState<'overview' | 'templates' | 'campaigns' | 'analytics' | 'permissions'>('overview');
   const [templates, setTemplates] = useState<SignatureTemplate[]>([]);
   const [campaigns, setCampaigns] = useState<SignatureCampaign[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<SignatureTemplate | null>(null);
@@ -101,7 +103,10 @@ const Signatures: React.FC = () => {
   });
 
   useEffect(() => {
-    if (activeTab === 'templates') {
+    if (activeTab === 'overview') {
+      fetchTemplates();
+      fetchCampaigns();
+    } else if (activeTab === 'templates') {
       fetchTemplates();
     } else if (activeTab === 'campaigns' || activeTab === 'analytics') {
       fetchCampaigns();
@@ -391,6 +396,13 @@ const Signatures: React.FC = () => {
 
       <div className="signatures-tabs">
         <button
+          className={`tab-button ${activeTab === 'overview' ? 'active' : ''}`}
+          onClick={() => setActiveTab('overview')}
+        >
+          <LayoutDashboard size={16} />
+          Overview
+        </button>
+        <button
           className={`tab-button ${activeTab === 'templates' ? 'active' : ''}`}
           onClick={() => setActiveTab('templates')}
         >
@@ -419,6 +431,133 @@ const Signatures: React.FC = () => {
           Permissions
         </button>
       </div>
+
+      {activeTab === 'overview' && (
+        <div className="overview-section">
+          {/* Deployment Status */}
+          <DeploymentStatus showActions={true} />
+
+          {/* Quick Stats */}
+          <div className="overview-stats">
+            <div className="stat-card">
+              <div className="stat-icon templates">
+                <FileText size={24} />
+              </div>
+              <div className="stat-content">
+                <span className="stat-value">{templates.length}</span>
+                <span className="stat-label">Templates</span>
+              </div>
+              <button
+                className="stat-action"
+                onClick={() => setActiveTab('templates')}
+              >
+                View All
+              </button>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-icon campaigns">
+                <Target size={24} />
+              </div>
+              <div className="stat-content">
+                <span className="stat-value">
+                  {campaigns.filter(c => c.status === 'active').length}
+                </span>
+                <span className="stat-label">Active Campaigns</span>
+              </div>
+              <button
+                className="stat-action"
+                onClick={() => setActiveTab('campaigns')}
+              >
+                View All
+              </button>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-icon scheduled">
+                <Clock size={24} />
+              </div>
+              <div className="stat-content">
+                <span className="stat-value">
+                  {campaigns.filter(c => c.status === 'approved' || c.status === 'pending_approval').length}
+                </span>
+                <span className="stat-label">Scheduled</span>
+              </div>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-icon analytics">
+                <TrendingUp size={24} />
+              </div>
+              <div className="stat-content">
+                <span className="stat-value">
+                  {campaigns.filter(c => c.status === 'completed').length}
+                </span>
+                <span className="stat-label">Completed</span>
+              </div>
+              <button
+                className="stat-action"
+                onClick={() => setActiveTab('analytics')}
+              >
+                Analytics
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="overview-actions">
+            <h3>Quick Actions</h3>
+            <div className="action-buttons">
+              <button
+                className="action-btn primary"
+                onClick={() => {
+                  setActiveTab('templates');
+                  setTimeout(() => openTemplateEditor(), 100);
+                }}
+              >
+                <Plus size={16} />
+                Create Template
+              </button>
+              <button
+                className="action-btn secondary"
+                onClick={() => {
+                  setActiveTab('campaigns');
+                  setTimeout(() => setShowCampaignWizard(true), 100);
+                }}
+              >
+                <Target size={16} />
+                New Campaign
+              </button>
+              <button className="action-btn secondary" onClick={handleManualSync}>
+                <Play size={16} />
+                Manual Sync
+              </button>
+            </div>
+          </div>
+
+          {/* Recent Activity */}
+          {campaigns.length > 0 && (
+            <div className="overview-recent">
+              <h3>Recent Campaigns</h3>
+              <div className="recent-list">
+                {campaigns.slice(0, 5).map(campaign => (
+                  <div key={campaign.id} className="recent-item">
+                    <div className="recent-info">
+                      <span className="recent-name">{campaign.name}</span>
+                      <span className="recent-meta">
+                        {campaign.template_name} &bull; {campaign.applied_count}/{campaign.total_target_count} users
+                      </span>
+                    </div>
+                    <span className={`status-badge ${getStatusBadgeClass(campaign.status)}`}>
+                      {campaign.status.replace('_', ' ')}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {activeTab === 'templates' && (
         <div className="templates-section">

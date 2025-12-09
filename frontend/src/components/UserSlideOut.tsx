@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { useTabPersistence } from '../hooks/useTabPersistence';
-import { ClipboardList, Users, RefreshCw, BarChart3, Settings, Trash2, CheckCircle, AlertTriangle, FileText } from 'lucide-react';
+import { ClipboardList, Users, RefreshCw, BarChart3, Settings, Trash2, CheckCircle, AlertTriangle, FileText, PenTool } from 'lucide-react';
+import { UserSignatureStatus } from './signatures';
 import './UserSlideOut.css';
 
 interface User {
@@ -36,7 +37,7 @@ interface UserSlideOutProps {
   onUserUpdated?: () => void;
 }
 
-type TabType = 'overview' | 'groups' | 'platforms' | 'activity' | 'settings' | 'danger';
+type TabType = 'overview' | 'groups' | 'signature' | 'platforms' | 'activity' | 'settings' | 'danger';
 
 export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: UserSlideOutProps) {
   const [activeTab, setActiveTab] = useTabPersistence<TabType>('helios_user_slideout_tab', 'overview');
@@ -388,6 +389,7 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
   const tabs: { id: TabType; label: string; icon: ReactNode }[] = [
     { id: 'overview', label: 'Overview', icon: <ClipboardList size={16} /> },
     { id: 'groups', label: 'Groups', icon: <Users size={16} /> },
+    { id: 'signature', label: 'Signature', icon: <PenTool size={16} /> },
     { id: 'platforms', label: 'Account Sync', icon: <RefreshCw size={16} /> },
     { id: 'activity', label: 'Activity', icon: <BarChart3 size={16} /> },
     { id: 'settings', label: 'Settings', icon: <Settings size={16} /> },
@@ -757,6 +759,25 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {!loading && activeTab === 'signature' && (
+            <div className="tab-content">
+              <h3>Email Signature</h3>
+              <p className="section-description">
+                View and manage this user's email signature status.
+              </p>
+              <UserSignatureStatus
+                userId={user.id}
+                userName={`${user.firstName} ${user.lastName}`}
+                userEmail={user.email}
+                showPreview={true}
+                onSyncComplete={() => {
+                  // Optionally refresh user data after sync
+                  onUserUpdated?.();
+                }}
+              />
             </div>
           )}
 
