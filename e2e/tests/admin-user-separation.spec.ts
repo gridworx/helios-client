@@ -411,3 +411,82 @@ test.describe('Navigation Consistency', () => {
     }
   });
 });
+
+test.describe('Settings Link Context', () => {
+  test('Settings link in admin view should navigate to admin settings', async ({ page }) => {
+    // Skip onboarding modal
+    await page.goto('/');
+    await page.evaluate(() => {
+      localStorage.setItem('helios_view_onboarding_completed', 'true');
+      localStorage.setItem('helios_view_preference', 'admin');
+    });
+
+    await login(page, INTERNAL_ADMIN);
+
+    // Wait for dashboard to load
+    await page.waitForTimeout(2000);
+
+    // Ensure we're in admin view - navigate to admin dashboard
+    await page.goto('/admin');
+    await page.waitForSelector('.client-header', { timeout: 10000 });
+
+    // Click user menu trigger button (the button containing the avatar)
+    const userMenuTrigger = page.locator('button.user-menu-trigger');
+    await userMenuTrigger.click();
+
+    // Wait for dropdown to appear
+    await page.waitForSelector('.user-menu-dropdown', { timeout: 5000 });
+
+    // Click Settings in dropdown
+    const settingsLink = page.locator('.user-menu-dropdown .menu-item:has-text("Settings")');
+    await settingsLink.click();
+
+    await page.waitForTimeout(1000);
+
+    // Should navigate to admin settings
+    expect(page.url()).toContain('/admin/settings');
+  });
+
+  test('Settings link in user view should navigate to user settings', async ({ page }) => {
+    // Skip onboarding modal
+    await page.goto('/');
+    await page.evaluate(() => {
+      localStorage.setItem('helios_view_onboarding_completed', 'true');
+    });
+
+    await login(page, INTERNAL_ADMIN);
+    await page.waitForTimeout(2000);
+
+    // Switch to user view
+    const viewSwitcher = page.locator('[data-testid="view-switcher-trigger"], .view-switcher-trigger');
+    if (await viewSwitcher.isVisible().catch(() => false)) {
+      await viewSwitcher.click();
+      await page.waitForTimeout(500);
+
+      const employeeViewOption = page.locator('[data-testid="view-option-user"], button:has-text("Employee View")');
+      if (await employeeViewOption.isVisible().catch(() => false)) {
+        await employeeViewOption.click();
+        await page.waitForTimeout(1000);
+      }
+    }
+
+    // Click user menu trigger button
+    const userMenuTrigger = page.locator('button.user-menu-trigger');
+    await userMenuTrigger.click();
+
+    // Wait for dropdown to appear
+    await page.waitForSelector('.user-menu-dropdown', { timeout: 5000 });
+
+    // Click Settings in dropdown
+    const settingsLink = page.locator('.user-menu-dropdown .menu-item:has-text("Settings")');
+    await settingsLink.click();
+
+    await page.waitForTimeout(1000);
+
+    // Should navigate to user settings (not admin settings)
+    const url = page.url();
+    expect(url).not.toContain('/admin/settings');
+    // Should be on user-settings or my-profile
+    expect(url.match(/user-settings|my-profile|settings/)).toBeTruthy();
+  });
+});
