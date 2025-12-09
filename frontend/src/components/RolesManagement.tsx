@@ -1,6 +1,9 @@
-import { useState } from 'react';
-import { Plus, Pencil, Trash2, Users } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Pencil, Trash2, Users, Loader2 } from 'lucide-react';
+import axios from 'axios';
 import './RolesManagement.css';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 interface Role {
   id: string;
@@ -12,14 +15,49 @@ interface Role {
   createdAt: string;
 }
 
+interface UserStats {
+  total: number;
+  byRole: {
+    admin: number;
+    manager: number;
+    user: number;
+  };
+  managers: number;
+}
+
 export function RolesManagement() {
-  const [_roles, _setRoles] = useState<Role[]>([
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchUserStats();
+  }, []);
+
+  const fetchUserStats = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/api/organization/users/stats`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.data.success) {
+        setUserStats(response.data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch user stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Derive roles from stats - system roles have real counts
+  const roles: Role[] = [
     {
       id: '1',
       name: 'Organization Admin',
       description: 'Full access to organization settings and all modules',
       permissions: ['org.*', 'users.*', 'settings.*', 'modules.*', 'reports.*'],
-      userCount: 1,
+      userCount: userStats?.byRole.admin ?? 0,
       isSystem: true,
       createdAt: '2025-01-01'
     },
@@ -28,7 +66,7 @@ export function RolesManagement() {
       name: 'User',
       description: 'Standard user with access to personal profile and assigned resources',
       permissions: ['profile.read', 'profile.write', 'assigned.read', 'apps.use'],
-      userCount: 25,
+      userCount: userStats?.byRole.user ?? 0,
       isSystem: true,
       createdAt: '2025-01-01'
     },
@@ -37,38 +75,13 @@ export function RolesManagement() {
       name: 'Manager',
       description: 'Can manage team members and view team resources',
       permissions: ['team.read', 'team.write', 'reports.read', 'users.read'],
-      userCount: 5,
-      isSystem: false,
-      createdAt: '2025-01-01'
-    },
-    {
-      id: '4',
-      name: 'HR Admin',
-      description: 'Manage all users, profiles, and organizational structure',
-      permissions: ['users.*', 'groups.*', 'orgunits.*', 'profiles.*'],
-      userCount: 2,
-      isSystem: false,
-      createdAt: '2025-01-01'
-    },
-    {
-      id: '5',
-      name: 'IT Admin',
-      description: 'Manage devices, applications, and technical settings',
-      permissions: ['assets.*', 'apps.*', 'integrations.*', 'security.read'],
-      userCount: 3,
-      isSystem: false,
-      createdAt: '2025-01-01'
-    },
-    {
-      id: '6',
-      name: 'Viewer',
-      description: 'Read-only access to assigned resources',
-      permissions: ['*.read'],
-      userCount: 0,
-      isSystem: false,
+      userCount: userStats?.byRole.manager ?? 0,
+      isSystem: true,
       createdAt: '2025-01-01'
     }
-  ]);
+  ];
+
+  const [_roles, _setRoles] = useState<Role[]>(roles);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [_editingRole, _setEditingRole] = useState<Role | null>(null);
@@ -96,47 +109,54 @@ export function RolesManagement() {
         </button>
       </div>
 
-      <div className="roles-grid">
-        {_roles.map(role => (
-          <div key={role.id} className="role-card">
-            <div className="role-header">
-              <div>
-                <h3>{role.name}</h3>
-                {role.isSystem && <span className="system-badge">System Role</span>}
+      {loading ? (
+        <div className="loading-state">
+          <Loader2 size={24} className="spin" />
+          <span>Loading roles...</span>
+        </div>
+      ) : (
+        <div className="roles-grid">
+          {roles.map(role => (
+            <div key={role.id} className="role-card">
+              <div className="role-header">
+                <div>
+                  <h3>{role.name}</h3>
+                  {role.isSystem && <span className="system-badge">System Role</span>}
+                </div>
+                <div className="role-actions">
+                  {!role.isSystem && (
+                    <>
+                      <button className="btn-icon" onClick={() => _setEditingRole(role)}><Pencil size={14} /></button>
+                      <button className="btn-icon danger"><Trash2 size={14} /></button>
+                    </>
+                  )}
+                </div>
               </div>
-              <div className="role-actions">
-                {!role.isSystem && (
-                  <>
-                    <button className="btn-icon" onClick={() => _setEditingRole(role)}><Pencil size={14} /></button>
-                    <button className="btn-icon danger"><Trash2 size={14} /></button>
-                  </>
-                )}
-              </div>
-            </div>
-            <p className="role-description">{role.description}</p>
+              <p className="role-description">{role.description}</p>
 
-            <div className="role-permissions">
-              <h4>Permissions:</h4>
-              <div className="permission-tags">
-                {role.permissions.slice(0, 3).map(perm => (
-                  <span key={perm} className="permission-tag">{perm}</span>
-                ))}
-                {role.permissions.length > 3 && (
-                  <span className="permission-tag more">+{role.permissions.length - 3} more</span>
-                )}
+              <div className="role-permissions">
+                <h4>Permissions:</h4>
+                <div className="permission-tags">
+                  {role.permissions.slice(0, 3).map(perm => (
+                    <span key={perm} className="permission-tag">{perm}</span>
+                  ))}
+                  {role.permissions.length > 3 && (
+                    <span className="permission-tag more">+{role.permissions.length - 3} more</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="role-footer">
+                <span className="user-count">
+                  <Users size={14} className="count-icon" />
+                  {role.userCount} user{role.userCount !== 1 ? 's' : ''}
+                </span>
+                <button className="btn-assign">Assign Users</button>
               </div>
             </div>
-
-            <div className="role-footer">
-              <span className="user-count">
-                <Users size={14} className="count-icon" />
-                {role.userCount} user{role.userCount !== 1 ? 's' : ''}
-              </span>
-              <button className="btn-assign">Assign Users</button>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {showCreateModal && (
         <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>

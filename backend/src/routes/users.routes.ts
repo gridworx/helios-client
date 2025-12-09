@@ -3,6 +3,7 @@ import { requireAuth, requirePermission } from '../middleware/auth';
 import { userSyncService } from '../services/user-sync.service';
 import { googleWorkspaceService } from '../services/google-workspace.service';
 import { logger } from '../utils/logger';
+import { db } from '../database/connection';
 
 const router = Router();
 
@@ -38,6 +39,104 @@ router.get('/', requireAuth, async (req, res) => {
 
   } catch (error: any) {
     logger.error('Failed to get users', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/users/stats
+ * Get user statistics by role, status, and type
+ */
+router.get('/stats', requireAuth, async (req, res) => {
+  try {
+    const organizationId = req.user?.organizationId;
+
+    if (!organizationId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Organization ID required'
+      });
+    }
+
+    // Get counts by role
+    const roleCountsResult = await db.query(`
+      SELECT
+        role,
+        COUNT(*) as count
+      FROM organization_users
+      WHERE organization_id = $1 AND is_active = true
+      GROUP BY role
+    `, [organizationId]);
+
+    // Get counts by employee type
+    const employeeTypeResult = await db.query(`
+      SELECT
+        COALESCE(employee_type, 'Unknown') as employee_type,
+        COUNT(*) as count
+      FROM organization_users
+      WHERE organization_id = $1 AND is_active = true
+      GROUP BY employee_type
+    `, [organizationId]);
+
+    // Get managers count (users who have direct reports)
+    const managersResult = await db.query(`
+      SELECT COUNT(DISTINCT reporting_manager_id) as count
+      FROM organization_users
+      WHERE organization_id = $1
+        AND reporting_manager_id IS NOT NULL
+        AND is_active = true
+    `, [organizationId]);
+
+    // Get orphaned users count (no manager, not CEO)
+    const orphansResult = await db.query(`
+      SELECT COUNT(*) as count
+      FROM organization_users
+      WHERE organization_id = $1
+        AND is_active = true
+        AND reporting_manager_id IS NULL
+        AND job_title NOT LIKE '%Chief Executive%'
+        AND job_title != 'CEO'
+    `, [organizationId]);
+
+    // Get total active users
+    const totalResult = await db.query(`
+      SELECT COUNT(*) as count
+      FROM organization_users
+      WHERE organization_id = $1 AND is_active = true
+    `, [organizationId]);
+
+    // Build role counts object
+    const roleCounts: Record<string, number> = {};
+    roleCountsResult.rows.forEach((row: any) => {
+      roleCounts[row.role] = parseInt(row.count);
+    });
+
+    // Build employee type counts object
+    const employeeTypeCounts: Record<string, number> = {};
+    employeeTypeResult.rows.forEach((row: any) => {
+      employeeTypeCounts[row.employee_type] = parseInt(row.count);
+    });
+
+    res.json({
+      success: true,
+      data: {
+        total: parseInt(totalResult.rows[0].count),
+        byRole: {
+          admin: roleCounts['admin'] || 0,
+          manager: roleCounts['manager'] || 0,
+          user: roleCounts['user'] || 0
+        },
+        byEmployeeType: employeeTypeCounts,
+        managers: parseInt(managersResult.rows[0].count),
+        orphans: parseInt(orphansResult.rows[0].count)
+      }
+    });
+
+  } catch (error: any) {
+    logger.error('Failed to get user stats', { error: error.message });
     res.status(500).json({
       success: false,
       error: error.message
