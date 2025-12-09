@@ -21,9 +21,9 @@ async function loginAndNavigateToPeople(page: Page) {
   // Dismiss ViewOnboarding modal if present (appears for internal admins on first login)
   await dismissViewOnboarding(page);
 
-  // Navigate to People directory
-  await page.click('text=People');
-  await page.waitForSelector('.people-container');
+  // Navigate directly to People directory (since People link is only in user view navigation)
+  await page.goto('/people');
+  await page.waitForSelector('.people-container', { timeout: 15000 });
 }
 
 test.describe('People Directory Page', () => {
@@ -46,7 +46,8 @@ test.describe('People Directory Page', () => {
 
     // Search box should be visible
     await expect(page.locator('.search-box')).toBeVisible();
-    await expect(page.locator('input[placeholder*="Search"]')).toBeVisible();
+    // Use more specific selector to avoid matching universal search in header
+    await expect(page.locator('.search-box input[placeholder*="Search"]')).toBeVisible();
   });
 
   test('should display filter controls', async ({ page }) => {
@@ -129,8 +130,8 @@ test.describe('New Joiners Section', () => {
     // Wait for page to load
     await page.waitForSelector('.people-results');
 
-    // Apply a search filter
-    const searchInput = page.locator('input[placeholder*="Search"]');
+    // Apply a search filter - use specific selector for People Directory search
+    const searchInput = page.locator('.search-box input[placeholder*="Search"]');
     await searchInput.fill('test');
 
     // Wait for search debounce
@@ -152,8 +153,8 @@ test.describe('Search Functionality', () => {
     // Wait for initial load
     await page.waitForSelector('.people-results');
 
-    // Search for a name
-    const searchInput = page.locator('input[placeholder*="Search"]');
+    // Search for a name - use specific selector for People Directory search
+    const searchInput = page.locator('.search-box input[placeholder*="Search"]');
     await searchInput.fill('mike');
 
     // Wait for search results (debounced)
@@ -168,8 +169,8 @@ test.describe('Search Functionality', () => {
   test('should show clear search button when searching', async ({ page }) => {
     await loginAndNavigateToPeople(page);
 
-    // Enter search term
-    const searchInput = page.locator('input[placeholder*="Search"]');
+    // Enter search term - use specific selector for People Directory search
+    const searchInput = page.locator('.search-box input[placeholder*="Search"]');
     await searchInput.fill('test search');
 
     // Clear button should appear
@@ -179,8 +180,8 @@ test.describe('Search Functionality', () => {
   test('should clear search when clicking clear button', async ({ page }) => {
     await loginAndNavigateToPeople(page);
 
-    // Enter search term
-    const searchInput = page.locator('input[placeholder*="Search"]');
+    // Enter search term - use specific selector for People Directory search
+    const searchInput = page.locator('.search-box input[placeholder*="Search"]');
     await searchInput.fill('test search');
 
     // Click clear button
@@ -197,8 +198,8 @@ test.describe('Search Functionality', () => {
     // Wait for initial load
     await page.waitForSelector('.people-results');
 
-    // Type quickly
-    const searchInput = page.locator('input[placeholder*="Search"]');
+    // Type quickly - use specific selector for People Directory search
+    const searchInput = page.locator('.search-box input[placeholder*="Search"]');
     await searchInput.fill('a');
     await searchInput.fill('ab');
     await searchInput.fill('abc');
@@ -298,8 +299,8 @@ test.describe('Filter Panel', () => {
     // Open filter panel
     await page.click('.filter-toggle');
 
-    // Apply a filter
-    const searchInput = page.locator('input[placeholder*="Search"]');
+    // Apply a filter - use specific selector for People Directory search
+    const searchInput = page.locator('.search-box input[placeholder*="Search"]');
     await searchInput.fill('test');
 
     // Wait for search to apply
@@ -315,8 +316,8 @@ test.describe('Filter Panel', () => {
     // Open filter panel
     await page.click('.filter-toggle');
 
-    // Apply filters
-    const searchInput = page.locator('input[placeholder*="Search"]');
+    // Apply filters - use specific selector for People Directory search
+    const searchInput = page.locator('.search-box input[placeholder*="Search"]');
     await searchInput.fill('test');
 
     // Wait for filter to apply
@@ -453,8 +454,8 @@ test.describe('Person SlideOut', () => {
     if (cardCount > 0) {
       await cards.first().click();
 
-      // Slideout should be visible
-      await expect(page.locator('.slideout-panel, .person-slideout')).toBeVisible();
+      // Slideout should be visible (uses .person-slideout class)
+      await expect(page.locator('.person-slideout')).toBeVisible();
     }
   });
 
@@ -468,10 +469,10 @@ test.describe('Person SlideOut', () => {
 
     if (cardCount > 0) {
       await cards.first().click();
-      await page.waitForSelector('.slideout-panel, .person-slideout');
+      await page.waitForSelector('.person-slideout');
 
       // Should have profile header info
-      await expect(page.locator('.slideout-header, .profile-header')).toBeVisible();
+      await expect(page.locator('.profile-header')).toBeVisible();
     }
   });
 
@@ -485,11 +486,11 @@ test.describe('Person SlideOut', () => {
 
     if (cardCount > 0) {
       await cards.first().click();
-      await page.waitForSelector('.slideout-panel, .person-slideout');
+      await page.waitForSelector('.person-slideout');
 
-      // Should have Overview and About tabs
-      await expect(page.locator('.slideout-tab:has-text("Overview")')).toBeVisible();
-      await expect(page.locator('.slideout-tab:has-text("About")')).toBeVisible();
+      // Should have Overview and About tabs in .profile-tabs container
+      await expect(page.locator('.profile-tabs button:has-text("Overview")')).toBeVisible();
+      await expect(page.locator('.profile-tabs button:has-text("About")')).toBeVisible();
     }
   });
 
@@ -503,13 +504,13 @@ test.describe('Person SlideOut', () => {
 
     if (cardCount > 0) {
       await cards.first().click();
-      await page.waitForSelector('.slideout-panel, .person-slideout');
+      await page.waitForSelector('.person-slideout');
 
-      // Click close button
-      await page.click('.slideout-close');
+      // Click close button (uses .close-btn class)
+      await page.click('.close-btn');
 
       // Slideout should be closed
-      await expect(page.locator('.slideout-panel')).not.toBeVisible();
+      await expect(page.locator('.person-slideout')).not.toBeVisible();
     }
   });
 
@@ -523,13 +524,13 @@ test.describe('Person SlideOut', () => {
 
     if (cardCount > 0) {
       await cards.first().click();
-      await page.waitForSelector('.slideout-panel, .person-slideout');
+      await page.waitForSelector('.person-slideout');
 
-      // Click overlay
-      await page.click('.slideout-overlay', { position: { x: 50, y: 300 } });
+      // Click overlay (uses .person-slideout-overlay class)
+      await page.click('.person-slideout-overlay', { position: { x: 50, y: 300 } });
 
       // Slideout should be closed
-      await expect(page.locator('.slideout-panel')).not.toBeVisible();
+      await expect(page.locator('.person-slideout')).not.toBeVisible();
     }
   });
 
@@ -543,19 +544,19 @@ test.describe('Person SlideOut', () => {
 
     if (cardCount > 0) {
       await cards.first().click();
-      await page.waitForSelector('.slideout-panel, .person-slideout');
+      await page.waitForSelector('.person-slideout');
 
-      // Click About tab
-      await page.click('.slideout-tab:has-text("About")');
+      // Click About tab (in .profile-tabs container)
+      await page.click('.profile-tabs button:has-text("About")');
 
-      // About content should be visible
-      await expect(page.locator('.about-tab-content, .about-section, text=Ask Me About, text=Fun Facts, text=Interests')).toBeVisible();
+      // About content should be visible (uses .about-tab class)
+      await expect(page.locator('.about-tab')).toBeVisible();
 
       // Click back to Overview tab
-      await page.click('.slideout-tab:has-text("Overview")');
+      await page.click('.profile-tabs button:has-text("Overview")');
 
-      // Overview content should be visible
-      await expect(page.locator('.overview-tab-content, .info-section, .contact-info')).toBeVisible();
+      // Overview content should be visible (uses .overview-tab and .info-section classes)
+      await expect(page.locator('.overview-tab')).toBeVisible();
     }
   });
 });
@@ -612,8 +613,8 @@ test.describe('Empty State', () => {
   test('should show empty state when no results match', async ({ page }) => {
     await loginAndNavigateToPeople(page);
 
-    // Search for something that won't match
-    const searchInput = page.locator('input[placeholder*="Search"]');
+    // Search for something that won't match - use specific selector for People Directory search
+    const searchInput = page.locator('.search-box input[placeholder*="Search"]');
     await searchInput.fill('xyznonexistentperson12345');
 
     // Wait for search
@@ -627,8 +628,8 @@ test.describe('Empty State', () => {
   test('should show Clear Filters option in empty state when filters active', async ({ page }) => {
     await loginAndNavigateToPeople(page);
 
-    // Search for something that won't match
-    const searchInput = page.locator('input[placeholder*="Search"]');
+    // Search for something that won't match - use specific selector for People Directory search
+    const searchInput = page.locator('.search-box input[placeholder*="Search"]');
     await searchInput.fill('xyznonexistentperson12345');
 
     // Wait for search
@@ -655,10 +656,10 @@ test.describe('Skill/Interest Search Integration', () => {
 
     if (cardCount > 0) {
       await cards.first().click();
-      await page.waitForSelector('.slideout-panel, .person-slideout');
+      await page.waitForSelector('.person-slideout');
 
-      // Go to About tab where skills/interests are
-      await page.click('.slideout-tab:has-text("About")');
+      // Go to About tab where skills/interests are (in .profile-tabs container)
+      await page.click('.profile-tabs button:has-text("About")');
 
       // Look for clickable skill/expertise tags
       const skillTag = page.locator('.clickable-tag, .expertise-tag, .tag.clickable').first();
@@ -669,10 +670,11 @@ test.describe('Skill/Interest Search Integration', () => {
         await skillTag.click();
 
         // Slideout should close and search should be populated
-        await expect(page.locator('.slideout-panel')).not.toBeVisible();
+        await expect(page.locator('.person-slideout')).not.toBeVisible();
 
         if (skillText) {
-          const searchValue = await page.locator('input[placeholder*="Search"]').inputValue();
+          // Use specific selector for People Directory search
+          const searchValue = await page.locator('.search-box input[placeholder*="Search"]').inputValue();
           expect(searchValue.length).toBeGreaterThan(0);
         }
       }
@@ -713,7 +715,8 @@ test.describe('Accessibility', () => {
   test('should have accessible search input', async ({ page }) => {
     await loginAndNavigateToPeople(page);
 
-    const searchInput = page.locator('input[placeholder*="Search"]');
+    // Use specific selector for People Directory search
+    const searchInput = page.locator('.search-box input[placeholder*="Search"]');
     await expect(searchInput).toBeVisible();
 
     // Should be focusable
@@ -731,13 +734,13 @@ test.describe('Accessibility', () => {
 
     if (cardCount > 0) {
       await cards.first().click();
-      await page.waitForSelector('.slideout-panel, .person-slideout');
+      await page.waitForSelector('.person-slideout');
 
       // Press Escape
       await page.keyboard.press('Escape');
 
       // Slideout should close
-      await expect(page.locator('.slideout-panel')).not.toBeVisible();
+      await expect(page.locator('.person-slideout')).not.toBeVisible();
     }
   });
 });

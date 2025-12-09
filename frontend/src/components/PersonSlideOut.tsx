@@ -57,6 +57,19 @@ export function PersonSlideOut({ personId, onClose, onViewProfile, onSearchSkill
     };
   }, [audioElement]);
 
+  // Close on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
+
   const handlePlayMedia = async (type: 'voice_intro' | 'name_pronunciation') => {
     if (playingAudio === type && audioElement) {
       audioElement.pause();
