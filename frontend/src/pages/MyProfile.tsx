@@ -7,10 +7,12 @@ import {
   Trash2,
   Video,
   Loader2,
+  Camera,
 } from 'lucide-react';
 import { profileService } from '../services/profile.service';
 import type { ProfileData } from '../services/profile.service';
 import { MediaRecorderComponent } from '../components/MediaRecorder';
+import { AssetPickerModal } from '../components/AssetPickerModal';
 import './MyProfile.css';
 
 interface MyProfileProps {
@@ -48,6 +50,10 @@ export function MyProfile({ organizationId: _organizationId }: MyProfileProps) {
   // Expertise state
   const [newExpertise, setNewExpertise] = useState('');
   const [addingExpertise, setAddingExpertise] = useState(false);
+
+  // Photo picker state
+  const [showPhotoPicker, setShowPhotoPicker] = useState(false);
+  const [updatingPhoto, setUpdatingPhoto] = useState(false);
 
   // Load profile data
   const loadProfile = useCallback(async () => {
@@ -90,6 +96,29 @@ export function MyProfile({ organizationId: _organizationId }: MyProfileProps) {
       loadProfile();
     }
     setSaving(false);
+  };
+
+  // Handle profile photo selection from asset picker
+  const handlePhotoSelect = async (asset: { publicUrl?: string }) => {
+    if (!asset.publicUrl) {
+      setShowPhotoPicker(false);
+      return;
+    }
+
+    setUpdatingPhoto(true);
+    try {
+      const success = await profileService.updateProfile({
+        avatarUrl: asset.publicUrl,
+      });
+      if (success) {
+        loadProfile();
+      }
+    } catch (err) {
+      console.error('Failed to update profile photo:', err);
+    } finally {
+      setUpdatingPhoto(false);
+      setShowPhotoPicker(false);
+    }
   };
 
   // Fun Facts handlers
@@ -213,7 +242,14 @@ export function MyProfile({ organizationId: _organizationId }: MyProfileProps) {
               <User size={48} />
             </div>
           )}
-          <button className="btn-text change-photo">Change Photo</button>
+          <button
+            className="btn-text change-photo"
+            onClick={() => setShowPhotoPicker(true)}
+            disabled={updatingPhoto}
+          >
+            {updatingPhoto ? <Loader2 className="spin" size={14} /> : <Camera size={14} />}
+            {updatingPhoto ? 'Updating...' : 'Change Photo'}
+          </button>
         </div>
         <div className="profile-info">
           <h2>
@@ -715,6 +751,16 @@ export function MyProfile({ organizationId: _organizationId }: MyProfileProps) {
           </div>
         )}
       </div>
+
+      {/* Profile Photo Picker Modal */}
+      <AssetPickerModal
+        isOpen={showPhotoPicker}
+        onClose={() => setShowPhotoPicker(false)}
+        onSelect={handlePhotoSelect}
+        title="Choose Profile Photo"
+        acceptedTypes={['image/*']}
+        category="profiles"
+      />
     </div>
   );
 }

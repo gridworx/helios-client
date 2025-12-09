@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useTabPersistence } from '../hooks/useTabPersistence';
-import { PenLine, Mail, Globe, Puzzle, Plus, FileText, Calendar, Target, Search, RefreshCw, Star, Palette, Eye, Pencil, Copy, Trash2, Tag, X, Loader, Check } from 'lucide-react';
+import { PenLine, Mail, Globe, Puzzle, Plus, FileText, Calendar, Target, Search, RefreshCw, Star, Palette, Eye, Pencil, Copy, Trash2, Tag, X, Loader, Check, Image } from 'lucide-react';
 import './TemplateStudio.css';
+import { AssetPickerModal } from '../components/AssetPickerModal';
 
 interface Template {
   id: string;
@@ -93,6 +94,9 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [showVariablePicker, setShowVariablePicker] = useState(false);
   const [organizationData, setOrganizationData] = useState<any>(null);
+
+  // Asset picker state
+  const [showAssetPicker, setShowAssetPicker] = useState(false);
 
   // Template type definitions
   const templateTypes = [
@@ -515,6 +519,15 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
     const variable = `{{${variableKey}}}`;
     setNewTemplateHtml(prev => prev + variable);
     setShowVariablePicker(false);
+  };
+
+  // Insert image from asset picker
+  const handleAssetSelect = (asset: { publicUrl?: string; name: string }) => {
+    if (asset.publicUrl) {
+      const imgTag = `<img src="${asset.publicUrl}" alt="${asset.name}" style="max-width: 100%; height: auto;" />`;
+      setNewTemplateHtml(prev => prev + imgTag);
+    }
+    setShowAssetPicker(false);
   };
 
   const renderTemplateWithUserData = (htmlContent: string, user: User | undefined): string => {
@@ -960,6 +973,14 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
                   >
                     <Tag size={14} /> Insert Variable
                   </button>
+                  <button
+                    type="button"
+                    className="btn-toolbar"
+                    onClick={() => setShowAssetPicker(true)}
+                    disabled={isCreating}
+                  >
+                    <Image size={14} /> Insert Image
+                  </button>
                 </div>
                 {showVariablePicker && (
                   <div className="variable-picker">
@@ -1121,6 +1142,14 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
                   >
                     <Tag size={14} /> Insert Variable
                   </button>
+                  <button
+                    type="button"
+                    className="btn-toolbar"
+                    onClick={() => setShowAssetPicker(true)}
+                    disabled={isCreating}
+                  >
+                    <Image size={14} /> Insert Image
+                  </button>
                 </div>
                 {showVariablePicker && (
                   <div className="variable-picker">
@@ -1267,6 +1296,16 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
           </div>
         </div>
       )}
+
+      {/* Asset Picker Modal */}
+      <AssetPickerModal
+        isOpen={showAssetPicker}
+        onClose={() => setShowAssetPicker(false)}
+        onSelect={handleAssetSelect}
+        title="Insert Image"
+        acceptedTypes={['image/*']}
+        category="signatures"
+      />
     </div>
   );
 }

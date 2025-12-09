@@ -166,14 +166,16 @@
 
 ## Phase 8: Integration
 
-- [ ] **TASK-ASSET-021**: Integrate with Signature Management
+- [x] **TASK-ASSET-021**: Integrate with Signature Management
   - Asset picker in template editor
   - Use asset URLs for signature images
-  - File: Update `frontend/src/components/signatures/TemplateEditor.tsx`
+  - File: `frontend/src/pages/TemplateStudio.tsx`
+  - **COMPLETED**: Created AssetPickerModal component, added "Insert Image" button to editor toolbar
 
-- [ ] **TASK-ASSET-022**: Integrate with User Profiles
+- [x] **TASK-ASSET-022**: Integrate with User Profiles
   - Profile photo upload uses asset service
   - Photos stored in /profiles/ folder
+  - **COMPLETED**: Integrated AssetPickerModal with MyProfile "Change Photo" button
   - File: Update `frontend/src/pages/MyProfile.tsx`
 
 ## Phase 9: Testing
