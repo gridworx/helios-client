@@ -57,29 +57,33 @@
 
 ### Frontend Tasks
 
-- [ ] **TASK-SIG-007**: Create SignatureTemplates list page
+- [x] **TASK-SIG-007**: Create SignatureTemplates list page
   - Table with template name, status, assignments
   - Create, edit, delete actions
   - Filter by status (draft, active, archived)
-  - File: `frontend/src/pages/admin/SignatureTemplates.tsx`
+  - File: `frontend/src/pages/Signatures.tsx` (enhanced existing page)
+  - **DONE**: Updated Signatures.tsx with proper API calls to /api/signatures/templates, added template editor modal, preview modal, clone functionality, set as default, and improved template card display
 
-- [ ] **TASK-SIG-008**: Create TemplateEditor component
+- [x] **TASK-SIG-008**: Create TemplateEditor component
   - Rich text editor for HTML signature
   - Merge field insertion toolbar
   - Live preview panel
   - File: `frontend/src/components/signatures/TemplateEditor.tsx`
+  - **DONE**: Rich text editor with formatting toolbar (bold, italic, underline, alignment, lists), font family/size controls, color picker, link/image/table insertion, merge field picker integration, HTML source mode toggle
 
-- [ ] **TASK-SIG-009**: Create MergeFieldPicker component
+- [x] **TASK-SIG-009**: Create MergeFieldPicker component
   - Dropdown/palette of available fields
   - Field descriptions and examples
   - Insert at cursor position
   - File: `frontend/src/components/signatures/MergeFieldPicker.tsx`
+  - **DONE**: Categorized field picker with search, expandable categories (Personal, Professional, Contact, Organization, Social), field descriptions, examples, and click-to-insert functionality
 
-- [ ] **TASK-SIG-010**: Create TemplatePreview component
+- [x] **TASK-SIG-010**: Create TemplatePreview component
   - Render template with selected user's data
   - User selector dropdown
   - Show both HTML and plain text versions
   - File: `frontend/src/components/signatures/TemplatePreview.tsx`
+  - **DONE**: Preview component with user selector (sample data + real users), visual/plain text/HTML source tabs, refresh functionality, loading states
 
 ## Phase 3: Assignment System
 

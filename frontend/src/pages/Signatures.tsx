@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   FileText,
   Plus,
@@ -14,9 +14,16 @@ import {
   CheckCircle,
   Clock,
   Target,
-  TrendingUp
+  TrendingUp,
+  Copy,
+  Eye,
+  Star,
+  AlertCircle,
+  X,
+  Save
 } from 'lucide-react';
 import './Signatures.css';
+import { TemplateEditor, TemplatePreview } from '../components/signatures';
 
 interface SignatureTemplate {
   id: string;
@@ -24,12 +31,16 @@ interface SignatureTemplate {
   description: string;
   html_content: string;
   plain_text_content?: string;
-  category: string;
-  variables_used: string[];
+  mobile_html_content?: string;
+  thumbnail_url?: string;
+  category?: string;
+  variables_used?: string[];
   is_active: boolean;
   is_default: boolean;
   created_at: string;
   updated_at: string;
+  created_by_email?: string;
+  created_by_name?: string;
   assignment_count: number;
   usage_count: number;
 }
@@ -55,16 +66,39 @@ interface SignatureCampaign {
   total_target_count: number;
 }
 
+interface TemplateFormData {
+  name: string;
+  description: string;
+  html_content: string;
+  plain_text_content: string;
+  is_active: boolean;
+  is_default: boolean;
+}
+
 const Signatures: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'templates' | 'campaigns' | 'analytics'>('templates');
   const [templates, setTemplates] = useState<SignatureTemplate[]>([]);
   const [campaigns, setCampaigns] = useState<SignatureCampaign[]>([]);
-  const [_selectedTemplate, setSelectedTemplate] = useState<SignatureTemplate | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<SignatureTemplate | null>(null);
   const [_selectedCampaign, setSelectedCampaign] = useState<SignatureCampaign | null>(null);
   const [showCampaignWizard, setShowCampaignWizard] = useState(false);
+  const [showTemplateEditor, setShowTemplateEditor] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewTemplate, setPreviewTemplate] = useState<SignatureTemplate | null>(null);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [error, setError] = useState<string | null>(null);
+
+  const [formData, setFormData] = useState<TemplateFormData>({
+    name: '',
+    description: '',
+    html_content: '',
+    plain_text_content: '',
+    is_active: true,
+    is_default: false,
+  });
 
   useEffect(() => {
     if (activeTab === 'templates') {
@@ -76,19 +110,22 @@ const Signatures: React.FC = () => {
 
   const fetchTemplates = async () => {
     setLoading(true);
+    setError(null);
     try {
-      // Fetch templates from Template Studio API filtered by email_signature type
-      const response = await fetch('http://localhost:3001/api/templates?template_type=email_signature', {
+      const response = await fetch('/api/signatures/templates', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
         },
       });
       const data = await response.json();
       if (data.success) {
-        setTemplates(data.data);
+        setTemplates(data.data || []);
+      } else {
+        setError(data.error || 'Failed to fetch templates');
       }
-    } catch (error) {
-      console.error('Error fetching templates:', error);
+    } catch (err) {
+      console.error('Error fetching templates:', err);
+      setError('Failed to connect to server');
     } finally {
       setLoading(false);
     }
@@ -96,20 +133,106 @@ const Signatures: React.FC = () => {
 
   const fetchCampaigns = async () => {
     setLoading(true);
+    setError(null);
     try {
       const response = await fetch('/api/signatures/campaigns', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
         },
       });
       const data = await response.json();
       if (data.success) {
-        setCampaigns(data.data);
+        setCampaigns(data.data || []);
+      } else {
+        setError(data.error || 'Failed to fetch campaigns');
       }
-    } catch (error) {
-      console.error('Error fetching campaigns:', error);
+    } catch (err) {
+      console.error('Error fetching campaigns:', err);
+      setError('Failed to connect to server');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openTemplateEditor = useCallback((template?: SignatureTemplate) => {
+    if (template) {
+      setSelectedTemplate(template);
+      setFormData({
+        name: template.name,
+        description: template.description || '',
+        html_content: template.html_content || '',
+        plain_text_content: template.plain_text_content || '',
+        is_active: template.is_active,
+        is_default: template.is_default,
+      });
+    } else {
+      setSelectedTemplate(null);
+      setFormData({
+        name: '',
+        description: '',
+        html_content: getDefaultTemplate(),
+        plain_text_content: '',
+        is_active: true,
+        is_default: false,
+      });
+    }
+    setShowTemplateEditor(true);
+  }, []);
+
+  const closeTemplateEditor = useCallback(() => {
+    setShowTemplateEditor(false);
+    setSelectedTemplate(null);
+    setFormData({
+      name: '',
+      description: '',
+      html_content: '',
+      plain_text_content: '',
+      is_active: true,
+      is_default: false,
+    });
+  }, []);
+
+  const saveTemplate = async () => {
+    if (!formData.name.trim()) {
+      setError('Template name is required');
+      return;
+    }
+    if (!formData.html_content.trim()) {
+      setError('Template content is required');
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const url = selectedTemplate
+        ? `/api/signatures/templates/${selectedTemplate.id}`
+        : '/api/signatures/templates';
+      const method = selectedTemplate ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        closeTemplateEditor();
+        fetchTemplates();
+      } else {
+        setError(data.error || 'Failed to save template');
+      }
+    } catch (err) {
+      console.error('Error saving template:', err);
+      setError('Failed to save template');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -120,24 +243,59 @@ const Signatures: React.FC = () => {
       const response = await fetch(`/api/signatures/templates/${templateId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
         },
       });
       const data = await response.json();
       if (data.success) {
         fetchTemplates();
+      } else {
+        setError(data.error || 'Failed to delete template');
       }
-    } catch (error) {
-      console.error('Error deleting template:', error);
+    } catch (err) {
+      console.error('Error deleting template:', err);
+      setError('Failed to delete template');
+    }
+  };
+
+  const handleCloneTemplate = async (template: SignatureTemplate) => {
+    setFormData({
+      name: `${template.name} (Copy)`,
+      description: template.description || '',
+      html_content: template.html_content,
+      plain_text_content: template.plain_text_content || '',
+      is_active: false,
+      is_default: false,
+    });
+    setSelectedTemplate(null);
+    setShowTemplateEditor(true);
+  };
+
+  const handleSetDefault = async (templateId: string) => {
+    try {
+      const response = await fetch(`/api/signatures/templates/${templateId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ is_default: true }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        fetchTemplates();
+      }
+    } catch (err) {
+      console.error('Error setting default template:', err);
     }
   };
 
   const handleCampaignStatusChange = async (campaignId: string, newStatus: string) => {
     try {
-      const response = await fetch(`/api/signatures/campaigns/${campaignId}/status`, {
+      const response = await fetch(`/api/signatures/campaigns/${campaignId}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ status: newStatus }),
@@ -146,8 +304,8 @@ const Signatures: React.FC = () => {
       if (data.success) {
         fetchCampaigns();
       }
-    } catch (error) {
-      console.error('Error updating campaign status:', error);
+    } catch (err) {
+      console.error('Error updating campaign status:', err);
     }
   };
 
@@ -156,15 +314,18 @@ const Signatures: React.FC = () => {
       const response = await fetch('/api/signatures/sync', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
         },
       });
       const data = await response.json();
       if (data.success) {
-        alert(`Signature sync initiated for ${data.data.userCount} users`);
+        alert(`Signature sync initiated for ${data.data?.userCount || 0} users`);
+      } else {
+        alert(data.error || 'Sync not available');
       }
-    } catch (error) {
-      console.error('Error initiating sync:', error);
+    } catch (err) {
+      console.error('Error initiating sync:', err);
+      alert('Failed to initiate sync');
     }
   };
 
@@ -207,8 +368,7 @@ const Signatures: React.FC = () => {
           </button>
           <button className="btn-primary" onClick={() => {
             if (activeTab === 'templates') {
-              // Redirect to Template Studio for unified template creation
-              window.location.href = '/templates?type=email_signature';
+              openTemplateEditor();
             } else if (activeTab === 'campaigns') {
               setShowCampaignWizard(true);
             }
@@ -218,6 +378,16 @@ const Signatures: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {error && (
+        <div className="error-banner">
+          <AlertCircle size={16} />
+          <span>{error}</span>
+          <button onClick={() => setError(null)}>
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       <div className="signatures-tabs">
         <button
@@ -264,7 +434,7 @@ const Signatures: React.FC = () => {
               <FileText size={48} />
               <h3>No templates found</h3>
               <p>Create your first signature template to get started</p>
-              <button className="btn-primary" onClick={() => window.location.href = '/templates?type=email_signature'}>
+              <button className="btn-primary" onClick={() => openTemplateEditor()}>
                 <Plus size={16} />
                 Create Template
               </button>
@@ -272,11 +442,16 @@ const Signatures: React.FC = () => {
           ) : (
             <div className="templates-grid">
               {filteredTemplates.map(template => (
-                <div key={template.id} className="template-card">
+                <div key={template.id} className={`template-card ${template.is_default ? 'default' : ''}`}>
                   <div className="template-header">
                     <h3>{template.name}</h3>
                     <div className="template-badges">
-                      {template.is_default && <span className="badge badge-primary">Default</span>}
+                      {template.is_default && (
+                        <span className="badge badge-primary">
+                          <Star size={10} />
+                          Default
+                        </span>
+                      )}
                       {template.is_active ? (
                         <span className="badge badge-active">Active</span>
                       ) : (
@@ -284,30 +459,73 @@ const Signatures: React.FC = () => {
                       )}
                     </div>
                   </div>
-                  <p className="template-description">{template.description}</p>
+                  <p className="template-description">{template.description || 'No description'}</p>
                   <div className="template-stats">
                     <div className="stat">
                       <Users size={14} />
-                      <span>{template.assignment_count} assignments</span>
+                      <span>{template.assignment_count || 0} assignments</span>
                     </div>
                     <div className="stat">
                       <CheckCircle size={14} />
-                      <span>{template.usage_count} users</span>
+                      <span>{template.usage_count || 0} users</span>
                     </div>
                   </div>
-                  <div className="template-preview"
-                       dangerouslySetInnerHTML={{ __html: template.html_content.substring(0, 200) + '...' }} />
+                  <div className="template-preview-box">
+                    <div
+                      className="template-preview-content"
+                      dangerouslySetInnerHTML={{ __html: template.html_content?.substring(0, 300) + '...' }}
+                    />
+                    <div className="template-preview-fade" />
+                  </div>
                   <div className="template-actions">
-                    <button className="btn-icon" onClick={() => window.location.href = `/templates?edit=${template.id}`} title="Edit template">
+                    <button
+                      className="btn-icon"
+                      onClick={() => {
+                        setPreviewTemplate(template);
+                        setShowPreview(true);
+                      }}
+                      title="Preview"
+                    >
+                      <Eye size={16} />
+                    </button>
+                    <button
+                      className="btn-icon"
+                      onClick={() => openTemplateEditor(template)}
+                      title="Edit template"
+                    >
                       <Edit3 size={16} />
                     </button>
-                    <button className="btn-icon" onClick={() => {
-                      setSelectedTemplate(template);
-                      setShowCampaignWizard(true);
-                    }} title="Create campaign">
+                    <button
+                      className="btn-icon"
+                      onClick={() => handleCloneTemplate(template)}
+                      title="Clone template"
+                    >
+                      <Copy size={16} />
+                    </button>
+                    {!template.is_default && (
+                      <button
+                        className="btn-icon"
+                        onClick={() => handleSetDefault(template.id)}
+                        title="Set as default"
+                      >
+                        <Star size={16} />
+                      </button>
+                    )}
+                    <button
+                      className="btn-icon"
+                      onClick={() => {
+                        setSelectedTemplate(template);
+                        setShowCampaignWizard(true);
+                      }}
+                      title="Create campaign"
+                    >
                       <Target size={16} />
                     </button>
-                    <button className="btn-icon" onClick={() => handleDeleteTemplate(template.id)} title="Delete template">
+                    <button
+                      className="btn-icon danger"
+                      onClick={() => handleDeleteTemplate(template.id)}
+                      title="Delete template"
+                    >
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -390,7 +608,7 @@ const Signatures: React.FC = () => {
                       <div className="progress-bar">
                         <div
                           className="progress-fill"
-                          style={{width: `${(campaign.applied_count / campaign.total_target_count) * 100}%`}}
+                          style={{width: `${campaign.total_target_count ? (campaign.applied_count / campaign.total_target_count) * 100 : 0}%`}}
                         />
                       </div>
                       <span className="detail-value">{campaign.applied_count}/{campaign.total_target_count}</span>
@@ -508,18 +726,137 @@ const Signatures: React.FC = () => {
         </div>
       )}
 
-      {/* Template Editor is now in Template Studio - no need for modal here */}
+      {/* Template Editor Modal */}
+      {showTemplateEditor && (
+        <div className="modal-overlay" onClick={closeTemplateEditor}>
+          <div className="modal-content extra-large" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{selectedTemplate ? 'Edit Template' : 'Create Template'}</h2>
+              <button className="btn-close" onClick={closeTemplateEditor}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="modal-body template-editor-modal">
+              <div className="editor-form">
+                <div className="form-row">
+                  <div className="form-field">
+                    <label>Template Name *</label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="Enter template name"
+                    />
+                  </div>
+                  <div className="form-field">
+                    <label>Description</label>
+                    <input
+                      type="text"
+                      value={formData.description}
+                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Enter a brief description"
+                    />
+                  </div>
+                </div>
 
-      {/* Campaign Wizard Modal - TODO: Implement */}
+                <div className="form-row checkboxes">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={formData.is_active}
+                      onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
+                    />
+                    <span>Active</span>
+                  </label>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={formData.is_default}
+                      onChange={(e) => setFormData(prev => ({ ...prev, is_default: e.target.checked }))}
+                    />
+                    <span>Set as default template</span>
+                  </label>
+                </div>
+
+                <div className="editor-layout">
+                  <div className="editor-panel">
+                    <label>Signature Content</label>
+                    <TemplateEditor
+                      value={formData.html_content}
+                      onChange={(html) => setFormData(prev => ({ ...prev, html_content: html }))}
+                      placeholder="Design your email signature..."
+                    />
+                  </div>
+                  <div className="preview-panel">
+                    <TemplatePreview
+                      htmlContent={formData.html_content}
+                      plainTextContent={formData.plain_text_content}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={closeTemplateEditor}>
+                Cancel
+              </button>
+              <button
+                className="btn-primary"
+                onClick={saveTemplate}
+                disabled={saving}
+              >
+                <Save size={16} />
+                {saving ? 'Saving...' : (selectedTemplate ? 'Update Template' : 'Create Template')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Preview Modal */}
+      {showPreview && previewTemplate && (
+        <div className="modal-overlay" onClick={() => setShowPreview(false)}>
+          <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Preview: {previewTemplate.name}</h2>
+              <button className="btn-close" onClick={() => setShowPreview(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <TemplatePreview
+                htmlContent={previewTemplate.html_content}
+                plainTextContent={previewTemplate.plain_text_content}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Campaign Wizard Modal */}
       {showCampaignWizard && (
         <div className="modal-overlay" onClick={() => setShowCampaignWizard(false)}>
           <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Create Campaign</h2>
-              <button className="btn-close" onClick={() => setShowCampaignWizard(false)}>×</button>
+              <button className="btn-close" onClick={() => setShowCampaignWizard(false)}>
+                <X size={20} />
+              </button>
             </div>
             <div className="modal-body">
-              <p>Campaign creation wizard will be implemented here with targeting options and scheduling</p>
+              <div className="coming-soon-placeholder">
+                <Target size={48} />
+                <h3>Campaign Wizard Coming Soon</h3>
+                <p>
+                  This feature will allow you to create signature campaigns with targeting options,
+                  scheduling, and deployment settings.
+                </p>
+                {selectedTemplate && (
+                  <p className="selected-template-info">
+                    Selected template: <strong>{selectedTemplate.name}</strong>
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -527,5 +864,26 @@ const Signatures: React.FC = () => {
     </div>
   );
 };
+
+// Default signature template
+function getDefaultTemplate(): string {
+  return `<table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif; font-size: 14px; color: #333333;">
+  <tr>
+    <td style="padding-right: 16px; border-right: 2px solid #8b5cf6;">
+      <!-- Profile image placeholder -->
+      <div style="width: 80px; height: 80px; background: #e5e7eb; border-radius: 4px;"></div>
+    </td>
+    <td style="padding-left: 16px; vertical-align: top;">
+      <div style="font-weight: 600; font-size: 16px; color: #1f2937; margin-bottom: 4px;">{{full_name}}</div>
+      <div style="color: #6b7280; margin-bottom: 8px;">{{job_title}}</div>
+      <div style="font-size: 13px; color: #4b5563;">
+        <div style="margin-bottom: 2px;">{{email}}</div>
+        <div style="margin-bottom: 2px;">{{work_phone}}</div>
+        <div style="color: #8b5cf6;">{{company_website}}</div>
+      </div>
+    </td>
+  </tr>
+</table>`;
+}
 
 export default Signatures;
