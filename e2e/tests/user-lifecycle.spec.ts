@@ -18,7 +18,7 @@ async function login(page: Page) {
   await page.waitForURL(/.*dashboard.*|.*admin.*|.*\/$/, { timeout: 15000 });
 
   // Handle ViewOnboarding modal if it appears (first time login)
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(1000);
   const onboardingModal = page.locator('.view-onboarding-overlay');
   if (await onboardingModal.isVisible({ timeout: 2000 }).catch(() => false)) {
     // Click "Admin Console" option to select admin view
@@ -45,6 +45,14 @@ async function login(page: Page) {
       }
     }
   }
+
+  // Final check - ensure modal is fully gone before returning
+  try {
+    await onboardingModal.waitFor({ state: 'hidden', timeout: 3000 });
+  } catch {
+    // Modal might not exist at all
+  }
+  await page.waitForTimeout(500);
 }
 
 /**
@@ -110,6 +118,14 @@ test.describe('User Lifecycle Management', () => {
 
     test('should display new user onboarding form', async ({ page }) => {
       await login(page);
+
+      // Ensure ViewOnboarding modal is fully closed before interacting with UI
+      const onboardingModal = page.locator('.view-onboarding-overlay');
+      try {
+        await onboardingModal.waitFor({ state: 'hidden', timeout: 5000 });
+      } catch {
+        // Modal might not exist at all, which is fine
+      }
 
       // Navigate to new user onboarding - look for it in sidebar
       const newUserLink = page.getByText('New User').or(page.getByText('Add User')).or(page.getByText('Onboard User'));
