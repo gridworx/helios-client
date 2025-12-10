@@ -23,6 +23,10 @@ async function loginAndNavigateToPeople(page: Page) {
 
   // Navigate directly to People directory (since People link is only in user view navigation)
   await page.goto('/people');
+
+  // Dismiss ViewOnboarding modal again in case it appears after navigation
+  await dismissViewOnboarding(page);
+
   await page.waitForSelector('.people-container', { timeout: 15000 });
 }
 
