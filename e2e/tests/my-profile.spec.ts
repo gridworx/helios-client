@@ -251,14 +251,15 @@ test.describe('Fun Facts & Interests Tab', () => {
     await loginAndNavigateToMyProfile(page);
     await page.click('.tab-btn:has-text("Fun Facts")');
 
-    // First add a fun fact to delete
+    // First add a fun fact to delete with unique timestamp
+    const uniqueText = `Delete fact ${Date.now()}`;
     const contentInput = page.locator('input[placeholder*="fun fact"]');
-    await contentInput.fill('Delete this fact');
+    await contentInput.fill(uniqueText);
     await page.click('.add-funfact button:has-text("Add")');
     await page.waitForTimeout(1000);
 
-    // Find and delete the fun fact
-    const funFactToDelete = page.locator('.funfact-item:has-text("Delete this fact")');
+    // Find and delete the fun fact (use .first() in case of duplicates from previous runs)
+    const funFactToDelete = page.locator(`.funfact-item:has-text("${uniqueText}")`).first();
     await expect(funFactToDelete).toBeVisible();
 
     // Handle confirmation dialog
