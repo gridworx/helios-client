@@ -4,6 +4,12 @@ import { userSyncService } from '../services/user-sync.service';
 import { googleWorkspaceService } from '../services/google-workspace.service';
 import { logger } from '../utils/logger';
 import { db } from '../database/connection';
+import {
+  successResponse,
+  errorResponse,
+  notFoundResponse
+} from '../utils/response';
+import { ErrorCode } from '../types/error-codes';
 
 const router = Router();
 
@@ -74,10 +80,7 @@ router.get('/', requireAuth, async (req, res) => {
     const organizationId = req.user?.organizationId;
 
     if (!organizationId) {
-      return res.status(400).json({
-        success: false,
-        error: 'Organization ID required'
-      });
+      return errorResponse(res, ErrorCode.VALIDATION_ERROR, 'Organization ID required');
     }
 
     const { platform, active, limit = 100, offset = 0 } = req.query;
@@ -89,18 +92,11 @@ router.get('/', requireAuth, async (req, res) => {
       offset: parseInt(offset as string)
     });
 
-    res.json({
-      success: true,
-      data: users,
-      total: users.length
-    });
+    return successResponse(res, users, { total: users.length });
 
   } catch (error: any) {
     logger.error('Failed to get users', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    return errorResponse(res, ErrorCode.INTERNAL_ERROR, error.message);
   }
 });
 
@@ -162,10 +158,7 @@ router.get('/stats', requireAuth, async (req, res) => {
     const organizationId = req.user?.organizationId;
 
     if (!organizationId) {
-      return res.status(400).json({
-        success: false,
-        error: 'Organization ID required'
-      });
+      return errorResponse(res, ErrorCode.VALIDATION_ERROR, 'Organization ID required');
     }
 
     // Get counts by role
@@ -227,27 +220,21 @@ router.get('/stats', requireAuth, async (req, res) => {
       employeeTypeCounts[row.employee_type] = parseInt(row.count);
     });
 
-    res.json({
-      success: true,
-      data: {
-        total: parseInt(totalResult.rows[0].count),
-        byRole: {
-          admin: roleCounts['admin'] || 0,
-          manager: roleCounts['manager'] || 0,
-          user: roleCounts['user'] || 0
-        },
-        byEmployeeType: employeeTypeCounts,
-        managers: parseInt(managersResult.rows[0].count),
-        orphans: parseInt(orphansResult.rows[0].count)
-      }
+    return successResponse(res, {
+      total: parseInt(totalResult.rows[0].count),
+      byRole: {
+        admin: roleCounts['admin'] || 0,
+        manager: roleCounts['manager'] || 0,
+        user: roleCounts['user'] || 0
+      },
+      byEmployeeType: employeeTypeCounts,
+      managers: parseInt(managersResult.rows[0].count),
+      orphans: parseInt(orphansResult.rows[0].count)
     });
 
   } catch (error: any) {
     logger.error('Failed to get user stats', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    return errorResponse(res, ErrorCode.INTERNAL_ERROR, error.message);
   }
 });
 
@@ -312,10 +299,7 @@ router.post('/sync/google-workspace', requirePermission('admin'), async (req, re
     const { domain, adminEmail } = req.body;
 
     if (!organizationId || !domain) {
-      return res.status(400).json({
-        success: false,
-        error: 'Organization ID and domain required'
-      });
+      return errorResponse(res, ErrorCode.VALIDATION_ERROR, 'Organization ID and domain required');
     }
 
     // Start sync process
@@ -325,14 +309,11 @@ router.post('/sync/google-workspace', requirePermission('admin'), async (req, re
       adminEmail
     );
 
-    res.json(result);
+    return successResponse(res, result);
 
   } catch (error: any) {
     logger.error('User sync failed', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    return errorResponse(res, ErrorCode.INTERNAL_ERROR, error.message);
   }
 });
 
@@ -400,10 +381,7 @@ router.post('/sync/all', requirePermission('admin'), async (req, res) => {
     const organizationId = req.user?.organizationId;
 
     if (!organizationId) {
-      return res.status(400).json({
-        success: false,
-        error: 'Organization ID required'
-      });
+      return errorResponse(res, ErrorCode.VALIDATION_ERROR, 'Organization ID required');
     }
 
     const results = {
@@ -438,8 +416,7 @@ router.post('/sync/all', requirePermission('admin'), async (req, res) => {
     // Future: Add Microsoft 365 sync here
     // if (m365Status.isConfigured) { ... }
 
-    res.json({
-      success: true,
+    return successResponse(res, {
       results,
       summary: {
         platforms_synced: Object.keys(results).filter(k => k !== 'total' && results[k as keyof typeof results] !== null).length,
@@ -451,10 +428,7 @@ router.post('/sync/all', requirePermission('admin'), async (req, res) => {
 
   } catch (error: any) {
     logger.error('Full sync failed', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    return errorResponse(res, ErrorCode.INTERNAL_ERROR, error.message);
   }
 });
 
@@ -504,10 +478,7 @@ router.get('/:userId', requireAuth, async (req, res) => {
     const { userId } = req.params;
 
     if (!organizationId) {
-      return res.status(400).json({
-        success: false,
-        error: 'Organization ID required'
-      });
+      return errorResponse(res, ErrorCode.VALIDATION_ERROR, 'Organization ID required');
     }
 
     const users = await userSyncService.getUnifiedUsers(organizationId, {
@@ -517,23 +488,14 @@ router.get('/:userId', requireAuth, async (req, res) => {
     const user = users.find(u => u.id === userId);
 
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: 'User not found'
-      });
+      return notFoundResponse(res, 'User');
     }
 
-    res.json({
-      success: true,
-      data: user
-    });
+    return successResponse(res, user);
 
   } catch (error: any) {
     logger.error('Failed to get user', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    return errorResponse(res, ErrorCode.INTERNAL_ERROR, error.message);
   }
 });
 

@@ -5,6 +5,14 @@ import { db } from '../database/connection';
 import { googleWorkspaceService } from '../services/google-workspace.service';
 import { activityTracker } from '../services/activity-tracker.service';
 import { dynamicGroupService, DynamicGroupField, DynamicGroupOperator, RuleLogic } from '../services/dynamic-group.service';
+import {
+  successResponse,
+  createdResponse,
+  errorResponse,
+  notFoundResponse,
+  validationErrorResponse
+} from '../utils/response';
+import { ErrorCode } from '../types/error-codes';
 
 const router = Router();
 
@@ -47,10 +55,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
     const organizationId = req.user?.organizationId;
 
     if (!organizationId) {
-      res.status(400).json({
-        success: false,
-        error: 'Organization ID not found',
-      });
+      errorResponse(res, ErrorCode.VALIDATION_ERROR, 'Organization ID not found');
       return;
     }
 
@@ -77,17 +82,10 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
       [organizationId]
     );
 
-    res.json({
-      success: true,
-      data: result.rows,
-    });
+    successResponse(res, result.rows);
   } catch (error: any) {
     logger.error('Failed to list access groups', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to list access groups',
-      message: error.message,
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to list access groups');
   }
 });
 
@@ -165,10 +163,7 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
     );
 
     if (groupResult.rows.length === 0) {
-      res.status(404).json({
-        success: false,
-        error: 'Access group not found',
-      });
+      notFoundResponse(res, 'Access group');
       return;
     }
 
@@ -190,20 +185,13 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
       [id]
     );
 
-    res.json({
-      success: true,
-      data: {
-        group: groupResult.rows[0],
-        members: membersResult.rows,
-      },
+    successResponse(res, {
+      group: groupResult.rows[0],
+      members: membersResult.rows,
     });
   } catch (error: any) {
     logger.error('Failed to get access group', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get access group',
-      message: error.message,
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to get access group');
   }
 });
 
@@ -277,10 +265,7 @@ router.put('/:id', async (req: Request, res: Response): Promise<void> => {
     );
 
     if (existing.rows.length === 0) {
-      res.status(404).json({
-        success: false,
-        error: 'Access group not found',
-      });
+      notFoundResponse(res, 'Access group');
       return;
     }
 
@@ -328,18 +313,10 @@ router.put('/:id', async (req: Request, res: Response): Promise<void> => {
       changes
     });
 
-    res.json({
-      success: true,
-      data: result.rows[0],
-      message: 'Access group updated successfully',
-    });
+    successResponse(res, { ...result.rows[0], message: 'Access group updated successfully' });
   } catch (error: any) {
     logger.error('Failed to update access group', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to update access group',
-      message: error.message,
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to update access group');
   }
 });
 
@@ -394,10 +371,7 @@ router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
     );
 
     if (existing.rows.length === 0) {
-      res.status(404).json({
-        success: false,
-        error: 'Access group not found',
-      });
+      notFoundResponse(res, 'Access group');
       return;
     }
 
@@ -428,17 +402,10 @@ router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
       organizationId
     });
 
-    res.json({
-      success: true,
-      message: 'Access group deleted successfully',
-    });
+    successResponse(res, { message: 'Access group deleted successfully' });
   } catch (error: any) {
     logger.error('Failed to delete access group', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to delete access group',
-      message: error.message,
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to delete access group');
   }
 });
 
@@ -500,10 +467,7 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
     const { name, description, email } = req.body;
 
     if (!name) {
-      res.status(400).json({
-        success: false,
-        error: 'Group name is required',
-      });
+      validationErrorResponse(res, [{ field: 'name', message: 'Group name is required' }]);
       return;
     }
 
@@ -541,18 +505,10 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
       organizationId,
     });
 
-    res.status(201).json({
-      success: true,
-      data: result.rows[0],
-      message: 'Access group created successfully',
-    });
+    createdResponse(res, { ...result.rows[0], message: 'Access group created successfully' });
   } catch (error: any) {
     logger.error('Failed to create access group', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to create access group',
-      message: error.message,
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to create access group');
   }
 });
 
@@ -573,10 +529,7 @@ router.post('/:id/members', async (req: Request, res: Response): Promise<void> =
     );
 
     if (groupCheck.rows.length === 0) {
-      res.status(404).json({
-        success: false,
-        error: 'Access group not found',
-      });
+      notFoundResponse(res, 'Access group');
       return;
     }
 
@@ -642,17 +595,10 @@ router.post('/:id/members', async (req: Request, res: Response): Promise<void> =
       }
     }
 
-    res.json({
-      success: true,
-      message: 'Member added to access group',
-    });
+    successResponse(res, { message: 'Member added to access group' });
   } catch (error: any) {
     logger.error('Failed to add access group member', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to add member',
-      message: error.message,
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to add member');
   }
 });
 
@@ -672,10 +618,7 @@ router.delete('/:id/members/:userId', async (req: Request, res: Response): Promi
     );
 
     if (groupCheck.rows.length === 0) {
-      res.status(404).json({
-        success: false,
-        error: 'Access group not found',
-      });
+      notFoundResponse(res, 'Access group');
       return;
     }
 
@@ -738,17 +681,10 @@ router.delete('/:id/members/:userId', async (req: Request, res: Response): Promi
       }
     }
 
-    res.json({
-      success: true,
-      message: 'Member removed from access group',
-    });
+    successResponse(res, { message: 'Member removed from access group' });
   } catch (error: any) {
     logger.error('Failed to remove access group member', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to remove member',
-      message: error.message,
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to remove member');
   }
 });
 
@@ -772,32 +708,22 @@ router.get('/:id/rules', async (req: Request, res: Response): Promise<void> => {
     );
 
     if (groupCheck.rows.length === 0) {
-      res.status(404).json({
-        success: false,
-        error: 'Access group not found',
-      });
+      notFoundResponse(res, 'Access group');
       return;
     }
 
     const rules = await dynamicGroupService.getRules(id);
 
-    res.json({
-      success: true,
-      data: {
-        rules,
-        groupConfig: {
-          membershipType: groupCheck.rows[0].membership_type,
-          ruleLogic: groupCheck.rows[0].rule_logic
-        }
+    successResponse(res, {
+      rules,
+      groupConfig: {
+        membershipType: groupCheck.rows[0].membership_type,
+        ruleLogic: groupCheck.rows[0].rule_logic
       }
     });
   } catch (error: any) {
     logger.error('Failed to get group rules', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get group rules',
-      message: error.message,
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to get group rules');
   }
 });
 
@@ -814,10 +740,11 @@ router.post('/:id/rules', async (req: Request, res: Response): Promise<void> => 
 
     // Validate required fields
     if (!field || !operator || value === undefined) {
-      res.status(400).json({
-        success: false,
-        error: 'Missing required fields: field, operator, value',
-      });
+      validationErrorResponse(res, [
+        { field: 'field', message: 'Field is required' },
+        { field: 'operator', message: 'Operator is required' },
+        { field: 'value', message: 'Value is required' }
+      ]);
       return;
     }
 
@@ -828,10 +755,7 @@ router.post('/:id/rules', async (req: Request, res: Response): Promise<void> => 
     );
 
     if (groupCheck.rows.length === 0) {
-      res.status(404).json({
-        success: false,
-        error: 'Access group not found',
-      });
+      notFoundResponse(res, 'Access group');
       return;
     }
 
@@ -862,18 +786,10 @@ router.post('/:id/rules', async (req: Request, res: Response): Promise<void> => 
       }
     );
 
-    res.status(201).json({
-      success: true,
-      data: rule,
-      message: 'Rule added successfully',
-    });
+    createdResponse(res, { ...rule, message: 'Rule added successfully' });
   } catch (error: any) {
     logger.error('Failed to add group rule', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to add rule',
-      message: error.message,
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to add rule');
   }
 });
 
@@ -894,10 +810,7 @@ router.put('/:id/rules/:ruleId', async (req: Request, res: Response): Promise<vo
     );
 
     if (groupCheck.rows.length === 0) {
-      res.status(404).json({
-        success: false,
-        error: 'Access group not found',
-      });
+      notFoundResponse(res, 'Access group');
       return;
     }
 
@@ -908,10 +821,7 @@ router.put('/:id/rules/:ruleId', async (req: Request, res: Response): Promise<vo
     );
 
     if (ruleCheck.rows.length === 0) {
-      res.status(404).json({
-        success: false,
-        error: 'Rule not found',
-      });
+      notFoundResponse(res, 'Rule');
       return;
     }
 
@@ -924,18 +834,10 @@ router.put('/:id/rules/:ruleId', async (req: Request, res: Response): Promise<vo
       sortOrder
     });
 
-    res.json({
-      success: true,
-      data: updatedRule,
-      message: 'Rule updated successfully',
-    });
+    successResponse(res, { ...updatedRule, message: 'Rule updated successfully' });
   } catch (error: any) {
     logger.error('Failed to update group rule', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to update rule',
-      message: error.message,
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to update rule');
   }
 });
 
@@ -956,20 +858,14 @@ router.delete('/:id/rules/:ruleId', async (req: Request, res: Response): Promise
     );
 
     if (groupCheck.rows.length === 0) {
-      res.status(404).json({
-        success: false,
-        error: 'Access group not found',
-      });
+      notFoundResponse(res, 'Access group');
       return;
     }
 
     const deleted = await dynamicGroupService.deleteRule(ruleId);
 
     if (!deleted) {
-      res.status(404).json({
-        success: false,
-        error: 'Rule not found',
-      });
+      notFoundResponse(res, 'Rule');
       return;
     }
 
@@ -986,17 +882,10 @@ router.delete('/:id/rules/:ruleId', async (req: Request, res: Response): Promise
       }
     );
 
-    res.json({
-      success: true,
-      message: 'Rule deleted successfully',
-    });
+    successResponse(res, { message: 'Rule deleted successfully' });
   } catch (error: any) {
     logger.error('Failed to delete group rule', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to delete rule',
-      message: error.message,
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to delete rule');
   }
 });
 
@@ -1017,10 +906,7 @@ router.post('/:id/evaluate', async (req: Request, res: Response): Promise<void> 
     );
 
     if (groupCheck.rows.length === 0) {
-      res.status(404).json({
-        success: false,
-        error: 'Access group not found',
-      });
+      notFoundResponse(res, 'Access group');
       return;
     }
 
@@ -1029,17 +915,10 @@ router.post('/:id/evaluate', async (req: Request, res: Response): Promise<void> 
       limit: limit ?? 50
     });
 
-    res.json({
-      success: true,
-      data: result,
-    });
+    successResponse(res, result);
   } catch (error: any) {
     logger.error('Failed to evaluate group rules', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to evaluate rules',
-      message: error.message,
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to evaluate rules');
   }
 });
 
@@ -1060,18 +939,12 @@ router.post('/:id/apply-rules', async (req: Request, res: Response): Promise<voi
     );
 
     if (groupCheck.rows.length === 0) {
-      res.status(404).json({
-        success: false,
-        error: 'Access group not found',
-      });
+      notFoundResponse(res, 'Access group');
       return;
     }
 
     if (groupCheck.rows[0].membership_type !== 'dynamic') {
-      res.status(400).json({
-        success: false,
-        error: 'This is not a dynamic group. Change membership type to dynamic first.',
-      });
+      errorResponse(res, ErrorCode.VALIDATION_ERROR, 'This is not a dynamic group. Change membership type to dynamic first.');
       return;
     }
 
@@ -1092,18 +965,13 @@ router.post('/:id/apply-rules', async (req: Request, res: Response): Promise<voi
       }
     );
 
-    res.json({
-      success: true,
-      data: result,
-      message: `Rules applied: ${result.added} added, ${result.removed} removed, ${result.unchanged} unchanged`,
+    successResponse(res, {
+      ...result,
+      message: `Rules applied: ${result.added} added, ${result.removed} removed, ${result.unchanged} unchanged`
     });
   } catch (error: any) {
     logger.error('Failed to apply group rules', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to apply rules',
-      message: error.message,
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to apply rules');
   }
 });
 
@@ -1119,10 +987,7 @@ router.put('/:id/membership-type', async (req: Request, res: Response): Promise<
     const { membershipType, ruleLogic, refreshInterval } = req.body;
 
     if (!membershipType || !['static', 'dynamic'].includes(membershipType)) {
-      res.status(400).json({
-        success: false,
-        error: 'Invalid membership type. Must be "static" or "dynamic".',
-      });
+      validationErrorResponse(res, [{ field: 'membershipType', message: 'Must be "static" or "dynamic"' }]);
       return;
     }
 
@@ -1133,10 +998,7 @@ router.put('/:id/membership-type', async (req: Request, res: Response): Promise<
     );
 
     if (groupCheck.rows.length === 0) {
-      res.status(404).json({
-        success: false,
-        error: 'Access group not found',
-      });
+      notFoundResponse(res, 'Access group');
       return;
     }
 
@@ -1159,17 +1021,10 @@ router.put('/:id/membership-type', async (req: Request, res: Response): Promise<
       }
     );
 
-    res.json({
-      success: true,
-      message: `Group membership type changed to ${membershipType}`,
-    });
+    successResponse(res, { message: `Group membership type changed to ${membershipType}` });
   } catch (error: any) {
     logger.error('Failed to update membership type', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to update membership type',
-      message: error.message,
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to update membership type');
   }
 });
 
@@ -1189,10 +1044,7 @@ router.post('/:id/sync/google', async (req: Request, res: Response): Promise<voi
     const { direction = 'push' } = req.body;
 
     if (!organizationId) {
-      res.status(400).json({
-        success: false,
-        error: 'Organization ID not found',
-      });
+      errorResponse(res, ErrorCode.VALIDATION_ERROR, 'Organization ID not found');
       return;
     }
 
@@ -1207,28 +1059,19 @@ router.post('/:id/sync/google', async (req: Request, res: Response): Promise<voi
     );
 
     if (groupResult.rows.length === 0) {
-      res.status(404).json({
-        success: false,
-        error: 'Access group not found',
-      });
+      notFoundResponse(res, 'Access group');
       return;
     }
 
     const group = groupResult.rows[0];
 
     if (group.platform !== 'google_workspace') {
-      res.status(400).json({
-        success: false,
-        error: 'This group is not a Google Workspace group',
-      });
+      errorResponse(res, ErrorCode.VALIDATION_ERROR, 'This group is not a Google Workspace group');
       return;
     }
 
     if (!group.external_id) {
-      res.status(400).json({
-        success: false,
-        error: 'This group does not have a Google Workspace ID',
-      });
+      errorResponse(res, ErrorCode.VALIDATION_ERROR, 'This group does not have a Google Workspace ID');
       return;
     }
 
@@ -1274,25 +1117,18 @@ router.post('/:id/sync/google', async (req: Request, res: Response): Promise<voi
       }
     );
 
-    res.json({
-      success: syncResult.success,
-      data: {
-        added: syncResult.added,
-        removed: syncResult.removed,
-        errors: syncResult.errors,
-        details: syncResult.details
-      },
+    successResponse(res, {
+      added: syncResult.added,
+      removed: syncResult.removed,
+      errors: syncResult.errors,
+      details: syncResult.details,
       message: syncResult.success
         ? `Sync completed: ${syncResult.added} added, ${syncResult.removed} removed`
-        : `Sync completed with errors: ${syncResult.errors.length} failures`,
+        : `Sync completed with errors: ${syncResult.errors.length} failures`
     });
   } catch (error: any) {
     logger.error('Failed to sync group to Google Workspace', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to sync group',
-      message: error.message,
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to sync group');
   }
 });
 
@@ -1316,10 +1152,7 @@ router.get('/:id/sync/status', async (req: Request, res: Response): Promise<void
     );
 
     if (groupResult.rows.length === 0) {
-      res.status(404).json({
-        success: false,
-        error: 'Access group not found',
-      });
+      notFoundResponse(res, 'Access group');
       return;
     }
 
@@ -1340,26 +1173,19 @@ router.get('/:id/sync/status', async (req: Request, res: Response): Promise<void
       }
     }
 
-    res.json({
-      success: true,
-      data: {
-        groupId: group.id,
-        name: group.name,
-        platform: group.platform,
-        externalId: group.external_id,
-        lastSynced: group.synced_at,
-        heliosMemberCount: parseInt(memberCountResult.rows[0].count),
-        googleMemberCount,
-        syncAvailable: group.platform === 'google_workspace' && !!group.external_id
-      }
+    successResponse(res, {
+      groupId: group.id,
+      name: group.name,
+      platform: group.platform,
+      externalId: group.external_id,
+      lastSynced: group.synced_at,
+      heliosMemberCount: parseInt(memberCountResult.rows[0].count),
+      googleMemberCount,
+      syncAvailable: group.platform === 'google_workspace' && !!group.external_id
     });
   } catch (error: any) {
     logger.error('Failed to get sync status', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get sync status',
-      message: error.message,
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to get sync status');
   }
 });
 

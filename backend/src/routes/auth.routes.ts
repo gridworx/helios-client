@@ -6,6 +6,14 @@ import { db } from '../database/connection';
 import { logger } from '../utils/logger';
 import { asyncHandler } from '../middleware/errorHandler';
 import { PasswordSetupService } from '../services/password-setup.service';
+import {
+  successResponse,
+  errorResponse,
+  validationErrorResponse,
+  unauthorizedResponse,
+  notFoundResponse
+} from '../utils/response';
+import { ErrorCode } from '../types/error-codes';
 
 const router = Router();
 
@@ -92,11 +100,10 @@ router.post('/login',
   asyncHandler(async (req: Request, res: Response) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        error: 'Validation failed',
-        details: errors.array()
-      });
+      return validationErrorResponse(res, errors.array().map(e => ({
+        field: (e as any).path || (e as any).param,
+        message: e.msg
+      })));
     }
 
     const { email, password } = req.body;
@@ -112,19 +119,13 @@ router.post('/login',
     );
 
     if (result.rows.length === 0) {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid email or password'
-      });
+      return unauthorizedResponse(res, 'Invalid email or password');
     }
 
     const user = result.rows[0];
 
     if (!user.is_active) {
-      return res.status(401).json({
-        success: false,
-        error: 'Account is disabled'
-      });
+      return unauthorizedResponse(res, 'Account is disabled');
     }
 
     // Verify password
@@ -132,10 +133,7 @@ router.post('/login',
 
     if (!isPasswordValid) {
       logger.warn('Failed login attempt', { email });
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid email or password'
-      });
+      return unauthorizedResponse(res, 'Invalid email or password');
     }
 
     // Determine if user is external admin
@@ -197,37 +195,34 @@ router.post('/login',
       }
     }
 
-    res.json({
-      success: true,
-      message: 'Login successful',
-      data: {
-        user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          role: user.role,
-          organizationId: user.organization_id,
-          // Access control flags
-          isAdmin,
-          isEmployee,
-          isExternalAdmin,
-          canAccessAdminUI: isAdmin,
-          canAccessUserUI: isEmployee,
-          canSwitchViews: isAdmin && isEmployee,
-          defaultView
-        },
-        organization: {
-          id: organization.id,
-          name: organization.name,
-          domain: organization.domain
-        },
-        tokens: {
-          accessToken,
-          refreshToken,
-          expiresIn: 86400
-        }
-      }
+    return successResponse(res, {
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        role: user.role,
+        organizationId: user.organization_id,
+        // Access control flags
+        isAdmin,
+        isEmployee,
+        isExternalAdmin,
+        canAccessAdminUI: isAdmin,
+        canAccessUserUI: isEmployee,
+        canSwitchViews: isAdmin && isEmployee,
+        defaultView
+      },
+      organization: {
+        id: organization.id,
+        name: organization.name,
+        domain: organization.domain
+      },
+      tokens: {
+        accessToken,
+        refreshToken,
+        expiresIn: 86400
+      },
+      message: 'Login successful'
     });
   })
 );
@@ -266,10 +261,7 @@ router.get('/verify', asyncHandler(async (req: Request, res: Response) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({
-      success: false,
-      error: 'No token provided'
-    });
+    return unauthorizedResponse(res, 'No token provided');
   }
 
   const token = authHeader.substring(7); // Remove 'Bearer ' prefix
@@ -288,19 +280,13 @@ router.get('/verify', asyncHandler(async (req: Request, res: Response) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(401).json({
-        success: false,
-        error: 'User not found'
-      });
+      return unauthorizedResponse(res, 'User not found');
     }
 
     const user = result.rows[0];
 
     if (!user.is_active) {
-      return res.status(401).json({
-        success: false,
-        error: 'Account is disabled'
-      });
+      return unauthorizedResponse(res, 'Account is disabled');
     }
 
     // Determine access capabilities
@@ -318,33 +304,27 @@ router.get('/verify', asyncHandler(async (req: Request, res: Response) => {
       }
     }
 
-    res.json({
-      success: true,
-      data: {
-        user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          role: user.role,
-          organizationId: user.organization_id,
-          // Access control flags
-          isAdmin,
-          isEmployee,
-          isExternalAdmin,
-          canAccessAdminUI: isAdmin,
-          canAccessUserUI: isEmployee,
-          canSwitchViews: isAdmin && isEmployee,
-          defaultView
-        }
+    return successResponse(res, {
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        role: user.role,
+        organizationId: user.organization_id,
+        // Access control flags
+        isAdmin,
+        isEmployee,
+        isExternalAdmin,
+        canAccessAdminUI: isAdmin,
+        canAccessUserUI: isEmployee,
+        canSwitchViews: isAdmin && isEmployee,
+        defaultView
       }
     });
   } catch (error: any) {
     logger.warn('Token verification failed', { error: error.message });
-    return res.status(401).json({
-      success: false,
-      error: 'Invalid or expired token'
-    });
+    return unauthorizedResponse(res, 'Invalid or expired token');
   }
 }));
 
@@ -395,10 +375,7 @@ router.post('/logout', asyncHandler(async (req: Request, res: Response) => {
     logger.info('User logged out', { userId });
   }
 
-  res.json({
-    success: true,
-    message: 'Logged out successfully'
-  });
+  return successResponse(res, { message: 'Logged out successfully' });
 }));
 
 /**
@@ -451,19 +428,13 @@ router.get('/verify-setup-token', asyncHandler(async (req: Request, res: Respons
   const token = req.query.token as string;
 
   if (!token) {
-    return res.status(400).json({
-      success: false,
-      error: 'Token is required'
-    });
+    return errorResponse(res, ErrorCode.VALIDATION_ERROR, 'Token is required');
   }
 
   const verification = await PasswordSetupService.verifyToken(token);
 
   if (!verification.valid) {
-    return res.status(400).json({
-      success: false,
-      error: verification.error || 'Invalid token'
-    });
+    return errorResponse(res, ErrorCode.VALIDATION_ERROR, verification.error || 'Invalid token');
   }
 
   // Get user info for display (without sensitive data)
@@ -473,21 +444,15 @@ router.get('/verify-setup-token', asyncHandler(async (req: Request, res: Respons
   );
 
   if (userResult.rows.length === 0) {
-    return res.status(404).json({
-      success: false,
-      error: 'User not found'
-    });
+    return notFoundResponse(res, 'User');
   }
 
   const user = userResult.rows[0];
 
-  res.json({
-    success: true,
-    data: {
-      email: user.email,
-      firstName: user.first_name,
-      lastName: user.last_name
-    }
+  return successResponse(res, {
+    email: user.email,
+    firstName: user.first_name,
+    lastName: user.last_name
   });
 }));
 
@@ -557,11 +522,10 @@ router.post('/setup-password',
   asyncHandler(async (req: Request, res: Response) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        error: 'Validation failed',
-        details: errors.array()
-      });
+      return validationErrorResponse(res, errors.array().map(e => ({
+        field: (e as any).path || (e as any).param,
+        message: e.msg
+      })));
     }
 
     const { token, password } = req.body;
@@ -570,10 +534,7 @@ router.post('/setup-password',
     const verification = await PasswordSetupService.verifyToken(token);
 
     if (!verification.valid) {
-      return res.status(400).json({
-        success: false,
-        error: verification.error || 'Invalid or expired token'
-      });
+      return errorResponse(res, ErrorCode.VALIDATION_ERROR, verification.error || 'Invalid or expired token');
     }
 
     const userId = verification.userId!;
@@ -628,29 +589,26 @@ router.post('/setup-password',
       email: user.email
     });
 
-    res.json({
-      success: true,
-      message: 'Password set successfully',
-      data: {
-        user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          role: user.role,
-          organizationId: user.organization_id
-        },
-        organization: {
-          id: organization.id,
-          name: organization.name,
-          domain: organization.domain
-        },
-        tokens: {
-          accessToken,
-          refreshToken,
-          expiresIn: 86400
-        }
-      }
+    return successResponse(res, {
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        role: user.role,
+        organizationId: user.organization_id
+      },
+      organization: {
+        id: organization.id,
+        name: organization.name,
+        domain: organization.domain
+      },
+      tokens: {
+        accessToken,
+        refreshToken,
+        expiresIn: 86400
+      },
+      message: 'Password set successfully'
     });
   })
 );
