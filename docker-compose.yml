@@ -122,6 +122,8 @@ services:
     ports:
       - "3000:3000"  # Also exposed for direct access during development
     environment:
+      # DOCKER_ENV tells Vite to proxy API requests to 'backend:3001' instead of 'localhost:3001'
+      DOCKER_ENV: "true"
       # Empty VITE_API_URL means use relative URLs (same origin via nginx proxy)
       # This allows remote access without hardcoding localhost
       VITE_API_URL: ""
