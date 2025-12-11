@@ -7,8 +7,33 @@ import { authenticateToken } from '../middleware/auth';
 const router = Router();
 
 /**
- * GET /api/departments
- * Get all departments for the organization
+ * @openapi
+ * /departments:
+ *   get:
+ *     summary: List all departments
+ *     description: Get all departments for the organization including user counts.
+ *     tags: [Departments]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of departments
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Department'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.get('/', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -55,8 +80,41 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/departments/:id
- * Get a specific department
+ * @openapi
+ * /departments/{id}:
+ *   get:
+ *     summary: Get a department
+ *     description: Get details of a specific department including user count.
+ *     tags: [Departments]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Department ID
+ *     responses:
+ *       200:
+ *         description: Department details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Department'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.get('/:id', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -103,8 +161,64 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/departments
- * Create a new department
+ * @openapi
+ * /departments:
+ *   post:
+ *     summary: Create a department
+ *     description: Create a new department in the organization.
+ *     tags: [Departments]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name]
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Department name
+ *                 example: Engineering
+ *               description:
+ *                 type: string
+ *               parentDepartmentId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: Parent department for hierarchy
+ *               orgUnitId:
+ *                 type: string
+ *                 description: Google Workspace Org Unit ID
+ *               orgUnitPath:
+ *                 type: string
+ *                 description: Google Workspace Org Unit Path
+ *               autoSyncToOu:
+ *                 type: boolean
+ *                 description: Auto-sync users to Google OU
+ *     responses:
+ *       201:
+ *         description: Department created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   $ref: '#/components/schemas/Department'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       409:
+ *         description: Department name already exists
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.post('/',
   authenticateToken,
@@ -206,8 +320,66 @@ router.post('/',
 );
 
 /**
- * PUT /api/departments/:id
- * Update a department
+ * @openapi
+ * /departments/{id}:
+ *   put:
+ *     summary: Update a department
+ *     description: Update an existing department.
+ *     tags: [Departments]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Department ID
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               parentDepartmentId:
+ *                 type: string
+ *                 format: uuid
+ *               orgUnitId:
+ *                 type: string
+ *               orgUnitPath:
+ *                 type: string
+ *               autoSyncToOu:
+ *                 type: boolean
+ *               isActive:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Department updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   $ref: '#/components/schemas/Department'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.put('/:id',
   authenticateToken,
@@ -310,8 +482,45 @@ router.put('/:id',
 );
 
 /**
- * DELETE /api/departments/:id
- * Delete a department (only if no users assigned)
+ * @openapi
+ * /departments/{id}:
+ *   delete:
+ *     summary: Delete a department
+ *     description: |
+ *       Delete a department. Only allowed if no users are assigned to it.
+ *       Users must be reassigned before deleting.
+ *     tags: [Departments]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Department ID
+ *     responses:
+ *       200:
+ *         description: Department deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Cannot delete - users still assigned
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.delete('/:id', authenticateToken, async (req: Request, res: Response) => {
   try {

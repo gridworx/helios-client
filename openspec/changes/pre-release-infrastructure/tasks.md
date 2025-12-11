@@ -113,7 +113,7 @@
 - [x] **TASK-INFRA-025**: Document access-groups.routes.ts
 - [x] **TASK-INFRA-026**: Document dashboard.routes.ts
 - [x] **TASK-INFRA-027**: Document organization.routes.ts
-- [ ] **TASK-INFRA-028**: Document departments.routes.ts
+- [x] **TASK-INFRA-028**: Document departments.routes.ts
 - [ ] **TASK-INFRA-029**: Document api-keys.routes.ts
 - [ ] **TASK-INFRA-030**: Document audit-logs.routes.ts
 - [ ] **TASK-INFRA-031**: Document labels.routes.ts

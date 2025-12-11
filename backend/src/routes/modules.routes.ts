@@ -41,8 +41,33 @@ function decrypt(text: string): string {
 }
 
 /**
- * GET /api/modules
- * Get all available modules and their status
+ * @openapi
+ * /modules:
+ *   get:
+ *     summary: List all modules
+ *     description: Get all available modules and their enabled status for the organization.
+ *     tags: [Modules]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of modules
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Module'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.get('/', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -197,8 +222,53 @@ router.get('/:id', requireAuth, async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/modules/:moduleSlug/enable
- * Enable a module for the organization
+ * @openapi
+ * /modules/{moduleSlug}/enable:
+ *   post:
+ *     summary: Enable a module
+ *     description: Enable a module for the organization. Requires admin permission.
+ *     tags: [Modules]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: moduleSlug
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Module slug (e.g., google_workspace, microsoft_365)
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               config:
+ *                 type: object
+ *                 description: Module-specific configuration
+ *     responses:
+ *       200:
+ *         description: Module enabled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Module already enabled
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.post('/:moduleSlug/enable', requirePermission('admin'), async (req: Request, res: Response) => {
   try {
@@ -271,8 +341,44 @@ router.post('/:moduleSlug/enable', requirePermission('admin'), async (req: Reque
 });
 
 /**
- * POST /api/modules/:moduleSlug/disable
- * Disable a module for the organization
+ * @openapi
+ * /modules/{moduleSlug}/disable:
+ *   post:
+ *     summary: Disable a module
+ *     description: Disable a module for the organization. Requires admin permission.
+ *     tags: [Modules]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: moduleSlug
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Module slug
+ *     responses:
+ *       200:
+ *         description: Module disabled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Module already disabled
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.post('/:moduleSlug/disable', requirePermission('admin'), async (req: Request, res: Response) => {
   try {
