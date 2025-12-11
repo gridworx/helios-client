@@ -18,6 +18,13 @@ import { logger } from '../utils/logger';
 
 const router = Router();
 
+/**
+ * @openapi
+ * tags:
+ *   - name: Lifecycle
+ *     description: User lifecycle management (onboarding, offboarding, scheduled actions)
+ */
+
 // All routes require authentication
 router.use(authenticateToken);
 
@@ -26,8 +33,25 @@ router.use(authenticateToken);
 // ==========================================
 
 /**
- * GET /api/lifecycle/onboarding-templates
- * List onboarding templates
+ * @openapi
+ * /api/v1/lifecycle/onboarding-templates:
+ *   get:
+ *     summary: List onboarding templates
+ *     tags: [Lifecycle]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: boolean
+ *       - in: query
+ *         name: departmentId
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Onboarding templates
  */
 router.get('/onboarding-templates', async (req: Request, res: Response) => {
   try {
@@ -51,8 +75,24 @@ router.get('/onboarding-templates', async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/lifecycle/onboarding-templates/:id
- * Get single onboarding template
+ * @openapi
+ * /api/v1/lifecycle/onboarding-templates/{id}:
+ *   get:
+ *     summary: Get onboarding template
+ *     tags: [Lifecycle]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Template details
+ *       404:
+ *         description: Template not found
  */
 router.get('/onboarding-templates/:id', async (req: Request, res: Response) => {
   try {
@@ -70,8 +110,22 @@ router.get('/onboarding-templates/:id', async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/lifecycle/onboarding-templates
- * Create onboarding template
+ * @openapi
+ * /api/v1/lifecycle/onboarding-templates:
+ *   post:
+ *     summary: Create onboarding template
+ *     tags: [Lifecycle]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       201:
+ *         description: Template created
  */
 router.post('/onboarding-templates', async (req: Request, res: Response) => {
   try {
@@ -94,8 +148,24 @@ router.post('/onboarding-templates', async (req: Request, res: Response) => {
 });
 
 /**
- * PUT /api/lifecycle/onboarding-templates/:id
- * Update onboarding template
+ * @openapi
+ * /api/v1/lifecycle/onboarding-templates/{id}:
+ *   put:
+ *     summary: Update onboarding template
+ *     tags: [Lifecycle]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Template updated
+ *       404:
+ *         description: Template not found
  */
 router.put('/onboarding-templates/:id', async (req: Request, res: Response) => {
   try {
@@ -113,8 +183,24 @@ router.put('/onboarding-templates/:id', async (req: Request, res: Response) => {
 });
 
 /**
- * DELETE /api/lifecycle/onboarding-templates/:id
- * Delete onboarding template
+ * @openapi
+ * /api/v1/lifecycle/onboarding-templates/{id}:
+ *   delete:
+ *     summary: Delete onboarding template
+ *     tags: [Lifecycle]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Template deleted
+ *       404:
+ *         description: Template not found
  */
 router.delete('/onboarding-templates/:id', async (req: Request, res: Response) => {
   try {
@@ -136,8 +222,21 @@ router.delete('/onboarding-templates/:id', async (req: Request, res: Response) =
 // ==========================================
 
 /**
- * GET /api/lifecycle/offboarding-templates
- * List offboarding templates
+ * @openapi
+ * /api/v1/lifecycle/offboarding-templates:
+ *   get:
+ *     summary: List offboarding templates
+ *     tags: [Lifecycle]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: boolean
+ *     responses:
+ *       200:
+ *         description: Offboarding templates
  */
 router.get('/offboarding-templates', async (req: Request, res: Response) => {
   try {
@@ -160,8 +259,24 @@ router.get('/offboarding-templates', async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/lifecycle/offboarding-templates/:id
- * Get single offboarding template
+ * @openapi
+ * /api/v1/lifecycle/offboarding-templates/{id}:
+ *   get:
+ *     summary: Get offboarding template
+ *     tags: [Lifecycle]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Template details
+ *       404:
+ *         description: Template not found
  */
 router.get('/offboarding-templates/:id', async (req: Request, res: Response) => {
   try {
@@ -179,8 +294,16 @@ router.get('/offboarding-templates/:id', async (req: Request, res: Response) => 
 });
 
 /**
- * POST /api/lifecycle/offboarding-templates
- * Create offboarding template
+ * @openapi
+ * /api/v1/lifecycle/offboarding-templates:
+ *   post:
+ *     summary: Create offboarding template
+ *     tags: [Lifecycle]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       201:
+ *         description: Template created
  */
 router.post('/offboarding-templates', async (req: Request, res: Response) => {
   try {
@@ -203,8 +326,24 @@ router.post('/offboarding-templates', async (req: Request, res: Response) => {
 });
 
 /**
- * PUT /api/lifecycle/offboarding-templates/:id
- * Update offboarding template
+ * @openapi
+ * /api/v1/lifecycle/offboarding-templates/{id}:
+ *   put:
+ *     summary: Update offboarding template
+ *     tags: [Lifecycle]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Template updated
+ *       404:
+ *         description: Template not found
  */
 router.put('/offboarding-templates/:id', async (req: Request, res: Response) => {
   try {
@@ -222,8 +361,24 @@ router.put('/offboarding-templates/:id', async (req: Request, res: Response) => 
 });
 
 /**
- * DELETE /api/lifecycle/offboarding-templates/:id
- * Delete offboarding template
+ * @openapi
+ * /api/v1/lifecycle/offboarding-templates/{id}:
+ *   delete:
+ *     summary: Delete offboarding template
+ *     tags: [Lifecycle]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Template deleted
+ *       404:
+ *         description: Template not found
  */
 router.delete('/offboarding-templates/:id', async (req: Request, res: Response) => {
   try {
@@ -245,8 +400,43 @@ router.delete('/offboarding-templates/:id', async (req: Request, res: Response) 
 // ==========================================
 
 /**
- * POST /api/lifecycle/onboard
- * Onboard a new user (immediate or scheduled)
+ * @openapi
+ * /api/v1/lifecycle/onboard:
+ *   post:
+ *     summary: Onboard a new user
+ *     description: Onboard a new user immediately or schedule for later.
+ *     tags: [Lifecycle]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - firstName
+ *               - lastName
+ *             properties:
+ *               email:
+ *                 type: string
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               templateId:
+ *                 type: string
+ *               scheduledFor:
+ *                 type: string
+ *                 format: date-time
+ *     responses:
+ *       201:
+ *         description: User onboarded or scheduled
+ *       207:
+ *         description: Partial success
+ *       400:
+ *         description: Missing required fields
  */
 router.post('/onboard', async (req: Request, res: Response) => {
   try {
@@ -367,8 +557,37 @@ router.post('/onboard', async (req: Request, res: Response) => {
 // ==========================================
 
 /**
- * POST /api/lifecycle/offboard
- * Offboard a user (immediate or scheduled)
+ * @openapi
+ * /api/v1/lifecycle/offboard:
+ *   post:
+ *     summary: Offboard a user
+ *     description: Offboard a user immediately or schedule for later.
+ *     tags: [Lifecycle]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               templateId:
+ *                 type: string
+ *               scheduledFor:
+ *                 type: string
+ *                 format: date-time
+ *     responses:
+ *       200:
+ *         description: User offboarded
+ *       201:
+ *         description: Offboarding scheduled
+ *       207:
+ *         description: Partial success
  */
 router.post('/offboard', async (req: Request, res: Response) => {
   try {
@@ -455,8 +674,29 @@ router.post('/offboard', async (req: Request, res: Response) => {
 // ==========================================
 
 /**
- * GET /api/lifecycle/scheduled-actions
- * List scheduled actions
+ * @openapi
+ * /api/v1/lifecycle/scheduled-actions:
+ *   get:
+ *     summary: List scheduled actions
+ *     tags: [Lifecycle]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: actionType
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Scheduled actions
  */
 router.get('/scheduled-actions', async (req: Request, res: Response) => {
   try {
@@ -485,8 +725,16 @@ router.get('/scheduled-actions', async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/lifecycle/scheduled-actions/pending-approval
- * Get actions pending approval
+ * @openapi
+ * /api/v1/lifecycle/scheduled-actions/pending-approval:
+ *   get:
+ *     summary: Get actions pending approval
+ *     tags: [Lifecycle]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Actions pending approval
  */
 router.get('/scheduled-actions/pending-approval', async (req: Request, res: Response) => {
   try {
@@ -505,8 +753,24 @@ router.get('/scheduled-actions/pending-approval', async (req: Request, res: Resp
 });
 
 /**
- * GET /api/lifecycle/scheduled-actions/:id
- * Get single scheduled action
+ * @openapi
+ * /api/v1/lifecycle/scheduled-actions/{id}:
+ *   get:
+ *     summary: Get scheduled action
+ *     tags: [Lifecycle]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Action details
+ *       404:
+ *         description: Action not found
  */
 router.get('/scheduled-actions/:id', async (req: Request, res: Response) => {
   try {
@@ -524,8 +788,24 @@ router.get('/scheduled-actions/:id', async (req: Request, res: Response) => {
 });
 
 /**
- * PUT /api/lifecycle/scheduled-actions/:id
- * Update scheduled action (reschedule)
+ * @openapi
+ * /api/v1/lifecycle/scheduled-actions/{id}:
+ *   put:
+ *     summary: Update scheduled action
+ *     tags: [Lifecycle]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Action updated
+ *       404:
+ *         description: Action not found
  */
 router.put('/scheduled-actions/:id', async (req: Request, res: Response) => {
   try {
@@ -543,8 +823,24 @@ router.put('/scheduled-actions/:id', async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/lifecycle/scheduled-actions/:id/approve
- * Approve scheduled action
+ * @openapi
+ * /api/v1/lifecycle/scheduled-actions/{id}/approve:
+ *   post:
+ *     summary: Approve scheduled action
+ *     tags: [Lifecycle]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Action approved
+ *       404:
+ *         description: Action not found
  */
 router.post('/scheduled-actions/:id/approve', async (req: Request, res: Response) => {
   try {
@@ -568,8 +864,37 @@ router.post('/scheduled-actions/:id/approve', async (req: Request, res: Response
 });
 
 /**
- * POST /api/lifecycle/scheduled-actions/:id/reject
- * Reject scheduled action
+ * @openapi
+ * /api/v1/lifecycle/scheduled-actions/{id}/reject:
+ *   post:
+ *     summary: Reject scheduled action
+ *     tags: [Lifecycle]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - reason
+ *             properties:
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Action rejected
+ *       400:
+ *         description: Reason required
+ *       404:
+ *         description: Action not found
  */
 router.post('/scheduled-actions/:id/reject', async (req: Request, res: Response) => {
   try {
@@ -597,8 +922,24 @@ router.post('/scheduled-actions/:id/reject', async (req: Request, res: Response)
 });
 
 /**
- * DELETE /api/lifecycle/scheduled-actions/:id
- * Cancel scheduled action
+ * @openapi
+ * /api/v1/lifecycle/scheduled-actions/{id}:
+ *   delete:
+ *     summary: Cancel scheduled action
+ *     tags: [Lifecycle]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Action cancelled
+ *       404:
+ *         description: Action not found
  */
 router.delete('/scheduled-actions/:id', async (req: Request, res: Response) => {
   try {
@@ -626,8 +967,29 @@ router.delete('/scheduled-actions/:id', async (req: Request, res: Response) => {
 // ==========================================
 
 /**
- * GET /api/lifecycle/logs
- * Get lifecycle logs (by user or action)
+ * @openapi
+ * /api/v1/lifecycle/logs:
+ *   get:
+ *     summary: Get lifecycle logs
+ *     tags: [Lifecycle]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: actionId
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: actionType
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Lifecycle logs
  */
 router.get('/logs', async (req: Request, res: Response) => {
   try {
@@ -669,8 +1031,21 @@ router.get('/logs', async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/lifecycle/logs/errors
- * Get recent errors
+ * @openapi
+ * /api/v1/lifecycle/logs/errors:
+ *   get:
+ *     summary: Get recent errors
+ *     tags: [Lifecycle]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Recent errors
  */
 router.get('/logs/errors', async (req: Request, res: Response) => {
   try {
@@ -694,8 +1069,24 @@ router.get('/logs/errors', async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/lifecycle/actions/:id/summary
- * Get action summary with step counts
+ * @openapi
+ * /api/v1/lifecycle/actions/{id}/summary:
+ *   get:
+ *     summary: Get action summary
+ *     tags: [Lifecycle]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Action summary
+ *       404:
+ *         description: Action not found
  */
 router.get('/actions/:id/summary', async (req: Request, res: Response) => {
   try {

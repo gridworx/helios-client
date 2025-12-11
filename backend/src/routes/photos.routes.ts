@@ -5,6 +5,13 @@ import { logger } from '../utils/logger';
 
 const router = Router();
 
+/**
+ * @openapi
+ * tags:
+ *   - name: Photos
+ *     description: User avatar and company logo management
+ */
+
 // Configure multer for memory storage (we'll process the buffer)
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -21,8 +28,35 @@ const upload = multer({
 });
 
 /**
- * POST /api/photos/upload-avatar
- * Upload user avatar photo with automatic resizing
+ * @openapi
+ * /api/v1/photos/upload-avatar:
+ *   post:
+ *     summary: Upload user avatar
+ *     description: Upload user avatar photo with automatic resizing.
+ *     tags: [Photos]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - photo
+ *               - userId
+ *               - organizationId
+ *             properties:
+ *               photo:
+ *                 type: string
+ *                 format: binary
+ *               userId:
+ *                 type: string
+ *               organizationId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Avatar uploaded
+ *       400:
+ *         description: No file or missing fields
  */
 router.post('/upload-avatar', upload.single('photo'), async (req: Request, res: Response) => {
   try {
@@ -77,8 +111,34 @@ router.post('/upload-avatar', upload.single('photo'), async (req: Request, res: 
 });
 
 /**
- * POST /api/photos/upload-logo
- * Upload company logo with automatic resizing
+ * @openapi
+ * /api/v1/photos/upload-logo:
+ *   post:
+ *     summary: Upload company logo
+ *     description: Upload company logo with automatic resizing.
+ *     tags: [Photos]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - photo
+ *               - organizationId
+ *             properties:
+ *               photo:
+ *                 type: string
+ *                 format: binary
+ *               organizationId:
+ *                 type: string
+ *               aspectRatio:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Logo uploaded
+ *       400:
+ *         description: No file or missing fields
  */
 router.post('/upload-logo', upload.single('photo'), async (req: Request, res: Response) => {
   try {
@@ -132,8 +192,31 @@ router.post('/upload-logo', upload.single('photo'), async (req: Request, res: Re
 });
 
 /**
- * GET /api/photos/:entityType/:entityId
- * Get photo URLs for a user or organization
+ * @openapi
+ * /api/v1/photos/{entityType}/{entityId}:
+ *   get:
+ *     summary: Get photo URLs
+ *     description: Get photo URLs for a user or organization.
+ *     tags: [Photos]
+ *     parameters:
+ *       - in: path
+ *         name: entityType
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [user, organization]
+ *       - in: path
+ *         name: entityId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Photo URLs
+ *       400:
+ *         description: Invalid entity type
+ *       404:
+ *         description: Photo not found
  */
 router.get('/:entityType/:entityId', async (req: Request, res: Response) => {
   try {
@@ -170,8 +253,23 @@ router.get('/:entityType/:entityId', async (req: Request, res: Response) => {
 });
 
 /**
- * DELETE /api/photos/:assetId
- * Delete a photo and all its sizes
+ * @openapi
+ * /api/v1/photos/{assetId}:
+ *   delete:
+ *     summary: Delete photo
+ *     description: Delete a photo and all its sizes.
+ *     tags: [Photos]
+ *     parameters:
+ *       - in: path
+ *         name: assetId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Photo deleted
+ *       400:
+ *         description: Deletion failed
  */
 router.delete('/:assetId', async (req: Request, res: Response) => {
   try {
