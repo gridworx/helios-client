@@ -12,8 +12,77 @@ const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secure_jwt_secret_key_here';
 
 /**
- * POST /api/auth/login
- * Login with email and password
+ * @openapi
+ * /auth/login:
+ *   post:
+ *     summary: User login
+ *     description: |
+ *       Authenticate with email and password to receive JWT tokens.
+ *       Returns access and refresh tokens along with user details.
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: admin@example.com
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 example: "********"
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Login successful
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       $ref: '#/components/schemas/User'
+ *                     organization:
+ *                       $ref: '#/components/schemas/Organization'
+ *                     tokens:
+ *                       type: object
+ *                       properties:
+ *                         accessToken:
+ *                           type: string
+ *                           description: JWT access token (24h expiry)
+ *                         refreshToken:
+ *                           type: string
+ *                           description: JWT refresh token (7d expiry)
+ *                         expiresIn:
+ *                           type: integer
+ *                           example: 86400
+ *                           description: Token expiry time in seconds
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         description: Invalid credentials
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               success: false
+ *               error:
+ *                 code: UNAUTHORIZED
+ *                 message: Invalid email or password
  */
 router.post('/login',
   [
@@ -164,8 +233,34 @@ router.post('/login',
 );
 
 /**
- * GET /api/auth/verify
- * Verify JWT token validity
+ * @openapi
+ * /auth/verify:
+ *   get:
+ *     summary: Verify token validity
+ *     description: |
+ *       Verify that the current JWT token is valid and return user details.
+ *       Use this endpoint to check authentication status on page load.
+ *     tags: [Authentication]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Token is valid
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       $ref: '#/components/schemas/User'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/verify', asyncHandler(async (req: Request, res: Response) => {
   const authHeader = req.headers.authorization;
@@ -254,7 +349,38 @@ router.get('/verify', asyncHandler(async (req: Request, res: Response) => {
 }));
 
 /**
- * POST /api/auth/logout
+ * @openapi
+ * /auth/logout:
+ *   post:
+ *     summary: User logout
+ *     description: |
+ *       Log out the current user. Records logout in audit log.
+ *       Client should discard tokens after calling this endpoint.
+ *     tags: [Authentication]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: Optional user ID for audit logging
+ *     responses:
+ *       200:
+ *         description: Logout successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Logged out successfully
  */
 router.post('/logout', asyncHandler(async (req: Request, res: Response) => {
   const userId = req.body.userId;
@@ -276,8 +402,50 @@ router.post('/logout', asyncHandler(async (req: Request, res: Response) => {
 }));
 
 /**
- * GET /api/auth/verify-setup-token
- * Verify a password setup token's validity
+ * @openapi
+ * /auth/verify-setup-token:
+ *   get:
+ *     summary: Verify password setup token
+ *     description: |
+ *       Verify that a password setup token is valid. Used during new user onboarding
+ *       when setting their initial password.
+ *     tags: [Authentication]
+ *     parameters:
+ *       - in: query
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The password setup token sent to the user's email
+ *     responses:
+ *       200:
+ *         description: Token is valid
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     email:
+ *                       type: string
+ *                       format: email
+ *                     firstName:
+ *                       type: string
+ *                     lastName:
+ *                       type: string
+ *       400:
+ *         description: Invalid or expired token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
  */
 router.get('/verify-setup-token', asyncHandler(async (req: Request, res: Response) => {
   const token = req.query.token as string;
@@ -324,8 +492,62 @@ router.get('/verify-setup-token', asyncHandler(async (req: Request, res: Respons
 }));
 
 /**
- * POST /api/auth/setup-password
- * Set password using a valid setup token
+ * @openapi
+ * /auth/setup-password:
+ *   post:
+ *     summary: Set initial password
+ *     description: |
+ *       Set the initial password for a new user account using a valid setup token.
+ *       Returns JWT tokens for automatic login after password setup.
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [token, password]
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: Password setup token from email
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 8
+ *                 description: New password (minimum 8 characters)
+ *     responses:
+ *       200:
+ *         description: Password set successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Password set successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       $ref: '#/components/schemas/User'
+ *                     organization:
+ *                       $ref: '#/components/schemas/Organization'
+ *                     tokens:
+ *                       type: object
+ *                       properties:
+ *                         accessToken:
+ *                           type: string
+ *                         refreshToken:
+ *                           type: string
+ *                         expiresIn:
+ *                           type: integer
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
  */
 router.post('/setup-password',
   [

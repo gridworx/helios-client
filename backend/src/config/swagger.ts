@@ -167,36 +167,334 @@ For MSP/partner access with human attribution:
         }
       },
       schemas: {
+        // Standard response formats
         Error: {
           type: 'object',
+          required: ['success', 'error', 'meta'],
           properties: {
             success: {
               type: 'boolean',
               example: false
             },
             error: {
-              type: 'string',
-              example: 'Error message'
+              type: 'object',
+              required: ['code', 'message'],
+              properties: {
+                code: {
+                  type: 'string',
+                  example: 'VALIDATION_ERROR',
+                  description: 'Machine-readable error code'
+                },
+                message: {
+                  type: 'string',
+                  example: 'Validation failed',
+                  description: 'Human-readable error message'
+                },
+                details: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      field: { type: 'string' },
+                      message: { type: 'string' }
+                    }
+                  },
+                  description: 'Detailed field-level errors'
+                }
+              }
             },
-            message: {
-              type: 'string',
-              example: 'Detailed error description'
+            meta: {
+              type: 'object',
+              properties: {
+                requestId: {
+                  type: 'string',
+                  format: 'uuid',
+                  description: 'Unique request identifier for tracing'
+                }
+              }
             }
           }
         },
         SuccessResponse: {
           type: 'object',
+          required: ['success', 'data', 'meta'],
           properties: {
             success: {
               type: 'boolean',
               example: true
             },
             data: {
-              type: 'object'
+              type: 'object',
+              description: 'Response payload'
             },
-            message: {
+            meta: {
+              $ref: '#/components/schemas/ResponseMeta'
+            }
+          }
+        },
+        ResponseMeta: {
+          type: 'object',
+          properties: {
+            requestId: {
               type: 'string',
-              example: 'Operation successful'
+              format: 'uuid',
+              description: 'Unique request identifier for tracing'
+            },
+            total: {
+              type: 'integer',
+              description: 'Total count of items (for paginated responses)'
+            },
+            limit: {
+              type: 'integer',
+              description: 'Maximum items per page'
+            },
+            offset: {
+              type: 'integer',
+              description: 'Number of items skipped'
+            },
+            hasMore: {
+              type: 'boolean',
+              description: 'Whether more items exist beyond this page'
+            }
+          }
+        },
+        PaginationParams: {
+          type: 'object',
+          properties: {
+            limit: {
+              type: 'integer',
+              default: 50,
+              minimum: 1,
+              maximum: 100,
+              description: 'Maximum items to return'
+            },
+            offset: {
+              type: 'integer',
+              default: 0,
+              minimum: 0,
+              description: 'Number of items to skip'
+            },
+            search: {
+              type: 'string',
+              description: 'Search term to filter results'
+            }
+          }
+        },
+        // User entity
+        User: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            email: { type: 'string', format: 'email' },
+            firstName: { type: 'string' },
+            lastName: { type: 'string' },
+            displayName: { type: 'string' },
+            jobTitle: { type: 'string' },
+            department: { type: 'string' },
+            departmentId: { type: 'string', format: 'uuid' },
+            role: {
+              type: 'string',
+              enum: ['admin', 'manager', 'user'],
+              description: 'User role within the organization'
+            },
+            status: {
+              type: 'string',
+              enum: ['active', 'inactive', 'suspended', 'pending'],
+              description: 'User account status'
+            },
+            photoUrl: { type: 'string', format: 'uri' },
+            phone: { type: 'string' },
+            location: { type: 'string' },
+            reportingManagerId: { type: 'string', format: 'uuid' },
+            lastLoginAt: { type: 'string', format: 'date-time' },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' }
+          }
+        },
+        UserInput: {
+          type: 'object',
+          required: ['email', 'firstName', 'lastName'],
+          properties: {
+            email: { type: 'string', format: 'email' },
+            firstName: { type: 'string', minLength: 1 },
+            lastName: { type: 'string', minLength: 1 },
+            jobTitle: { type: 'string' },
+            department: { type: 'string' },
+            departmentId: { type: 'string', format: 'uuid' },
+            role: { type: 'string', enum: ['admin', 'manager', 'user'] },
+            phone: { type: 'string' },
+            location: { type: 'string' },
+            reportingManagerId: { type: 'string', format: 'uuid' }
+          }
+        },
+        // Group/Access Group entity
+        Group: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            name: { type: 'string' },
+            description: { type: 'string' },
+            email: { type: 'string', format: 'email' },
+            type: {
+              type: 'string',
+              enum: ['static', 'dynamic'],
+              description: 'Static groups have manual membership, dynamic groups auto-populate based on rules'
+            },
+            memberCount: { type: 'integer' },
+            isActive: { type: 'boolean' },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' }
+          }
+        },
+        GroupInput: {
+          type: 'object',
+          required: ['name'],
+          properties: {
+            name: { type: 'string', minLength: 1 },
+            description: { type: 'string' },
+            email: { type: 'string', format: 'email' },
+            type: { type: 'string', enum: ['static', 'dynamic'] }
+          }
+        },
+        // Department entity
+        Department: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            name: { type: 'string' },
+            description: { type: 'string' },
+            managerId: { type: 'string', format: 'uuid' },
+            parentId: { type: 'string', format: 'uuid' },
+            memberCount: { type: 'integer' },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' }
+          }
+        },
+        // Organization entity
+        Organization: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            name: { type: 'string' },
+            domain: { type: 'string' },
+            logoUrl: { type: 'string', format: 'uri' },
+            settings: { type: 'object' },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' }
+          }
+        },
+        // Dashboard stats
+        DashboardStats: {
+          type: 'object',
+          properties: {
+            totalUsers: { type: 'integer' },
+            activeUsers: { type: 'integer' },
+            totalGroups: { type: 'integer' },
+            totalDepartments: { type: 'integer' },
+            pendingActions: { type: 'integer' },
+            recentActivity: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  action: { type: 'string' },
+                  actor: { type: 'string' },
+                  target: { type: 'string' },
+                  timestamp: { type: 'string', format: 'date-time' }
+                }
+              }
+            }
+          }
+        },
+        // Auth types
+        LoginRequest: {
+          type: 'object',
+          required: ['email', 'password'],
+          properties: {
+            email: { type: 'string', format: 'email' },
+            password: { type: 'string', minLength: 8 }
+          }
+        },
+        LoginResponse: {
+          type: 'object',
+          properties: {
+            token: { type: 'string', description: 'JWT access token' },
+            refreshToken: { type: 'string', description: 'Refresh token for obtaining new access tokens' },
+            user: { $ref: '#/components/schemas/User' },
+            expiresIn: { type: 'integer', description: 'Token expiry time in seconds' }
+          }
+        }
+      },
+      responses: {
+        Unauthorized: {
+          description: 'Authentication required or invalid credentials',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Error' },
+              example: {
+                success: false,
+                error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+                meta: { requestId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' }
+              }
+            }
+          }
+        },
+        Forbidden: {
+          description: 'Access denied - insufficient permissions',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Error' },
+              example: {
+                success: false,
+                error: { code: 'FORBIDDEN', message: 'Access denied' },
+                meta: { requestId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' }
+              }
+            }
+          }
+        },
+        NotFound: {
+          description: 'Resource not found',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Error' },
+              example: {
+                success: false,
+                error: { code: 'NOT_FOUND', message: 'Resource not found' },
+                meta: { requestId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' }
+              }
+            }
+          }
+        },
+        ValidationError: {
+          description: 'Validation failed',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Error' },
+              example: {
+                success: false,
+                error: {
+                  code: 'VALIDATION_ERROR',
+                  message: 'Validation failed',
+                  details: [
+                    { field: 'email', message: 'Invalid email format' }
+                  ]
+                },
+                meta: { requestId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' }
+              }
+            }
+          }
+        },
+        InternalError: {
+          description: 'Internal server error',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Error' },
+              example: {
+                success: false,
+                error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' },
+                meta: { requestId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' }
+              }
             }
           }
         }

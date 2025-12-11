@@ -9,8 +9,66 @@ const router = Router();
 router.use(authenticateToken);
 
 /**
- * GET /api/dashboard/stats
- * Get real dashboard statistics
+ * @openapi
+ * /dashboard/stats:
+ *   get:
+ *     summary: Get dashboard statistics
+ *     description: |
+ *       Returns aggregated statistics for the organization dashboard.
+ *       Includes user counts by status, Google Workspace sync status,
+ *       and integration connection states.
+ *     tags: [Dashboard]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     google:
+ *                       type: object
+ *                       properties:
+ *                         connected:
+ *                           type: boolean
+ *                         totalUsers:
+ *                           type: integer
+ *                         suspendedUsers:
+ *                           type: integer
+ *                         adminUsers:
+ *                           type: integer
+ *                         lastSync:
+ *                           type: string
+ *                           format: date-time
+ *                           nullable: true
+ *                     helios:
+ *                       type: object
+ *                       properties:
+ *                         totalUsers:
+ *                           type: integer
+ *                         guestUsers:
+ *                           type: integer
+ *                         orphanedUsers:
+ *                           type: integer
+ *                     microsoft:
+ *                       type: object
+ *                       properties:
+ *                         connected:
+ *                           type: boolean
+ *                         totalUsers:
+ *                           type: integer
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.get('/stats', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -121,8 +179,42 @@ router.get('/stats', async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
- * GET /api/dashboard/activity
- * Get recent activity events
+ * @openapi
+ * /dashboard/activity:
+ *   get:
+ *     summary: Get recent activity
+ *     description: Returns the 10 most recent activity events for the organization.
+ *     tags: [Dashboard]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Recent activity events
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       action:
+ *                         type: string
+ *                       actor:
+ *                         type: string
+ *                       target:
+ *                         type: string
+ *                       timestamp:
+ *                         type: string
+ *                         format: date-time
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/activity', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -149,8 +241,46 @@ router.get('/activity', async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
- * GET /api/dashboard/alerts
- * Get system alerts
+ * @openapi
+ * /dashboard/alerts:
+ *   get:
+ *     summary: Get system alerts
+ *     description: |
+ *       Returns actionable system alerts such as suspended users,
+ *       sync failures, and configuration recommendations.
+ *     tags: [Dashboard]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: System alerts
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       severity:
+ *                         type: string
+ *                         enum: [info, warning, error]
+ *                       title:
+ *                         type: string
+ *                       description:
+ *                         type: string
+ *                       link:
+ *                         type: string
+ *                       action:
+ *                         type: string
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/alerts', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -233,8 +363,39 @@ router.get('/alerts', async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
- * GET /api/dashboard/widgets
- * Get user's widget preferences
+ * @openapi
+ * /dashboard/widgets:
+ *   get:
+ *     summary: Get widget preferences
+ *     description: Returns the user's dashboard widget configuration and layout.
+ *     tags: [Dashboard]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Widget preferences
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       widgetId:
+ *                         type: string
+ *                       position:
+ *                         type: integer
+ *                       isVisible:
+ *                         type: boolean
+ *                       config:
+ *                         type: object
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/widgets', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -289,8 +450,48 @@ router.get('/widgets', async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
- * PUT /api/dashboard/widgets
- * Save user's widget preferences
+ * @openapi
+ * /dashboard/widgets:
+ *   put:
+ *     summary: Save widget preferences
+ *     description: Saves the user's dashboard widget configuration and layout.
+ *     tags: [Dashboard]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               widgets:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     widgetId:
+ *                       type: string
+ *                     isVisible:
+ *                       type: boolean
+ *                     config:
+ *                       type: object
+ *     responses:
+ *       200:
+ *         description: Preferences saved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.put('/widgets', async (req: Request, res: Response): Promise<void> => {
   try {

@@ -113,11 +113,38 @@ if (rateLimitEnabled) {
   logger.info('Rate limiting disabled (test environment)');
 }
 
-// CORS configuration
+// CORS configuration helper
+function getCorsOrigins(): (string | boolean)[] {
+  const frontendUrl = process.env['FRONTEND_URL'];
+  const publicUrl = process.env['PUBLIC_URL'];
+
+  if (process.env['NODE_ENV'] === 'production') {
+    const origins: string[] = [];
+    if (frontendUrl) origins.push(frontendUrl);
+    if (publicUrl && publicUrl !== frontendUrl) origins.push(publicUrl);
+    // Fallback to legacy env vars if new ones not set
+    if (origins.length === 0) {
+      if (process.env['APPURL']) origins.push(`https://${process.env['APPURL']}`);
+      if (process.env['DOMAIN']) origins.push(`https://${process.env['DOMAIN']}`);
+    }
+    return origins.length > 0 ? origins : [false]; // Disable CORS if no origins configured
+  }
+
+  // Development - allow common local origins
+  return [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:80',
+    'http://localhost',
+    ...(frontendUrl ? [frontendUrl] : []),
+    ...(publicUrl && publicUrl !== frontendUrl ? [publicUrl] : [])
+  ].filter(Boolean) as string[];
+}
+
 const corsOptions = {
-  origin: process.env['NODE_ENV'] === 'production'
-    ? [`https://${process.env['APPURL']}`, `https://${process.env['DOMAIN']}`]
-    : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5173', 'http://localhost:5174'],
+  origin: getCorsOrigins(),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: [
