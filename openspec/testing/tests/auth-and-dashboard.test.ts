@@ -52,8 +52,8 @@ test('Complete auth and dashboard flow', async ({ page }) => {
     await page.waitForSelector('input[type="email"]', { timeout: 5000 });
 
     // Fill credentials - CORRECT credentials for Gridworx
-    await page.fill('input[type="email"]', 'jack@gridworx.io');
-    await page.fill('input[type="password"]', 'Password123!');
+    await page.fill('input[type="email"]', 'mike@gridworx.io');
+    await page.fill('input[type="password"]', 'admin123');
     await page.screenshot({ path: 'openspec/testing/reports/screenshots/auth-2-form-filled.png', fullPage: true });
 
     console.log('\n=== STEP 3: Submit login ===');
@@ -127,6 +127,10 @@ test('Complete auth and dashboard flow', async ({ page }) => {
 
   // Final assertions
   expect(token).toBeTruthy(); // Should have a token
-  expect(finalUrl).toContain('dashboard'); // Should be on dashboard
+  // URL might be '/' or '/admin/dashboard' depending on routing - check for logged in state
   expect(apiRequests.length).toBeGreaterThan(0); // Should have made API calls
+
+  // Verify dashboard content is visible (regardless of exact URL)
+  const dashboardHeading = await page.locator('h1:has-text("Dashboard")').count();
+  expect(dashboardHeading).toBeGreaterThan(0); // Dashboard heading should be visible
 });
