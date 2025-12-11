@@ -7,8 +7,47 @@ import { authenticateToken } from '../middleware/auth';
 const router = Router();
 
 /**
- * GET /api/locations
- * Get all locations for the organization
+ * @openapi
+ * /api/v1/organization/locations:
+ *   get:
+ *     summary: List locations
+ *     description: Get all locations for the organization.
+ *     tags: [Locations]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of locations
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         format: uuid
+ *                       name:
+ *                         type: string
+ *                       code:
+ *                         type: string
+ *                       type:
+ *                         type: string
+ *                         enum: [headquarters, office, remote, region, warehouse, datacenter]
+ *                       city:
+ *                         type: string
+ *                       country:
+ *                         type: string
+ *                       userCount:
+ *                         type: integer
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -63,8 +102,29 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/locations/tree
- * Get locations as a hierarchical tree structure
+ * @openapi
+ * /api/v1/organization/locations/tree:
+ *   get:
+ *     summary: Get location tree
+ *     description: Get locations as a hierarchical tree structure.
+ *     tags: [Locations]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Location tree
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   description: Root locations with children
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/tree', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -221,8 +281,51 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/locations
- * Create a new location
+ * @openapi
+ * /api/v1/organization/locations:
+ *   post:
+ *     summary: Create location
+ *     description: Create a new location.
+ *     tags: [Locations]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name]
+ *             properties:
+ *               name:
+ *                 type: string
+ *               code:
+ *                 type: string
+ *               type:
+ *                 type: string
+ *                 enum: [headquarters, office, remote, region, warehouse, datacenter]
+ *               description:
+ *                 type: string
+ *               parentId:
+ *                 type: string
+ *                 format: uuid
+ *               addressLine1:
+ *                 type: string
+ *               city:
+ *                 type: string
+ *               country:
+ *                 type: string
+ *               timezone:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Location created
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       409:
+ *         description: Location name already exists
  */
 router.post('/',
   authenticateToken,

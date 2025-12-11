@@ -9,6 +9,13 @@ import { activityTracker } from '../services/activity-tracker.service';
 const router = express.Router();
 
 /**
+ * @openapi
+ * tags:
+ *   - name: My Profile
+ *     description: Self-service endpoints for the current user
+ */
+
+/**
  * All /me routes require employee access
  * These are self-service features for employees only
  * External admins cannot access their own profile (they don't have one)
@@ -29,7 +36,56 @@ const upload = multer({
 // =====================================================
 
 /**
- * GET /api/me/profile - Get current user's full profile for editing
+ * @openapi
+ * /api/v1/me/profile:
+ *   get:
+ *     summary: Get my profile
+ *     description: Get the current user's full profile for viewing and editing.
+ *     tags: [My Profile]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     profile:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                         firstName:
+ *                           type: string
+ *                         lastName:
+ *                           type: string
+ *                         jobTitle:
+ *                           type: string
+ *                         department:
+ *                           type: string
+ *                         bio:
+ *                           type: string
+ *                         pronouns:
+ *                           type: string
+ *                     funFacts:
+ *                       type: array
+ *                     interests:
+ *                       type: array
+ *                     expertiseTopics:
+ *                       type: array
+ *                     visibility:
+ *                       type: object
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/profile', async (req: express.Request, res: express.Response) => {
   try {
@@ -172,7 +228,55 @@ router.get('/profile', async (req: express.Request, res: express.Response) => {
 });
 
 /**
- * PUT /api/me/profile - Update current user's profile
+ * @openapi
+ * /api/v1/me/profile:
+ *   put:
+ *     summary: Update my profile
+ *     description: Update the current user's profile information.
+ *     tags: [My Profile]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               bio:
+ *                 type: string
+ *               pronouns:
+ *                 type: string
+ *               currentStatus:
+ *                 type: string
+ *               mobilePhone:
+ *                 type: string
+ *               workPhone:
+ *                 type: string
+ *               timezone:
+ *                 type: string
+ *               preferredLanguage:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Profile updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.put('/profile', async (req: express.Request, res: express.Response) => {
   try {
@@ -712,7 +816,40 @@ router.put('/privacy', async (req: express.Request, res: express.Response) => {
 // =====================================================
 
 /**
- * GET /api/me/team - Get current user's team (manager, peers, reports)
+ * @openapi
+ * /api/v1/me/team:
+ *   get:
+ *     summary: Get my team
+ *     description: Get the current user's team - manager, peers (same manager), and direct reports.
+ *     tags: [My Profile]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Team information
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     manager:
+ *                       type: object
+ *                       nullable: true
+ *                     peers:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                     directReports:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/team', async (req: express.Request, res: express.Response) => {
   try {
@@ -957,7 +1094,32 @@ router.delete('/media/:type', async (req: express.Request, res: express.Response
 // =====================================================
 
 /**
- * GET /api/me/view-preference - Get user's view preference (admin vs user)
+ * @openapi
+ * /api/v1/me/view-preference:
+ *   get:
+ *     summary: Get view preference
+ *     description: Get the user's current view preference (admin vs user view).
+ *     tags: [My Profile]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: View preference
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     viewPreference:
+ *                       type: string
+ *                       enum: [admin, user]
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/view-preference', async (req: express.Request, res: express.Response) => {
   try {
@@ -992,7 +1154,49 @@ router.get('/view-preference', async (req: express.Request, res: express.Respons
 });
 
 /**
- * PUT /api/me/view-preference - Set user's view preference
+ * @openapi
+ * /api/v1/me/view-preference:
+ *   put:
+ *     summary: Set view preference
+ *     description: Set the user's view preference (admin vs user view).
+ *     tags: [My Profile]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [viewPreference]
+ *             properties:
+ *               viewPreference:
+ *                 type: string
+ *                 enum: [admin, user]
+ *               fromView:
+ *                 type: string
+ *                 description: Previous view (for audit logging)
+ *     responses:
+ *       200:
+ *         description: View preference updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     viewPreference:
+ *                       type: string
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.put('/view-preference', async (req: express.Request, res: express.Response) => {
   try {
@@ -1061,7 +1265,43 @@ router.put('/view-preference', async (req: express.Request, res: express.Respons
 // =====================================================
 
 /**
- * GET /api/me/groups - Get groups the current user belongs to
+ * @openapi
+ * /api/v1/me/groups:
+ *   get:
+ *     summary: Get my groups
+ *     description: Get the groups that the current user belongs to.
+ *     tags: [My Profile]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User's groups
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                       description:
+ *                         type: string
+ *                       email:
+ *                         type: string
+ *                       memberType:
+ *                         type: string
+ *                       memberCount:
+ *                         type: integer
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/groups', async (req: express.Request, res: express.Response) => {
   try {

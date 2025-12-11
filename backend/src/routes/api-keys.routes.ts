@@ -10,8 +10,86 @@ const router = Router();
 router.use(authenticateToken);
 
 /**
- * POST /api/organization/api-keys
- * Create a new API key (Service or Vendor)
+ * @openapi
+ * /api/v1/organization/api-keys:
+ *   post:
+ *     summary: Create a new API key
+ *     description: |
+ *       Create a new API key for service-to-service integration or vendor access.
+ *       The full key is only returned once - save it securely.
+ *     tags: [API Keys]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, type, permissions]
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "My Service Key"
+ *               description:
+ *                 type: string
+ *                 example: "Key for syncing users"
+ *               type:
+ *                 type: string
+ *                 enum: [service, vendor]
+ *                 example: service
+ *               permissions:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["read:users", "write:users"]
+ *               expiresInDays:
+ *                 type: integer
+ *                 example: 90
+ *               ipWhitelist:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["192.168.1.1", "10.0.0.0/24"]
+ *     responses:
+ *       201:
+ *         description: API key created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     key:
+ *                       type: string
+ *                       description: Full API key (only shown once)
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                     name:
+ *                       type: string
+ *                     type:
+ *                       type: string
+ *                     keyPrefix:
+ *                       type: string
+ *                       description: Key prefix for identification
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     expiresAt:
+ *                       type: string
+ *                       format: date-time
+ *                 message:
+ *                   type: string
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.post('/', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -162,8 +240,43 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
- * GET /api/organization/api-keys
- * List all API keys for the organization
+ * @openapi
+ * /api/v1/organization/api-keys:
+ *   get:
+ *     summary: List API keys
+ *     description: Get all API keys for the organization with optional filters.
+ *     tags: [API Keys]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [active, expired, revoked]
+ *         description: Filter by key status
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [service, vendor]
+ *         description: Filter by key type
+ *     responses:
+ *       200:
+ *         description: List of API keys
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/ApiKey'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -267,8 +380,38 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
- * GET /api/organization/api-keys/:id
- * Get details of a specific API key
+ * @openapi
+ * /api/v1/organization/api-keys/{id}:
+ *   get:
+ *     summary: Get API key details
+ *     description: Get detailed information about a specific API key.
+ *     tags: [API Keys]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: API key ID
+ *     responses:
+ *       200:
+ *         description: API key details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/ApiKey'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
  */
 router.get('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -347,8 +490,62 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
- * PATCH /api/organization/api-keys/:id
- * Update API key settings (permissions, expiration, etc.)
+ * @openapi
+ * /api/v1/organization/api-keys/{id}:
+ *   patch:
+ *     summary: Update API key
+ *     description: Update API key settings such as permissions, expiration, or IP whitelist.
+ *     tags: [API Keys]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: API key ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               permissions:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               expiresAt:
+ *                 type: string
+ *                 format: date-time
+ *               ipWhitelist:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               rateLimitConfig:
+ *                 type: object
+ *     responses:
+ *       200:
+ *         description: API key updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                 message:
+ *                   type: string
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
  */
 router.patch('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -430,8 +627,38 @@ router.patch('/:id', async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
- * DELETE /api/organization/api-keys/:id
- * Revoke (soft delete) an API key
+ * @openapi
+ * /api/v1/organization/api-keys/{id}:
+ *   delete:
+ *     summary: Revoke API key
+ *     description: Revoke an API key. This is a soft delete - the key cannot be reactivated.
+ *     tags: [API Keys]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: API key ID
+ *     responses:
+ *       200:
+ *         description: API key revoked
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
  */
 router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -474,8 +701,58 @@ router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
- * POST /api/organization/api-keys/:id/renew
- * Renew an expired API key (generates new key, keeps config)
+ * @openapi
+ * /api/v1/organization/api-keys/{id}/renew:
+ *   post:
+ *     summary: Renew API key
+ *     description: |
+ *       Renew an expired API key. This revokes the old key and creates a new one
+ *       with the same configuration. The new key is only shown once.
+ *     tags: [API Keys]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: API key ID to renew
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               expiresInDays:
+ *                 type: integer
+ *                 example: 90
+ *     responses:
+ *       201:
+ *         description: New API key created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     key:
+ *                       type: string
+ *                       description: New API key (only shown once)
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                 message:
+ *                   type: string
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
  */
 router.post('/:id/renew', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -590,8 +867,66 @@ router.post('/:id/renew', async (req: Request, res: Response): Promise<void> => 
 });
 
 /**
- * GET /api/organization/api-keys/:id/usage
- * Get usage history for an API key
+ * @openapi
+ * /api/v1/organization/api-keys/{id}/usage:
+ *   get:
+ *     summary: Get API key usage history
+ *     description: Get usage logs for a specific API key.
+ *     tags: [API Keys]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: API key ID
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 100
+ *         description: Maximum number of logs to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Number of logs to skip
+ *     responses:
+ *       200:
+ *         description: Usage logs
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       timestamp:
+ *                         type: string
+ *                         format: date-time
+ *                       action:
+ *                         type: string
+ *                       httpMethod:
+ *                         type: string
+ *                       httpPath:
+ *                         type: string
+ *                       httpStatus:
+ *                         type: integer
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
  */
 router.get('/:id/usage', async (req: Request, res: Response): Promise<void> => {
   try {

@@ -18,8 +18,33 @@ const router = Router();
 router.use(authenticateToken);
 
 /**
- * GET /api/organization/labels
- * Get all custom labels for the organization
+ * @openapi
+ * /api/v1/organization/labels:
+ *   get:
+ *     summary: Get custom labels
+ *     description: Get all custom labels for the organization (e.g., "Department" -> "Team").
+ *     tags: [Labels]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Custom labels configuration
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: string
+ *                   example:
+ *                     department: "Team"
+ *                     location: "Office"
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -50,8 +75,33 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
- * GET /api/organization/labels/with-availability
- * Get labels with entity availability information
+ * @openapi
+ * /api/v1/organization/labels/with-availability:
+ *   get:
+ *     summary: Get labels with entity availability
+ *     description: Get labels along with information about which entities are available based on enabled modules.
+ *     tags: [Labels]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Labels with availability information
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     labels:
+ *                       type: object
+ *                     availability:
+ *                       type: object
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/with-availability', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -82,8 +132,48 @@ router.get('/with-availability', async (req: Request, res: Response): Promise<vo
 });
 
 /**
- * PATCH /api/organization/labels
- * Update custom labels (admin only)
+ * @openapi
+ * /api/v1/organization/labels:
+ *   patch:
+ *     summary: Update custom labels
+ *     description: Update custom labels for the organization. Admin only.
+ *     tags: [Labels]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               labels:
+ *                 type: object
+ *                 additionalProperties:
+ *                   type: string
+ *                 example:
+ *                   department: "Team"
+ *                   location: "Office"
+ *     responses:
+ *       200:
+ *         description: Labels updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                 message:
+ *                   type: string
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  */
 router.patch('/', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -139,8 +229,32 @@ router.patch('/', async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
- * POST /api/organization/labels/reset
- * Reset all labels to defaults (admin only)
+ * @openapi
+ * /api/v1/organization/labels/reset:
+ *   post:
+ *     summary: Reset labels to defaults
+ *     description: Reset all custom labels to their default values. Admin only.
+ *     tags: [Labels]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Labels reset to defaults
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                 message:
+ *                   type: string
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  */
 router.post('/reset', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -184,8 +298,31 @@ router.post('/reset', async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
- * GET /api/organization/available-entities
- * Get list of available canonical entities based on enabled modules
+ * @openapi
+ * /api/v1/organization/labels/available-entities:
+ *   get:
+ *     summary: Get available entities
+ *     description: Get list of available canonical entities based on enabled modules.
+ *     tags: [Labels]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of available entities
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   example: ["users", "groups", "devices"]
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/available-entities', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -216,8 +353,33 @@ router.get('/available-entities', async (req: Request, res: Response): Promise<v
 });
 
 /**
- * GET /api/organization/available-entities/detailed
- * Get detailed availability info (which modules provide which entities)
+ * @openapi
+ * /api/v1/organization/labels/available-entities/detailed:
+ *   get:
+ *     summary: Get detailed entity availability
+ *     description: Get detailed availability info showing which modules provide which entities.
+ *     tags: [Labels]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Detailed entity availability
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     entities:
+ *                       type: object
+ *                     modules:
+ *                       type: array
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/available-entities/detailed', async (req: Request, res: Response): Promise<void> => {
   try {

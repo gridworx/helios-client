@@ -8,8 +8,85 @@ const router = Router();
 router.use(authenticateToken);
 
 /**
- * GET /api/organization/audit-logs
- * List audit logs with filtering
+ * @openapi
+ * /api/v1/organization/audit-logs:
+ *   get:
+ *     summary: List audit logs
+ *     description: Get audit logs for the organization with filtering options.
+ *     tags: [Audit Logs]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: action
+ *         schema:
+ *           type: string
+ *         description: Filter by action type
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Filter by user ID
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Filter logs after this date
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Filter logs before this date
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search in description and metadata
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 100
+ *         description: Maximum number of results
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Number of results to skip
+ *     responses:
+ *       200:
+ *         description: Audit logs
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       action:
+ *                         type: string
+ *                       resourceType:
+ *                         type: string
+ *                       description:
+ *                         type: string
+ *                       actorEmail:
+ *                         type: string
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
@@ -81,8 +158,47 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/organization/audit-logs/export
- * Export audit logs to CSV
+ * @openapi
+ * /api/v1/organization/audit-logs/export:
+ *   get:
+ *     summary: Export audit logs
+ *     description: Export audit logs to CSV format.
+ *     tags: [Audit Logs]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: action
+ *         schema:
+ *           type: string
+ *         description: Filter by action type
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Filter by user ID
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Filter logs after this date
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Filter logs before this date
+ *     responses:
+ *       200:
+ *         description: CSV file
+ *         content:
+ *           text/csv:
+ *             schema:
+ *               type: string
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/export', async (req: Request, res: Response) => {
   try {

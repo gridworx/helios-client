@@ -14,8 +14,91 @@ router.use(requireAuth);
 router.use(requireEmployee);
 
 /**
- * GET /api/people
- * List people in the directory with pagination and filtering
+ * @openapi
+ * /api/v1/people:
+ *   get:
+ *     summary: List people
+ *     description: |
+ *       List people in the organization directory with pagination and filtering.
+ *       Only accessible by employees (not external admins).
+ *     tags: [People Directory]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by name or email
+ *       - in: query
+ *         name: department
+ *         schema:
+ *           type: string
+ *         description: Filter by department
+ *       - in: query
+ *         name: location
+ *         schema:
+ *           type: string
+ *         description: Filter by location
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Number of results to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Number of results to skip
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [name, department, startDate]
+ *           default: name
+ *         description: Sort field
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: asc
+ *         description: Sort order
+ *       - in: query
+ *         name: newJoinersOnly
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: Only show new joiners (last 30 days)
+ *     responses:
+ *       200:
+ *         description: List of people
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     offset:
+ *                       type: integer
+ *                     hasMore:
+ *                       type: boolean
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/', async (req: express.Request, res: express.Response) => {
   try {
@@ -67,8 +150,49 @@ router.get('/', async (req: express.Request, res: express.Response) => {
 });
 
 /**
- * GET /api/people/search
- * Search people by name, skills, or interests
+ * @openapi
+ * /api/v1/people/search:
+ *   get:
+ *     summary: Search people
+ *     description: Search people by name, skills, or interests.
+ *     tags: [People Directory]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema:
+ *           type: string
+ *           minLength: 2
+ *         description: Search query (min 2 characters)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Maximum number of results
+ *       - in: query
+ *         name: fields
+ *         schema:
+ *           type: string
+ *         description: Comma-separated search fields (name,skills,interests)
+ *     responses:
+ *       200:
+ *         description: Search results
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/search', async (req: express.Request, res: express.Response) => {
   try {
@@ -109,8 +233,35 @@ router.get('/search', async (req: express.Request, res: express.Response) => {
 });
 
 /**
- * GET /api/people/new
- * Get recently joined people (new joiners)
+ * @openapi
+ * /api/v1/people/new:
+ *   get:
+ *     summary: Get new joiners
+ *     description: Get recently joined people (last 30 days).
+ *     tags: [People Directory]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Maximum number of results
+ *     responses:
+ *       200:
+ *         description: New joiners
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/new', async (req: express.Request, res: express.Response) => {
   try {
