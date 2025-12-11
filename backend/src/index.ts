@@ -74,6 +74,7 @@ import assetProxyRoutes from './routes/asset-proxy.routes';
 import assetsRoutes from './routes/assets.routes';
 import lifecycleRoutes from './routes/lifecycle.routes';
 import trackingRoutes from './routes/tracking.routes';
+import trackingAnalyticsRoutes from './routes/tracking-analytics.routes';
 import mcpRoutes from './routes/mcp.routes';
 import { requestIdMiddleware, REQUEST_ID_HEADER } from './middleware/request-id';
 const app = express();
@@ -565,6 +566,13 @@ registerRoute('/modules', modulesRoutes);
 // Assets & Lifecycle
 registerRoute('/assets', assetsRoutes);
 registerRoute('/lifecycle', lifecycleRoutes);
+
+// Tracking Analytics (user and admin engagement stats)
+registerRoute('/tracking', trackingAnalyticsRoutes);
+// Also register settings routes (tracking settings are at /settings/tracking)
+registerRoute('/settings', trackingAnalyticsRoutes);
+// Admin tracking routes are at /admin/tracking
+registerRoute('/admin', trackingAnalyticsRoutes);
 
 // MCP (Model Context Protocol) for AI integration
 registerRoute('/mcp', mcpRoutes);

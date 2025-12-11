@@ -236,10 +236,11 @@ class UserAnalyticsService {
 ```
 
 **Acceptance Criteria:**
-- [ ] Efficient queries with proper indexes
-- [ ] Trend calculation compares current vs previous period
-- [ ] Peak hours based on historical data
-- [ ] Device breakdown from user_agent parsing
+- [x] Efficient queries with proper indexes
+- [x] Trend calculation compares current vs previous period
+- [x] Peak hours based on historical data
+- [x] Device breakdown from user_agent parsing
+- **DONE**: backend/src/services/user-analytics.service.ts with getMyStats(), getDailyStats(), getQuickSummary(), getHourlyStats(), getPeriodStats(), getPeakHours(), getDeviceBreakdown(), calculateTrend()
 
 ---
 
@@ -262,10 +263,11 @@ class AdminAnalyticsService {
 ```
 
 **Acceptance Criteria:**
-- [ ] Aggregates across all users in org
-- [ ] Top performers sorted by opens
-- [ ] Department breakdown with user counts
-- [ ] Efficient queries (consider materialized views for large orgs)
+- [x] Aggregates across all users in org
+- [x] Top performers sorted by opens
+- [x] Department breakdown with user counts
+- [x] Efficient queries (consider materialized views for large orgs)
+- **DONE**: backend/src/services/admin-analytics.service.ts with getOrganizationStats(), getUserStats(), getEngagementTrend(), getOrgPeakHours(), getOrgDeviceStats(), getInactiveTrackedUsers()
 
 ---
 
@@ -283,10 +285,11 @@ GET /api/admin/tracking/user/:userId/stats
 ```
 
 **Acceptance Criteria:**
-- [ ] User endpoints require authentication
-- [ ] Admin endpoints require admin role
-- [ ] Proper error handling
-- [ ] Response format matches spec
+- [x] User endpoints require authentication
+- [x] Admin endpoints require admin role
+- [x] Proper error handling
+- [x] Response format matches spec
+- **DONE**: backend/src/routes/tracking-analytics.routes.ts with 12 endpoints: /my-stats, /my-stats/daily, /my-stats/summary, /admin/tracking/organization-stats, /admin/tracking/user/:userId/stats, /admin/tracking/trend, /admin/tracking/peak-hours, /admin/tracking/devices, /admin/tracking/inactive-users
 
 ---
 
@@ -299,10 +302,11 @@ PUT /api/settings/tracking
 ```
 
 **Acceptance Criteria:**
-- [ ] Get returns current tracking settings
-- [ ] Put validates and updates settings
-- [ ] Admin role required
-- [ ] Changes take effect immediately
+- [x] Get returns current tracking settings
+- [x] Put validates and updates settings
+- [x] Admin role required
+- [x] Changes take effect immediately
+- **DONE**: Added GET/PUT /api/v1/settings/tracking endpoints to tracking-analytics.routes.ts
 
 ---
 
