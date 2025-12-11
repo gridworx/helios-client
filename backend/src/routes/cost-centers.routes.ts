@@ -7,8 +7,44 @@ import { authenticateToken } from '../middleware/auth';
 const router = Router();
 
 /**
- * GET /api/cost-centers
- * Get all cost centers for the organization
+ * @openapi
+ * /api/v1/organization/cost-centers:
+ *   get:
+ *     summary: List cost centers
+ *     description: Get all cost centers for the organization.
+ *     tags: [Cost Centers]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of cost centers
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         format: uuid
+ *                       code:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                       budgetAmount:
+ *                         type: number
+ *                       budgetCurrency:
+ *                         type: string
+ *                       userCount:
+ *                         type: integer
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -105,8 +141,46 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/cost-centers
- * Create a new cost center
+ * @openapi
+ * /api/v1/organization/cost-centers:
+ *   post:
+ *     summary: Create cost center
+ *     description: Create a new cost center.
+ *     tags: [Cost Centers]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [code, name]
+ *             properties:
+ *               code:
+ *                 type: string
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               departmentId:
+ *                 type: string
+ *                 format: uuid
+ *               budgetAmount:
+ *                 type: number
+ *               budgetCurrency:
+ *                 type: string
+ *               fiscalYear:
+ *                 type: integer
+ *     responses:
+ *       201:
+ *         description: Cost center created
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       409:
+ *         description: Cost center code already exists
  */
 router.post('/',
   authenticateToken,
