@@ -11,6 +11,13 @@ import { trackingEventsService } from '../services/tracking-events.service';
 
 const router = Router();
 
+/**
+ * @openapi
+ * tags:
+ *   - name: Tracking
+ *     description: Email open tracking pixel endpoints (public)
+ */
+
 // 1x1 transparent GIF (43 bytes)
 // This is the smallest valid GIF possible
 const TRANSPARENT_GIF = Buffer.from(
@@ -54,11 +61,26 @@ setInterval(() => {
 }, RATE_LIMIT_WINDOW);
 
 /**
- * GET /api/t/p/:token.gif
- *
- * Serves a 1x1 transparent GIF and records the tracking event.
- * This endpoint is PUBLIC (no auth required) because it's loaded
- * by email clients when recipients open emails.
+ * @openapi
+ * /api/v1/t/p/{token}.gif:
+ *   get:
+ *     summary: Tracking pixel
+ *     description: Serves a 1x1 transparent GIF and records the open event. No auth required.
+ *     tags: [Tracking]
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Transparent GIF
+ *         content:
+ *           image/gif:
+ *             schema:
+ *               type: string
+ *               format: binary
  */
 router.get('/p/:token.gif', async (req: Request, res: Response) => {
   // Always return the GIF quickly - don't let tracking failures block the response
@@ -121,10 +143,15 @@ router.get('/p/:token.gif', async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/t/health
- *
- * Health check endpoint for the tracking service.
- * Can be used by monitoring systems.
+ * @openapi
+ * /api/v1/t/health:
+ *   get:
+ *     summary: Health check
+ *     description: Health check endpoint for the tracking service.
+ *     tags: [Tracking]
+ *     responses:
+ *       200:
+ *         description: Health status
  */
 router.get('/health', (_req: Request, res: Response) => {
   res.json({

@@ -8,7 +8,24 @@ import { asyncHandler, createError } from '../middleware/errorHandler';
 
 const router = Router();
 
-// Check platform setup status
+/**
+ * @openapi
+ * tags:
+ *   - name: Setup
+ *     description: Platform initial setup and configuration
+ */
+
+/**
+ * @openapi
+ * /api/v1/setup/status:
+ *   get:
+ *     summary: Get setup status
+ *     description: Check if platform setup is complete.
+ *     tags: [Setup]
+ *     responses:
+ *       200:
+ *         description: Setup status
+ */
 router.get('/status', asyncHandler(async (_req, res) => {
   const isPlatformSetup = await dbInitializer.isPlatformSetupComplete();
   const ownerCount = await dbInitializer.getAdminCount();
@@ -23,7 +40,45 @@ router.get('/status', asyncHandler(async (_req, res) => {
   });
 }));
 
-// Platform setup - create first platform owner
+/**
+ * @openapi
+ * /api/v1/setup/initialize:
+ *   post:
+ *     summary: Initialize platform
+ *     description: Create first admin user and complete initial platform setup.
+ *     tags: [Setup]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - ownerEmail
+ *               - ownerPassword
+ *               - ownerFirstName
+ *               - ownerLastName
+ *             properties:
+ *               ownerEmail:
+ *                 type: string
+ *                 format: email
+ *               ownerPassword:
+ *                 type: string
+ *                 minLength: 8
+ *               ownerFirstName:
+ *                 type: string
+ *               ownerLastName:
+ *                 type: string
+ *               platformName:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Platform initialized
+ *       400:
+ *         description: Validation failed
+ *       409:
+ *         description: Setup already complete
+ */
 router.post('/initialize',
   [
     body('ownerEmail')
@@ -168,7 +223,31 @@ router.post('/initialize',
   })
 );
 
-// Validate setup requirements
+/**
+ * @openapi
+ * /api/v1/setup/validate:
+ *   post:
+ *     summary: Validate setup requirements
+ *     description: Check if email is available for setup.
+ *     tags: [Setup]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - ownerEmail
+ *             properties:
+ *               ownerEmail:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: Validation result
+ *       400:
+ *         description: Validation failed
+ */
 router.post('/validate',
   [
     body('ownerEmail').isEmail().normalizeEmail(),

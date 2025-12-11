@@ -5,12 +5,28 @@ import { db } from '../database/connection';
 
 const router = Router();
 
+/**
+ * @openapi
+ * tags:
+ *   - name: Workspaces
+ *     description: Organization workspace management
+ */
+
 // All routes require authentication
 router.use(authenticateToken);
 
 /**
- * GET /api/organization/workspaces
- * List all workspaces for the organization
+ * @openapi
+ * /api/v1/organization/workspaces:
+ *   get:
+ *     summary: List workspaces
+ *     description: List all workspaces for the organization.
+ *     tags: [Workspaces]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of workspaces
  */
 router.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -60,8 +76,25 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
- * GET /api/organization/workspaces/:id
- * Get workspace details including members
+ * @openapi
+ * /api/v1/organization/workspaces/{id}:
+ *   get:
+ *     summary: Get workspace details
+ *     description: Get workspace details including members.
+ *     tags: [Workspaces]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Workspace details
+ *       404:
+ *         description: Workspace not found
  */
 router.get('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -118,8 +151,34 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
- * POST /api/organization/workspaces
- * Create a new workspace (manual, not synced from platform)
+ * @openapi
+ * /api/v1/organization/workspaces:
+ *   post:
+ *     summary: Create workspace
+ *     description: Create a new manual workspace.
+ *     tags: [Workspaces]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               workspaceType:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Workspace created
+ *       400:
+ *         description: Name required
  */
 router.post('/', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -170,8 +229,37 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
- * POST /api/organization/workspaces/:id/members
- * Add a member to a workspace
+ * @openapi
+ * /api/v1/organization/workspaces/{id}/members:
+ *   post:
+ *     summary: Add workspace member
+ *     tags: [Workspaces]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Member added
+ *       404:
+ *         description: Workspace not found
  */
 router.post('/:id/members', async (req: Request, res: Response): Promise<void> => {
   try {

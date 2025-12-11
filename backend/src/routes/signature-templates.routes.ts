@@ -20,6 +20,13 @@ import {
 
 const router = Router();
 
+/**
+ * @openapi
+ * tags:
+ *   - name: Signature Templates
+ *     description: Email signature template management
+ */
+
 // All routes require authentication
 router.use(authenticateToken);
 
@@ -28,8 +35,17 @@ router.use(authenticateToken);
 // ==========================================
 
 /**
- * GET /api/signatures/templates/merge-fields
- * Get available merge fields grouped by category
+ * @openapi
+ * /api/v1/signatures/templates/merge-fields:
+ *   get:
+ *     summary: Get merge fields
+ *     description: Get available merge fields grouped by category.
+ *     tags: [Signature Templates]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Grouped merge fields
  */
 router.get('/merge-fields', async (req: Request, res: Response) => {
   try {
@@ -43,8 +59,17 @@ router.get('/merge-fields', async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/signatures/templates/merge-fields/list
- * Get flat list of all merge fields
+ * @openapi
+ * /api/v1/signatures/templates/merge-fields/list:
+ *   get:
+ *     summary: Get merge fields list
+ *     description: Get flat list of all merge fields.
+ *     tags: [Signature Templates]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Flat merge fields list
  */
 router.get('/merge-fields/list', async (req: Request, res: Response) => {
   try {
@@ -61,8 +86,29 @@ router.get('/merge-fields/list', async (req: Request, res: Response) => {
 // ==========================================
 
 /**
- * GET /api/signatures/templates
- * List signature templates
+ * @openapi
+ * /api/v1/signatures/templates:
+ *   get:
+ *     summary: List templates
+ *     tags: [Signature Templates]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: isCampaignTemplate
+ *         schema:
+ *           type: boolean
+ *       - in: query
+ *         name: includeAssignments
+ *         schema:
+ *           type: boolean
+ *     responses:
+ *       200:
+ *         description: List of templates
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
@@ -88,8 +134,24 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/signatures/templates/:id
- * Get single signature template
+ * @openapi
+ * /api/v1/signatures/templates/{id}:
+ *   get:
+ *     summary: Get template by ID
+ *     tags: [Signature Templates]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Template details
+ *       404:
+ *         description: Template not found
  */
 router.get('/:id', async (req: Request, res: Response) => {
   try {
@@ -113,8 +175,36 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/signatures/templates
- * Create signature template
+ * @openapi
+ * /api/v1/signatures/templates:
+ *   post:
+ *     summary: Create template
+ *     tags: [Signature Templates]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - htmlContent
+ *             properties:
+ *               name:
+ *                 type: string
+ *               htmlContent:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *               isCampaignTemplate:
+ *                 type: boolean
+ *     responses:
+ *       201:
+ *         description: Template created
+ *       400:
+ *         description: Validation failed
  */
 router.post('/', async (req: Request, res: Response) => {
   try {
@@ -151,8 +241,36 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 /**
- * PUT /api/signatures/templates/:id
- * Update signature template
+ * @openapi
+ * /api/v1/signatures/templates/{id}:
+ *   put:
+ *     summary: Update template
+ *     tags: [Signature Templates]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               htmlContent:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Template updated
+ *       404:
+ *         description: Template not found
  */
 router.put('/:id', async (req: Request, res: Response) => {
   try {
@@ -180,8 +298,26 @@ router.put('/:id', async (req: Request, res: Response) => {
 });
 
 /**
- * DELETE /api/signatures/templates/:id
- * Delete signature template
+ * @openapi
+ * /api/v1/signatures/templates/{id}:
+ *   delete:
+ *     summary: Delete template
+ *     tags: [Signature Templates]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Template deleted
+ *       400:
+ *         description: Template has active assignments
+ *       404:
+ *         description: Template not found
  */
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
@@ -222,8 +358,35 @@ router.delete('/:id', async (req: Request, res: Response) => {
 // ==========================================
 
 /**
- * POST /api/signatures/templates/:id/clone
- * Clone a signature template
+ * @openapi
+ * /api/v1/signatures/templates/{id}/clone:
+ *   post:
+ *     summary: Clone template
+ *     tags: [Signature Templates]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Template cloned
+ *       404:
+ *         description: Template not found
  */
 router.post('/:id/clone', async (req: Request, res: Response) => {
   try {
@@ -256,8 +419,33 @@ router.post('/:id/clone', async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/signatures/templates/:id/preview
- * Preview template rendered with user data
+ * @openapi
+ * /api/v1/signatures/templates/{id}/preview:
+ *   post:
+ *     summary: Preview template
+ *     description: Preview template rendered with user data.
+ *     tags: [Signature Templates]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Rendered preview
+ *       404:
+ *         description: Template not found
  */
 router.post('/:id/preview', async (req: Request, res: Response) => {
   try {
@@ -297,8 +485,32 @@ router.post('/:id/preview', async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/signatures/templates/preview-raw
- * Preview raw HTML content (for editor live preview)
+ * @openapi
+ * /api/v1/signatures/templates/preview-raw:
+ *   post:
+ *     summary: Preview raw HTML
+ *     description: Preview raw HTML content for live preview.
+ *     tags: [Signature Templates]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - htmlContent
+ *             properties:
+ *               htmlContent:
+ *                 type: string
+ *               userId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Rendered preview
+ *       400:
+ *         description: HTML content required
  */
 router.post('/preview-raw', async (req: Request, res: Response) => {
   try {
@@ -319,8 +531,29 @@ router.post('/preview-raw', async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/signatures/templates/validate
- * Validate merge fields in content
+ * @openapi
+ * /api/v1/signatures/templates/validate:
+ *   post:
+ *     summary: Validate merge fields
+ *     tags: [Signature Templates]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - htmlContent
+ *             properties:
+ *               htmlContent:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Validation result
+ *       400:
+ *         description: HTML content required
  */
 router.post('/validate', async (req: Request, res: Response) => {
   try {
@@ -353,8 +586,35 @@ router.post('/validate', async (req: Request, res: Response) => {
 // ==========================================
 
 /**
- * POST /api/signatures/templates/bulk-status
- * Update status for multiple templates
+ * @openapi
+ * /api/v1/signatures/templates/bulk-status:
+ *   post:
+ *     summary: Bulk update status
+ *     tags: [Signature Templates]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - templateIds
+ *               - status
+ *             properties:
+ *               templateIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               status:
+ *                 type: string
+ *                 enum: [draft, active, archived]
+ *     responses:
+ *       200:
+ *         description: Bulk update result
+ *       400:
+ *         description: Invalid request
  */
 router.post('/bulk-status', async (req: Request, res: Response) => {
   try {

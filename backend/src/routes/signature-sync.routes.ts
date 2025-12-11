@@ -11,8 +11,24 @@ import { signatureSyncService } from '../services/signature-sync.service';
 const router = Router();
 
 /**
- * GET /api/signatures/sync/status
- * Get sync status summary for the organization
+ * @openapi
+ * tags:
+ *   - name: Signature Sync
+ *     description: Signature deployment and synchronization
+ */
+
+/**
+ * @openapi
+ * /api/v1/signatures/sync/status:
+ *   get:
+ *     summary: Get sync status
+ *     description: Get sync status summary for the organization.
+ *     tags: [Signature Sync]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Sync status summary
  */
 router.get('/status', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -37,8 +53,34 @@ router.get('/status', requireAuth, async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/signatures/sync/users
- * Get detailed sync status for all users
+ * @openapi
+ * /api/v1/signatures/sync/users:
+ *   get:
+ *     summary: Get user sync statuses
+ *     description: Get detailed sync status for all users.
+ *     tags: [Signature Sync]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: User sync statuses
  */
 router.get('/users', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -76,8 +118,22 @@ router.get('/users', requireAuth, async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/signatures/sync/users/:userId
- * Get sync status for a specific user
+ * @openapi
+ * /api/v1/signatures/sync/users/{userId}:
+ *   get:
+ *     summary: Get user sync status
+ *     tags: [Signature Sync]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User sync status
  */
 router.get('/users/:userId', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -115,8 +171,17 @@ router.get('/users/:userId', requireAuth, async (req: Request, res: Response) =>
 });
 
 /**
- * POST /api/signatures/sync/deploy
- * Deploy signatures to all pending users
+ * @openapi
+ * /api/v1/signatures/sync/deploy:
+ *   post:
+ *     summary: Deploy signatures
+ *     description: Deploy signatures to all pending users.
+ *     tags: [Signature Sync]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Deployment result
  */
 router.post('/deploy', requireAuth, requirePermission('admin'), async (req: Request, res: Response) => {
   try {
@@ -147,8 +212,17 @@ router.post('/deploy', requireAuth, requirePermission('admin'), async (req: Requ
 });
 
 /**
- * POST /api/signatures/sync/deploy/all
- * Force deploy signatures to ALL users (regardless of current status)
+ * @openapi
+ * /api/v1/signatures/sync/deploy/all:
+ *   post:
+ *     summary: Force deploy all
+ *     description: Force deploy signatures to ALL users.
+ *     tags: [Signature Sync]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Deployment result
  */
 router.post('/deploy/all', requireAuth, requirePermission('admin'), async (req: Request, res: Response) => {
   try {
@@ -179,8 +253,24 @@ router.post('/deploy/all', requireAuth, requirePermission('admin'), async (req: 
 });
 
 /**
- * POST /api/signatures/sync/users/:userId
- * Sync signature for a specific user
+ * @openapi
+ * /api/v1/signatures/sync/users/{userId}:
+ *   post:
+ *     summary: Sync user signature
+ *     tags: [Signature Sync]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sync result
+ *       400:
+ *         description: Sync failed
  */
 router.post('/users/:userId', requireAuth, requirePermission('admin'), async (req: Request, res: Response) => {
   try {
@@ -211,8 +301,16 @@ router.post('/users/:userId', requireAuth, requirePermission('admin'), async (re
 });
 
 /**
- * POST /api/signatures/sync/retry
- * Retry failed syncs
+ * @openapi
+ * /api/v1/signatures/sync/retry:
+ *   post:
+ *     summary: Retry failed syncs
+ *     tags: [Signature Sync]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Retry result
  */
 router.post('/retry', requireAuth, requirePermission('admin'), async (req: Request, res: Response) => {
   try {

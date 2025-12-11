@@ -13,6 +13,13 @@ import { logger } from '../utils/logger';
 
 const router = Router();
 
+/**
+ * @openapi
+ * tags:
+ *   - name: Signature Permissions
+ *     description: Signature feature permission management
+ */
+
 // All routes require authentication
 router.use(requireAuth);
 
@@ -21,8 +28,19 @@ router.use(requireAuth);
 // =====================================================
 
 /**
- * GET /api/signatures/permissions/me
- * Get current user's signature permission level
+ * @openapi
+ * /api/v1/signatures/permissions/me:
+ *   get:
+ *     summary: Get my permissions
+ *     description: Get current user's signature permission level.
+ *     tags: [Signature Permissions]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User permissions
+ *       404:
+ *         description: User not found
  */
 router.get('/me', async (req: Request, res: Response) => {
   try {
@@ -60,8 +78,17 @@ router.get('/me', async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/signatures/permissions/levels
- * Get available permission levels and their capabilities
+ * @openapi
+ * /api/v1/signatures/permissions/levels:
+ *   get:
+ *     summary: Get permission levels
+ *     description: Get available permission levels and their capabilities.
+ *     tags: [Signature Permissions]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Permission levels
  */
 router.get('/levels', async (req: Request, res: Response) => {
   try {
@@ -116,8 +143,26 @@ router.get('/levels', async (req: Request, res: Response) => {
 // =====================================================
 
 /**
- * GET /api/signatures/permissions
- * Get all users with their signature permissions
+ * @openapi
+ * /api/v1/signatures/permissions:
+ *   get:
+ *     summary: List all permissions
+ *     description: Get all users with their signature permissions (admin only).
+ *     tags: [Signature Permissions]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: includeInactive
+ *         schema:
+ *           type: boolean
+ *       - in: query
+ *         name: permissionLevel
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User permissions list
  */
 router.get('/', requireAdmin, async (req: Request, res: Response) => {
   try {
@@ -148,8 +193,16 @@ router.get('/', requireAdmin, async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/signatures/permissions/stats
- * Get permission statistics
+ * @openapi
+ * /api/v1/signatures/permissions/stats:
+ *   get:
+ *     summary: Get permission statistics
+ *     tags: [Signature Permissions]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Permission statistics
  */
 router.get('/stats', requireAdmin, async (req: Request, res: Response) => {
   try {
@@ -174,8 +227,24 @@ router.get('/stats', requireAdmin, async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/signatures/permissions/users/:userId
- * Get a specific user's permission
+ * @openapi
+ * /api/v1/signatures/permissions/users/{userId}:
+ *   get:
+ *     summary: Get user permission
+ *     tags: [Signature Permissions]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User permission
+ *       404:
+ *         description: User not found
  */
 router.get('/users/:userId', requireAdmin, async (req: Request, res: Response) => {
   try {
@@ -210,8 +279,39 @@ router.get('/users/:userId', requireAdmin, async (req: Request, res: Response) =
 });
 
 /**
- * POST /api/signatures/permissions
- * Grant or update permission for a user
+ * @openapi
+ * /api/v1/signatures/permissions:
+ *   post:
+ *     summary: Grant permission
+ *     description: Grant or update permission for a user.
+ *     tags: [Signature Permissions]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *               - permissionLevel
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               permissionLevel:
+ *                 type: string
+ *                 enum: [admin, designer, campaign_manager, helpdesk, viewer]
+ *               expiresAt:
+ *                 type: string
+ *                 format: date-time
+ *               notes:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Permission granted
+ *       400:
+ *         description: Invalid request
  */
 router.post('/', requireAdmin, async (req: Request, res: Response) => {
   try {
@@ -271,8 +371,40 @@ router.post('/', requireAdmin, async (req: Request, res: Response) => {
 });
 
 /**
- * PUT /api/signatures/permissions/users/:userId
- * Update a user's permission
+ * @openapi
+ * /api/v1/signatures/permissions/users/{userId}:
+ *   put:
+ *     summary: Update user permission
+ *     tags: [Signature Permissions]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - permissionLevel
+ *             properties:
+ *               permissionLevel:
+ *                 type: string
+ *               expiresAt:
+ *                 type: string
+ *                 format: date-time
+ *               notes:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Permission updated
+ *       404:
+ *         description: User not found
  */
 router.put('/users/:userId', requireAdmin, async (req: Request, res: Response) => {
   try {
@@ -333,8 +465,25 @@ router.put('/users/:userId', requireAdmin, async (req: Request, res: Response) =
 });
 
 /**
- * DELETE /api/signatures/permissions/users/:userId
- * Revoke a user's explicit permission (falls back to 'viewer')
+ * @openapi
+ * /api/v1/signatures/permissions/users/{userId}:
+ *   delete:
+ *     summary: Revoke permission
+ *     description: Revoke user's explicit permission (falls back to viewer).
+ *     tags: [Signature Permissions]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Permission revoked
+ *       404:
+ *         description: No permission to revoke
  */
 router.delete('/users/:userId', requireAdmin, async (req: Request, res: Response) => {
   try {
@@ -369,8 +518,31 @@ router.delete('/users/:userId', requireAdmin, async (req: Request, res: Response
 });
 
 /**
- * POST /api/signatures/permissions/bulk
- * Bulk grant permissions
+ * @openapi
+ * /api/v1/signatures/permissions/bulk:
+ *   post:
+ *     summary: Bulk grant permissions
+ *     tags: [Signature Permissions]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - permissions
+ *             properties:
+ *               permissions:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Bulk operation result
+ *       400:
+ *         description: Invalid request
  */
 router.post('/bulk', requireAdmin, async (req: Request, res: Response) => {
   try {
@@ -408,8 +580,30 @@ router.post('/bulk', requireAdmin, async (req: Request, res: Response) => {
 // =====================================================
 
 /**
- * GET /api/signatures/permissions/audit
- * Get permission audit log
+ * @openapi
+ * /api/v1/signatures/permissions/audit:
+ *   get:
+ *     summary: Get audit log
+ *     description: Get permission change audit log.
+ *     tags: [Signature Permissions]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Audit log entries
  */
 router.get('/audit', requireAdmin, async (req: Request, res: Response) => {
   try {

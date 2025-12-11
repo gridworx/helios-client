@@ -7,7 +7,28 @@ import { authenticateToken } from '../middleware/auth';
 
 const router = Router();
 
-// Get current user (requires authentication)
+/**
+ * @openapi
+ * tags:
+ *   - name: User
+ *     description: Current user profile and password management
+ */
+
+/**
+ * @openapi
+ * /api/v1/user/me:
+ *   get:
+ *     summary: Get current user
+ *     description: Get the authenticated user's profile.
+ *     tags: [User]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile
+ *       404:
+ *         description: User not found
+ */
 router.get('/me', authenticateToken, asyncHandler(async (req, res) => {
   try {
     // Get the authenticated user from the token
@@ -58,7 +79,45 @@ router.get('/me', authenticateToken, asyncHandler(async (req, res) => {
   }
 }));
 
-// Change password endpoint
+/**
+ * @openapi
+ * /api/v1/user/change-password:
+ *   post:
+ *     summary: Change password
+ *     description: Change the current user's password.
+ *     tags: [User]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               currentPassword:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 8
+ *     responses:
+ *       200:
+ *         description: Password changed
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Current password incorrect
+ *       403:
+ *         description: Cannot change another user's password
+ *       404:
+ *         description: User not found
+ */
 router.post('/change-password', authenticateToken, asyncHandler(async (req, res) => {
   try {
     const { userId, currentPassword, newPassword } = req.body;

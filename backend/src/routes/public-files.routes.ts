@@ -9,6 +9,13 @@ import { requireAuth, requirePermission } from '../middleware/auth';
 
 const router = Router();
 
+/**
+ * @openapi
+ * tags:
+ *   - name: Public Files
+ *     description: Public file/asset management for organization
+ */
+
 // =====================================================
 // MULTER CONFIGURATION
 // =====================================================
@@ -75,8 +82,39 @@ const upload = multer({
 // =====================================================
 
 /**
- * POST /api/public-files/upload
- * Upload a new public file
+ * @openapi
+ * /api/v1/public-files/upload:
+ *   post:
+ *     summary: Upload public file
+ *     description: Upload a new public file (admin only).
+ *     tags: [Public Files]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - file
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *               asset_key:
+ *                 type: string
+ *               asset_type:
+ *                 type: string
+ *               module_source:
+ *                 type: string
+ *               tags:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: File uploaded
+ *       400:
+ *         description: No file or asset key exists
  */
 router.post('/upload', requireAuth, requirePermission('admin'), upload.single('file'), async (req: Request, res: Response) => {
   try {
@@ -221,8 +259,37 @@ router.post('/upload', requireAuth, requirePermission('admin'), upload.single('f
 });
 
 /**
- * GET /api/public-files
- * List all public files for the organization
+ * @openapi
+ * /api/v1/public-files:
+ *   get:
+ *     summary: List public files
+ *     tags: [Public Files]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: asset_type
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: module_source
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: per_page
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: List of files
  */
 router.get('/', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -304,8 +371,26 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/public-files/:fileId
- * Get public file details
+ * @openapi
+ * /api/v1/public-files/{assetId}:
+ *   get:
+ *     summary: Get public file details
+ *     description: Get details of a specific public file.
+ *     tags: [Public Files]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: assetId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: File details
+ *       404:
+ *         description: Asset not found
  */
 router.get('/:assetId', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -350,8 +435,26 @@ router.get('/:assetId', requireAuth, async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/public-files/:fileId/usage
- * Get public file usage information
+ * @openapi
+ * /api/v1/public-files/{assetId}/usage:
+ *   get:
+ *     summary: Get file usage information
+ *     description: Get usage statistics and references for a public file.
+ *     tags: [Public Files]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: assetId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Usage information
+ *       404:
+ *         description: Asset not found
  */
 router.get('/:assetId/usage', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -411,8 +514,41 @@ router.get('/:assetId/usage', requireAuth, async (req: Request, res: Response) =
 });
 
 /**
- * POST /api/public-files/:fileId/tag
- * Add tags to a public file
+ * @openapi
+ * /api/v1/public-files/{assetId}/tag:
+ *   post:
+ *     summary: Add tags to file
+ *     description: Add tags to a public file (admin only).
+ *     tags: [Public Files]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: assetId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - tags
+ *             properties:
+ *               tags:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Tags updated
+ *       400:
+ *         description: Invalid tags format
+ *       404:
+ *         description: Asset not found
  */
 router.post('/:assetId/tag', requireAuth, requirePermission('admin'), async (req: Request, res: Response) => {
   try {
@@ -465,8 +601,28 @@ router.post('/:assetId/tag', requireAuth, requirePermission('admin'), async (req
 });
 
 /**
- * DELETE /api/public-files/:fileId
- * Delete a public file
+ * @openapi
+ * /api/v1/public-files/{assetId}:
+ *   delete:
+ *     summary: Delete public file
+ *     description: Delete a public file (admin only). Cannot delete files in use.
+ *     tags: [Public Files]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: assetId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: File deleted
+ *       400:
+ *         description: File in use, cannot delete
+ *       404:
+ *         description: Asset not found
  */
 router.delete('/:assetId', requireAuth, requirePermission('admin'), async (req: Request, res: Response) => {
   try {

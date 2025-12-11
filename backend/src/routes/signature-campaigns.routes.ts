@@ -17,13 +17,43 @@ import {
 
 const router = Router();
 
+/**
+ * @openapi
+ * tags:
+ *   - name: Signature Campaigns
+ *     description: Time-limited signature marketing campaigns
+ */
+
 // =====================================================
 // CAMPAIGN CRUD
 // =====================================================
 
 /**
- * GET /api/signatures/campaigns
- * List all campaigns for the organization
+ * @openapi
+ * /api/v1/signatures/campaigns:
+ *   get:
+ *     summary: List campaigns
+ *     description: Get all signature campaigns for the organization.
+ *     tags: [Signature Campaigns]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [draft, scheduled, active, paused, completed, cancelled]
+ *       - in: query
+ *         name: template_id
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: include_details
+ *         schema:
+ *           type: boolean
+ *     responses:
+ *       200:
+ *         description: List of campaigns
  */
 router.get('/', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -54,8 +84,28 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/signatures/campaigns/:campaignId
- * Get a single campaign by ID
+ * @openapi
+ * /api/v1/signatures/campaigns/{campaignId}:
+ *   get:
+ *     summary: Get campaign by ID
+ *     tags: [Signature Campaigns]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: campaignId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: include_details
+ *         schema:
+ *           type: boolean
+ *     responses:
+ *       200:
+ *         description: Campaign details
+ *       404:
+ *         description: Campaign not found
  */
 router.get('/:campaignId', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -96,8 +146,50 @@ router.get('/:campaignId', requireAuth, async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/signatures/campaigns
- * Create a new campaign
+ * @openapi
+ * /api/v1/signatures/campaigns:
+ *   post:
+ *     summary: Create campaign
+ *     tags: [Signature Campaigns]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - template_id
+ *               - start_date
+ *               - end_date
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               template_id:
+ *                 type: string
+ *               banner_url:
+ *                 type: string
+ *               banner_link:
+ *                 type: string
+ *               start_date:
+ *                 type: string
+ *                 format: date-time
+ *               end_date:
+ *                 type: string
+ *                 format: date-time
+ *               timezone:
+ *                 type: string
+ *               tracking_enabled:
+ *                 type: boolean
+ *     responses:
+ *       201:
+ *         description: Campaign created
+ *       400:
+ *         description: Missing required fields
  */
 router.post('/', requireAuth, requirePermission('admin'), async (req: Request, res: Response) => {
   try {
@@ -167,8 +259,42 @@ router.post('/', requireAuth, requirePermission('admin'), async (req: Request, r
 });
 
 /**
- * PUT /api/signatures/campaigns/:campaignId
- * Update a campaign
+ * @openapi
+ * /api/v1/signatures/campaigns/{campaignId}:
+ *   put:
+ *     summary: Update campaign
+ *     tags: [Signature Campaigns]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: campaignId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               start_date:
+ *                 type: string
+ *                 format: date-time
+ *               end_date:
+ *                 type: string
+ *                 format: date-time
+ *               status:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Campaign updated
+ *       404:
+ *         description: Campaign not found
  */
 router.put('/:campaignId', requireAuth, requirePermission('admin'), async (req: Request, res: Response) => {
   try {
@@ -240,8 +366,24 @@ router.put('/:campaignId', requireAuth, requirePermission('admin'), async (req: 
 });
 
 /**
- * DELETE /api/signatures/campaigns/:campaignId
- * Delete a campaign
+ * @openapi
+ * /api/v1/signatures/campaigns/{campaignId}:
+ *   delete:
+ *     summary: Delete campaign
+ *     tags: [Signature Campaigns]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: campaignId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Campaign deleted
+ *       404:
+ *         description: Campaign not found
  */
 router.delete('/:campaignId', requireAuth, requirePermission('admin'), async (req: Request, res: Response) => {
   try {
@@ -291,8 +433,24 @@ router.delete('/:campaignId', requireAuth, requirePermission('admin'), async (re
 // =====================================================
 
 /**
- * POST /api/signatures/campaigns/:campaignId/launch
- * Launch a campaign (activate it)
+ * @openapi
+ * /api/v1/signatures/campaigns/{campaignId}/launch:
+ *   post:
+ *     summary: Launch campaign
+ *     tags: [Signature Campaigns]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: campaignId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Campaign launched
+ *       404:
+ *         description: Campaign not found
  */
 router.post('/:campaignId/launch', requireAuth, requirePermission('admin'), async (req: Request, res: Response) => {
   try {
@@ -325,8 +483,24 @@ router.post('/:campaignId/launch', requireAuth, requirePermission('admin'), asyn
 });
 
 /**
- * POST /api/signatures/campaigns/:campaignId/pause
- * Pause an active campaign
+ * @openapi
+ * /api/v1/signatures/campaigns/{campaignId}/pause:
+ *   post:
+ *     summary: Pause campaign
+ *     tags: [Signature Campaigns]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: campaignId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Campaign paused
+ *       404:
+ *         description: Campaign not found
  */
 router.post('/:campaignId/pause', requireAuth, requirePermission('admin'), async (req: Request, res: Response) => {
   try {
@@ -359,8 +533,24 @@ router.post('/:campaignId/pause', requireAuth, requirePermission('admin'), async
 });
 
 /**
- * POST /api/signatures/campaigns/:campaignId/resume
- * Resume a paused campaign
+ * @openapi
+ * /api/v1/signatures/campaigns/{campaignId}/resume:
+ *   post:
+ *     summary: Resume campaign
+ *     tags: [Signature Campaigns]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: campaignId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Campaign resumed
+ *       404:
+ *         description: Campaign not found
  */
 router.post('/:campaignId/resume', requireAuth, requirePermission('admin'), async (req: Request, res: Response) => {
   try {
@@ -393,8 +583,24 @@ router.post('/:campaignId/resume', requireAuth, requirePermission('admin'), asyn
 });
 
 /**
- * POST /api/signatures/campaigns/:campaignId/cancel
- * Cancel a campaign
+ * @openapi
+ * /api/v1/signatures/campaigns/{campaignId}/cancel:
+ *   post:
+ *     summary: Cancel campaign
+ *     tags: [Signature Campaigns]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: campaignId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Campaign cancelled
+ *       404:
+ *         description: Campaign not found
  */
 router.post('/:campaignId/cancel', requireAuth, requirePermission('admin'), async (req: Request, res: Response) => {
   try {
@@ -431,8 +637,24 @@ router.post('/:campaignId/cancel', requireAuth, requirePermission('admin'), asyn
 // =====================================================
 
 /**
- * GET /api/signatures/campaigns/:campaignId/assignments
- * Get assignments for a campaign
+ * @openapi
+ * /api/v1/signatures/campaigns/{campaignId}/assignments:
+ *   get:
+ *     summary: Get campaign assignments
+ *     tags: [Signature Campaigns]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: campaignId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Campaign assignments
+ *       404:
+ *         description: Campaign not found
  */
 router.get('/:campaignId/assignments', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -464,8 +686,39 @@ router.get('/:campaignId/assignments', requireAuth, async (req: Request, res: Re
 });
 
 /**
- * POST /api/signatures/campaigns/:campaignId/assignments
- * Add an assignment to a campaign
+ * @openapi
+ * /api/v1/signatures/campaigns/{campaignId}/assignments:
+ *   post:
+ *     summary: Add campaign assignment
+ *     tags: [Signature Campaigns]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: campaignId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - assignment_type
+ *             properties:
+ *               assignment_type:
+ *                 type: string
+ *               target_id:
+ *                 type: string
+ *               target_value:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Assignment added
+ *       404:
+ *         description: Campaign not found
  */
 router.post('/:campaignId/assignments', requireAuth, requirePermission('admin'), async (req: Request, res: Response) => {
   try {
@@ -520,8 +773,29 @@ router.post('/:campaignId/assignments', requireAuth, requirePermission('admin'),
 });
 
 /**
- * DELETE /api/signatures/campaigns/:campaignId/assignments/:assignmentId
- * Remove an assignment from a campaign
+ * @openapi
+ * /api/v1/signatures/campaigns/{campaignId}/assignments/{assignmentId}:
+ *   delete:
+ *     summary: Remove campaign assignment
+ *     tags: [Signature Campaigns]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: campaignId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: assignmentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Assignment removed
+ *       404:
+ *         description: Not found
  */
 router.delete('/:campaignId/assignments/:assignmentId', requireAuth, requirePermission('admin'), async (req: Request, res: Response) => {
   try {
@@ -560,8 +834,25 @@ router.delete('/:campaignId/assignments/:assignmentId', requireAuth, requirePerm
 });
 
 /**
- * GET /api/signatures/campaigns/:campaignId/affected-users
- * Get users who would be affected by a campaign
+ * @openapi
+ * /api/v1/signatures/campaigns/{campaignId}/affected-users:
+ *   get:
+ *     summary: Get affected users
+ *     description: Get users who would be affected by this campaign.
+ *     tags: [Signature Campaigns]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: campaignId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Affected users list
+ *       404:
+ *         description: Campaign not found
  */
 router.get('/:campaignId/affected-users', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -598,8 +889,24 @@ router.get('/:campaignId/affected-users', requireAuth, async (req: Request, res:
 // =====================================================
 
 /**
- * GET /api/signatures/campaigns/:campaignId/stats
- * Get campaign statistics
+ * @openapi
+ * /api/v1/signatures/campaigns/{campaignId}/stats:
+ *   get:
+ *     summary: Get campaign statistics
+ *     tags: [Signature Campaigns]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: campaignId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Campaign statistics
+ *       404:
+ *         description: Campaign not found
  */
 router.get('/:campaignId/stats', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -631,8 +938,34 @@ router.get('/:campaignId/stats', requireAuth, async (req: Request, res: Response
 });
 
 /**
- * GET /api/signatures/campaigns/:campaignId/opens-by-day
- * Get daily opens for a campaign
+ * @openapi
+ * /api/v1/signatures/campaigns/{campaignId}/opens-by-day:
+ *   get:
+ *     summary: Get opens by day
+ *     tags: [Signature Campaigns]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: campaignId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: start_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: end_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: Daily opens data
+ *       404:
+ *         description: Campaign not found
  */
 router.get('/:campaignId/opens-by-day', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -669,8 +1002,24 @@ router.get('/:campaignId/opens-by-day', requireAuth, async (req: Request, res: R
 });
 
 /**
- * GET /api/signatures/campaigns/:campaignId/geo-distribution
- * Get geographic distribution of opens
+ * @openapi
+ * /api/v1/signatures/campaigns/{campaignId}/geo-distribution:
+ *   get:
+ *     summary: Get geographic distribution
+ *     tags: [Signature Campaigns]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: campaignId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Geographic distribution data
+ *       404:
+ *         description: Campaign not found
  */
 router.get('/:campaignId/geo-distribution', requireAuth, async (req: Request, res: Response) => {
   try {

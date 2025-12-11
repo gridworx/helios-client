@@ -12,13 +12,49 @@ import { AssignmentType } from '../types/signatures';
 
 const router = Router();
 
+/**
+ * @openapi
+ * tags:
+ *   - name: Signature Assignments
+ *     description: Signature template assignment management
+ */
+
 // =====================================================
 // SIGNATURE ASSIGNMENTS CRUD
 // =====================================================
 
 /**
- * GET /api/signatures/v2/assignments
- * List all signature assignments for the organization
+ * @openapi
+ * /api/v1/signatures/v2/assignments:
+ *   get:
+ *     summary: List signature assignments
+ *     description: Get all signature assignments for the organization.
+ *     tags: [Signature Assignments]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: template_id
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: assignment_type
+ *         schema:
+ *           type: string
+ *           enum: [user, group, dynamic_group, department, ou, organization]
+ *       - in: query
+ *         name: is_active
+ *         schema:
+ *           type: boolean
+ *       - in: query
+ *         name: include_details
+ *         schema:
+ *           type: boolean
+ *     responses:
+ *       200:
+ *         description: List of assignments
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -58,8 +94,24 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/signatures/v2/assignments/:id
- * Get a single assignment by ID
+ * @openapi
+ * /api/v1/signatures/v2/assignments/{id}:
+ *   get:
+ *     summary: Get assignment by ID
+ *     tags: [Signature Assignments]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Assignment details
+ *       404:
+ *         description: Assignment not found
  */
 router.get('/:id', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -96,8 +148,41 @@ router.get('/:id', requireAuth, async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/signatures/v2/assignments
- * Create a new signature assignment
+ * @openapi
+ * /api/v1/signatures/v2/assignments:
+ *   post:
+ *     summary: Create signature assignment
+ *     tags: [Signature Assignments]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - template_id
+ *               - assignment_type
+ *             properties:
+ *               template_id:
+ *                 type: string
+ *               assignment_type:
+ *                 type: string
+ *                 enum: [user, group, dynamic_group, department, ou, organization]
+ *               target_id:
+ *                 type: string
+ *               target_value:
+ *                 type: string
+ *               priority:
+ *                 type: integer
+ *               is_active:
+ *                 type: boolean
+ *     responses:
+ *       201:
+ *         description: Assignment created
+ *       400:
+ *         description: Missing required fields
  */
 router.post('/', requireAuth, requirePermission('admin'), async (req: Request, res: Response) => {
   try {
@@ -162,8 +247,34 @@ router.post('/', requireAuth, requirePermission('admin'), async (req: Request, r
 });
 
 /**
- * PUT /api/signatures/v2/assignments/:id
- * Update an existing assignment
+ * @openapi
+ * /api/v1/signatures/v2/assignments/{id}:
+ *   put:
+ *     summary: Update assignment
+ *     tags: [Signature Assignments]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               priority:
+ *                 type: integer
+ *               is_active:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Assignment updated
+ *       404:
+ *         description: Assignment not found
  */
 router.put('/:id', requireAuth, requirePermission('admin'), async (req: Request, res: Response) => {
   try {
@@ -206,8 +317,24 @@ router.put('/:id', requireAuth, requirePermission('admin'), async (req: Request,
 });
 
 /**
- * DELETE /api/signatures/v2/assignments/:id
- * Delete an assignment
+ * @openapi
+ * /api/v1/signatures/v2/assignments/{id}:
+ *   delete:
+ *     summary: Delete assignment
+ *     tags: [Signature Assignments]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Assignment deleted
+ *       404:
+ *         description: Assignment not found
  */
 router.delete('/:id', requireAuth, requirePermission('admin'), async (req: Request, res: Response) => {
   try {
@@ -256,8 +383,23 @@ router.delete('/:id', requireAuth, requirePermission('admin'), async (req: Reque
 // =====================================================
 
 /**
- * GET /api/signatures/v2/assignments/user/:userId/effective
- * Get the effective signature assignment for a specific user
+ * @openapi
+ * /api/v1/signatures/v2/assignments/user/{userId}/effective:
+ *   get:
+ *     summary: Get effective signature for user
+ *     description: Get the resolved signature assignment for a specific user.
+ *     tags: [Signature Assignments]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Effective signature
  */
 router.get('/user/:userId/effective', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -300,8 +442,17 @@ router.get('/user/:userId/effective', requireAuth, async (req: Request, res: Res
 });
 
 /**
- * GET /api/signatures/v2/assignments/effective
- * Get effective signatures for all users in the organization
+ * @openapi
+ * /api/v1/signatures/v2/assignments/effective/all:
+ *   get:
+ *     summary: Get all effective signatures
+ *     description: Get effective signatures for all users in the organization.
+ *     tags: [Signature Assignments]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of effective signatures
  */
 router.get('/effective/all', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -333,8 +484,32 @@ router.get('/effective/all', requireAuth, async (req: Request, res: Response) =>
 // =====================================================
 
 /**
- * POST /api/signatures/v2/assignments/preview
- * Preview which users would be affected by an assignment (without creating it)
+ * @openapi
+ * /api/v1/signatures/v2/assignments/preview:
+ *   post:
+ *     summary: Preview assignment impact
+ *     description: Preview which users would be affected by an assignment.
+ *     tags: [Signature Assignments]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - assignment_type
+ *             properties:
+ *               assignment_type:
+ *                 type: string
+ *               target_id:
+ *                 type: string
+ *               target_value:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Affected users preview
  */
 router.post('/preview', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -381,8 +556,26 @@ router.post('/preview', requireAuth, async (req: Request, res: Response) => {
 // =====================================================
 
 /**
- * GET /api/signatures/v2/assignments/targets/:type
- * Get available assignment targets (users, groups, departments, etc.)
+ * @openapi
+ * /api/v1/signatures/v2/assignments/targets/{type}:
+ *   get:
+ *     summary: Get targets by type
+ *     description: Get available assignment targets for a specific type.
+ *     tags: [Signature Assignments]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: type
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [user, group, dynamic_group, department, ou, organization]
+ *     responses:
+ *       200:
+ *         description: Available targets
+ *       400:
+ *         description: Invalid target type
  */
 router.get('/targets/:type', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -420,8 +613,17 @@ router.get('/targets/:type', requireAuth, async (req: Request, res: Response) =>
 });
 
 /**
- * GET /api/signatures/v2/assignments/targets
- * Get all available target types with counts
+ * @openapi
+ * /api/v1/signatures/v2/assignments/targets:
+ *   get:
+ *     summary: Get all target types
+ *     description: Get all available target types with counts.
+ *     tags: [Signature Assignments]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Target types with counts
  */
 router.get('/targets', requireAuth, async (req: Request, res: Response) => {
   try {

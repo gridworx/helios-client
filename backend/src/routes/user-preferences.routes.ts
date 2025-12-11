@@ -4,7 +4,28 @@ import { db } from '../database/connection';
 
 const router = express.Router();
 
-// GET /api/user-preferences - Get current user's preferences
+/**
+ * @openapi
+ * tags:
+ *   - name: User Preferences
+ *     description: User preference management
+ */
+
+/**
+ * @openapi
+ * /api/v1/user-preferences:
+ *   get:
+ *     summary: Get preferences
+ *     description: Get current user's preferences.
+ *     tags: [User Preferences]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User preferences
+ *       404:
+ *         description: User not found
+ */
 router.get('/', requireAuth, async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.user?.userId;
@@ -31,7 +52,34 @@ router.get('/', requireAuth, async (req: express.Request, res: express.Response)
   }
 });
 
-// PUT /api/user-preferences - Update current user's preferences
+/**
+ * @openapi
+ * /api/v1/user-preferences:
+ *   put:
+ *     summary: Update preferences
+ *     description: Update current user's preferences.
+ *     tags: [User Preferences]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - preferences
+ *             properties:
+ *               preferences:
+ *                 type: object
+ *     responses:
+ *       200:
+ *         description: Preferences updated
+ *       400:
+ *         description: Invalid preferences
+ *       404:
+ *         description: User not found
+ */
 router.put('/', requireAuth, async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.user?.userId;
@@ -73,7 +121,33 @@ router.put('/', requireAuth, async (req: express.Request, res: express.Response)
   }
 });
 
-// PATCH /api/user-preferences/dashboard-widgets - Update dashboard widgets specifically
+/**
+ * @openapi
+ * /api/v1/user-preferences/dashboard-widgets:
+ *   patch:
+ *     summary: Update dashboard widgets
+ *     tags: [User Preferences]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - widgets
+ *             properties:
+ *               widgets:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Widgets updated
+ *       400:
+ *         description: Invalid widgets array
+ */
 router.patch('/dashboard-widgets', requireAuth, async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.user?.userId;
