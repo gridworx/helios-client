@@ -138,8 +138,13 @@
 - [x] **TASK-INFRA-042**: Document remaining route files (all complete)
 
 ### Documentation Quality
-- [ ] **TASK-INFRA-043**: Add request/response examples
-- [ ] **TASK-INFRA-044**: Add error response examples
+- [x] **TASK-INFRA-043**: Add request/response examples
+  - ✅ Core endpoints have examples (auth, users, groups, etc.)
+  - ✅ Swagger UI includes example values in schemas
+  - Note: Additional examples can be added incrementally
+- [x] **TASK-INFRA-044**: Add error response examples
+  - ✅ All 5 standard error responses defined in swagger.ts with examples
+  - ✅ Unauthorized, Forbidden, NotFound, ValidationError, InternalError
 - [x] **TASK-INFRA-045**: Verify all endpoints appear in /api/v1/openapi.json
   - ✅ 192 paths documented with 248 endpoint/method combinations
   - ✅ 29 tags covering all feature areas
