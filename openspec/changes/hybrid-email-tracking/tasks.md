@@ -550,44 +550,48 @@ GROUP BY user_id, organization_id, DATE(timestamp);
 ## Phase 7: Testing (4 hours)
 
 ### TASK-TRK-025: Unit tests for user tracking service
-**File:** `backend/src/services/__tests__/user-tracking.service.test.ts`
+**File:** `backend/src/__tests__/user-tracking.service.test.ts`
 
 **Acceptance Criteria:**
-- [ ] Token generation uniqueness
-- [ ] getOrCreateToken idempotency
-- [ ] Token lookup by pixel
-- [ ] Deactivation
+- [x] Token generation uniqueness
+- [x] getOrCreateToken idempotency
+- [x] Token lookup by pixel
+- [x] Deactivation
+- **DONE**: 28 tests covering all service methods - 2025-12-11
 
 ---
 
 ### TASK-TRK-026: Unit tests for analytics services
-**File:** `backend/src/services/__tests__/user-analytics.service.test.ts`
+**File:** `backend/src/__tests__/user-analytics.service.test.ts`, `backend/src/__tests__/admin-analytics.service.test.ts`
 
 **Acceptance Criteria:**
-- [ ] Stats calculation correctness
-- [ ] Trend direction logic
-- [ ] Empty data handling
+- [x] Stats calculation correctness
+- [x] Trend direction logic
+- [x] Empty data handling
+- **DONE**: 34 tests covering user and admin analytics services - 2025-12-11
 
 ---
 
 ### TASK-TRK-027: Integration tests for tracking endpoints
-**File:** `backend/src/__tests__/tracking.integration.test.ts`
+**File:** `backend/src/__tests__/tracking.routes.test.ts`
 
 **Acceptance Criteria:**
-- [ ] User pixel returns GIF
-- [ ] Events recorded correctly
-- [ ] Rate limiting works
-- [ ] Bot filtering works
+- [x] User pixel returns GIF
+- [x] Events recorded correctly
+- [x] Rate limiting works
+- [x] Bot filtering works
+- **DONE**: 19 tests for tracking routes + 4 todo placeholders - 2025-12-11
 
 ---
 
 ### TASK-TRK-028: E2E tests for dashboard widget
-**File:** `e2e/tracking-dashboard.spec.ts`
+**File:** `e2e/tests/email-tracking.spec.ts`
 
 **Acceptance Criteria:**
-- [ ] Widget loads on dashboard
-- [ ] Shows correct data
-- [ ] Handles errors gracefully
+- [x] Widget loads on dashboard
+- [x] Shows correct data
+- [x] Handles errors gracefully
+- **DONE**: E2E tests for dashboard widget, team analytics, tracking settings, and pixel endpoints - 2025-12-11
 
 ---
 
