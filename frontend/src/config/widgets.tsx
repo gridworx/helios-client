@@ -148,6 +148,44 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
     enabled: false,
     platformColor: '#6b7280',
   },
+
+  // TODO: Future system stats widgets
+  // {
+  //   id: 'system-cpu',
+  //   category: 'system',
+  //   title: 'CPU Usage',
+  //   icon: <Activity size={16} />,
+  //   gridColumn: 3,
+  //   enabled: false,
+  //   platformColor: '#10b981',
+  // },
+  // {
+  //   id: 'system-memory',
+  //   category: 'system',
+  //   title: 'Memory Usage',
+  //   icon: <Database size={16} />,
+  //   gridColumn: 3,
+  //   enabled: false,
+  //   platformColor: '#10b981',
+  // },
+  // {
+  //   id: 'system-disk',
+  //   category: 'system',
+  //   title: 'Disk Usage',
+  //   icon: <HardDrive size={16} />,
+  //   gridColumn: 3,
+  //   enabled: false,
+  //   platformColor: '#10b981',
+  // },
+  // {
+  //   id: 'system-uptime',
+  //   category: 'system',
+  //   title: 'Uptime',
+  //   icon: <Clock size={16} />,
+  //   gridColumn: 3,
+  //   enabled: false,
+  //   platformColor: '#10b981',
+  // },
 ];
 
 export const getWidgetsByCategory = (category: WidgetCategory): WidgetDefinition[] => {

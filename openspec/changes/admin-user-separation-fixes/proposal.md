@@ -117,6 +117,10 @@ The admin-user-separation implementation likely:
 
 4. **API endpoint paths changed** - Routes moved to `/admin/*` but frontend API calls may still point to old paths, or the dashboard is calling wrong endpoints.
 
+5. **CRITICAL: Hardcoded localhost URLs** - The frontend has 176+ hardcoded `http://localhost:3001` URLs. When accessing the app remotely, these API calls fail silently, causing widgets to "spin forever". This is being addressed in the `frontend-api-url-refactor` proposal.
+
+**Note:** The dashboard widget loading issue (spinning forever) is primarily caused by the hardcoded localhost URLs. The `frontend-api-url-refactor` proposal MUST be completed before these dashboard bugs can be fully resolved for remote access.
+
 ## Success Criteria
 
 1. Internal admins see ViewSwitcher in header on every page after login
