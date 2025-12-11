@@ -6,8 +6,46 @@ import { logger } from '../utils/logger';
 const router = Router();
 
 /**
- * GET /api/helpdesk/tickets
- * Get all tickets with filters
+ * @openapi
+ * tags:
+ *   - name: Helpdesk
+ *     description: Helpdesk ticket management and analytics
+ */
+
+/**
+ * @openapi
+ * /api/v1/helpdesk/tickets:
+ *   get:
+ *     summary: List helpdesk tickets
+ *     tags: [Helpdesk]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: assigned_to
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: priority
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: List of tickets
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/tickets', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -43,8 +81,24 @@ router.get('/tickets', authenticateToken, async (req: Request, res: Response) =>
 });
 
 /**
- * GET /api/helpdesk/tickets/:id
- * Get single ticket details
+ * @openapi
+ * /api/v1/helpdesk/tickets/{id}:
+ *   get:
+ *     summary: Get ticket by ID
+ *     tags: [Helpdesk]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Ticket details
+ *       404:
+ *         description: Ticket not found
  */
 router.get('/tickets/:id', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -72,8 +126,49 @@ router.get('/tickets/:id', authenticateToken, async (req: Request, res: Response
 });
 
 /**
- * POST /api/helpdesk/tickets
- * Create a new ticket (usually from email webhook)
+ * @openapi
+ * /api/v1/helpdesk/tickets:
+ *   post:
+ *     summary: Create a ticket
+ *     tags: [Helpdesk]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - googleMessageId
+ *               - googleThreadId
+ *               - groupEmail
+ *               - subject
+ *               - senderEmail
+ *             properties:
+ *               googleMessageId:
+ *                 type: string
+ *               googleThreadId:
+ *                 type: string
+ *               groupEmail:
+ *                 type: string
+ *               subject:
+ *                 type: string
+ *               senderEmail:
+ *                 type: string
+ *               senderName:
+ *                 type: string
+ *               priority:
+ *                 type: string
+ *               tags:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       201:
+ *         description: Ticket created
+ *       400:
+ *         description: Missing required fields
  */
 router.post('/tickets', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -129,8 +224,30 @@ router.post('/tickets', authenticateToken, async (req: Request, res: Response) =
 });
 
 /**
- * POST /api/helpdesk/tickets/:id/assign
- * Assign ticket to an agent
+ * @openapi
+ * /api/v1/helpdesk/tickets/{id}/assign:
+ *   post:
+ *     summary: Assign ticket
+ *     tags: [Helpdesk]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               assignToUserId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Ticket assigned
  */
 router.post('/tickets/:id/assign', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -168,8 +285,22 @@ router.post('/tickets/:id/assign', authenticateToken, async (req: Request, res: 
 });
 
 /**
- * DELETE /api/helpdesk/tickets/:id/assign
- * Unassign ticket
+ * @openapi
+ * /api/v1/helpdesk/tickets/{id}/assign:
+ *   delete:
+ *     summary: Unassign ticket
+ *     tags: [Helpdesk]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Ticket unassigned
  */
 router.delete('/tickets/:id/assign', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -204,8 +335,36 @@ router.delete('/tickets/:id/assign', authenticateToken, async (req: Request, res
 });
 
 /**
- * PATCH /api/helpdesk/tickets/:id/status
- * Update ticket status
+ * @openapi
+ * /api/v1/helpdesk/tickets/{id}/status:
+ *   patch:
+ *     summary: Update ticket status
+ *     tags: [Helpdesk]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [new, in_progress, pending, resolved, reopened]
+ *     responses:
+ *       200:
+ *         description: Status updated
+ *       400:
+ *         description: Invalid status
  */
 router.patch('/tickets/:id/status', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -250,8 +409,22 @@ router.patch('/tickets/:id/status', authenticateToken, async (req: Request, res:
 });
 
 /**
- * GET /api/helpdesk/tickets/:id/notes
- * Get ticket notes
+ * @openapi
+ * /api/v1/helpdesk/tickets/{id}/notes:
+ *   get:
+ *     summary: Get ticket notes
+ *     tags: [Helpdesk]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of notes
  */
 router.get('/tickets/:id/notes', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -271,8 +444,37 @@ router.get('/tickets/:id/notes', authenticateToken, async (req: Request, res: Re
 });
 
 /**
- * POST /api/helpdesk/tickets/:id/notes
- * Add internal note to ticket
+ * @openapi
+ * /api/v1/helpdesk/tickets/{id}/notes:
+ *   post:
+ *     summary: Add note to ticket
+ *     tags: [Helpdesk]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - content
+ *             properties:
+ *               content:
+ *                 type: string
+ *               mentionedUsers:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       201:
+ *         description: Note added
  */
 router.post('/tickets/:id/notes', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -315,8 +517,22 @@ router.post('/tickets/:id/notes', authenticateToken, async (req: Request, res: R
 });
 
 /**
- * GET /api/helpdesk/tickets/:id/presence
- * Get current presence for a ticket
+ * @openapi
+ * /api/v1/helpdesk/tickets/{id}/presence:
+ *   get:
+ *     summary: Get ticket presence
+ *     tags: [Helpdesk]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Presence data
  */
 router.get('/tickets/:id/presence', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -336,8 +552,27 @@ router.get('/tickets/:id/presence', authenticateToken, async (req: Request, res:
 });
 
 /**
- * GET /api/helpdesk/analytics
- * Get helpdesk analytics
+ * @openapi
+ * /api/v1/helpdesk/analytics:
+ *   get:
+ *     summary: Get helpdesk analytics
+ *     tags: [Helpdesk]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: start_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: end_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: Analytics data
  */
 router.get('/analytics', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -376,8 +611,16 @@ router.get('/analytics', authenticateToken, async (req: Request, res: Response) 
 });
 
 /**
- * GET /api/helpdesk/stats
- * Get quick stats for dashboard
+ * @openapi
+ * /api/v1/helpdesk/stats:
+ *   get:
+ *     summary: Get helpdesk stats
+ *     tags: [Helpdesk]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard stats
  */
 router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
   try {

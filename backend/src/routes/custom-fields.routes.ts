@@ -5,12 +5,30 @@ import { logger } from '../utils/logger';
 
 const router = Router();
 
+/**
+ * @openapi
+ * tags:
+ *   - name: Custom Fields
+ *     description: Custom field definitions and user field values management
+ */
+
 // All routes require authentication
 router.use(authenticateToken);
 
 /**
- * GET /api/organization/custom-fields/definitions
- * Get all custom field definitions for the organization
+ * @openapi
+ * /api/v1/organization/custom-fields/definitions:
+ *   get:
+ *     summary: Get custom field definitions
+ *     description: Get all custom field definitions for the organization.
+ *     tags: [Custom Fields]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Field definitions
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/definitions', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -40,8 +58,26 @@ router.get('/definitions', async (req: Request, res: Response): Promise<void> =>
 });
 
 /**
- * GET /api/organization/custom-fields/definitions/category/:category
- * Get custom field definitions by category
+ * @openapi
+ * /api/v1/organization/custom-fields/definitions/category/{category}:
+ *   get:
+ *     summary: Get fields by category
+ *     description: Get custom field definitions filtered by category.
+ *     tags: [Custom Fields]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: category
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Field category
+ *     responses:
+ *       200:
+ *         description: Field definitions for category
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/definitions/category/:category', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -72,8 +108,19 @@ router.get('/definitions/category/:category', async (req: Request, res: Response
 });
 
 /**
- * GET /api/organization/custom-fields/signature-fields
- * Get fields that can be used in signatures
+ * @openapi
+ * /api/v1/organization/custom-fields/signature-fields:
+ *   get:
+ *     summary: Get signature fields
+ *     description: Get fields that can be used in email signatures.
+ *     tags: [Custom Fields]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Signature-eligible fields
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/signature-fields', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -103,8 +150,19 @@ router.get('/signature-fields', async (req: Request, res: Response): Promise<voi
 });
 
 /**
- * GET /api/organization/custom-fields/available-defaults
- * Get available default fields that can be enabled
+ * @openapi
+ * /api/v1/organization/custom-fields/available-defaults:
+ *   get:
+ *     summary: Get available default fields
+ *     description: Get available default fields that can be enabled.
+ *     tags: [Custom Fields]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Available default fields
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/available-defaults', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -124,8 +182,41 @@ router.get('/available-defaults', async (req: Request, res: Response): Promise<v
 });
 
 /**
- * POST /api/organization/custom-fields/definitions
- * Create or update a custom field definition (admin only)
+ * @openapi
+ * /api/v1/organization/custom-fields/definitions:
+ *   post:
+ *     summary: Create or update field definition
+ *     description: Create or update a custom field definition (admin only).
+ *     tags: [Custom Fields]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - fieldKey
+ *               - fieldLabel
+ *             properties:
+ *               fieldKey:
+ *                 type: string
+ *               fieldLabel:
+ *                 type: string
+ *               fieldType:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Field definition saved
+ *       400:
+ *         description: Missing required fields
+ *       403:
+ *         description: Admin access required
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.post('/definitions', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -181,8 +272,30 @@ router.post('/definitions', async (req: Request, res: Response): Promise<void> =
 });
 
 /**
- * DELETE /api/organization/custom-fields/definitions/:fieldKey
- * Delete (deactivate) a custom field definition (admin only)
+ * @openapi
+ * /api/v1/organization/custom-fields/definitions/{fieldKey}:
+ *   delete:
+ *     summary: Delete field definition
+ *     description: Delete (deactivate) a custom field definition (admin only).
+ *     tags: [Custom Fields]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: fieldKey
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Field key to delete
+ *     responses:
+ *       200:
+ *         description: Field deleted
+ *       403:
+ *         description: Admin access required
+ *       404:
+ *         description: Field not found
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.delete('/definitions/:fieldKey', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -231,8 +344,29 @@ router.delete('/definitions/:fieldKey', async (req: Request, res: Response): Pro
 });
 
 /**
- * GET /api/organization/custom-fields/user/:userId
- * Get a user's custom field values
+ * @openapi
+ * /api/v1/organization/custom-fields/user/{userId}:
+ *   get:
+ *     summary: Get user's field values
+ *     description: Get a user's custom field values.
+ *     tags: [Custom Fields]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: User's field values
+ *       403:
+ *         description: Insufficient permissions
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/user/:userId', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -265,8 +399,36 @@ router.get('/user/:userId', async (req: Request, res: Response): Promise<void> =
 });
 
 /**
- * PUT /api/organization/custom-fields/user/:userId
- * Update a user's custom field values
+ * @openapi
+ * /api/v1/organization/custom-fields/user/{userId}:
+ *   put:
+ *     summary: Update user's field values
+ *     description: Update a user's custom field values.
+ *     tags: [Custom Fields]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: User ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             additionalProperties: true
+ *     responses:
+ *       200:
+ *         description: Field values updated
+ *       403:
+ *         description: Insufficient permissions
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.put('/user/:userId', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -300,8 +462,21 @@ router.put('/user/:userId', async (req: Request, res: Response): Promise<void> =
 });
 
 /**
- * POST /api/organization/custom-fields/initialize-defaults
- * Initialize default custom fields for the organization (admin only)
+ * @openapi
+ * /api/v1/organization/custom-fields/initialize-defaults:
+ *   post:
+ *     summary: Initialize default fields
+ *     description: Initialize default custom fields for the organization (admin only).
+ *     tags: [Custom Fields]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Default fields initialized
+ *       403:
+ *         description: Admin access required
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.post('/initialize-defaults', async (req: Request, res: Response): Promise<void> => {
   try {

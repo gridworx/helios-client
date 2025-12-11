@@ -14,6 +14,13 @@ import axios from 'axios';
 
 const router = express.Router();
 
+/**
+ * @openapi
+ * tags:
+ *   - name: Email Security
+ *     description: Organization-wide email search and deletion for security
+ */
+
 interface MessageSearchResult {
   messageId: string;
   subject: string;
@@ -23,14 +30,43 @@ interface MessageSearchResult {
 }
 
 /**
- * GET /api/email-security/search
- * Search for messages across all user mailboxes
- *
- * Query params:
- * - searchBy: 'sender' | 'messageId' | 'subject'
- * - value: search value
- * - dateFrom: optional ISO date
- * - dateTo: optional ISO date
+ * @openapi
+ * /api/v1/email-security/search:
+ *   get:
+ *     summary: Search emails across organization
+ *     description: Search for messages across all user mailboxes.
+ *     tags: [Email Security]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: searchBy
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [sender, messageId, subject]
+ *       - in: query
+ *         name: value
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: dateFrom
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: dateTo
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: Search results
+ *       400:
+ *         description: Missing parameters
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/search', requireAuth, async (req: express.Request, res: express.Response) => {
   try {
@@ -184,15 +220,47 @@ router.get('/search', requireAuth, async (req: express.Request, res: express.Res
 });
 
 /**
- * POST /api/email-security/delete
- * Delete messages from all user mailboxes
- *
- * Body:
- * - searchBy: 'sender' | 'messageId' | 'subject'
- * - value: search value
- * - reason: reason for deletion (required)
- * - dateFrom: optional ISO date
- * - dateTo: optional ISO date
+ * @openapi
+ * /api/v1/email-security/delete:
+ *   post:
+ *     summary: Delete emails across organization
+ *     description: Delete messages from all user mailboxes (admin only).
+ *     tags: [Email Security]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - searchBy
+ *               - value
+ *               - reason
+ *             properties:
+ *               searchBy:
+ *                 type: string
+ *                 enum: [sender, messageId, subject]
+ *               value:
+ *                 type: string
+ *               reason:
+ *                 type: string
+ *               dateFrom:
+ *                 type: string
+ *                 format: date
+ *               dateTo:
+ *                 type: string
+ *                 format: date
+ *     responses:
+ *       200:
+ *         description: Deletion results
+ *       400:
+ *         description: Missing parameters
+ *       403:
+ *         description: Admin access required
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.post('/delete', requireAuth, async (req: express.Request, res: express.Response) => {
   try {
@@ -351,8 +419,19 @@ router.post('/delete', requireAuth, async (req: express.Request, res: express.Re
 });
 
 /**
- * GET /api/email-security/history
- * Get recent email security actions
+ * @openapi
+ * /api/v1/email-security/history:
+ *   get:
+ *     summary: Get email security action history
+ *     description: Get recent email security actions (searches and deletions).
+ *     tags: [Email Security]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Action history
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/history', requireAuth, async (req: express.Request, res: express.Response) => {
   try {

@@ -24,6 +24,81 @@ import type {
 
 const router = Router();
 
+/**
+ * @openapi
+ * tags:
+ *   - name: Assets
+ *     description: Media asset management for signatures and other images
+ *
+ * components:
+ *   schemas:
+ *     MediaAsset:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           format: uuid
+ *         organizationId:
+ *           type: string
+ *           format: uuid
+ *         storageType:
+ *           type: string
+ *           enum: [google_drive, minio, local]
+ *         storagePath:
+ *           type: string
+ *         name:
+ *           type: string
+ *         filename:
+ *           type: string
+ *         mimeType:
+ *           type: string
+ *         sizeBytes:
+ *           type: integer
+ *         folderId:
+ *           type: string
+ *           format: uuid
+ *           nullable: true
+ *         category:
+ *           type: string
+ *           enum: [logo, icon, banner, signature, other]
+ *           nullable: true
+ *         accessToken:
+ *           type: string
+ *         isPublic:
+ *           type: boolean
+ *         accessCount:
+ *           type: integer
+ *         publicUrl:
+ *           type: string
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *     MediaAssetFolder:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           format: uuid
+ *         name:
+ *           type: string
+ *         path:
+ *           type: string
+ *         parentId:
+ *           type: string
+ *           format: uuid
+ *           nullable: true
+ *         driveFolderId:
+ *           type: string
+ *           nullable: true
+ *         children:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/MediaAssetFolder'
+ */
+
 // Configure multer for file uploads
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -59,8 +134,69 @@ function getPublicUrl(accessToken: string, filename?: string): string {
 // ============================================================================
 
 /**
- * GET /api/assets
- * List assets with optional filters
+ * @openapi
+ * /api/v1/assets:
+ *   get:
+ *     summary: List media assets
+ *     description: List assets with optional filters by folder, category, or search term.
+ *     tags: [Assets]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: folderId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Filter by folder ID
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *           enum: [logo, icon, banner, signature, other]
+ *         description: Filter by category
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by name or filename
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Maximum number of results
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Number of results to skip
+ *     responses:
+ *       200:
+ *         description: List of assets
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     assets:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/MediaAsset'
+ *                     total:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     offset:
+ *                       type: integer
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/', async (req: Request, res: Response) => {
   const organizationId = getOrganizationId(req);
@@ -148,8 +284,38 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/assets/:id
- * Get a single asset by ID
+ * @openapi
+ * /api/v1/assets/{id}:
+ *   get:
+ *     summary: Get asset by ID
+ *     description: Retrieve a single media asset by its ID.
+ *     tags: [Assets]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Asset ID
+ *     responses:
+ *       200:
+ *         description: Asset details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/MediaAsset'
+ *       404:
+ *         description: Asset not found
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/:id', async (req: Request, res: Response) => {
   const organizationId = getOrganizationId(req);
@@ -197,8 +363,61 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/assets
- * Register an existing storage file as an asset
+ * @openapi
+ * /api/v1/assets:
+ *   post:
+ *     summary: Register a new asset
+ *     description: Register an existing storage file as a media asset.
+ *     tags: [Assets]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - filename
+ *               - mimeType
+ *               - storagePath
+ *             properties:
+ *               name:
+ *                 type: string
+ *               filename:
+ *                 type: string
+ *               mimeType:
+ *                 type: string
+ *               storagePath:
+ *                 type: string
+ *               storageType:
+ *                 type: string
+ *                 enum: [google_drive, minio, local]
+ *               sizeBytes:
+ *                 type: integer
+ *               folderId:
+ *                 type: string
+ *                 format: uuid
+ *               category:
+ *                 type: string
+ *                 enum: [logo, icon, banner, signature, other]
+ *     responses:
+ *       201:
+ *         description: Asset created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/MediaAsset'
+ *       400:
+ *         description: Missing required fields
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.post('/', async (req: Request, res: Response) => {
   const organizationId = getOrganizationId(req);
@@ -277,8 +496,57 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 /**
- * PUT /api/assets/:id
- * Update asset metadata
+ * @openapi
+ * /api/v1/assets/{id}:
+ *   put:
+ *     summary: Update asset metadata
+ *     description: Update name, folder, or category of an asset.
+ *     tags: [Assets]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Asset ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               folderId:
+ *                 type: string
+ *                 format: uuid
+ *                 nullable: true
+ *               category:
+ *                 type: string
+ *                 enum: [logo, icon, banner, signature, other]
+ *                 nullable: true
+ *     responses:
+ *       200:
+ *         description: Asset updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/MediaAsset'
+ *       400:
+ *         description: No fields to update
+ *       404:
+ *         description: Asset not found
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.put('/:id', async (req: Request, res: Response) => {
   const organizationId = getOrganizationId(req);
@@ -355,8 +623,44 @@ router.put('/:id', async (req: Request, res: Response) => {
 });
 
 /**
- * DELETE /api/assets/:id
- * Delete an asset
+ * @openapi
+ * /api/v1/assets/{id}:
+ *   delete:
+ *     summary: Delete an asset
+ *     description: Delete a media asset. Optionally delete the underlying file from storage.
+ *     tags: [Assets]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Asset ID
+ *       - in: query
+ *         name: deleteFile
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: Also delete the underlying file from storage
+ *     responses:
+ *       200:
+ *         description: Asset deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       404:
+ *         description: Asset not found
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.delete('/:id', async (req: Request, res: Response) => {
   const organizationId = getOrganizationId(req);
@@ -409,8 +713,53 @@ router.delete('/:id', async (req: Request, res: Response) => {
 // ============================================================================
 
 /**
- * POST /api/assets/upload
- * Upload a new file and register as asset
+ * @openapi
+ * /api/v1/assets/upload:
+ *   post:
+ *     summary: Upload a new asset
+ *     description: Upload a new file and register it as a media asset.
+ *     tags: [Assets]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - file
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: The file to upload
+ *               name:
+ *                 type: string
+ *                 description: Display name (defaults to filename)
+ *               folderId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: Target folder ID
+ *               category:
+ *                 type: string
+ *                 enum: [logo, icon, banner, signature, other]
+ *     responses:
+ *       201:
+ *         description: Asset uploaded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/MediaAsset'
+ *       400:
+ *         description: No file provided or invalid file type
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.post('/upload', upload.single('file'), async (req: Request, res: Response) => {
   const organizationId = getOrganizationId(req);
@@ -539,8 +888,30 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
 // ============================================================================
 
 /**
- * GET /api/assets/folders
- * Get folder tree for organization
+ * @openapi
+ * /api/v1/assets/folders:
+ *   get:
+ *     summary: Get folder tree
+ *     description: Get the hierarchical folder tree for asset organization.
+ *     tags: [Assets]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Folder tree
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/MediaAssetFolder'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/folders', async (req: Request, res: Response) => {
   const organizationId = getOrganizationId(req);
@@ -596,8 +967,46 @@ router.get('/folders', async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/assets/folders
- * Create a new folder
+ * @openapi
+ * /api/v1/assets/folders:
+ *   post:
+ *     summary: Create a new folder
+ *     description: Create a new folder in the asset folder hierarchy.
+ *     tags: [Assets]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *               parentPath:
+ *                 type: string
+ *                 description: Path of parent folder (e.g., "/logos")
+ *     responses:
+ *       201:
+ *         description: Folder created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/MediaAssetFolder'
+ *       400:
+ *         description: Missing folder name
+ *       409:
+ *         description: Folder with this path already exists
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.post('/folders', async (req: Request, res: Response) => {
   const organizationId = getOrganizationId(req);
@@ -684,8 +1093,40 @@ router.post('/folders', async (req: Request, res: Response) => {
 });
 
 /**
- * DELETE /api/assets/folders/:id
- * Delete a folder (must be empty)
+ * @openapi
+ * /api/v1/assets/folders/{id}:
+ *   delete:
+ *     summary: Delete a folder
+ *     description: Delete an asset folder. The folder must be empty (no subfolders or assets).
+ *     tags: [Assets]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Folder ID
+ *     responses:
+ *       200:
+ *         description: Folder deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Cannot delete folder with subfolders or assets
+ *       404:
+ *         description: Folder not found
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.delete('/folders/:id', async (req: Request, res: Response) => {
   const organizationId = getOrganizationId(req);
@@ -736,8 +1177,51 @@ router.delete('/folders/:id', async (req: Request, res: Response) => {
 // ============================================================================
 
 /**
- * GET /api/assets/settings
- * Get asset storage settings
+ * @openapi
+ * /api/v1/assets/settings:
+ *   get:
+ *     summary: Get asset storage settings
+ *     description: Get the current storage settings for media assets.
+ *     tags: [Assets]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Storage settings
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     organizationId:
+ *                       type: string
+ *                       format: uuid
+ *                     storageBackend:
+ *                       type: string
+ *                       enum: [google_drive, minio, local]
+ *                     driveSharedDriveId:
+ *                       type: string
+ *                       nullable: true
+ *                     driveRootFolderId:
+ *                       type: string
+ *                       nullable: true
+ *                     cacheTtlSeconds:
+ *                       type: integer
+ *                     maxFileSizeMb:
+ *                       type: integer
+ *                     allowedMimeTypes:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     isConfigured:
+ *                       type: boolean
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/settings', async (req: Request, res: Response) => {
   const organizationId = getOrganizationId(req);
@@ -770,8 +1254,37 @@ router.get('/settings', async (req: Request, res: Response) => {
 });
 
 /**
- * PUT /api/assets/settings
- * Update asset storage settings
+ * @openapi
+ * /api/v1/assets/settings:
+ *   put:
+ *     summary: Update asset storage settings
+ *     description: Update storage settings for media assets.
+ *     tags: [Assets]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               storageBackend:
+ *                 type: string
+ *                 enum: [google_drive, minio, local]
+ *               cacheTtlSeconds:
+ *                 type: integer
+ *               maxFileSizeMb:
+ *                 type: integer
+ *               allowedMimeTypes:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Settings updated
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.put('/settings', async (req: Request, res: Response) => {
   const organizationId = getOrganizationId(req);
@@ -798,8 +1311,43 @@ router.put('/settings', async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/assets/status
- * Get asset storage setup status
+ * @openapi
+ * /api/v1/assets/status:
+ *   get:
+ *     summary: Get asset storage status
+ *     description: Get the setup status for asset storage including Google Workspace integration.
+ *     tags: [Assets]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Storage status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     isConfigured:
+ *                       type: boolean
+ *                     storageBackend:
+ *                       type: string
+ *                     hasGoogleWorkspace:
+ *                       type: boolean
+ *                     hasDriveAccess:
+ *                       type: boolean
+ *                     sharedDriveName:
+ *                       type: string
+ *                     folderCount:
+ *                       type: integer
+ *                     assetCount:
+ *                       type: integer
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/status', async (req: Request, res: Response) => {
   const organizationId = getOrganizationId(req);
@@ -844,8 +1392,31 @@ router.get('/status', async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/assets/setup
- * Initialize asset storage (create Shared Drive, folders, etc.)
+ * @openapi
+ * /api/v1/assets/setup:
+ *   post:
+ *     summary: Initialize asset storage
+ *     description: Set up asset storage backend (create Shared Drive, folders, etc.).
+ *     tags: [Assets]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               backend:
+ *                 type: string
+ *                 enum: [google_drive, minio, local]
+ *                 default: google_drive
+ *     responses:
+ *       200:
+ *         description: Storage setup complete
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         description: Failed to setup storage
  */
 router.post('/setup', async (req: Request, res: Response) => {
   const organizationId = getOrganizationId(req);

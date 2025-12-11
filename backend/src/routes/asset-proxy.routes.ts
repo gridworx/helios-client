@@ -8,8 +8,40 @@ import type { MediaAsset, StorageBackend } from '../types/media-assets';
 const router = Router();
 
 /**
- * Health check endpoint for the proxy
- * MUST be registered BEFORE token routes to avoid matching as a token
+ * @openapi
+ * tags:
+ *   - name: Asset Proxy
+ *     description: Public asset proxy endpoints for serving media files
+ */
+
+/**
+ * @openapi
+ * /a/_health:
+ *   get:
+ *     summary: Asset proxy health check
+ *     description: Returns the health status of the asset proxy service including cache statistics.
+ *     tags: [Asset Proxy]
+ *     responses:
+ *       200:
+ *         description: Health status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 service:
+ *                   type: string
+ *                   example: asset-proxy
+ *                 cache:
+ *                   type: object
+ *                   properties:
+ *                     connected:
+ *                       type: boolean
+ *                     keyCount:
+ *                       type: integer
  */
 router.get('/_health', async (_req: Request, res: Response) => {
   const cacheStats = await mediaAssetCacheService.getStats();
@@ -120,11 +152,105 @@ async function updateAccessStats(assetId: string): Promise<void> {
 }
 
 /**
- * GET /a/:token
- * GET /a/:token/:filename
+ * @openapi
+ * /a/{token}:
+ *   get:
+ *     summary: Get public asset by token
+ *     description: |
+ *       Public asset proxy endpoint - no authentication required.
+ *       Serves media assets with proper Content-Type and caching headers.
+ *       Assets are cached in Redis for improved performance.
+ *     tags: [Asset Proxy]
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique access token for the asset
+ *     responses:
+ *       200:
+ *         description: Asset content
+ *         headers:
+ *           Content-Type:
+ *             description: MIME type of the asset
+ *             schema:
+ *               type: string
+ *           Cache-Control:
+ *             description: Caching directives
+ *             schema:
+ *               type: string
+ *           X-Cache:
+ *             description: Cache status (HIT or MISS)
+ *             schema:
+ *               type: string
+ *               enum: [HIT, MISS]
+ *       403:
+ *         description: Asset is not public
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: Access denied
+ *       404:
+ *         description: Asset not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: Asset not found
+ *       429:
+ *         description: Rate limit exceeded
+ *         headers:
+ *           Retry-After:
+ *             description: Seconds until rate limit resets
+ *             schema:
+ *               type: integer
+ *       503:
+ *         description: Storage temporarily unavailable
  *
- * Public asset proxy endpoint - no authentication required.
- * Serves media assets with proper Content-Type and caching headers.
+ * /a/{token}/{filename}:
+ *   get:
+ *     summary: Get public asset with filename
+ *     description: |
+ *       Same as /a/{token} but includes filename in URL for better SEO and browser filename hints.
+ *     tags: [Asset Proxy]
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique access token for the asset
+ *       - in: path
+ *         name: filename
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The filename (used for Content-Disposition hint)
+ *     responses:
+ *       200:
+ *         description: Asset content
+ *       403:
+ *         description: Asset is not public
+ *       404:
+ *         description: Asset not found
+ *       429:
+ *         description: Rate limit exceeded
+ *       503:
+ *         description: Storage temporarily unavailable
  */
 router.get(
   ['/:token', '/:token/:filename'],

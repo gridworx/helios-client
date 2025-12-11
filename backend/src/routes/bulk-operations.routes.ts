@@ -7,6 +7,52 @@ import { logger } from '../utils/logger';
 
 const router = Router();
 
+/**
+ * @openapi
+ * tags:
+ *   - name: Bulk Operations
+ *     description: Bulk data operations with CSV import/export and Google Workspace sync
+ *
+ * components:
+ *   schemas:
+ *     BulkOperation:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           format: uuid
+ *         operationType:
+ *           type: string
+ *         status:
+ *           type: string
+ *           enum: [pending, processing, completed, failed]
+ *         totalItems:
+ *           type: integer
+ *         processedItems:
+ *           type: integer
+ *         successCount:
+ *           type: integer
+ *         failureCount:
+ *           type: integer
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *     BulkTemplate:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           format: uuid
+ *         name:
+ *           type: string
+ *         description:
+ *           type: string
+ *         operationType:
+ *           type: string
+ *         templateData:
+ *           type: object
+ */
+
 // Configure multer for file uploads
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -23,8 +69,58 @@ const upload = multer({
 });
 
 /**
- * POST /api/bulk/upload
- * Upload and validate CSV file
+ * @openapi
+ * /api/v1/bulk/upload:
+ *   post:
+ *     summary: Upload and validate CSV file
+ *     description: Upload a CSV file for bulk operations. Returns validated and transformed data.
+ *     tags: [Bulk Operations]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - file
+ *               - operationType
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *               operationType:
+ *                 type: string
+ *                 enum: [user_update, user_create, group_membership_add, group_membership_remove, user_suspend, user_delete]
+ *     responses:
+ *       200:
+ *         description: CSV validated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 errors:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 meta:
+ *                   type: object
+ *                 headers:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *       400:
+ *         description: Invalid CSV or missing file
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.post('/upload', authenticateToken, upload.single('file'), async (req: Request, res: Response) => {
   try {
@@ -87,8 +183,55 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req: Req
 });
 
 /**
- * POST /api/bulk/preview
- * Preview changes before execution
+ * @openapi
+ * /api/v1/bulk/preview:
+ *   post:
+ *     summary: Preview bulk operation changes
+ *     description: Preview changes before executing a bulk operation.
+ *     tags: [Bulk Operations]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - operationType
+ *               - items
+ *             properties:
+ *               operationType:
+ *                 type: string
+ *               items:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Preview generated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     operationType:
+ *                       type: string
+ *                     totalItems:
+ *                       type: integer
+ *                     sampleItems:
+ *                       type: array
+ *                     estimatedTime:
+ *                       type: integer
+ *       400:
+ *         description: Invalid request body
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.post('/preview', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -123,8 +266,56 @@ router.post('/preview', authenticateToken, async (req: Request, res: Response) =
 });
 
 /**
- * POST /api/bulk/execute
- * Execute bulk operation
+ * @openapi
+ * /api/v1/bulk/execute:
+ *   post:
+ *     summary: Execute bulk operation
+ *     description: Queue a bulk operation for background processing.
+ *     tags: [Bulk Operations]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - operationType
+ *               - items
+ *             properties:
+ *               operationType:
+ *                 type: string
+ *               operationName:
+ *                 type: string
+ *               items:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Operation queued
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     bulkOperationId:
+ *                       type: string
+ *                       format: uuid
+ *                     status:
+ *                       type: string
+ *                     totalItems:
+ *                       type: integer
+ *       400:
+ *         description: Invalid request body
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.post('/execute', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -177,8 +368,44 @@ router.post('/execute', authenticateToken, async (req: Request, res: Response) =
 });
 
 /**
- * GET /api/bulk/status/:id
- * Get bulk operation status
+ * @openapi
+ * /api/v1/bulk/status/{id}:
+ *   get:
+ *     summary: Get bulk operation status
+ *     description: Get the current status and progress of a bulk operation.
+ *     tags: [Bulk Operations]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Bulk operation ID
+ *     responses:
+ *       200:
+ *         description: Operation status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   allOf:
+ *                     - $ref: '#/components/schemas/BulkOperation'
+ *                     - type: object
+ *                       properties:
+ *                         progress:
+ *                           type: integer
+ *                           description: Progress percentage
+ *       404:
+ *         description: Operation not found
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/status/:id', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -214,8 +441,37 @@ router.get('/status/:id', authenticateToken, async (req: Request, res: Response)
 });
 
 /**
- * GET /api/bulk/history
- * Get bulk operation history
+ * @openapi
+ * /api/v1/bulk/history:
+ *   get:
+ *     summary: Get bulk operation history
+ *     description: Get list of past bulk operations for the organization.
+ *     tags: [Bulk Operations]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Maximum number of results
+ *     responses:
+ *       200:
+ *         description: Operation history
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/BulkOperation'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/history', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -244,8 +500,33 @@ router.get('/history', authenticateToken, async (req: Request, res: Response) =>
 });
 
 /**
- * GET /api/bulk/template/:operationType
- * Download CSV template for operation type
+ * @openapi
+ * /api/v1/bulk/template/{operationType}:
+ *   get:
+ *     summary: Download CSV template
+ *     description: Download a CSV template for a specific operation type.
+ *     tags: [Bulk Operations]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: operationType
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [user_update, user_create, group_membership_add, group_membership_remove, user_suspend, user_delete]
+ *         description: Operation type
+ *     responses:
+ *       200:
+ *         description: CSV template file
+ *         content:
+ *           text/csv:
+ *             schema:
+ *               type: string
+ *       404:
+ *         description: Template not found for this operation type
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/template/:operationType', authenticateToken, (req: Request, res: Response) => {
   try {
@@ -272,8 +553,45 @@ router.get('/template/:operationType', authenticateToken, (req: Request, res: Re
 });
 
 /**
- * POST /api/bulk/export
- * Export data to CSV
+ * @openapi
+ * /api/v1/bulk/export:
+ *   post:
+ *     summary: Export data to CSV
+ *     description: Export data array to a CSV file.
+ *     tags: [Bulk Operations]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - data
+ *             properties:
+ *               data:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *               headers:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               filename:
+ *                 type: string
+ *                 default: export.csv
+ *     responses:
+ *       200:
+ *         description: CSV file
+ *         content:
+ *           text/csv:
+ *             schema:
+ *               type: string
+ *       400:
+ *         description: Invalid data
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.post('/export', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -303,8 +621,49 @@ router.post('/export', authenticateToken, async (req: Request, res: Response) =>
 // ===== TEMPLATE MANAGEMENT ROUTES =====
 
 /**
- * POST /api/bulk/templates
- * Create a new template
+ * @openapi
+ * /api/v1/bulk/templates:
+ *   post:
+ *     summary: Create a bulk operation template
+ *     description: Create a reusable template for bulk operations.
+ *     tags: [Bulk Operations]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - operationType
+ *               - templateData
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               operationType:
+ *                 type: string
+ *               templateData:
+ *                 type: object
+ *     responses:
+ *       200:
+ *         description: Template created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/BulkTemplate'
+ *       400:
+ *         description: Missing required fields
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.post('/templates', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -350,8 +709,30 @@ router.post('/templates', authenticateToken, async (req: Request, res: Response)
 });
 
 /**
- * GET /api/bulk/templates
- * Get all templates for organization
+ * @openapi
+ * /api/v1/bulk/templates:
+ *   get:
+ *     summary: List bulk operation templates
+ *     description: Get all bulk operation templates for the organization.
+ *     tags: [Bulk Operations]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Template list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/BulkTemplate'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/templates', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -380,8 +761,38 @@ router.get('/templates', authenticateToken, async (req: Request, res: Response) 
 });
 
 /**
- * GET /api/bulk/templates/:id
- * Get a single template
+ * @openapi
+ * /api/v1/bulk/templates/{id}:
+ *   get:
+ *     summary: Get template by ID
+ *     description: Get a single bulk operation template by ID.
+ *     tags: [Bulk Operations]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Template ID
+ *     responses:
+ *       200:
+ *         description: Template details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/BulkTemplate'
+ *       404:
+ *         description: Template not found
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/templates/:id', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -409,8 +820,49 @@ router.get('/templates/:id', authenticateToken, async (req: Request, res: Respon
 });
 
 /**
- * PUT /api/bulk/templates/:id
- * Update a template
+ * @openapi
+ * /api/v1/bulk/templates/{id}:
+ *   put:
+ *     summary: Update template
+ *     description: Update a bulk operation template.
+ *     tags: [Bulk Operations]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Template ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               templateData:
+ *                 type: object
+ *     responses:
+ *       200:
+ *         description: Template updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/BulkTemplate'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.put('/templates/:id', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -438,8 +890,36 @@ router.put('/templates/:id', authenticateToken, async (req: Request, res: Respon
 });
 
 /**
- * DELETE /api/bulk/templates/:id
- * Delete a template
+ * @openapi
+ * /api/v1/bulk/templates/{id}:
+ *   delete:
+ *     summary: Delete template
+ *     description: Delete a bulk operation template.
+ *     tags: [Bulk Operations]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Template ID
+ *     responses:
+ *       200:
+ *         description: Template deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.delete('/templates/:id', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -462,8 +942,53 @@ router.delete('/templates/:id', authenticateToken, async (req: Request, res: Res
 // ===== GOOGLE WORKSPACE SYNC ROUTES =====
 
 /**
- * POST /api/bulk/sync/users
- * Bulk update users with Google Workspace sync
+ * @openapi
+ * /api/v1/bulk/sync/users:
+ *   post:
+ *     summary: Bulk update users with Google Workspace sync
+ *     description: Bulk update users locally and sync changes to Google Workspace.
+ *     tags: [Bulk Operations]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - items
+ *             properties:
+ *               items:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *               syncToGoogleWorkspace:
+ *                 type: boolean
+ *                 default: true
+ *     responses:
+ *       200:
+ *         description: Users updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalItems:
+ *                       type: integer
+ *                     localResults:
+ *                       type: object
+ *                     googleWorkspaceResults:
+ *                       type: object
+ *       400:
+ *         description: Invalid items
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.post('/sync/users', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -527,8 +1052,35 @@ router.post('/sync/users', authenticateToken, async (req: Request, res: Response
 });
 
 /**
- * POST /api/bulk/sync/suspend
- * Bulk suspend users with Google Workspace sync
+ * @openapi
+ * /api/v1/bulk/sync/suspend:
+ *   post:
+ *     summary: Bulk suspend users with Google Workspace sync
+ *     description: Suspend multiple users locally and in Google Workspace.
+ *     tags: [Bulk Operations]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userEmails
+ *             properties:
+ *               userEmails:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: email
+ *     responses:
+ *       200:
+ *         description: Users suspended
+ *       400:
+ *         description: Invalid user emails
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.post('/sync/suspend', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -584,8 +1136,39 @@ router.post('/sync/suspend', authenticateToken, async (req: Request, res: Respon
 });
 
 /**
- * POST /api/bulk/sync/move-ou
- * Bulk move users to OU with Google Workspace sync
+ * @openapi
+ * /api/v1/bulk/sync/move-ou:
+ *   post:
+ *     summary: Bulk move users to organizational unit
+ *     description: Move multiple users to a new organizational unit in Google Workspace.
+ *     tags: [Bulk Operations]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userEmails
+ *               - targetOU
+ *             properties:
+ *               userEmails:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: email
+ *               targetOU:
+ *                 type: string
+ *                 description: Target organizational unit path
+ *     responses:
+ *       200:
+ *         description: Users moved
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.post('/sync/move-ou', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -650,8 +1233,48 @@ router.post('/sync/move-ou', authenticateToken, async (req: Request, res: Respon
 });
 
 /**
- * POST /api/bulk/sync/group-members
- * Bulk add/remove group members with Google Workspace sync
+ * @openapi
+ * /api/v1/bulk/sync/group-members:
+ *   post:
+ *     summary: Bulk manage group memberships
+ *     description: Add or remove multiple group members with Google Workspace sync.
+ *     tags: [Bulk Operations]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - operations
+ *             properties:
+ *               operations:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - userEmail
+ *                     - groupId
+ *                     - operation
+ *                   properties:
+ *                     userEmail:
+ *                       type: string
+ *                       format: email
+ *                     groupId:
+ *                       type: string
+ *                       format: uuid
+ *                     operation:
+ *                       type: string
+ *                       enum: [add, remove]
+ *     responses:
+ *       200:
+ *         description: Group memberships updated
+ *       400:
+ *         description: Invalid operations
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.post('/sync/group-members', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -717,8 +1340,48 @@ router.post('/sync/group-members', authenticateToken, async (req: Request, res: 
 });
 
 /**
- * GET /api/bulk/sync/estimate
- * Get estimated time for a bulk operation
+ * @openapi
+ * /api/v1/bulk/sync/estimate:
+ *   get:
+ *     summary: Get estimated time for bulk operation
+ *     description: Get an estimated completion time for a bulk operation based on item count.
+ *     tags: [Bulk Operations]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: itemCount
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Number of items to process
+ *       - in: query
+ *         name: syncToGoogleWorkspace
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: Include Google Workspace sync time
+ *     responses:
+ *       200:
+ *         description: Time estimate
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     estimatedSeconds:
+ *                       type: number
+ *                     estimatedMinutes:
+ *                       type: number
+ *       400:
+ *         description: Invalid item count
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/sync/estimate', authenticateToken, (req: Request, res: Response) => {
   try {

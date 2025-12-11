@@ -7,9 +7,26 @@ import { authenticateToken } from '../middleware/auth';
 const router = Router();
 
 /**
- * GET /api/organization/data-quality/orphans
- * Get all orphaned values (combined from departments, locations, cost centers)
- * This is the endpoint used by the frontend MasterDataSection component
+ * @openapi
+ * tags:
+ *   - name: Data Quality
+ *     description: Data quality monitoring and orphan value resolution
+ */
+
+/**
+ * @openapi
+ * /api/v1/organization/data-quality/orphans:
+ *   get:
+ *     summary: Get all orphaned values
+ *     description: Get all orphaned values (combined from departments, locations, cost centers).
+ *     tags: [Data Quality]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of orphaned values
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/orphans', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -49,8 +66,19 @@ router.get('/orphans', authenticateToken, async (req: Request, res: Response) =>
 });
 
 /**
- * GET /api/organization/data-quality/report
- * Get comprehensive data quality report
+ * @openapi
+ * /api/v1/organization/data-quality/report:
+ *   get:
+ *     summary: Get data quality report
+ *     description: Get comprehensive data quality report.
+ *     tags: [Data Quality]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Data quality report
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/report', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -79,8 +107,19 @@ router.get('/report', authenticateToken, async (req: Request, res: Response) => 
 });
 
 /**
- * GET /api/organization/data-quality/departments
- * Get department-specific data quality
+ * @openapi
+ * /api/v1/organization/data-quality/departments:
+ *   get:
+ *     summary: Get department data quality
+ *     description: Get department-specific data quality metrics.
+ *     tags: [Data Quality]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Department quality metrics
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/departments', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -109,8 +148,19 @@ router.get('/departments', authenticateToken, async (req: Request, res: Response
 });
 
 /**
- * GET /api/organization/data-quality/locations
- * Get location-specific data quality
+ * @openapi
+ * /api/v1/organization/data-quality/locations:
+ *   get:
+ *     summary: Get location data quality
+ *     description: Get location-specific data quality metrics.
+ *     tags: [Data Quality]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Location quality metrics
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/locations', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -139,8 +189,19 @@ router.get('/locations', authenticateToken, async (req: Request, res: Response) 
 });
 
 /**
- * GET /api/organization/data-quality/cost-centers
- * Get cost center-specific data quality
+ * @openapi
+ * /api/v1/organization/data-quality/cost-centers:
+ *   get:
+ *     summary: Get cost center data quality
+ *     description: Get cost center-specific data quality metrics.
+ *     tags: [Data Quality]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Cost center quality metrics
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/cost-centers', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -169,8 +230,19 @@ router.get('/cost-centers', authenticateToken, async (req: Request, res: Respons
 });
 
 /**
- * GET /api/organization/data-quality/managers
- * Get manager relationship quality
+ * @openapi
+ * /api/v1/organization/data-quality/managers:
+ *   get:
+ *     summary: Get manager relationship quality
+ *     description: Get manager relationship data quality metrics.
+ *     tags: [Data Quality]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Manager relationship quality metrics
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/managers', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -199,8 +271,43 @@ router.get('/managers', authenticateToken, async (req: Request, res: Response) =
 });
 
 /**
- * POST /api/organization/data-quality/resolve-orphan
- * Resolve an orphaned value by mapping to master data or creating new entry
+ * @openapi
+ * /api/v1/organization/data-quality/resolve-orphan:
+ *   post:
+ *     summary: Resolve an orphaned value
+ *     description: Resolve an orphaned value by mapping to master data or creating new entry.
+ *     tags: [Data Quality]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - entityType
+ *               - orphanedValue
+ *               - resolution
+ *             properties:
+ *               entityType:
+ *                 type: string
+ *                 enum: [department, location, cost_center]
+ *               orphanedValue:
+ *                 type: string
+ *               resolution:
+ *                 type: string
+ *                 enum: [map, create, ignore]
+ *               targetId:
+ *                 type: string
+ *                 format: uuid
+ *     responses:
+ *       200:
+ *         description: Orphan resolved
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.post('/resolve-orphan',
   authenticateToken,
@@ -288,8 +395,33 @@ router.post('/resolve-orphan',
 );
 
 /**
- * POST /api/organization/data-quality/auto-import
- * Auto-import unique values from user records into master data
+ * @openapi
+ * /api/v1/organization/data-quality/auto-import:
+ *   post:
+ *     summary: Auto-import master data
+ *     description: Auto-import unique values from user records into master data.
+ *     tags: [Data Quality]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - entityType
+ *             properties:
+ *               entityType:
+ *                 type: string
+ *                 enum: [departments, locations, cost_centers]
+ *     responses:
+ *       200:
+ *         description: Data imported
+ *       400:
+ *         description: Invalid entity type
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.post('/auto-import',
   authenticateToken,
