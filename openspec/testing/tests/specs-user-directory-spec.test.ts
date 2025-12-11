@@ -6,10 +6,10 @@
  */
 
 import { test, expect, Page } from '@playwright/test';
-import { AuthHelper } from '../../../testing/helpers/auth.helper';
-import { DatabaseHelper } from '../../../testing/helpers/database.helper';
-import { ScreenshotHelper } from '../../../testing/helpers/screenshot.helper';
-import { TestDataHelper } from '../../../testing/helpers/test-data.helper';
+import { AuthHelper } from '../helpers/auth.helper';
+import { DatabaseHelper } from '../helpers/database.helper';
+import { ScreenshotHelper } from '../helpers/screenshot.helper';
+import { TestDataHelper } from '../helpers/test-data.helper';
 
 const auth = new AuthHelper();
 const db = new DatabaseHelper();
