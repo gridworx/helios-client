@@ -7,6 +7,7 @@ import { ApiKeyList } from './integrations/ApiKeyList';
 import { ApiKeyWizard } from './integrations/ApiKeyWizard';
 import { ApiKeyShowOnce } from './integrations/ApiKeyShowOnce';
 import { MasterDataSection } from './settings/MasterDataSection';
+import { TrackingSettings } from './settings/TrackingSettings';
 import SecurityEvents from '../pages/SecurityEvents';
 import AuditLogs from '../pages/AuditLogs';
 import { useTabPersistence } from '../hooks/useTabPersistence';
@@ -649,6 +650,11 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                     <Info size={16} style={{ verticalAlign: 'middle', marginRight: '8px' }} />
                     <span>Sync settings are applied per-module. Configure individual module sync from the Modules tab.</span>
                   </div>
+                </div>
+
+                {/* Email Tracking Settings */}
+                <div style={{ marginTop: '24px' }}>
+                  <TrackingSettings />
                 </div>
               </div>
             </div>

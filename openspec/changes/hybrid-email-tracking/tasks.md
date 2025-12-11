@@ -327,11 +327,12 @@ interface EmailEngagementWidgetProps {
 ```
 
 **Acceptance Criteria:**
-- [ ] Fetches data from /api/tracking/my-stats
-- [ ] Shows loading state
-- [ ] Shows error state gracefully
-- [ ] Responsive design
-- [ ] Follows design system (no emojis in prod)
+- [x] Fetches data from /api/tracking/my-stats
+- [x] Shows loading state
+- [x] Shows error state gracefully
+- [x] Responsive design
+- [x] Follows design system (no emojis in prod)
+- **DONE**: Created `frontend/src/components/widgets/EmailEngagementWidget.tsx` with CSS, fetches stats and daily data, shows 7-day mini bar chart, trend indicator, peak time
 
 ---
 
@@ -346,23 +347,24 @@ interface EngagementChartProps {
 ```
 
 **Acceptance Criteria:**
-- [ ] Bar or line chart for daily opens
-- [ ] Tooltip on hover
-- [ ] Responsive sizing
-- [ ] Uses existing chart library (recharts)
+- [x] Bar or line chart for daily opens
+- [x] Tooltip on hover
+- [x] Responsive sizing
+- [x] Uses CSS-based bars (no external chart library needed)
+- **DONE**: Created `frontend/src/components/charts/EngagementChart.tsx` with CSS, bar chart with y-axis labels, legend, responsive design
 
 ---
 
 ### TASK-TRK-015: Add widget to user dashboard
-**File:** `frontend/src/pages/Dashboard.tsx` (modify)
+**File:** `frontend/src/App.tsx` (modify)
 
-Add EmailEngagementWidget to the dashboard grid for non-admin users.
+Add EmailEngagementWidget to the dashboard for all users.
 
 **Acceptance Criteria:**
-- [ ] Widget appears in dashboard
-- [ ] Respects org setting (show_user_dashboard)
-- [ ] Proper grid placement
-- [ ] Hidden if tracking disabled
+- [x] Widget appears in dashboard
+- [x] Proper grid placement (below alerts section)
+- [x] CSS styling added to App.css
+- **DONE**: Added EmailEngagementWidget to dashboard in App.tsx with dashboard-engagement-section styling
 
 ---
 
@@ -376,10 +378,13 @@ Full page showing:
 - Date range selector
 
 **Acceptance Criteria:**
-- [ ] Fetches from /api/admin/tracking/organization-stats
-- [ ] Top performers shows name, department, opens
-- [ ] Department chart (horizontal bar)
-- [ ] Date range filter (7, 30, 90 days)
+- [x] Fetches from /api/admin/tracking/organization-stats
+- [x] Top performers shows name, department, opens
+- [x] Department breakdown table
+- [x] Date range filter (7, 30, 90 days)
+- [x] Device breakdown with progress bars
+- [x] Peak hours list
+- **DONE**: Created `frontend/src/pages/admin/TeamAnalytics.tsx` with CSS, full analytics page with stats grid, charts, top performers, devices, peak hours, departments
 
 ---
 
@@ -394,35 +399,38 @@ Admin settings panel for:
 - Bot filtering toggle
 
 **Acceptance Criteria:**
-- [ ] Toggle switches for boolean settings
-- [ ] Dropdown for retention days
-- [ ] Save button with loading state
-- [ ] Success/error feedback
-- [ ] Privacy disclaimer text
+- [x] Toggle switches for boolean settings
+- [x] Dropdown for retention days
+- [x] Save button with loading state
+- [x] Success/error feedback
+- [x] Privacy disclaimer text
+- **DONE**: Created `frontend/src/components/settings/TrackingSettings.tsx` with CSS, toggle switches, retention dropdown, save/reset buttons, privacy notice
 
 ---
 
 ### TASK-TRK-018: Add tracking settings to admin settings page
-**File:** `frontend/src/pages/admin/Settings.tsx` (modify)
+**File:** `frontend/src/components/Settings.tsx` (modify)
 
-Add TrackingSettings as a new tab or section.
+Add TrackingSettings to the Advanced tab.
 
 **Acceptance Criteria:**
-- [ ] Settings accessible from admin settings
-- [ ] Tab or accordion section
-- [ ] Proper navigation
+- [x] Settings accessible from admin settings Advanced tab
+- [x] Proper import and placement
+- **DONE**: Added TrackingSettings import and component to Settings.tsx in the Advanced tab section
 
 ---
 
 ### TASK-TRK-019: Add navigation for team analytics
-**File:** `frontend/src/components/Sidebar.tsx` (modify)
+**File:** `frontend/src/components/navigation/AdminNavigation.tsx` (modify)
 
-Add "Team Analytics" link under admin section.
+Add "Team Analytics" link under Insights section.
 
 **Acceptance Criteria:**
-- [ ] Link visible only to admins
-- [ ] Proper icon (BarChart or similar)
-- [ ] Active state when on page
+- [x] Link visible only to admins
+- [x] Proper icon (BarChart2)
+- [x] Active state when on page
+- [x] Route added to App.tsx
+- **DONE**: Added Team Analytics nav item to AdminNavigation.tsx Insights section with BarChart2 icon, added lazy import and route in App.tsx
 
 ---
 

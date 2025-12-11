@@ -9,7 +9,6 @@ import {
   AlertCircle,
   Zap,
   TrendingUp,
-  Search,
   Settings as SettingsIcon,
   Network,
   MessageSquare,
@@ -18,6 +17,7 @@ import {
   UserPlus,
   UserMinus,
   Clock,
+  BarChart2,
 } from 'lucide-react';
 import { useLabels } from '../../contexts/LabelsContext';
 import { ENTITIES } from '../../config/entities';
@@ -197,13 +197,17 @@ export const AdminNavigation: React.FC<AdminNavigationProps> = ({
 
       <div className="nav-section">
         <div className="nav-section-title">Insights</div>
+        <button
+          className={`nav-item ${currentPage === 'team-analytics' ? 'active' : ''}`}
+          onClick={() => onNavigate('team-analytics')}
+          data-testid="nav-team-analytics"
+        >
+          <BarChart2 size={16} className="nav-icon" />
+          <span>Team Analytics</span>
+        </button>
         <button className="nav-item" data-testid="nav-reports">
           <span className="nav-icon"><TrendingUp size={16} /></span>
           <span>Reports</span>
-        </button>
-        <button className="nav-item" data-testid="nav-analytics">
-          <span className="nav-icon"><Search size={16} /></span>
-          <span>Analytics</span>
         </button>
       </div>
 

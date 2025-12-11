@@ -39,9 +39,11 @@ const Signatures = lazy(() => import('./pages/Signatures'))
 const NewUserOnboarding = lazy(() => import('./pages/NewUserOnboarding'))
 const UserOffboarding = lazy(() => import('./pages/UserOffboarding'))
 const ScheduledActions = lazy(() => import('./pages/admin/ScheduledActions'))
+const TeamAnalytics = lazy(() => import('./pages/admin/TeamAnalytics'))
 import { LabelsProvider, useLabels } from './contexts/LabelsContext'
 import { ViewProvider, useView } from './contexts/ViewContext'
 import { AdminNavigation, UserNavigation, ViewSwitcher, ViewOnboarding } from './components/navigation'
+import { EmailEngagementWidget } from './components/widgets/EmailEngagementWidget'
 import { getWidgetData } from './utils/widget-data'
 import { getEnabledWidgets, type WidgetId } from './config/widgets'
 import { UserPlus, Upload, Download, RefreshCw, AlertCircle, Info, Edit3, Bell, Building, HelpCircle, Search, Users as UsersIcon, Loader2 } from 'lucide-react'
@@ -972,6 +974,11 @@ function AppContent() {
                   </div>
                 </div>
               </div>
+
+              {/* Email Engagement Widget */}
+              <div className="dashboard-engagement-section">
+                <EmailEngagementWidget />
+              </div>
             </div>
           )}
 
@@ -1155,6 +1162,12 @@ function AppContent() {
           {currentPage === 'scheduled-actions' && (
             <Suspense fallback={<PageLoader />}>
               <ScheduledActions organizationId={config?.organizationId || ''} />
+            </Suspense>
+          )}
+
+          {currentPage === 'team-analytics' && (
+            <Suspense fallback={<PageLoader />}>
+              <TeamAnalytics />
             </Suspense>
           )}
 
