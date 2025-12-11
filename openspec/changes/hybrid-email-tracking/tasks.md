@@ -22,10 +22,11 @@ CREATE INDEX idx_user_tracking_active ON signature_user_tracking(organization_id
 ```
 
 **Acceptance Criteria:**
-- [ ] Table created with proper constraints
-- [ ] Indexes created for performance
-- [ ] Foreign keys properly reference existing tables
-- [ ] Migration is idempotent (IF NOT EXISTS)
+- [x] Table created with proper constraints
+- [x] Indexes created for performance
+- [x] Foreign keys properly reference existing tables
+- [x] Migration is idempotent (IF NOT EXISTS)
+- **DONE**: Migration 048_create_user_tracking.sql created and run. 34 users tokenized.
 
 ---
 
@@ -54,10 +55,11 @@ CREATE INDEX IF NOT EXISTS idx_tracking_events_user_tracking
 ```
 
 **Acceptance Criteria:**
-- [ ] tracking_type column added with check constraint
-- [ ] user_tracking_id column added with FK
-- [ ] Existing campaign tracking still works
-- [ ] New index for user tracking queries
+- [x] tracking_type column added with check constraint
+- [x] user_tracking_id column added with FK
+- [x] Existing campaign tracking still works
+- [x] New index for user tracking queries
+- **DONE**: Columns added, pixel_id and campaign_id made nullable for user tracking.
 
 ---
 
@@ -86,9 +88,10 @@ END $$;
 ```
 
 **Acceptance Criteria:**
-- [ ] Settings column added if not exists
-- [ ] Default values sensible
-- [ ] Existing organizations get defaults
+- [x] Settings column added if not exists
+- [x] Default values sensible
+- [x] Existing organizations get defaults
+- **DONE**: Settings stored as key-value pairs in organization_settings (tracking_user_enabled, tracking_campaign_enabled, tracking_retention_days, tracking_show_user_dashboard, tracking_exclude_bots).
 
 ---
 
@@ -117,10 +120,11 @@ class UserTrackingService {
 ```
 
 **Acceptance Criteria:**
-- [ ] Token generation uses crypto.randomBytes (URL-safe)
-- [ ] getOrCreateToken is idempotent
-- [ ] Token lookup is fast (uses index)
-- [ ] Service exported as singleton
+- [x] Token generation uses crypto.randomBytes (URL-safe)
+- [x] getOrCreateToken is idempotent
+- [x] Token lookup is fast (uses index)
+- [x] Service exported as singleton
+- **DONE**: backend/src/services/user-tracking.service.ts with generateToken(), getOrCreateToken(), getTokenByPixel(), getTokenForUser(), deactivateToken(), activateToken(), getOrganizationTokens(), getUserTrackingSummary(), getOrganizationTrackingSummary(), getPixelUrl(), bulkCreateTokens()
 
 ---
 
@@ -142,9 +146,10 @@ ON CONFLICT (user_id) DO NOTHING;
 ```
 
 **Acceptance Criteria:**
-- [ ] All existing users get tokens
-- [ ] Tokens are unique
-- [ ] Migration is idempotent
+- [x] All existing users get tokens
+- [x] Tokens are unique
+- [x] Migration is idempotent
+- **DONE**: 34 existing users tokenized via migration 048.
 
 ---
 
@@ -157,9 +162,10 @@ await userTrackingService.getOrCreateToken(newUser.id, newUser.organizationId);
 ```
 
 **Acceptance Criteria:**
-- [ ] New users automatically get tracking token
-- [ ] Token created in same transaction if possible
-- [ ] Failure to create token doesn't block user creation (log error)
+- [x] New users automatically get tracking token
+- [x] Token created in same transaction if possible
+- [x] Failure to create token doesn't block user creation (log error)
+- **DONE**: Database trigger `trigger_create_user_tracking` auto-creates tokens on INSERT to organization_users.
 
 ---
 
@@ -177,11 +183,12 @@ router.get('/u/:token.gif', async (req, res) => {
 ```
 
 **Acceptance Criteria:**
-- [ ] Returns 1x1 transparent GIF immediately
-- [ ] Records event asynchronously
-- [ ] Rate limiting applied
-- [ ] Bot filtering applied
-- [ ] Works when user tracking disabled (returns GIF, no record)
+- [x] Returns 1x1 transparent GIF immediately
+- [x] Records event asynchronously
+- [x] Rate limiting applied
+- [x] Bot filtering applied
+- [x] Works when user tracking disabled (returns GIF, no record)
+- **DONE**: GET /api/t/u/:token.gif endpoint added with rate limiting, bot filtering, async event recording.
 
 ---
 
@@ -200,11 +207,12 @@ async recordUserEvent(input: RecordUserEventInput): Promise<RecordEventResult>;
 ```
 
 **Acceptance Criteria:**
-- [ ] New method for user tracking events
-- [ ] Sets tracking_type = 'user'
-- [ ] Sets user_tracking_id instead of pixel_id
-- [ ] Unique detection based on IP hash per user per day
-- [ ] Existing campaign tracking unchanged
+- [x] New method for user tracking events
+- [x] Sets tracking_type = 'user'
+- [x] Sets user_tracking_id instead of pixel_id
+- [x] Unique detection based on IP hash per user per day
+- [x] Existing campaign tracking unchanged
+- **DONE**: recordUserEvent(), getUserTrackingEvents(), getUserDailyStats() methods added to tracking-events.service.ts
 
 ---
 
