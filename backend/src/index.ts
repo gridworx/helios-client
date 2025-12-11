@@ -74,6 +74,7 @@ import assetProxyRoutes from './routes/asset-proxy.routes';
 import assetsRoutes from './routes/assets.routes';
 import lifecycleRoutes from './routes/lifecycle.routes';
 import trackingRoutes from './routes/tracking.routes';
+import mcpRoutes from './routes/mcp.routes';
 import { requestIdMiddleware, REQUEST_ID_HEADER } from './middleware/request-id';
 const app = express();
 const httpServer = createServer(app);
@@ -564,6 +565,9 @@ registerRoute('/modules', modulesRoutes);
 // Assets & Lifecycle
 registerRoute('/assets', assetsRoutes);
 registerRoute('/lifecycle', lifecycleRoutes);
+
+// MCP (Model Context Protocol) for AI integration
+registerRoute('/mcp', mcpRoutes);
 
 // Transparent Proxy for Google Workspace APIs (must be before catch-all)
 app.use(transparentProxyRouter);
