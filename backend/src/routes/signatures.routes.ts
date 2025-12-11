@@ -11,8 +11,39 @@ const router = Router();
 // =====================================================
 
 /**
- * GET /api/signatures/template-types
- * Get all available template types
+ * @openapi
+ * /api/v1/signatures/template-types:
+ *   get:
+ *     summary: Get available template types
+ *     description: Returns all active template types organized by category
+ *     tags: [Signatures]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of template types
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       type_label:
+ *                         type: string
+ *                       category:
+ *                         type: string
+ *                       is_active:
+ *                         type: boolean
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/template-types', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -38,8 +69,39 @@ router.get('/template-types', requireAuth, async (req: Request, res: Response) =
 // =====================================================
 
 /**
- * GET /api/signatures/merge-fields
- * Get available merge fields grouped by category
+ * @openapi
+ * /api/v1/signatures/merge-fields:
+ *   get:
+ *     summary: Get merge fields grouped by category
+ *     description: Returns available merge fields (placeholders) for use in signature templates, grouped by category
+ *     tags: [Signatures]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Merge fields grouped by category
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         field:
+ *                           type: string
+ *                         label:
+ *                           type: string
+ *                         example:
+ *                           type: string
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/merge-fields', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -55,8 +117,37 @@ router.get('/merge-fields', requireAuth, async (req: Request, res: Response) => 
 });
 
 /**
- * GET /api/signatures/merge-fields/list
- * Get flat list of all merge fields
+ * @openapi
+ * /api/v1/signatures/merge-fields/list:
+ *   get:
+ *     summary: Get flat list of merge fields
+ *     description: Returns all available merge fields as a flat list
+ *     tags: [Signatures]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Flat list of merge fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       field:
+ *                         type: string
+ *                       label:
+ *                         type: string
+ *                       category:
+ *                         type: string
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/merge-fields/list', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -71,8 +162,53 @@ router.get('/merge-fields/list', requireAuth, async (req: Request, res: Response
 });
 
 /**
- * POST /api/signatures/templates/validate
- * Validate merge fields in HTML content
+ * @openapi
+ * /api/v1/signatures/templates/validate:
+ *   post:
+ *     summary: Validate merge fields in template HTML
+ *     description: Extracts and validates all merge fields from HTML content, identifying any invalid fields
+ *     tags: [Signatures]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - html_content
+ *             properties:
+ *               html_content:
+ *                 type: string
+ *                 description: HTML content containing merge fields to validate
+ *     responses:
+ *       200:
+ *         description: Validation results
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     mergeFields:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     invalidFields:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     isValid:
+ *                       type: boolean
+ *       400:
+ *         description: Missing html_content
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.post('/templates/validate', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -106,8 +242,47 @@ router.post('/templates/validate', requireAuth, async (req: Request, res: Respon
 });
 
 /**
- * POST /api/signatures/templates/preview
- * Preview HTML content rendered with user data or sample data
+ * @openapi
+ * /api/v1/signatures/templates/preview:
+ *   post:
+ *     summary: Preview rendered template
+ *     description: Renders template HTML with user data or sample data for preview
+ *     tags: [Signatures]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - html_content
+ *             properties:
+ *               html_content:
+ *                 type: string
+ *                 description: HTML template content with merge fields
+ *               user_id:
+ *                 type: string
+ *                 format: uuid
+ *                 description: Optional user ID to use real user data for preview
+ *     responses:
+ *       200:
+ *         description: Rendered HTML preview
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: string
+ *                   description: HTML content with merge fields replaced
+ *       400:
+ *         description: Missing html_content
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.post('/templates/preview', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -140,8 +315,73 @@ router.post('/templates/preview', requireAuth, async (req: Request, res: Respons
 // =====================================================
 
 /**
- * POST /api/signatures/templates
- * Create a new signature template
+ * @openapi
+ * /api/v1/signatures/templates:
+ *   post:
+ *     summary: Create signature template
+ *     description: Creates a new email signature template. Requires admin permission.
+ *     tags: [Signatures]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - html_content
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Template name (must be unique)
+ *               description:
+ *                 type: string
+ *               html_content:
+ *                 type: string
+ *                 description: HTML content of the signature template
+ *               mobile_html_content:
+ *                 type: string
+ *                 description: Mobile-optimized HTML content
+ *               plain_text_content:
+ *                 type: string
+ *                 description: Plain text fallback
+ *               thumbnail_asset_id:
+ *                 type: string
+ *                 format: uuid
+ *               category:
+ *                 type: string
+ *               variables_used:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               is_active:
+ *                 type: boolean
+ *                 default: true
+ *               is_default:
+ *                 type: boolean
+ *                 default: false
+ *     responses:
+ *       201:
+ *         description: Template created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   $ref: '#/components/schemas/SignatureTemplate'
+ *       400:
+ *         description: Missing required fields or duplicate name
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  */
 router.post('/templates', requireAuth, requirePermission('admin'), async (req: Request, res: Response) => {
   try {
@@ -238,8 +478,60 @@ router.post('/templates', requireAuth, requirePermission('admin'), async (req: R
 });
 
 /**
- * GET /api/signatures/templates
- * List all signature templates for the organization
+ * @openapi
+ * /api/v1/signatures/templates:
+ *   get:
+ *     summary: List signature templates
+ *     description: Returns paginated list of signature templates for the organization
+ *     tags: [Signatures]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: Filter by category
+ *       - in: query
+ *         name: is_active
+ *         schema:
+ *           type: boolean
+ *         description: Filter by active status
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by name or description
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: per_page
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Items per page
+ *     responses:
+ *       200:
+ *         description: Paginated list of templates
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/SignatureTemplate'
+ *                 pagination:
+ *                   $ref: '#/components/schemas/Pagination'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/templates', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -324,8 +616,38 @@ router.get('/templates', requireAuth, async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/signatures/templates/:templateId
- * Get template details
+ * @openapi
+ * /api/v1/signatures/templates/{templateId}:
+ *   get:
+ *     summary: Get template details
+ *     description: Returns detailed information about a specific signature template
+ *     tags: [Signatures]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: templateId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Template ID
+ *     responses:
+ *       200:
+ *         description: Template details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/SignatureTemplate'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         description: Template not found
  */
 router.get('/templates/:templateId', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -368,8 +690,74 @@ router.get('/templates/:templateId', requireAuth, async (req: Request, res: Resp
 });
 
 /**
- * PUT /api/signatures/templates/:templateId
- * Update a signature template
+ * @openapi
+ * /api/v1/signatures/templates/{templateId}:
+ *   put:
+ *     summary: Update signature template
+ *     description: Updates an existing signature template. Requires admin permission.
+ *     tags: [Signatures]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: templateId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Template ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               html_content:
+ *                 type: string
+ *               mobile_html_content:
+ *                 type: string
+ *               plain_text_content:
+ *                 type: string
+ *               thumbnail_asset_id:
+ *                 type: string
+ *                 format: uuid
+ *               category:
+ *                 type: string
+ *               variables_used:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               is_active:
+ *                 type: boolean
+ *               is_default:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Template updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   $ref: '#/components/schemas/SignatureTemplate'
+ *       400:
+ *         description: No fields to update or duplicate name
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         description: Template not found
  */
 router.put('/templates/:templateId', requireAuth, requirePermission('admin'), async (req: Request, res: Response) => {
   try {
@@ -506,8 +894,45 @@ router.put('/templates/:templateId', requireAuth, requirePermission('admin'), as
 });
 
 /**
- * DELETE /api/signatures/templates/:templateId
- * Delete a signature template
+ * @openapi
+ * /api/v1/signatures/templates/{templateId}:
+ *   delete:
+ *     summary: Delete signature template
+ *     description: |
+ *       Soft-deletes a signature template by setting is_active to false.
+ *       Cannot delete templates that are currently assigned to users or used in active campaigns.
+ *       Requires admin permission.
+ *     tags: [Signatures]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: templateId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Template ID
+ *     responses:
+ *       200:
+ *         description: Template deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Template is in use and cannot be deleted
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         description: Template not found
  */
 router.delete('/templates/:templateId', requireAuth, requirePermission('admin'), async (req: Request, res: Response) => {
   try {
@@ -580,8 +1005,84 @@ router.delete('/templates/:templateId', requireAuth, requirePermission('admin'),
 // =====================================================
 
 /**
- * POST /api/signatures/assignments
- * Create a signature assignment rule
+ * @openapi
+ * /api/v1/signatures/assignments:
+ *   post:
+ *     summary: Create signature assignment
+ *     description: |
+ *       Creates a rule to assign a signature template to users.
+ *       Templates can be assigned to individual users, departments, groups, OUs, or the entire organization.
+ *       Priority determines which assignment wins when multiple apply (lower = higher priority).
+ *       Requires admin permission.
+ *     tags: [Signatures]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - template_id
+ *               - target_type
+ *             properties:
+ *               template_id:
+ *                 type: string
+ *                 format: uuid
+ *               template_type:
+ *                 type: string
+ *               target_type:
+ *                 type: string
+ *                 enum: [organization, user, department, google_group, org_unit, microsoft_group]
+ *               target_user_id:
+ *                 type: string
+ *                 format: uuid
+ *                 description: Required when target_type is 'user'
+ *               target_department_id:
+ *                 type: string
+ *                 format: uuid
+ *                 description: Required when target_type is 'department'
+ *               target_group_email:
+ *                 type: string
+ *                 description: Required when target_type is 'google_group' or 'microsoft_group'
+ *               target_org_unit_path:
+ *                 type: string
+ *                 description: Required when target_type is 'org_unit'
+ *               priority:
+ *                 type: integer
+ *                 description: Assignment priority (lower wins). Auto-calculated if not provided.
+ *               is_active:
+ *                 type: boolean
+ *                 default: true
+ *               activation_date:
+ *                 type: string
+ *                 format: date-time
+ *               expiration_date:
+ *                 type: string
+ *                 format: date-time
+ *     responses:
+ *       201:
+ *         description: Assignment created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   $ref: '#/components/schemas/SignatureAssignment'
+ *       400:
+ *         description: Invalid target_type or missing required fields
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         description: Template not found
  */
 router.post('/assignments', requireAuth, requirePermission('admin'), async (req: Request, res: Response) => {
   try {
@@ -696,8 +1197,43 @@ router.post('/assignments', requireAuth, requirePermission('admin'), async (req:
 });
 
 /**
- * GET /api/signatures/assignments
- * List signature assignments
+ * @openapi
+ * /api/v1/signatures/assignments:
+ *   get:
+ *     summary: List signature assignments
+ *     description: Returns list of signature template assignment rules
+ *     tags: [Signatures]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: template_id
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Filter by template ID
+ *       - in: query
+ *         name: target_type
+ *         schema:
+ *           type: string
+ *           enum: [organization, user, department, google_group, org_unit, microsoft_group]
+ *         description: Filter by target type
+ *     responses:
+ *       200:
+ *         description: List of assignments
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/SignatureAssignment'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/assignments', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -755,8 +1291,40 @@ router.get('/assignments', requireAuth, async (req: Request, res: Response) => {
 });
 
 /**
- * DELETE /api/signatures/assignments/:assignmentId
- * Delete a signature assignment
+ * @openapi
+ * /api/v1/signatures/assignments/{assignmentId}:
+ *   delete:
+ *     summary: Delete signature assignment
+ *     description: Permanently deletes a signature assignment rule. Requires admin permission.
+ *     tags: [Signatures]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: assignmentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Assignment ID
+ *     responses:
+ *       200:
+ *         description: Assignment deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         description: Assignment not found
  */
 router.delete('/assignments/:assignmentId', requireAuth, requirePermission('admin'), async (req: Request, res: Response) => {
   try {
@@ -793,8 +1361,96 @@ router.delete('/assignments/:assignmentId', requireAuth, requirePermission('admi
 // =====================================================
 
 /**
- * POST /api/signatures/campaigns
- * Create a template campaign
+ * @openapi
+ * /api/v1/signatures/campaigns:
+ *   post:
+ *     summary: Create signature campaign
+ *     description: |
+ *       Creates a time-limited campaign that applies a signature template to users during a specific period.
+ *       Campaigns can be scheduled for future dates and can optionally revert to previous signatures when ended.
+ *       Requires admin permission.
+ *     tags: [Signatures]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - template_id
+ *               - campaign_name
+ *               - start_date
+ *               - end_date
+ *               - target_type
+ *             properties:
+ *               template_id:
+ *                 type: string
+ *                 format: uuid
+ *               template_type:
+ *                 type: string
+ *               campaign_name:
+ *                 type: string
+ *               campaign_description:
+ *                 type: string
+ *               target_type:
+ *                 type: string
+ *                 enum: [organization, user, department, google_group, org_unit, microsoft_group]
+ *               target_user_id:
+ *                 type: string
+ *                 format: uuid
+ *               target_department_id:
+ *                 type: string
+ *                 format: uuid
+ *               target_group_email:
+ *                 type: string
+ *               target_org_unit_path:
+ *                 type: string
+ *               target_multiple:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *               start_date:
+ *                 type: string
+ *                 format: date-time
+ *               end_date:
+ *                 type: string
+ *                 format: date-time
+ *               timezone:
+ *                 type: string
+ *                 default: UTC
+ *               revert_to_previous:
+ *                 type: boolean
+ *                 default: true
+ *               requires_approval:
+ *                 type: boolean
+ *                 default: false
+ *               approver_id:
+ *                 type: string
+ *                 format: uuid
+ *     responses:
+ *       201:
+ *         description: Campaign created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   $ref: '#/components/schemas/SignatureCampaign'
+ *       400:
+ *         description: Missing required fields or invalid dates
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         description: Template not found
  */
 router.post('/campaigns', requireAuth, requirePermission('admin'), async (req: Request, res: Response) => {
   try {
@@ -911,8 +1567,43 @@ router.post('/campaigns', requireAuth, requirePermission('admin'), async (req: R
 });
 
 /**
- * GET /api/signatures/campaigns
- * List template campaigns
+ * @openapi
+ * /api/v1/signatures/campaigns:
+ *   get:
+ *     summary: List signature campaigns
+ *     description: Returns list of signature campaigns for the organization
+ *     tags: [Signatures]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [draft, scheduled, active, completed, cancelled]
+ *         description: Filter by campaign status
+ *       - in: query
+ *         name: template_id
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Filter by template ID
+ *     responses:
+ *       200:
+ *         description: List of campaigns
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/SignatureCampaign'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/campaigns', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -961,8 +1652,38 @@ router.get('/campaigns', requireAuth, async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/signatures/campaigns/:campaignId
- * Get campaign details
+ * @openapi
+ * /api/v1/signatures/campaigns/{campaignId}:
+ *   get:
+ *     summary: Get campaign details
+ *     description: Returns detailed information about a specific signature campaign
+ *     tags: [Signatures]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: campaignId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Campaign ID
+ *     responses:
+ *       200:
+ *         description: Campaign details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/SignatureCampaign'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         description: Campaign not found
  */
 router.get('/campaigns/:campaignId', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -1004,8 +1725,64 @@ router.get('/campaigns/:campaignId', requireAuth, async (req: Request, res: Resp
 });
 
 /**
- * PUT /api/signatures/campaigns/:campaignId
- * Update a campaign
+ * @openapi
+ * /api/v1/signatures/campaigns/{campaignId}:
+ *   put:
+ *     summary: Update signature campaign
+ *     description: Updates an existing signature campaign. Requires admin permission.
+ *     tags: [Signatures]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: campaignId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Campaign ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               campaign_name:
+ *                 type: string
+ *               campaign_description:
+ *                 type: string
+ *               start_date:
+ *                 type: string
+ *                 format: date-time
+ *               end_date:
+ *                 type: string
+ *                 format: date-time
+ *               status:
+ *                 type: string
+ *                 enum: [draft, scheduled, active, completed, cancelled]
+ *     responses:
+ *       200:
+ *         description: Campaign updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   $ref: '#/components/schemas/SignatureCampaign'
+ *       400:
+ *         description: No fields to update
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         description: Campaign not found
  */
 router.put('/campaigns/:campaignId', requireAuth, requirePermission('admin'), async (req: Request, res: Response) => {
   try {
@@ -1092,8 +1869,44 @@ router.put('/campaigns/:campaignId', requireAuth, requirePermission('admin'), as
 });
 
 /**
- * DELETE /api/signatures/campaigns/:campaignId
- * Delete/cancel a campaign
+ * @openapi
+ * /api/v1/signatures/campaigns/{campaignId}:
+ *   delete:
+ *     summary: Delete or cancel signature campaign
+ *     description: |
+ *       Deletes or cancels a signature campaign.
+ *       Active or scheduled campaigns are cancelled (status set to 'cancelled').
+ *       Completed or draft campaigns are permanently deleted.
+ *       Requires admin permission.
+ *     tags: [Signatures]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: campaignId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Campaign ID
+ *     responses:
+ *       200:
+ *         description: Campaign deleted or cancelled
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         description: Campaign not found
  */
 router.delete('/campaigns/:campaignId', requireAuth, requirePermission('admin'), async (req: Request, res: Response) => {
   try {
@@ -1149,8 +1962,53 @@ router.delete('/campaigns/:campaignId', requireAuth, requirePermission('admin'),
 // =====================================================
 
 /**
- * GET /api/signatures/users/:userId
- * Get user's current signature settings
+ * @openapi
+ * /api/v1/signatures/users/{userId}:
+ *   get:
+ *     summary: Get user signature settings
+ *     description: Returns the current signature settings and applied template for a specific user
+ *     tags: [Signatures]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: User signature settings
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user_id:
+ *                       type: string
+ *                       format: uuid
+ *                     current_template_id:
+ *                       type: string
+ *                       format: uuid
+ *                     template_name:
+ *                       type: string
+ *                     template_html:
+ *                       type: string
+ *                     user_email:
+ *                       type: string
+ *                     user_name:
+ *                       type: string
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         description: User signature not found
  */
 router.get('/users/:userId', requireAuth, async (req: Request, res: Response) => {
   try {
