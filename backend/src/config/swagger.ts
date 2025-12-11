@@ -143,6 +143,10 @@ For MSP/partner access with human attribution:
       {
         name: 'Labels & Customization',
         description: 'Customize entity labels (Users, Groups, etc.)'
+      },
+      {
+        name: 'Signatures',
+        description: 'Email signature templates, assignments, and campaigns'
       }
     ],
     components: {
@@ -423,6 +427,106 @@ For MSP/partner access with human attribution:
             refreshToken: { type: 'string', description: 'Refresh token for obtaining new access tokens' },
             user: { $ref: '#/components/schemas/User' },
             expiresIn: { type: 'integer', description: 'Token expiry time in seconds' }
+          }
+        },
+        // Signature entities
+        SignatureTemplate: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            organization_id: { type: 'string', format: 'uuid' },
+            name: { type: 'string' },
+            description: { type: 'string' },
+            html_content: { type: 'string', description: 'HTML content with merge fields' },
+            mobile_html_content: { type: 'string', description: 'Mobile-optimized HTML' },
+            plain_text_content: { type: 'string', description: 'Plain text fallback' },
+            thumbnail_url: { type: 'string', format: 'uri' },
+            category: { type: 'string' },
+            variables_used: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'List of merge fields used in template'
+            },
+            is_active: { type: 'boolean' },
+            is_default: { type: 'boolean' },
+            assignment_count: { type: 'integer', description: 'Number of active assignments' },
+            usage_count: { type: 'integer', description: 'Number of users with this signature' },
+            created_by: { type: 'string', format: 'uuid' },
+            created_by_email: { type: 'string', format: 'email' },
+            created_by_name: { type: 'string' },
+            created_at: { type: 'string', format: 'date-time' },
+            updated_at: { type: 'string', format: 'date-time' }
+          }
+        },
+        SignatureAssignment: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            organization_id: { type: 'string', format: 'uuid' },
+            template_id: { type: 'string', format: 'uuid' },
+            template_name: { type: 'string' },
+            template_type: { type: 'string' },
+            target_type: {
+              type: 'string',
+              enum: ['organization', 'user', 'department', 'google_group', 'org_unit', 'microsoft_group'],
+              description: 'Type of target for this assignment'
+            },
+            target_display: { type: 'string', description: 'Human-readable target name' },
+            target_user_id: { type: 'string', format: 'uuid' },
+            target_department_id: { type: 'string', format: 'uuid' },
+            target_group_email: { type: 'string' },
+            target_org_unit_path: { type: 'string' },
+            priority: {
+              type: 'integer',
+              description: 'Priority level (lower = higher priority)'
+            },
+            is_active: { type: 'boolean' },
+            activation_date: { type: 'string', format: 'date-time' },
+            expiration_date: { type: 'string', format: 'date-time' },
+            created_at: { type: 'string', format: 'date-time' }
+          }
+        },
+        SignatureCampaign: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            organization_id: { type: 'string', format: 'uuid' },
+            template_id: { type: 'string', format: 'uuid' },
+            template_name: { type: 'string' },
+            template_category: { type: 'string' },
+            campaign_name: { type: 'string' },
+            campaign_description: { type: 'string' },
+            target_type: {
+              type: 'string',
+              enum: ['organization', 'user', 'department', 'google_group', 'org_unit', 'microsoft_group']
+            },
+            start_date: { type: 'string', format: 'date-time' },
+            end_date: { type: 'string', format: 'date-time' },
+            timezone: { type: 'string', default: 'UTC' },
+            status: {
+              type: 'string',
+              enum: ['draft', 'scheduled', 'active', 'completed', 'cancelled'],
+              description: 'Current campaign status'
+            },
+            revert_to_previous: {
+              type: 'boolean',
+              description: 'Whether to restore previous signatures when campaign ends'
+            },
+            requires_approval: { type: 'boolean' },
+            created_by: { type: 'string', format: 'uuid' },
+            created_by_email: { type: 'string', format: 'email' },
+            created_by_name: { type: 'string' },
+            created_at: { type: 'string', format: 'date-time' },
+            updated_at: { type: 'string', format: 'date-time' }
+          }
+        },
+        Pagination: {
+          type: 'object',
+          properties: {
+            page: { type: 'integer', description: 'Current page number' },
+            per_page: { type: 'integer', description: 'Items per page' },
+            total: { type: 'integer', description: 'Total number of items' },
+            total_pages: { type: 'integer', description: 'Total number of pages' }
           }
         }
       },

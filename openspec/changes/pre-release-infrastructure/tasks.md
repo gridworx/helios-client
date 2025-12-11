@@ -103,14 +103,17 @@
 
 ## Phase 7: OpenAPI Documentation
 
-### Core Schemas
-- [ ] **TASK-INFRA-018**: Define User schema
-- [ ] **TASK-INFRA-019**: Define Group schema
-- [ ] **TASK-INFRA-020**: Define Organization schema
-- [ ] **TASK-INFRA-021**: Define Department schema
-- [ ] **TASK-INFRA-022**: Define common schemas (Pagination, Error, Success)
+### Core Schemas - COMPLETE ✅
+- [x] **TASK-INFRA-018**: Define User schema (in swagger.ts)
+- [x] **TASK-INFRA-019**: Define Group schema (in swagger.ts)
+- [x] **TASK-INFRA-020**: Define Organization schema (in swagger.ts)
+- [x] **TASK-INFRA-021**: Define Department schema (in swagger.ts)
+- [x] **TASK-INFRA-022**: Define common schemas (Pagination, Error, Success) (in swagger.ts)
+- [x] **TASK-INFRA-0XX**: Define SignatureTemplate schema
+- [x] **TASK-INFRA-0XX**: Define SignatureAssignment schema
+- [x] **TASK-INFRA-0XX**: Define SignatureCampaign schema
 
-### Route Documentation (38 files) - 16/38 COMPLETE
+### Route Documentation (38 files) - 38/38 COMPLETE ✅
 - [x] **TASK-INFRA-023**: Document auth.routes.ts
 - [x] **TASK-INFRA-024**: Document users.routes.ts
 - [x] **TASK-INFRA-025**: Document access-groups.routes.ts
@@ -122,16 +125,16 @@
 - [x] **TASK-INFRA-031**: Document labels.routes.ts
 - [x] **TASK-INFRA-041**: Document people.routes.ts
 - [x] **TASK-INFRA-040**: Document org-chart.routes.ts
-- [x] **TASK-INFRA-036**: Document google-workspace.routes.ts (partial)
+- [x] **TASK-INFRA-036**: Document google-workspace.routes.ts
 - [x] **TASK-INFRA-0XX**: Document security-events.routes.ts
-- [x] **TASK-INFRA-0XX**: Document me.routes.ts (partial)
-- [x] **TASK-INFRA-0XX**: Document locations.routes.ts (partial)
+- [x] **TASK-INFRA-0XX**: Document me.routes.ts
+- [x] **TASK-INFRA-0XX**: Document locations.routes.ts
 - [x] **TASK-INFRA-0XX**: Document modules.routes.ts
-- [ ] **TASK-INFRA-032**: Document lifecycle.routes.ts
-- [ ] **TASK-INFRA-037**: Document assets.routes.ts
-- [ ] **TASK-INFRA-038**: Document asset-proxy.routes.ts
-- [ ] **TASK-INFRA-039**: Document signatures.routes.ts
-- [ ] **TASK-INFRA-042**: Document remaining route files (22 remaining)
+- [x] **TASK-INFRA-032**: Document lifecycle.routes.ts
+- [x] **TASK-INFRA-037**: Document assets.routes.ts
+- [x] **TASK-INFRA-038**: Document asset-proxy.routes.ts
+- [x] **TASK-INFRA-039**: Document signatures.routes.ts
+- [x] **TASK-INFRA-042**: Document remaining route files (all complete)
 
 ### Documentation Quality
 - [ ] **TASK-INFRA-043**: Add request/response examples
