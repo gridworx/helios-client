@@ -2,75 +2,75 @@
 
 ## Phase 1: Environment Validation
 
-- [ ] **TASK-INFRA-001**: Create environment validation schema
+- [x] **TASK-INFRA-001**: Create environment validation schema
   - File: `backend/src/config/env-validation.ts`
   - Use Joi to validate all required env vars
   - Different requirements for dev vs production
   - Clear error messages on failure
 
-- [ ] **TASK-INFRA-002**: Add validation to startup
+- [x] **TASK-INFRA-002**: Add validation to startup
   - File: `backend/src/index.ts`
   - Call `validateEnv()` before anything else
   - Exit with code 1 if validation fails
 
-- [ ] **TASK-INFRA-003**: Update .env.example with validation notes
+- [x] **TASK-INFRA-003**: Update .env.example with validation notes
   - Mark required vs optional
   - Note production requirements
 
 ## Phase 2: Request Tracing
 
-- [ ] **TASK-INFRA-004**: Create request ID middleware
+- [x] **TASK-INFRA-004**: Create request ID middleware
   - File: `backend/src/middleware/request-id.ts`
   - Generate UUID if not provided in `X-Request-ID` header
   - Attach to `req.requestId`
   - Set response header
 
-- [ ] **TASK-INFRA-005**: Integrate with logger
+- [x] **TASK-INFRA-005**: Integrate with logger
   - File: `backend/src/utils/logger.ts`
   - Create child logger with requestId context
   - All route logs should include requestId
 
-- [ ] **TASK-INFRA-006**: Add to index.ts
+- [x] **TASK-INFRA-006**: Add to index.ts
   - Register middleware early in chain
   - Before routes, after body parsing
 
 ## Phase 3: Response Standardization
 
-- [ ] **TASK-INFRA-007**: Create response helpers
+- [x] **TASK-INFRA-007**: Create response helpers
   - File: `backend/src/utils/response.ts`
   - `successResponse(res, data, meta)`
   - `errorResponse(res, status, code, message, details)`
   - `paginatedResponse(res, data, total, limit, offset)`
   - Include requestId in all responses
 
-- [ ] **TASK-INFRA-008**: Create error codes enum
+- [x] **TASK-INFRA-008**: Create error codes enum
   - File: `backend/src/types/error-codes.ts`
   - Standard codes: `VALIDATION_ERROR`, `NOT_FOUND`, `UNAUTHORIZED`, etc.
   - Export for use in routes and tests
 
-- [ ] **TASK-INFRA-009**: Update error handler middleware
+- [x] **TASK-INFRA-009**: Update error handler middleware
   - File: `backend/src/middleware/errorHandler.ts`
   - Use standardized error response format
   - Include requestId
 
 ## Phase 4: API Versioning
 
-- [ ] **TASK-INFRA-010**: Update index.ts route registrations
+- [x] **TASK-INFRA-010**: Update index.ts route registrations
   - Change all `/api/...` to `/api/v1/...`
   - Keep unversioned routes as aliases (deprecated)
   - Add deprecation warning header for unversioned
 
-- [ ] **TASK-INFRA-011**: Update swagger config
+- [x] **TASK-INFRA-011**: Update swagger config
   - File: `backend/src/config/swagger.ts`
   - Change base path to `/api/v1`
   - Update server URLs
 
-- [ ] **TASK-INFRA-012**: Update frontend API config
+- [x] **TASK-INFRA-012**: Update frontend API config
   - File: `frontend/src/config/api.ts`
   - Add API_VERSION constant
   - Update apiPath helper to include version
 
-- [ ] **TASK-INFRA-013**: Update all frontend fetch calls
+- [x] **TASK-INFRA-013**: Update all frontend fetch calls
   - This overlaps with frontend-api-url-refactor
   - All `/api/...` become `/api/v1/...`
   - 176 occurrences across 49 files
@@ -108,11 +108,11 @@
 - [ ] **TASK-INFRA-022**: Define common schemas (Pagination, Error, Success)
 
 ### Route Documentation (38 files)
-- [ ] **TASK-INFRA-023**: Document auth.routes.ts
-- [ ] **TASK-INFRA-024**: Document users.routes.ts
-- [ ] **TASK-INFRA-025**: Document access-groups.routes.ts
-- [ ] **TASK-INFRA-026**: Document dashboard.routes.ts
-- [ ] **TASK-INFRA-027**: Document organization.routes.ts
+- [x] **TASK-INFRA-023**: Document auth.routes.ts
+- [x] **TASK-INFRA-024**: Document users.routes.ts
+- [x] **TASK-INFRA-025**: Document access-groups.routes.ts
+- [x] **TASK-INFRA-026**: Document dashboard.routes.ts
+- [x] **TASK-INFRA-027**: Document organization.routes.ts
 - [ ] **TASK-INFRA-028**: Document departments.routes.ts
 - [ ] **TASK-INFRA-029**: Document api-keys.routes.ts
 - [ ] **TASK-INFRA-030**: Document audit-logs.routes.ts

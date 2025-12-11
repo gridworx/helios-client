@@ -11,8 +11,37 @@ import { googleWorkspaceService } from '../services/google-workspace.service';
 
 const router = Router();
 
-
-// Check if organization is set up
+/**
+ * @openapi
+ * /organization/setup/status:
+ *   get:
+ *     summary: Check setup status
+ *     description: Check if the organization has been set up with at least one admin user.
+ *     tags: [Organization]
+ *     responses:
+ *       200:
+ *         description: Setup status information
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     isSetupComplete:
+ *                       type: boolean
+ *                       description: True if organization and admin exist
+ *                     hasOrganization:
+ *                       type: boolean
+ *                     hasAdmin:
+ *                       type: boolean
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
+ */
 router.get('/setup/status', async (req: Request, res: Response) => {
   try {
     // Check if any organization exists
@@ -40,7 +69,71 @@ router.get('/setup/status', async (req: Request, res: Response) => {
   }
 });
 
-// Create organization and admin account
+/**
+ * @openapi
+ * /organization/setup:
+ *   post:
+ *     summary: Initial organization setup
+ *     description: |
+ *       Create the organization and initial admin account.
+ *       Can only be called once - returns 409 if organization already exists.
+ *     tags: [Organization]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [organizationName, organizationDomain, adminEmail, adminPassword, adminFirstName, adminLastName]
+ *             properties:
+ *               organizationName:
+ *                 type: string
+ *                 example: Acme Corp
+ *               organizationDomain:
+ *                 type: string
+ *                 example: acme.com
+ *               adminEmail:
+ *                 type: string
+ *                 format: email
+ *                 example: admin@acme.com
+ *               adminPassword:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 8
+ *               adminFirstName:
+ *                 type: string
+ *               adminLastName:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Organization created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     organization:
+ *                       type: object
+ *                     admin:
+ *                       type: object
+ *                     token:
+ *                       type: string
+ *                       description: JWT for auto-login
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       409:
+ *         description: Organization already exists
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
+ */
 router.post('/setup', async (req: Request, res: Response) => {
   try {
     const {
@@ -185,7 +278,31 @@ router.post('/setup', async (req: Request, res: Response) => {
   }
 });
 
-// Get organization details (requires auth in production)
+/**
+ * @openapi
+ * /organization/current:
+ *   get:
+ *     summary: Get current organization
+ *     description: Get details of the current organization.
+ *     tags: [Organization]
+ *     responses:
+ *       200:
+ *         description: Organization details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Organization'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
+ */
 router.get('/current', async (req: Request, res: Response) => {
   try {
     const result = await db.query(

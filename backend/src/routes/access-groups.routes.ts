@@ -12,8 +12,35 @@ const router = Router();
 router.use(authenticateToken);
 
 /**
- * GET /api/organization/access-groups
- * List all access groups for the organization
+ * @openapi
+ * /organization/access-groups:
+ *   get:
+ *     summary: List all access groups
+ *     description: |
+ *       Get all access groups for the organization including member counts.
+ *       Groups can be static (manual membership) or dynamic (rule-based).
+ *     tags: [Groups]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of access groups
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Group'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -65,8 +92,66 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
- * GET /api/organization/access-groups/:id
- * Get access group details including members
+ * @openapi
+ * /organization/access-groups/{id}:
+ *   get:
+ *     summary: Get access group details
+ *     description: |
+ *       Get detailed information about a specific access group including its members.
+ *     tags: [Groups]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Access group ID
+ *     responses:
+ *       200:
+ *         description: Group details with members
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     group:
+ *                       $ref: '#/components/schemas/Group'
+ *                     members:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             format: uuid
+ *                           user_id:
+ *                             type: string
+ *                             format: uuid
+ *                           email:
+ *                             type: string
+ *                             format: email
+ *                           first_name:
+ *                             type: string
+ *                           last_name:
+ *                             type: string
+ *                           member_type:
+ *                             type: string
+ *                             enum: [member, owner, manager]
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.get('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -123,8 +208,60 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
- * PUT /api/organization/access-groups/:id
- * Update an access group
+ * @openapi
+ * /organization/access-groups/{id}:
+ *   put:
+ *     summary: Update an access group
+ *     description: Update the name, description, or email of an access group.
+ *     tags: [Groups]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Access group ID
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Group name
+ *               description:
+ *                 type: string
+ *                 description: Group description
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Group email address
+ *     responses:
+ *       200:
+ *         description: Group updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Group'
+ *                 message:
+ *                   type: string
+ *                   example: Access group updated successfully
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.put('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -207,8 +344,42 @@ router.put('/:id', async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
- * DELETE /api/organization/access-groups/:id
- * Delete an access group
+ * @openapi
+ * /organization/access-groups/{id}:
+ *   delete:
+ *     summary: Delete an access group
+ *     description: Soft-delete an access group by setting is_active to false.
+ *     tags: [Groups]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Access group ID
+ *     responses:
+ *       200:
+ *         description: Group deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Access group deleted successfully
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -272,8 +443,55 @@ router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
- * POST /api/organization/access-groups
- * Create a new access group (manual, not synced from platform)
+ * @openapi
+ * /organization/access-groups:
+ *   post:
+ *     summary: Create an access group
+ *     description: Create a new manual access group (not synced from external platform).
+ *     tags: [Groups]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name]
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Group name
+ *                 example: Sales Team
+ *               description:
+ *                 type: string
+ *                 description: Group description
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Group email address
+ *     responses:
+ *       201:
+ *         description: Group created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Group'
+ *                 message:
+ *                   type: string
+ *                   example: Access group created successfully
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.post('/', async (req: Request, res: Response): Promise<void> => {
   try {

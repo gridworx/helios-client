@@ -8,8 +8,66 @@ import { db } from '../database/connection';
 const router = Router();
 
 /**
- * GET /api/users
- * Get all users for the organization with platform indicators
+ * @openapi
+ * /user:
+ *   get:
+ *     summary: List all users
+ *     description: |
+ *       Get all users for the organization with platform indicators.
+ *       Supports filtering by platform and active status, and pagination.
+ *     tags: [Users]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: platform
+ *         schema:
+ *           type: string
+ *           enum: [google, microsoft, local]
+ *         description: Filter by source platform
+ *       - in: query
+ *         name: active
+ *         schema:
+ *           type: string
+ *           enum: ['true', 'false']
+ *         description: Filter by active status
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 100
+ *           maximum: 500
+ *         description: Maximum number of users to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Number of users to skip
+ *     responses:
+ *       200:
+ *         description: List of users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/User'
+ *                 total:
+ *                   type: integer
+ *                   description: Total number of users returned
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.get('/', requireAuth, async (req, res) => {
   try {
@@ -47,8 +105,57 @@ router.get('/', requireAuth, async (req, res) => {
 });
 
 /**
- * GET /api/users/stats
- * Get user statistics by role, status, and type
+ * @openapi
+ * /user/stats:
+ *   get:
+ *     summary: Get user statistics
+ *     description: |
+ *       Get user statistics by role, status, and employee type.
+ *       Includes counts of managers and orphaned users (users without managers).
+ *     tags: [Users]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                       description: Total active users
+ *                     byRole:
+ *                       type: object
+ *                       properties:
+ *                         admin:
+ *                           type: integer
+ *                         manager:
+ *                           type: integer
+ *                         user:
+ *                           type: integer
+ *                     byEmployeeType:
+ *                       type: object
+ *                       additionalProperties:
+ *                         type: integer
+ *                       description: User counts by employee type
+ *                     managers:
+ *                       type: integer
+ *                       description: Number of users with direct reports
+ *                     orphans:
+ *                       type: integer
+ *                       description: Number of users without a manager (excluding CEO)
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.get('/stats', requireAuth, async (req, res) => {
   try {
@@ -145,8 +252,59 @@ router.get('/stats', requireAuth, async (req, res) => {
 });
 
 /**
- * POST /api/users/sync/google-workspace
- * Sync users from Google Workspace
+ * @openapi
+ * /user/sync/google-workspace:
+ *   post:
+ *     summary: Sync users from Google Workspace
+ *     description: |
+ *       Trigger a sync of users from Google Workspace to Helios.
+ *       Creates new users, updates existing users, and marks removed users as inactive.
+ *       Requires admin permission.
+ *     tags: [Users, Google Workspace]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [domain]
+ *             properties:
+ *               domain:
+ *                 type: string
+ *                 description: Google Workspace domain to sync
+ *                 example: example.com
+ *               adminEmail:
+ *                 type: string
+ *                 format: email
+ *                 description: Admin email for impersonation
+ *                 example: admin@example.com
+ *     responses:
+ *       200:
+ *         description: Sync completed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 usersCreated:
+ *                   type: integer
+ *                 usersUpdated:
+ *                   type: integer
+ *                 usersDisabled:
+ *                   type: integer
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.post('/sync/google-workspace', requirePermission('admin'), async (req, res) => {
   try {
@@ -179,8 +337,63 @@ router.post('/sync/google-workspace', requirePermission('admin'), async (req, re
 });
 
 /**
- * POST /api/users/sync/all
- * Sync users from all connected platforms
+ * @openapi
+ * /user/sync/all:
+ *   post:
+ *     summary: Sync users from all platforms
+ *     description: |
+ *       Trigger a sync of users from all connected platforms (Google Workspace, Microsoft 365).
+ *       Returns results for each platform and a combined summary.
+ *       Requires admin permission.
+ *     tags: [Users]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Sync completed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 results:
+ *                   type: object
+ *                   properties:
+ *                     google_workspace:
+ *                       type: object
+ *                       nullable: true
+ *                     microsoft_365:
+ *                       type: object
+ *                       nullable: true
+ *                     total:
+ *                       type: object
+ *                       properties:
+ *                         usersCreated:
+ *                           type: integer
+ *                         usersUpdated:
+ *                           type: integer
+ *                         usersDisabled:
+ *                           type: integer
+ *                 summary:
+ *                   type: object
+ *                   properties:
+ *                     platforms_synced:
+ *                       type: integer
+ *                     total_users_created:
+ *                       type: integer
+ *                     total_users_updated:
+ *                       type: integer
+ *                     total_users_disabled:
+ *                       type: integer
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.post('/sync/all', requirePermission('admin'), async (req, res) => {
   try {
@@ -246,8 +459,44 @@ router.post('/sync/all', requirePermission('admin'), async (req, res) => {
 });
 
 /**
- * GET /api/users/:userId
- * Get a specific user with all platform data
+ * @openapi
+ * /user/{userId}:
+ *   get:
+ *     summary: Get a specific user
+ *     description: |
+ *       Get detailed information about a specific user including all platform data.
+ *     tags: [Users]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: The user's unique identifier
+ *     responses:
+ *       200:
+ *         description: User details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/User'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.get('/:userId', requireAuth, async (req, res) => {
   try {
