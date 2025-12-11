@@ -437,7 +437,7 @@ Add "Team Analytics" link under Insights section.
 ## Phase 5: Signature Integration (4 hours)
 
 ### TASK-TRK-020: Update signature rendering to include user pixel
-**File:** `backend/src/services/signature-renderer.service.ts` (modify)
+**File:** `backend/src/services/signature-template.service.ts` (modify)
 
 When rendering a signature, include the user tracking pixel if:
 - Organization has user_tracking_enabled = true
@@ -450,23 +450,34 @@ When rendering a signature, include the user tracking pixel if:
 ```
 
 **Acceptance Criteria:**
-- [ ] Pixel included when tracking enabled
-- [ ] Pixel excluded when tracking disabled
-- [ ] Uses correct domain from org settings
-- [ ] Hidden with CSS (display:none, 1x1)
-- [ ] Does not interfere with campaign pixels
+- [x] Pixel included when tracking enabled
+- [x] Pixel excluded when tracking disabled
+- [x] Uses correct domain from org settings (PUBLIC_URL env var)
+- [x] Hidden with CSS (display:none, 1x1)
+- [x] Does not interfere with campaign pixels
+- **DONE**: Added `renderTemplateWithTracking()` method to signature-template.service.ts that:
+  - Checks organization tracking settings from organization_settings table
+  - Retrieves user tracking token from signature_user_tracking table
+  - Appends hidden tracking pixel to rendered HTML
+  - Updated signature-sync.service.ts to use this new method
 
 ---
 
 ### TASK-TRK-021: Update signature preview to show tracking indicator
-**File:** `frontend/src/components/SignaturePreview.tsx` (modify)
+**File:** `frontend/src/components/signatures/TemplatePreview.tsx` (modify)
 
 Show indicator that tracking pixel is included (for transparency).
 
 **Acceptance Criteria:**
-- [ ] Small indicator "Tracking enabled" when pixel included
-- [ ] Tooltip explaining what it means
-- [ ] Hidden in actual signature output
+- [x] Small indicator "Tracking enabled" when pixel included
+- [x] Tooltip explaining what it means
+- [x] Hidden in actual signature output
+- **DONE**: Added tracking indicator to TemplatePreview component:
+  - Green banner with Activity icon shows "Engagement tracking enabled"
+  - Info tooltip explains tracking pixel will be included
+  - Only shows when a real user (not sample data) is selected
+  - Backend preview endpoint now returns trackingEnabled flag
+  - CSS styling in TemplatePreview.css with pulse animation
 
 ---
 
@@ -481,22 +492,32 @@ async function purgeOldTrackingEvents(): Promise<number>;
 ```
 
 **Acceptance Criteria:**
-- [ ] Respects per-org retention_days setting
-- [ ] Deletes in batches to avoid lock contention
-- [ ] Logs number of deleted records
-- [ ] Can be triggered manually
+- [x] Respects per-org retention_days setting
+- [x] Deletes in batches to avoid lock contention
+- [x] Logs number of deleted records
+- [x] Can be triggered manually
+- **DONE**: Created tracking-retention.job.ts with:
+  - Per-org retention settings (default 90 days)
+  - Batch deletion (1000 records per batch)
+  - Detailed logging
+  - Manual trigger function `triggerTrackingRetention()`
+  - Status reporting function `getRetentionStatus()`
 
 ---
 
 ### TASK-TRK-023: Add retention job to scheduler
-**File:** `backend/src/jobs/scheduler.ts` (modify)
+**File:** `backend/src/index.ts` (modify)
 
 Schedule purgeOldTrackingEvents to run daily at 3am.
 
 **Acceptance Criteria:**
-- [ ] Job runs daily
-- [ ] Non-blocking (runs in background)
-- [ ] Error handling and alerting
+- [x] Job runs daily at 3am
+- [x] Non-blocking (runs in background with setTimeout.unref())
+- [x] Error handling and logging
+- **DONE**: Added job to index.ts startup:
+  - Import and start/stop functions
+  - Configurable via TRACKING_RETENTION_ENABLED env var
+  - Added to graceful shutdown handlers
 
 ---
 

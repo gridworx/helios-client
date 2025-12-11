@@ -66,6 +66,7 @@ import { initializeBulkOperationsGateway } from './websocket/bulk-operations.gat
 import { startScheduledActionProcessor, stopScheduledActionProcessor } from './jobs/scheduled-action-processor';
 import { startSignatureSyncJob, stopSignatureSyncJob } from './jobs/signature-sync.job';
 import { startCampaignSchedulerJob, stopCampaignSchedulerJob } from './jobs/campaign-scheduler.job';
+import { startTrackingRetentionJob, stopTrackingRetentionJob } from './jobs/tracking-retention.job';
 
 import transparentProxyRouter from './middleware/transparent-proxy';
 import swaggerUi from 'swagger-ui-express';
@@ -724,6 +725,19 @@ async function startServer(): Promise<void> {
       logger.info('📅 Scheduled action processor disabled');
     }
 
+    // Start tracking data retention job (runs daily at 3am)
+    const trackingRetentionEnabled = process.env['TRACKING_RETENTION_ENABLED'] !== 'false';
+    if (trackingRetentionEnabled) {
+      startTrackingRetentionJob({
+        enabled: true,
+        batchSize: parseInt(process.env['TRACKING_RETENTION_BATCH_SIZE'] || '1000'),
+        delayBetweenBatches: parseInt(process.env['TRACKING_RETENTION_DELAY_MS'] || '100')
+      });
+      logger.info('🗑️ Tracking retention job scheduled (runs daily at 3am)');
+    } else {
+      logger.info('🗑️ Tracking retention job disabled');
+    }
+
     // Start server (use httpServer instead of app.listen for WebSocket support)
     httpServer.listen(PORT, () => {
       logger.info(`🚀 Helios Platform Backend running on port ${PORT}`);
@@ -745,6 +759,7 @@ process.on('SIGTERM', async () => {
   stopScheduledActionProcessor();
   stopSignatureSyncJob();
   stopCampaignSchedulerJob();
+  stopTrackingRetentionJob();
   await db.close();
   process.exit(0);
 });
@@ -754,6 +769,7 @@ process.on('SIGINT', async () => {
   stopScheduledActionProcessor();
   stopSignatureSyncJob();
   stopCampaignSchedulerJob();
+  stopTrackingRetentionJob();
   await db.close();
   process.exit(0);
 });

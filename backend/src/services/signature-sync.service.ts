@@ -129,30 +129,32 @@ class SignatureSyncService {
         };
       }
 
-      // Render template with user data (include campaign banner if applicable)
+      // Render template with user data, campaign banner, and user tracking pixel
       let renderedHtml: string;
+      let hasUserTracking = false;
       try {
         // Check if this is from a campaign with a banner
         const hasCampaignBanner = effectiveSignature.source === 'campaign' && effectiveSignature.bannerUrl;
 
-        if (hasCampaignBanner) {
-          const renderResult = await signatureTemplateService.renderTemplateWithBanner(
-            effectiveSignature.templateId,
-            userId,
-            {
+        // Use the new renderTemplateWithTracking method which:
+        // 1. Renders the template with user data
+        // 2. Adds campaign banner if applicable
+        // 3. Adds user tracking pixel if enabled for the organization
+        const renderResult = await signatureTemplateService.renderTemplateWithTracking(
+          effectiveSignature.templateId,
+          userId,
+          {
+            includeCampaignBanner: hasCampaignBanner ? {
               url: effectiveSignature.bannerUrl,
               link: effectiveSignature.bannerLink,
               altText: effectiveSignature.bannerAltText,
-            }
-          );
-          renderedHtml = renderResult.html;
-        } else {
-          const renderResult = await signatureTemplateService.renderTemplate(
-            effectiveSignature.templateId,
-            userId
-          );
-          renderedHtml = renderResult.html;
-        }
+            } : undefined,
+            // Don't skip user tracking - let the service determine based on org settings
+            skipUserTracking: false,
+          }
+        );
+        renderedHtml = renderResult.html;
+        hasUserTracking = renderResult.hasUserTracking;
       } catch (renderError: any) {
         await this.updateUserSyncStatus(userId, organizationId, {
           syncStatus: 'error',
@@ -225,6 +227,7 @@ class SignatureSyncService {
         userId,
         userEmail,
         templateId: effectiveSignature.templateId,
+        hasUserTracking,
       });
 
       return {

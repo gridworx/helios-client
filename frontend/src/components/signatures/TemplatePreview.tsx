@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { User, ChevronDown, RefreshCw, Eye, Code, AlertCircle } from 'lucide-react';
+import { User, ChevronDown, RefreshCw, Eye, Code, AlertCircle, Activity, Info } from 'lucide-react';
 import './TemplatePreview.css';
 
-interface User {
+interface UserData {
   id: string;
   email: string;
   first_name: string;
   last_name: string;
   job_title?: string;
+}
+
+interface TrackingInfo {
+  message: string;
+  note: string;
 }
 
 interface TemplatePreviewProps {
@@ -23,7 +28,7 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
   className,
   onRefresh,
 }) => {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<UserData[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>('sample');
   const [renderedHtml, setRenderedHtml] = useState<string>('');
   const [renderedText, setRenderedText] = useState<string>('');
@@ -31,6 +36,9 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'html' | 'text' | 'source'>('html');
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [trackingEnabled, setTrackingEnabled] = useState(false);
+  const [trackingInfo, setTrackingInfo] = useState<TrackingInfo | null>(null);
+  const [showTrackingTooltip, setShowTrackingTooltip] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -62,6 +70,8 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
     if (!htmlContent) {
       setRenderedHtml('');
       setRenderedText('');
+      setTrackingEnabled(false);
+      setTrackingInfo(null);
       return;
     }
 
@@ -86,16 +96,22 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
       if (data.success) {
         setRenderedHtml(data.data.html || htmlContent);
         setRenderedText(data.data.plainText || plainTextContent || '');
+        setTrackingEnabled(data.data.trackingEnabled || false);
+        setTrackingInfo(data.data.trackingInfo || null);
       } else {
         // If API fails, show original content
         setRenderedHtml(htmlContent);
         setRenderedText(plainTextContent || '');
+        setTrackingEnabled(false);
+        setTrackingInfo(null);
       }
     } catch (err) {
       console.error('Error rendering preview:', err);
       // Show original content on error
       setRenderedHtml(htmlContent);
       setRenderedText(plainTextContent || '');
+      setTrackingEnabled(false);
+      setTrackingInfo(null);
     } finally {
       setLoading(false);
     }
@@ -204,6 +220,29 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
           HTML Source
         </button>
       </div>
+
+      {/* Tracking indicator - shown when a real user is selected and tracking is enabled */}
+      {trackingEnabled && selectedUserId !== 'sample' && (
+        <div className="tracking-indicator">
+          <div className="tracking-indicator-content">
+            <Activity size={14} className="tracking-icon" />
+            <span>Engagement tracking enabled</span>
+            <div
+              className="tracking-info-trigger"
+              onMouseEnter={() => setShowTrackingTooltip(true)}
+              onMouseLeave={() => setShowTrackingTooltip(false)}
+            >
+              <Info size={12} />
+              {showTrackingTooltip && trackingInfo && (
+                <div className="tracking-tooltip">
+                  <p>{trackingInfo.message}</p>
+                  <span className="tracking-note">{trackingInfo.note}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="preview-content">
         {error && (

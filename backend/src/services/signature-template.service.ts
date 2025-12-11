@@ -17,6 +17,13 @@ import {
   MERGE_FIELDS,
   getMergeField,
 } from '../types/signatures';
+import { userTrackingService } from './user-tracking.service';
+
+// Tracking settings interface
+interface TrackingSettings {
+  userTrackingEnabled: boolean;
+  campaignTrackingEnabled: boolean;
+}
 
 // Database row type
 interface TemplateRow {
@@ -513,6 +520,157 @@ class SignatureTemplateService {
       mergeFieldsUsed: mergeFields,
       missingFields,
     };
+  }
+
+  // ==========================================
+  // USER TRACKING INTEGRATION
+  // ==========================================
+
+  /**
+   * Get tracking settings for an organization
+   */
+  private async getTrackingSettings(organizationId: string): Promise<TrackingSettings> {
+    const result = await db.query(
+      `SELECT key, value FROM organization_settings
+       WHERE organization_id = $1
+       AND key IN ('tracking_user_enabled', 'tracking_campaign_enabled')`,
+      [organizationId]
+    );
+
+    const settings: TrackingSettings = {
+      userTrackingEnabled: true,  // Default enabled
+      campaignTrackingEnabled: true,
+    };
+
+    result.rows.forEach((row: { key: string; value: string }) => {
+      if (row.key === 'tracking_user_enabled') {
+        settings.userTrackingEnabled = row.value === 'true';
+      } else if (row.key === 'tracking_campaign_enabled') {
+        settings.campaignTrackingEnabled = row.value === 'true';
+      }
+    });
+
+    return settings;
+  }
+
+  /**
+   * Generate HTML for user tracking pixel
+   * Returns empty string if tracking is disabled or token not found
+   */
+  private async generateUserTrackingPixel(userId: string, organizationId: string): Promise<string> {
+    try {
+      // Check if user tracking is enabled
+      const settings = await this.getTrackingSettings(organizationId);
+      if (!settings.userTrackingEnabled) {
+        return '';
+      }
+
+      // Get user's tracking token
+      const token = await userTrackingService.getTokenForUser(userId);
+      if (!token || !token.isActive) {
+        return '';
+      }
+
+      // Build pixel URL
+      const baseUrl = process.env['PUBLIC_URL'] || process.env['BACKEND_URL'] || 'http://localhost:3001';
+      const pixelUrl = `${baseUrl}/api/t/u/${token.pixelToken}.gif`;
+
+      // Return hidden 1x1 tracking pixel
+      return `<!-- User engagement tracking -->
+<img src="${pixelUrl}" width="1" height="1" alt="" style="display:none;width:1px;height:1px;border:0;" />`;
+    } catch (error: any) {
+      logger.warn('Failed to generate user tracking pixel', {
+        userId,
+        organizationId,
+        error: error.message,
+      });
+      return '';
+    }
+  }
+
+  /**
+   * Render a template with user data and user tracking pixel
+   * This is the main method to use for deploying signatures to users
+   */
+  async renderTemplateWithTracking(
+    templateId: string,
+    userId: string,
+    options?: {
+      includeCampaignBanner?: {
+        url?: string | null;
+        link?: string | null;
+        altText?: string | null;
+      };
+      skipUserTracking?: boolean;
+    }
+  ): Promise<RenderedSignature & { hasUserTracking: boolean }> {
+    // Get template
+    const template = await this.getTemplate(templateId);
+    if (!template) {
+      throw new Error(`Template not found: ${templateId}`);
+    }
+
+    // Get user data with department and manager
+    const userData = await this.getUserData(userId);
+    if (!userData) {
+      throw new Error(`User not found: ${userId}`);
+    }
+
+    // Get organization data
+    const orgData = await this.getOrganizationData(userData.organization_id);
+
+    // Build merge data
+    const mergeData = this.buildMergeData(userData, orgData);
+
+    // Render HTML
+    let { rendered: html, missingFields } = this.renderContent(template.htmlContent, mergeData);
+
+    // Render plain text
+    const { rendered: plainText } = this.renderContent(
+      template.plainTextContent || this.htmlToPlainText(template.htmlContent),
+      mergeData
+    );
+
+    // Add campaign banner if provided
+    if (options?.includeCampaignBanner?.url) {
+      const bannerHtml = this.generateBannerHtml(
+        options.includeCampaignBanner.url,
+        options.includeCampaignBanner.link,
+        options.includeCampaignBanner.altText
+      );
+      html = html + bannerHtml;
+    }
+
+    // Add user tracking pixel if not skipped
+    let hasUserTracking = false;
+    if (!options?.skipUserTracking) {
+      const trackingPixel = await this.generateUserTrackingPixel(userId, userData.organization_id);
+      if (trackingPixel) {
+        html = html + '\n' + trackingPixel;
+        hasUserTracking = true;
+      }
+    }
+
+    return {
+      html,
+      plainText,
+      mergeFieldsUsed: template.mergeFields,
+      missingFields,
+      hasUserTracking,
+    };
+  }
+
+  /**
+   * Check if user tracking is enabled for a user's organization
+   */
+  async isUserTrackingEnabled(userId: string): Promise<boolean> {
+    const userData = await this.getUserData(userId);
+    if (!userData) {
+      return false;
+    }
+
+    const settings = await this.getTrackingSettings(userData.organization_id);
+    return settings.userTrackingEnabled;
   }
 
   // ==========================================

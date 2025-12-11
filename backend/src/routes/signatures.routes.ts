@@ -297,9 +297,22 @@ router.post('/templates/preview', requireAuth, async (req: Request, res: Respons
 
     const rendered = await signatureTemplateService.previewTemplate(html_content, user_id);
 
+    // Check if user tracking is enabled for the organization (if a user was selected)
+    let trackingEnabled = false;
+    if (user_id) {
+      trackingEnabled = await signatureTemplateService.isUserTrackingEnabled(user_id);
+    }
+
     return res.json({
       success: true,
-      data: rendered,
+      data: {
+        ...rendered,
+        trackingEnabled,
+        trackingInfo: trackingEnabled ? {
+          message: 'User tracking pixel will be included when signature is deployed',
+          note: 'The tracking pixel is invisible and does not affect signature appearance',
+        } : null,
+      },
     });
   } catch (error: any) {
     console.error('Error previewing template:', error);
