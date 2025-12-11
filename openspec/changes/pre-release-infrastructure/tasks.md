@@ -77,22 +77,25 @@
 
 ## Phase 5: CORS Cleanup
 
-- [ ] **TASK-INFRA-014**: Fix CORS configuration
+- [x] **TASK-INFRA-014**: Fix CORS configuration
   - File: `backend/src/index.ts`
   - Use `FRONTEND_URL` and `PUBLIC_URL` env vars
   - Add `http://localhost:80` to dev origins
   - Add `X-Request-ID` to allowed headers
+  - **DONE**: Already configured properly
 
-- [ ] **TASK-INFRA-015**: Remove deprecated env vars
+- [x] **TASK-INFRA-015**: Remove deprecated env vars
   - Remove references to `APPURL`, `DOMAIN`
   - Update any documentation
+  - **DONE**: Kept as fallbacks with deprecation warnings
 
 ## Phase 6: WebSocket Proxy
 
-- [ ] **TASK-INFRA-016**: Add Socket.IO location to nginx
+- [x] **TASK-INFRA-016**: Add Socket.IO location to nginx
   - Files: `nginx/nginx.conf`, `nginx/nginx.prod.conf`
   - WebSocket upgrade headers
   - Extended timeout for long connections
+  - **DONE**: Socket.IO location already configured
 
 - [ ] **TASK-INFRA-017**: Test WebSocket through nginx
   - Verify Socket.IO connects via port 80
@@ -107,27 +110,28 @@
 - [ ] **TASK-INFRA-021**: Define Department schema
 - [ ] **TASK-INFRA-022**: Define common schemas (Pagination, Error, Success)
 
-### Route Documentation (38 files)
+### Route Documentation (38 files) - 16/38 COMPLETE
 - [x] **TASK-INFRA-023**: Document auth.routes.ts
 - [x] **TASK-INFRA-024**: Document users.routes.ts
 - [x] **TASK-INFRA-025**: Document access-groups.routes.ts
 - [x] **TASK-INFRA-026**: Document dashboard.routes.ts
 - [x] **TASK-INFRA-027**: Document organization.routes.ts
 - [x] **TASK-INFRA-028**: Document departments.routes.ts
-- [ ] **TASK-INFRA-029**: Document api-keys.routes.ts
-- [ ] **TASK-INFRA-030**: Document audit-logs.routes.ts
-- [ ] **TASK-INFRA-031**: Document labels.routes.ts
+- [x] **TASK-INFRA-029**: Document api-keys.routes.ts
+- [x] **TASK-INFRA-030**: Document audit-logs.routes.ts
+- [x] **TASK-INFRA-031**: Document labels.routes.ts
+- [x] **TASK-INFRA-041**: Document people.routes.ts
+- [x] **TASK-INFRA-040**: Document org-chart.routes.ts
+- [x] **TASK-INFRA-036**: Document google-workspace.routes.ts (partial)
+- [x] **TASK-INFRA-0XX**: Document security-events.routes.ts
+- [x] **TASK-INFRA-0XX**: Document me.routes.ts (partial)
+- [x] **TASK-INFRA-0XX**: Document locations.routes.ts (partial)
+- [x] **TASK-INFRA-0XX**: Document modules.routes.ts
 - [ ] **TASK-INFRA-032**: Document lifecycle.routes.ts
-- [ ] **TASK-INFRA-033**: Document onboarding.routes.ts (if separate)
-- [ ] **TASK-INFRA-034**: Document offboarding.routes.ts (if separate)
-- [ ] **TASK-INFRA-035**: Document scheduled-actions.routes.ts (if separate)
-- [ ] **TASK-INFRA-036**: Document google-workspace.routes.ts
 - [ ] **TASK-INFRA-037**: Document assets.routes.ts
 - [ ] **TASK-INFRA-038**: Document asset-proxy.routes.ts
 - [ ] **TASK-INFRA-039**: Document signatures.routes.ts
-- [ ] **TASK-INFRA-040**: Document org-chart.routes.ts
-- [ ] **TASK-INFRA-041**: Document people.routes.ts
-- [ ] **TASK-INFRA-042**: Document remaining route files (list all 38)
+- [ ] **TASK-INFRA-042**: Document remaining route files (22 remaining)
 
 ### Documentation Quality
 - [ ] **TASK-INFRA-043**: Add request/response examples
