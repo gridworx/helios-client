@@ -175,12 +175,16 @@
 
 ## Phase 9: Refactor Existing Routes
 
-- [ ] **TASK-INFRA-051**: Refactor auth routes to use response helpers
-- [ ] **TASK-INFRA-052**: Refactor user routes to use response helpers
-- [ ] **TASK-INFRA-053**: Refactor group routes to use response helpers
+- [x] **TASK-INFRA-051**: Refactor auth routes to use response helpers
+  - ✅ auth.routes.ts uses successResponse, errorResponse, validationErrorResponse, unauthorizedResponse
+- [x] **TASK-INFRA-052**: Refactor user routes to use response helpers
+  - ✅ users.routes.ts uses successResponse, errorResponse, notFoundResponse
+- [x] **TASK-INFRA-053**: Refactor group routes to use response helpers
+  - ✅ access-groups.routes.ts (20+ endpoints) uses standardized response format
 - [ ] **TASK-INFRA-054**: Refactor all remaining routes to use response helpers
-  - Systematic update of all 38 route files
+  - Systematic update of remaining route files
   - Replace inline `res.json()` with helpers
+  - Priority: dashboard.routes.ts, organization.routes.ts, departments.routes.ts
 
 ## Phase 10: Testing - ✅ VERIFIED 2025-12-11
 
