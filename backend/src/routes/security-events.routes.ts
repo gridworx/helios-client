@@ -9,8 +9,68 @@ const router = Router();
 router.use(authenticateToken);
 
 /**
- * GET /api/organization/security-events
- * List security events with filtering
+ * @openapi
+ * /api/v1/organization/security-events:
+ *   get:
+ *     summary: List security events
+ *     description: Get security events for the organization with optional filtering.
+ *     tags: [Security Events]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: severity
+ *         schema:
+ *           type: string
+ *           enum: [low, medium, high, critical]
+ *         description: Filter by severity level
+ *       - in: query
+ *         name: acknowledged
+ *         schema:
+ *           type: boolean
+ *         description: Filter by acknowledgment status
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 100
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *     responses:
+ *       200:
+ *         description: Security events list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       eventType:
+ *                         type: string
+ *                       severity:
+ *                         type: string
+ *                       title:
+ *                         type: string
+ *                       acknowledged:
+ *                         type: boolean
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                 unacknowledgedCount:
+ *                   type: integer
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
@@ -72,8 +132,44 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 /**
- * PATCH /api/organization/security-events/:id/acknowledge
- * Acknowledge a security event
+ * @openapi
+ * /api/v1/organization/security-events/{id}/acknowledge:
+ *   patch:
+ *     summary: Acknowledge security event
+ *     description: Mark a security event as acknowledged with optional note.
+ *     tags: [Security Events]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               note:
+ *                 type: string
+ *                 description: Optional note about acknowledgment
+ *     responses:
+ *       200:
+ *         description: Event acknowledged
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.patch('/:id/acknowledge', async (req: Request, res: Response) => {
   try {

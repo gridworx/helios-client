@@ -19,8 +19,59 @@ const validateRequest = (req: Request, res: Response, next: NextFunction) => {
 };
 
 /**
- * POST /api/google-workspace/setup
- * Upload service account credentials and setup Domain-Wide Delegation
+ * @openapi
+ * /api/v1/google-workspace/setup:
+ *   post:
+ *     summary: Setup Google Workspace integration
+ *     description: |
+ *       Upload service account credentials and configure Domain-Wide Delegation.
+ *       Triggers initial sync after successful setup.
+ *     tags: [Google Workspace]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [organizationId, domain, credentials]
+ *             properties:
+ *               organizationId:
+ *                 type: string
+ *                 format: uuid
+ *               domain:
+ *                 type: string
+ *                 example: example.com
+ *               adminEmail:
+ *                 type: string
+ *                 format: email
+ *               credentials:
+ *                 type: object
+ *                 required: [client_email, private_key, client_id]
+ *                 properties:
+ *                   client_email:
+ *                     type: string
+ *                   private_key:
+ *                     type: string
+ *                   client_id:
+ *                     type: string
+ *     responses:
+ *       200:
+ *         description: Setup successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 delegationInfo:
+ *                   type: object
+ *                 syncTriggered:
+ *                   type: boolean
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
  */
 router.post('/setup', [
   body('organizationId').notEmpty().withMessage('Organization ID is required'),
@@ -104,8 +155,42 @@ router.post('/setup', [
 });
 
 /**
- * POST /api/google-workspace/test-connection
- * Test Domain-Wide Delegation connection with stored credentials
+ * @openapi
+ * /api/v1/google-workspace/test-connection:
+ *   post:
+ *     summary: Test connection with stored credentials
+ *     description: Test Domain-Wide Delegation connection using credentials stored in the database.
+ *     tags: [Google Workspace]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [organizationId, domain]
+ *             properties:
+ *               organizationId:
+ *                 type: string
+ *                 format: uuid
+ *               domain:
+ *                 type: string
+ *               adminEmail:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: Connection test result
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
  */
 router.post('/test-connection', [
   body('organizationId').notEmpty().withMessage('Organization ID is required'),

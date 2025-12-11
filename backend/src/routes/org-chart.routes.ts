@@ -4,7 +4,48 @@ import { db } from '../database/connection';
 
 const router = Router();
 
-// Get organization hierarchy
+/**
+ * @openapi
+ * /api/v1/organization/org-chart:
+ *   get:
+ *     summary: Get organization chart
+ *     description: |
+ *       Get the organization hierarchy as a tree structure with statistics.
+ *       Includes orphaned users (those with invalid manager references).
+ *     tags: [Organization Chart]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Organization chart data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     root:
+ *                       type: object
+ *                       description: Root of the org tree
+ *                     orphans:
+ *                       type: array
+ *                       description: Users with invalid manager references
+ *                     stats:
+ *                       type: object
+ *                       properties:
+ *                         totalUsers:
+ *                           type: integer
+ *                         maxDepth:
+ *                           type: integer
+ *                         avgSpan:
+ *                           type: number
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
 router.get('/org-chart', requireAuth, async (req: Request, res: Response) => {
   try {
     const organizationId = req.user?.organizationId;
@@ -166,7 +207,46 @@ router.get('/org-chart', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-// Update user's manager
+/**
+ * @openapi
+ * /api/v1/organization/users/{userId}/manager:
+ *   put:
+ *     summary: Update user's manager
+ *     description: |
+ *       Change a user's reporting manager. Admin or manager role required.
+ *       Validates against circular references.
+ *     tags: [Organization Chart]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               managerId:
+ *                 type: string
+ *                 format: uuid
+ *                 nullable: true
+ *                 description: New manager ID (null to remove manager)
+ *     responses:
+ *       200:
+ *         description: Manager updated
+ *       400:
+ *         description: Invalid request or circular reference
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
 router.put('/users/:userId/manager', requireAuth, async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
@@ -263,7 +343,50 @@ router.put('/users/:userId/manager', requireAuth, async (req: Request, res: Resp
   }
 });
 
-// Get direct reports for a user
+/**
+ * @openapi
+ * /api/v1/organization/users/{userId}/direct-reports:
+ *   get:
+ *     summary: Get direct reports
+ *     description: Get list of users who report directly to the specified user.
+ *     tags: [Organization Chart]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: List of direct reports
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       userId:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                       email:
+ *                         type: string
+ *                       title:
+ *                         type: string
+ *                       directReportsCount:
+ *                         type: integer
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
 router.get('/users/:userId/direct-reports', requireAuth, async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
