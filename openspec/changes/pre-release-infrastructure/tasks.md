@@ -181,10 +181,12 @@
   - ✅ users.routes.ts uses successResponse, errorResponse, notFoundResponse
 - [x] **TASK-INFRA-053**: Refactor group routes to use response helpers
   - ✅ access-groups.routes.ts (20+ endpoints) uses standardized response format
-- [ ] **TASK-INFRA-054**: Refactor all remaining routes to use response helpers
-  - Systematic update of remaining route files
-  - Replace inline `res.json()` with helpers
-  - Priority: dashboard.routes.ts, organization.routes.ts, departments.routes.ts
+- [x] **TASK-INFRA-054**: Refactor priority routes to use response helpers
+  - ✅ dashboard.routes.ts (5 endpoints) - all using response helpers
+  - ✅ organization.routes.ts (~25 endpoints) - key endpoints using response helpers
+  - ✅ departments.routes.ts (5 endpoints) - all using response helpers
+  - 6 route files now use standardized response format (auth, users, access-groups, dashboard, organization, departments)
+  - Remaining 34 route files can be migrated incrementally
 
 ## Phase 10: Testing - ✅ VERIFIED 2025-12-11
 

@@ -3,6 +3,14 @@ import { body, validationResult } from 'express-validator';
 import { db } from '../database/connection';
 import { logger } from '../utils/logger';
 import { authenticateToken } from '../middleware/auth';
+import {
+  successResponse,
+  errorResponse,
+  createdResponse,
+  notFoundResponse,
+  validationErrorResponse
+} from '../utils/response';
+import { ErrorCode } from '../types/error-codes';
 
 const router = Router();
 
@@ -40,10 +48,7 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
     const organizationId = req.user?.organizationId;
 
     if (!organizationId) {
-      return res.status(401).json({
-        success: false,
-        error: 'Organization ID not found'
-      });
+      return validationErrorResponse(res, [{ field: 'organizationId', message: 'Organization ID not found' }]);
     }
 
     const result = await db.query(`
@@ -66,16 +71,10 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
       ORDER BY d.name
     `, [organizationId]);
 
-    res.json({
-      success: true,
-      data: result.rows
-    });
+    successResponse(res, result.rows);
   } catch (error: any) {
     logger.error('Failed to fetch departments', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch departments'
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to fetch departments');
   }
 });
 
@@ -141,22 +140,13 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response) => {
     `, [id, organizationId]);
 
     if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: 'Department not found'
-      });
+      return notFoundResponse(res, 'Department');
     }
 
-    res.json({
-      success: true,
-      data: result.rows[0]
-    });
+    successResponse(res, result.rows[0]);
   } catch (error: any) {
     logger.error('Failed to fetch department', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch department'
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to fetch department');
   }
 });
 
@@ -233,11 +223,7 @@ router.post('/',
   async (req: Request, res: Response) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        error: 'Validation failed',
-        details: errors.array()
-      });
+      return validationErrorResponse(res, errors.array().map(e => ({ field: (e as any).path, message: e.msg })));
     }
 
     try {
@@ -259,10 +245,7 @@ router.post('/',
       );
 
       if (existing.rows.length > 0) {
-        return res.status(409).json({
-          success: false,
-          error: 'Department with this name already exists'
-        });
+        return errorResponse(res, ErrorCode.CONFLICT, 'Department with this name already exists');
       }
 
       const result = await db.query(`
@@ -304,17 +287,10 @@ router.post('/',
         createdBy: userId
       });
 
-      res.status(201).json({
-        success: true,
-        message: 'Department created successfully',
-        data: result.rows[0]
-      });
+      createdResponse(res, result.rows[0]);
     } catch (error: any) {
       logger.error('Failed to create department', { error: error.message });
-      res.status(500).json({
-        success: false,
-        error: 'Failed to create department'
-      });
+      errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to create department');
     }
   }
 );
@@ -395,11 +371,7 @@ router.put('/:id',
   async (req: Request, res: Response) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        error: 'Validation failed',
-        details: errors.array()
-      });
+      return validationErrorResponse(res, errors.array().map(e => ({ field: (e as any).path, message: e.msg })));
     }
 
     try {
@@ -422,10 +394,7 @@ router.put('/:id',
       );
 
       if (existing.rows.length === 0) {
-        return res.status(404).json({
-          success: false,
-          error: 'Department not found'
-        });
+        return notFoundResponse(res, 'Department');
       }
 
       const result = await db.query(`
@@ -466,17 +435,10 @@ router.put('/:id',
         updatedBy: req.user?.userId
       });
 
-      res.json({
-        success: true,
-        message: 'Department updated successfully',
-        data: result.rows[0]
-      });
+      successResponse(res, result.rows[0]);
     } catch (error: any) {
       logger.error('Failed to update department', { error: error.message });
-      res.status(500).json({
-        success: false,
-        error: 'Failed to update department'
-      });
+      errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to update department');
     }
   }
 );
@@ -534,10 +496,7 @@ router.delete('/:id', authenticateToken, async (req: Request, res: Response) => 
     );
 
     if (deptResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: 'Department not found'
-      });
+      return notFoundResponse(res, 'Department');
     }
 
     // Check if any users are assigned
@@ -547,10 +506,7 @@ router.delete('/:id', authenticateToken, async (req: Request, res: Response) => 
     );
 
     if (parseInt(userCount.rows[0].count) > 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Cannot delete department with assigned users. Please reassign users first.'
-      });
+      return errorResponse(res, ErrorCode.VALIDATION_ERROR, 'Cannot delete department with assigned users. Please reassign users first.');
     }
 
     await db.query(
@@ -564,16 +520,10 @@ router.delete('/:id', authenticateToken, async (req: Request, res: Response) => 
       deletedBy: req.user?.userId
     });
 
-    res.json({
-      success: true,
-      message: 'Department deleted successfully'
-    });
+    successResponse(res, { message: 'Department deleted successfully' });
   } catch (error: any) {
     logger.error('Failed to delete department', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to delete department'
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to delete department');
   }
 });
 

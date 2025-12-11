@@ -4,6 +4,12 @@ import { db } from '../database/connection';
 import { logger } from '../utils/logger';
 import { cacheService } from '../services/cache.service';
 import { activityTracker } from '../services/activity-tracker.service';
+import {
+  successResponse,
+  errorResponse,
+  validationErrorResponse
+} from '../utils/response';
+import { ErrorCode } from '../types/error-codes';
 
 const router = Router();
 router.use(authenticateToken);
@@ -75,7 +81,7 @@ router.get('/stats', async (req: Request, res: Response): Promise<void> => {
     const organizationId = req.user?.organizationId;
 
     if (!organizationId) {
-      res.status(400).json({ success: false, error: 'Organization ID not found' });
+      validationErrorResponse(res, [{ field: 'organizationId', message: 'Organization ID not found' }]);
       return;
     }
 
@@ -165,16 +171,10 @@ router.get('/stats', async (req: Request, res: Response): Promise<void> => {
       };
     }, 60); // Cache for 1 minute
 
-    res.json({
-      success: true,
-      data: stats
-    });
+    successResponse(res, stats);
   } catch (error: any) {
     logger.error('Failed to get dashboard stats', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get dashboard statistics'
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to get dashboard statistics');
   }
 });
 
@@ -221,22 +221,16 @@ router.get('/activity', async (req: Request, res: Response): Promise<void> => {
     const organizationId = req.user?.organizationId;
 
     if (!organizationId) {
-      res.status(400).json({ success: false, error: 'Organization ID not found' });
+      validationErrorResponse(res, [{ field: 'organizationId', message: 'Organization ID not found' }]);
       return;
     }
 
     const activity = await activityTracker.getRecentActivity(organizationId, 10);
 
-    res.json({
-      success: true,
-      data: activity
-    });
+    successResponse(res, activity);
   } catch (error: any) {
     logger.error('Failed to get activity', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get activity'
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to get activity');
   }
 });
 
@@ -287,7 +281,7 @@ router.get('/alerts', async (req: Request, res: Response): Promise<void> => {
     const organizationId = req.user?.organizationId;
 
     if (!organizationId) {
-      res.status(400).json({ success: false, error: 'Organization ID not found' });
+      validationErrorResponse(res, [{ field: 'organizationId', message: 'Organization ID not found' }]);
       return;
     }
 
@@ -349,16 +343,10 @@ router.get('/alerts', async (req: Request, res: Response): Promise<void> => {
       });
     }
 
-    res.json({
-      success: true,
-      data: alerts
-    });
+    successResponse(res, alerts);
   } catch (error: any) {
     logger.error('Failed to get alerts', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get alerts'
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to get alerts');
   }
 });
 
@@ -402,7 +390,7 @@ router.get('/widgets', async (req: Request, res: Response): Promise<void> => {
     const userId = req.user?.userId;
 
     if (!userId) {
-      res.status(400).json({ success: false, error: 'User ID not found' });
+      validationErrorResponse(res, [{ field: 'userId', message: 'User ID not found' }]);
       return;
     }
 
@@ -436,16 +424,10 @@ router.get('/widgets', async (req: Request, res: Response): Promise<void> => {
       }));
     }, 300); // Cache for 5 minutes
 
-    res.json({
-      success: true,
-      data: widgets
-    });
+    successResponse(res, widgets);
   } catch (error: any) {
     logger.error('Failed to get widgets', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get widget preferences'
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to get widget preferences');
   }
 });
 
@@ -499,12 +481,12 @@ router.put('/widgets', async (req: Request, res: Response): Promise<void> => {
     const widgets = req.body.widgets;
 
     if (!userId) {
-      res.status(400).json({ success: false, error: 'User ID not found' });
+      validationErrorResponse(res, [{ field: 'userId', message: 'User ID not found' }]);
       return;
     }
 
     if (!Array.isArray(widgets)) {
-      res.status(400).json({ success: false, error: 'Invalid widget data' });
+      validationErrorResponse(res, [{ field: 'widgets', message: 'Invalid widget data' }]);
       return;
     }
 
@@ -529,20 +511,14 @@ router.put('/widgets', async (req: Request, res: Response): Promise<void> => {
       // Clear cache
       await cacheService.del(cacheService.keys.dashboardWidgets(userId));
 
-      res.json({
-        success: true,
-        message: 'Widget preferences saved'
-      });
+      successResponse(res, { message: 'Widget preferences saved' });
     } catch (error) {
       await db.query('ROLLBACK');
       throw error;
     }
   } catch (error: any) {
     logger.error('Failed to save widgets', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to save widget preferences'
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to save widget preferences');
   }
 });
 

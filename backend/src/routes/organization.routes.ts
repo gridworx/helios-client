@@ -8,6 +8,16 @@ import { authenticateToken } from '../middleware/auth';
 import { PasswordSetupService } from '../services/password-setup.service';
 import { syncScheduler } from '../services/sync-scheduler.service';
 import { googleWorkspaceService } from '../services/google-workspace.service';
+import {
+  successResponse,
+  errorResponse,
+  createdResponse,
+  notFoundResponse,
+  validationErrorResponse,
+  forbiddenResponse,
+  paginatedResponse
+} from '../utils/response';
+import { ErrorCode } from '../types/error-codes';
 
 const router = Router();
 
@@ -52,20 +62,14 @@ router.get('/setup/status', async (req: Request, res: Response) => {
     const adminResult = await db.query("SELECT COUNT(*) as count FROM organization_users WHERE role = 'admin'");
     const adminCount = parseInt(adminResult.rows[0].count);
 
-    res.json({
-      success: true,
-      data: {
-        isSetupComplete: orgCount > 0 && adminCount > 0,
-        hasOrganization: orgCount > 0,
-        hasAdmin: adminCount > 0
-      }
+    successResponse(res, {
+      isSetupComplete: orgCount > 0 && adminCount > 0,
+      hasOrganization: orgCount > 0,
+      hasAdmin: adminCount > 0
     });
   } catch (error) {
     logger.error('Failed to check setup status', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to check setup status'
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to check setup status');
   }
 });
 
@@ -147,28 +151,19 @@ router.post('/setup', async (req: Request, res: Response) => {
 
     // Validate input
     if (!organizationName || !organizationDomain || !adminEmail || !adminPassword || !adminFirstName || !adminLastName) {
-      return res.status(400).json({
-        success: false,
-        error: 'All fields are required'
-      });
+      return validationErrorResponse(res, [{ message: 'All fields are required' }]);
     }
 
     // Check if organization already exists
     const existingOrg = await db.query('SELECT id FROM organizations LIMIT 1');
     if (existingOrg.rows.length > 0) {
-      return res.status(409).json({
-        success: false,
-        error: 'Organization already exists'
-      });
+      return errorResponse(res, ErrorCode.CONFLICT, 'Organization already exists');
     }
 
     // Check if admin already exists
     const existingAdmin = await db.query('SELECT id FROM organization_users WHERE email = $1', [adminEmail]);
     if (existingAdmin.rows.length > 0) {
-      return res.status(409).json({
-        success: false,
-        error: 'Admin user already exists'
-      });
+      return errorResponse(res, ErrorCode.CONFLICT, 'Admin user already exists');
     }
 
     // Start transaction
@@ -245,24 +240,21 @@ router.post('/setup', async (req: Request, res: Response) => {
         adminId: admin.id
       });
 
-      res.json({
-        success: true,
+      successResponse(res, {
         message: 'Organization setup completed successfully',
-        data: {
-          organization: {
-            id: organization.id,
-            name: organization.name,
-            domain: organization.domain
-          },
-          admin: {
-            id: admin.id,
-            email: admin.email,
-            firstName: admin.first_name,
-            lastName: admin.last_name,
-            role: admin.role
-          },
-          token
-        }
+        organization: {
+          id: organization.id,
+          name: organization.name,
+          domain: organization.domain
+        },
+        admin: {
+          id: admin.id,
+          email: admin.email,
+          firstName: admin.first_name,
+          lastName: admin.last_name,
+          role: admin.role
+        },
+        token
       });
     } catch (error) {
       await db.query('ROLLBACK');
@@ -270,11 +262,7 @@ router.post('/setup', async (req: Request, res: Response) => {
     }
   } catch (error) {
     logger.error('Failed to setup organization', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to setup organization',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to setup organization');
   }
 });
 
@@ -312,22 +300,13 @@ router.get('/current', async (req: Request, res: Response) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: 'No organization found'
-      });
+      return notFoundResponse(res, 'Organization');
     }
 
-    res.json({
-      success: true,
-      data: result.rows[0]
-    });
+    successResponse(res, result.rows[0]);
   } catch (error) {
     logger.error('Failed to get organization', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get organization'
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to get organization');
   }
 });
 
@@ -355,10 +334,7 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
       if (orgResult.rows.length > 0) {
         organizationId = orgResult.rows[0].id;
       } else {
-        return res.status(404).json({
-          success: false,
-          error: 'No organization found'
-        });
+        return notFoundResponse(res, 'Organization');
       }
     }
 
@@ -553,20 +529,13 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
       }
     });
 
-    res.json({
-      success: true,
-      data: users,
-      meta: {
-        total: users.length,
-        source: googleWorkspaceEnabled ? 'google_workspace' : 'local'
-      }
+    successResponse(res, users, {
+      total: users.length,
+      source: googleWorkspaceEnabled ? 'google_workspace' : 'local'
     });
   } catch (error: any) {
     logger.error('Failed to fetch users', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch users'
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to fetch users');
   }
 });
 
@@ -588,10 +557,7 @@ router.get('/users/count', authenticateToken, async (req: Request, res: Response
       if (orgResult.rows.length > 0) {
         organizationId = orgResult.rows[0].id;
       } else {
-        return res.status(404).json({
-          success: false,
-          error: 'No organization found'
-        });
+        return notFoundResponse(res, 'Organization');
       }
     }
 
@@ -609,16 +575,10 @@ router.get('/users/count', authenticateToken, async (req: Request, res: Response
 
     const count = parseInt(result.rows[0].count) || 0;
 
-    res.json({
-      success: true,
-      data: { count }
-    });
+    successResponse(res, { count });
   } catch (error: any) {
     logger.error('Failed to count users', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to count users'
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to count users');
   }
 });
 
@@ -635,10 +595,7 @@ router.get('/users/stats', authenticateToken, async (req: Request, res: Response
       if (orgResult.rows.length > 0) {
         organizationId = orgResult.rows[0].id;
       } else {
-        return res.status(404).json({
-          success: false,
-          error: 'No organization found'
-        });
+        return notFoundResponse(res, 'Organization');
       }
     }
 
@@ -703,27 +660,21 @@ router.get('/users/stats', authenticateToken, async (req: Request, res: Response
       employeeTypeCounts[row.employee_type] = parseInt(row.count);
     });
 
-    res.json({
-      success: true,
-      data: {
-        total: parseInt(totalResult.rows[0].count),
-        byRole: {
-          admin: roleCounts['admin'] || 0,
-          manager: roleCounts['manager'] || 0,
-          user: roleCounts['user'] || 0
-        },
-        byEmployeeType: employeeTypeCounts,
-        managers: parseInt(managersResult.rows[0].count),
-        orphans: parseInt(orphansResult.rows[0].count)
-      }
+    successResponse(res, {
+      total: parseInt(totalResult.rows[0].count),
+      byRole: {
+        admin: roleCounts['admin'] || 0,
+        manager: roleCounts['manager'] || 0,
+        user: roleCounts['user'] || 0
+      },
+      byEmployeeType: employeeTypeCounts,
+      managers: parseInt(managersResult.rows[0].count),
+      orphans: parseInt(orphansResult.rows[0].count)
     });
 
   } catch (error: any) {
     logger.error('Failed to get user stats', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to get user stats');
   }
 });
 
@@ -738,10 +689,7 @@ router.get('/users/:userId', authenticateToken, async (req: Request, res: Respon
     // Get organizationId from authenticated user
     const organizationId = req.user?.organizationId;
     if (!organizationId) {
-      return res.status(401).json({
-        success: false,
-        error: 'Organization ID not found'
-      });
+      return validationErrorResponse(res, [{ field: 'organizationId', message: 'Organization ID not found' }]);
     }
 
     logger.info('Fetching user by ID', { userId, organizationId });
@@ -798,25 +746,16 @@ router.get('/users/:userId', authenticateToken, async (req: Request, res: Respon
     `, [userId, organizationId]);
 
     if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: 'User not found'
-      });
+      return notFoundResponse(res, 'User');
     }
 
     const user = result.rows[0];
     user.displayName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
 
-    res.json({
-      success: true,
-      data: user
-    });
+    successResponse(res, user);
   } catch (error: any) {
     logger.error('Failed to fetch user', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch user'
-    });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to fetch user');
   }
 });
 
