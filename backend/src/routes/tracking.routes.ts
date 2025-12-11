@@ -144,6 +144,90 @@ router.get('/p/:token.gif', async (req: Request, res: Response) => {
 
 /**
  * @openapi
+ * /api/v1/t/u/{token}.gif:
+ *   get:
+ *     summary: User tracking pixel (always-on)
+ *     description: |
+ *       Serves a 1x1 transparent GIF and records the user engagement event.
+ *       This is for always-on user tracking (permanent in signature), not campaign tracking.
+ *       No authentication required - called by email clients.
+ *     tags: [Tracking]
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Unique user tracking token
+ *     responses:
+ *       200:
+ *         description: Transparent GIF
+ *         content:
+ *           image/gif:
+ *             schema:
+ *               type: string
+ *               format: binary
+ */
+router.get('/u/:token.gif', async (req: Request, res: Response) => {
+  // Always return the GIF quickly - don't let tracking failures block the response
+  const sendGif = () => {
+    res.set({
+      'Content-Type': 'image/gif',
+      'Content-Length': TRANSPARENT_GIF.length.toString(),
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      // Prevent caching in email clients
+      'X-Content-Type-Options': 'nosniff',
+    });
+    res.send(TRANSPARENT_GIF);
+  };
+
+  try {
+    const { token } = req.params;
+
+    if (!token || token.length < 10) {
+      // Invalid token, but still return GIF
+      sendGif();
+      return;
+    }
+
+    // Get client IP (handle proxies)
+    const ipAddress = (
+      req.headers['x-forwarded-for'] as string ||
+      req.headers['x-real-ip'] as string ||
+      req.socket.remoteAddress ||
+      ''
+    ).split(',')[0].trim();
+
+    // Rate limiting
+    if (!checkRateLimit(ipAddress)) {
+      sendGif();
+      return;
+    }
+
+    // Record the user tracking event asynchronously
+    // Don't await - we want to return the GIF as fast as possible
+    trackingEventsService.recordUserEvent({
+      userTrackingToken: token,
+      ipAddress,
+      userAgent: req.headers['user-agent'],
+      countryCode: undefined,
+      region: undefined,
+      city: undefined,
+    }).catch(err => {
+      console.error('Error recording user tracking event:', err);
+    });
+
+    sendGif();
+  } catch (error) {
+    console.error('Error in user tracking pixel endpoint:', error);
+    sendGif();
+  }
+});
+
+/**
+ * @openapi
  * /api/v1/t/health:
  *   get:
  *     summary: Health check

@@ -8,6 +8,7 @@
 import crypto from 'crypto';
 import { db } from '../database/connection';
 import { trackingPixelService } from './tracking-pixel.service';
+import { userTrackingService } from './user-tracking.service';
 
 interface TrackingEvent {
   id: string;
@@ -43,6 +44,15 @@ interface TrackingEventRow {
 
 interface RecordEventInput {
   pixelToken: string;
+  ipAddress?: string;
+  userAgent?: string;
+  countryCode?: string;
+  region?: string;
+  city?: string;
+}
+
+interface RecordUserEventInput {
+  userTrackingToken: string;
   ipAddress?: string;
   userAgent?: string;
   countryCode?: string;
@@ -310,6 +320,207 @@ class TrackingEventsService {
       uniqueOpens: parseInt(row.unique_opens, 10),
       lastOpenAt: row.last_open_at,
     };
+  }
+
+  // ========================================================================
+  // User Tracking Methods (always-on tracking)
+  // ========================================================================
+
+  /**
+   * Check if this is a unique open for user tracking today
+   * (unique per day per IP hash for user tracking)
+   */
+  private async isUniqueUserOpenToday(
+    userTrackingId: string,
+    ipHash: string | null
+  ): Promise<boolean> {
+    if (!ipHash) return true; // If no IP, consider it unique
+
+    const result = await db.query(
+      `SELECT COUNT(*) as count FROM signature_tracking_events
+       WHERE user_tracking_id = $1
+       AND ip_address_hash = $2
+       AND tracking_type = 'user'
+       AND DATE(timestamp) = CURRENT_DATE`,
+      [userTrackingId, ipHash]
+    );
+
+    return parseInt(result.rows[0].count, 10) === 0;
+  }
+
+  /**
+   * Record a user tracking event (always-on tracking)
+   */
+  async recordUserEvent(input: RecordUserEventInput): Promise<RecordEventResult> {
+    try {
+      // Look up the user tracking token
+      const userTracking = await userTrackingService.getTokenByPixel(input.userTrackingToken);
+
+      if (!userTracking) {
+        return {
+          success: false,
+          isUnique: false,
+          error: 'Invalid user tracking token',
+        };
+      }
+
+      // Check if tracking is active for this user
+      if (!userTracking.isActive) {
+        // Token exists but is deactivated - return success but don't record
+        return {
+          success: true,
+          isUnique: false,
+        };
+      }
+
+      // Hash IP address for privacy
+      const ipHash = input.ipAddress ? this.hashIpAddress(input.ipAddress) : null;
+
+      // Detect device type
+      const deviceType = this.detectDeviceType(input.userAgent);
+
+      // Skip recording bot events to keep analytics clean
+      if (deviceType === 'bot') {
+        return {
+          success: true,
+          isUnique: false,
+        };
+      }
+
+      // Determine if this is a unique open today (per IP)
+      const isUnique = await this.isUniqueUserOpenToday(userTracking.id, ipHash);
+
+      // Insert the tracking event with tracking_type = 'user'
+      const result = await db.query(
+        `INSERT INTO signature_tracking_events (
+           user_tracking_id, user_id, ip_address_hash, user_agent,
+           country_code, region, city, is_unique, device_type, tracking_type
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'user')
+         RETURNING id`,
+        [
+          userTracking.id,
+          userTracking.userId,
+          ipHash,
+          input.userAgent?.substring(0, 500), // Truncate long user agents
+          input.countryCode?.substring(0, 2),
+          input.region?.substring(0, 100),
+          input.city?.substring(0, 100),
+          isUnique,
+          deviceType,
+        ]
+      );
+
+      return {
+        success: true,
+        isUnique,
+        eventId: result.rows[0].id,
+      };
+    } catch (error) {
+      console.error('Error recording user tracking event:', error);
+      return {
+        success: false,
+        isUnique: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Get user tracking events for a specific user
+   */
+  async getUserTrackingEvents(
+    userId: string,
+    options?: {
+      limit?: number;
+      offset?: number;
+      startDate?: Date;
+      endDate?: Date;
+    }
+  ): Promise<Array<{
+    id: string;
+    userId: string;
+    timestamp: Date;
+    deviceType: string | null;
+    isUnique: boolean;
+  }>> {
+    const conditions: string[] = [
+      'user_id = $1',
+      "tracking_type = 'user'",
+    ];
+    const params: (string | Date)[] = [userId];
+    let paramIndex = 2;
+
+    if (options?.startDate) {
+      conditions.push(`timestamp >= $${paramIndex++}`);
+      params.push(options.startDate);
+    }
+
+    if (options?.endDate) {
+      conditions.push(`timestamp <= $${paramIndex++}`);
+      params.push(options.endDate);
+    }
+
+    const limit = options?.limit || 100;
+    const offset = options?.offset || 0;
+
+    const query = `
+      SELECT id, user_id, timestamp, device_type, is_unique
+      FROM signature_tracking_events
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY timestamp DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `;
+
+    const result = await db.query(query, params);
+
+    return result.rows.map((row: any) => ({
+      id: row.id,
+      userId: row.user_id,
+      timestamp: row.timestamp,
+      deviceType: row.device_type,
+      isUnique: row.is_unique,
+    }));
+  }
+
+  /**
+   * Get daily stats for user tracking
+   */
+  async getUserDailyStats(
+    userId: string,
+    days: number = 30
+  ): Promise<Array<{
+    date: string;
+    totalOpens: number;
+    uniqueOpens: number;
+    desktopOpens: number;
+    mobileOpens: number;
+    tabletOpens: number;
+  }>> {
+    const result = await db.query(
+      `SELECT
+         DATE(timestamp) as date,
+         COUNT(*) as total_opens,
+         COUNT(*) FILTER (WHERE is_unique) as unique_opens,
+         COUNT(*) FILTER (WHERE device_type = 'desktop') as desktop_opens,
+         COUNT(*) FILTER (WHERE device_type = 'mobile') as mobile_opens,
+         COUNT(*) FILTER (WHERE device_type = 'tablet') as tablet_opens
+       FROM signature_tracking_events
+       WHERE user_id = $1
+       AND tracking_type = 'user'
+       AND timestamp >= NOW() - INTERVAL '1 day' * $2
+       GROUP BY DATE(timestamp)
+       ORDER BY DATE(timestamp) DESC`,
+      [userId, days]
+    );
+
+    return result.rows.map((row: any) => ({
+      date: row.date.toISOString().split('T')[0],
+      totalOpens: parseInt(row.total_opens, 10),
+      uniqueOpens: parseInt(row.unique_opens, 10),
+      desktopOpens: parseInt(row.desktop_opens, 10),
+      mobileOpens: parseInt(row.mobile_opens, 10),
+      tabletOpens: parseInt(row.tablet_opens, 10),
+    }));
   }
 }
 
