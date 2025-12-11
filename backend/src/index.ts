@@ -1,3 +1,6 @@
+// Import type augmentation for Express Request (must be .ts for ts-node compatibility)
+import './types/express';
+
 // Load environment variables FIRST before any imports that use them
 import dotenv from 'dotenv';
 import path from 'path';

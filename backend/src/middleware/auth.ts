@@ -20,32 +20,7 @@ function isEmployeeUser(isExternalAdmin: boolean | undefined): boolean {
   return isExternalAdmin !== true;
 }
 
-// Extend Express Request type to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        userId: string;
-        email: string;
-        role: string;
-        organizationId: string;
-        firstName?: string;
-        lastName?: string;
-        // Access control flags
-        isAdmin: boolean;       // Can access admin UI
-        isEmployee: boolean;    // Can access employee/user UI
-        // API Key context
-        keyType?: 'service' | 'vendor';
-        apiKeyId?: string;
-        apiKeyName?: string;
-        serviceName?: string;
-        serviceEmail?: string;
-        serviceOwner?: string;
-        vendorName?: string;
-      };
-    }
-  }
-}
+// Express Request type extensions are defined in types/express.d.ts
 
 /**
  * Middleware to verify JWT token

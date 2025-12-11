@@ -1,5 +1,9 @@
 /**
  * Express Request type extensions
+ *
+ * This file augments the Express Request interface with custom properties
+ * used throughout the application. All middleware that adds properties to
+ * the request should be documented here.
  */
 
 declare global {
@@ -19,6 +23,9 @@ declare global {
         organizationId: string;
         firstName?: string;
         lastName?: string;
+        // Access control flags (added by auth middleware)
+        isAdmin: boolean;       // Can access admin UI
+        isEmployee: boolean;    // Can access employee/user UI
         // API Key context
         keyType?: 'service' | 'vendor';
         apiKeyId?: string;
