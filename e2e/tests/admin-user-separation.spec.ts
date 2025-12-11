@@ -423,12 +423,8 @@ test.describe('Settings Link Context', () => {
 
     await login(page, INTERNAL_ADMIN);
 
-    // Wait for dashboard to load
-    await page.waitForTimeout(2000);
-
-    // Ensure we're in admin view - navigate to admin dashboard
-    await page.goto('/admin');
-    await page.waitForSelector('.client-header', { timeout: 10000 });
+    // Wait for dashboard to fully load (header should be visible)
+    await page.waitForSelector('.client-header', { timeout: 15000 });
 
     // Click user menu trigger button (the button containing the avatar)
     const userMenuTrigger = page.locator('button.user-menu-trigger');

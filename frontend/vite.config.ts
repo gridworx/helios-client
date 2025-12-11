@@ -7,7 +7,35 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true,
-    open: false
+    open: false,
+    proxy: {
+      // Proxy API requests to the backend during development
+      // Use 'backend' as target when running in Docker, 'localhost' otherwise
+      '/api': {
+        target: process.env.DOCKER_ENV ? 'http://backend:3001' : 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
+      },
+      // Proxy asset proxy requests
+      '/a': {
+        target: process.env.DOCKER_ENV ? 'http://backend:3001' : 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
+      },
+      // Proxy health check
+      '/health': {
+        target: process.env.DOCKER_ENV ? 'http://backend:3001' : 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
+      },
+      // Proxy Socket.IO
+      '/socket.io': {
+        target: process.env.DOCKER_ENV ? 'http://backend:3001' : 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+      },
+    },
   },
   // Preview server config (for production build preview)
   preview: {
