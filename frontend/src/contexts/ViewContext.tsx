@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE = '/api/v1';
 
 /**
  * View modes available in the application

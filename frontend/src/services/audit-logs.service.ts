@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { apiPath } from '../config/api';
 
 export type AuditLog = {
   id: number;
@@ -44,7 +44,7 @@ export const auditLogsService = {
     if (params?.offset) queryParams.append('offset', params.offset.toString());
 
     const response = await fetch(
-      `${API_URL}/api/organization/audit-logs?${queryParams.toString()}`,
+      apiPath(`/organization/audit-logs?${queryParams.toString()}`),
       {
         credentials: 'include',
         headers: {
@@ -74,7 +74,7 @@ export const auditLogsService = {
     if (params?.endDate) queryParams.append('endDate', params.endDate);
 
     const response = await fetch(
-      `${API_URL}/api/organization/audit-logs/export?${queryParams.toString()}`,
+      apiPath(`/organization/audit-logs/export?${queryParams.toString()}`),
       {
         credentials: 'include',
       }

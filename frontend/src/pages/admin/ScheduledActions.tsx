@@ -123,7 +123,7 @@ const ScheduledActions: React.FC<ScheduledActionsProps> = ({ organizationId }) =
       if (filterType !== 'all') params.append('actionType', filterType);
 
       const response = await fetch(
-        `http://localhost:3001/api/lifecycle/scheduled-actions?${params}`,
+        `/api/v1/lifecycle/scheduled-actions?${params}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -156,7 +156,7 @@ const ScheduledActions: React.FC<ScheduledActionsProps> = ({ organizationId }) =
     try {
       const token = localStorage.getItem('helios_token');
       const response = await fetch(
-        `http://localhost:3001/api/lifecycle/logs?actionId=${actionId}`,
+        `/api/v1/lifecycle/logs?actionId=${actionId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -198,7 +198,7 @@ const ScheduledActions: React.FC<ScheduledActionsProps> = ({ organizationId }) =
     try {
       const token = localStorage.getItem('helios_token');
       const response = await fetch(
-        `http://localhost:3001/api/lifecycle/scheduled-actions/${showCancelModal}`,
+        `/api/v1/lifecycle/scheduled-actions/${showCancelModal}`,
         {
           method: 'DELETE',
           headers: {
@@ -239,8 +239,8 @@ const ScheduledActions: React.FC<ScheduledActionsProps> = ({ organizationId }) =
       const token = localStorage.getItem('helios_token');
       const endpoint =
         showApprovalModal.type === 'approve'
-          ? `http://localhost:3001/api/lifecycle/scheduled-actions/${showApprovalModal.id}/approve`
-          : `http://localhost:3001/api/lifecycle/scheduled-actions/${showApprovalModal.id}/reject`;
+          ? `/api/v1/lifecycle/scheduled-actions/${showApprovalModal.id}/approve`
+          : `/api/v1/lifecycle/scheduled-actions/${showApprovalModal.id}/reject`;
 
       const response = await fetch(endpoint, {
         method: 'POST',

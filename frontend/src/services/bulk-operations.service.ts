@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3001/api';
+import { apiPath } from '../config/api';
 
 export interface BulkOperation {
   id: string;
@@ -51,7 +51,7 @@ export class BulkOperationsService {
     formData.append('file', file);
     formData.append('operationType', operationType);
 
-    const response = await fetch(`${API_URL}/bulk/upload`, {
+    const response = await fetch(apiPath('/bulk/upload'), {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: formData,
@@ -69,7 +69,7 @@ export class BulkOperationsService {
    * Preview bulk operation changes
    */
   async previewOperation(operationType: string, items: any[]): Promise<any> {
-    const response = await fetch(`${API_URL}/bulk/preview`, {
+    const response = await fetch(apiPath('/bulk/preview'), {
       method: 'POST',
       headers: {
         ...this.getAuthHeaders(),
@@ -95,7 +95,7 @@ export class BulkOperationsService {
     items: any[],
     operationName?: string
   ): Promise<{ bulkOperationId: string; status: string; totalItems: number }> {
-    const response = await fetch(`${API_URL}/bulk/execute`, {
+    const response = await fetch(apiPath('/bulk/execute'), {
       method: 'POST',
       headers: {
         ...this.getAuthHeaders(),
@@ -117,7 +117,7 @@ export class BulkOperationsService {
    * Get bulk operation status
    */
   async getOperationStatus(bulkOperationId: string): Promise<BulkOperation> {
-    const response = await fetch(`${API_URL}/bulk/status/${bulkOperationId}`, {
+    const response = await fetch(apiPath(`/bulk/status/${bulkOperationId}`), {
       headers: this.getAuthHeaders(),
     });
 
@@ -134,7 +134,7 @@ export class BulkOperationsService {
    * Get bulk operation history
    */
   async getOperationHistory(limit: number = 50): Promise<BulkOperation[]> {
-    const response = await fetch(`${API_URL}/bulk/history?limit=${limit}`, {
+    const response = await fetch(apiPath(`/bulk/history?limit=${limit}`), {
       headers: this.getAuthHeaders(),
     });
 
@@ -151,7 +151,7 @@ export class BulkOperationsService {
    * Download CSV template
    */
   async downloadTemplate(operationType: string): Promise<void> {
-    const response = await fetch(`${API_URL}/bulk/template/${operationType}`, {
+    const response = await fetch(apiPath(`/bulk/template/${operationType}`), {
       headers: this.getAuthHeaders(),
     });
 
@@ -174,7 +174,7 @@ export class BulkOperationsService {
    * Export data to CSV
    */
   async exportToCSV(data: any[], headers?: string[], filename?: string): Promise<void> {
-    const response = await fetch(`${API_URL}/bulk/export`, {
+    const response = await fetch(apiPath('/bulk/export'), {
       method: 'POST',
       headers: {
         ...this.getAuthHeaders(),
@@ -230,7 +230,7 @@ export class BulkOperationsService {
    * Get all templates for the organization
    */
   async getTemplates(): Promise<any[]> {
-    const response = await fetch(`${API_URL}/bulk/templates`, {
+    const response = await fetch(apiPath('/bulk/templates'), {
       headers: this.getAuthHeaders(),
     });
 
@@ -247,7 +247,7 @@ export class BulkOperationsService {
    * Get a single template by ID
    */
   async getTemplate(templateId: string): Promise<any> {
-    const response = await fetch(`${API_URL}/bulk/templates/${templateId}`, {
+    const response = await fetch(apiPath(`/bulk/templates/${templateId}`), {
       headers: this.getAuthHeaders(),
     });
 
@@ -269,7 +269,7 @@ export class BulkOperationsService {
     operationType: string;
     templateData: any;
   }): Promise<any> {
-    const response = await fetch(`${API_URL}/bulk/templates`, {
+    const response = await fetch(apiPath('/bulk/templates'), {
       method: 'POST',
       headers: {
         ...this.getAuthHeaders(),
@@ -295,7 +295,7 @@ export class BulkOperationsService {
     description?: string;
     templateData?: any;
   }): Promise<any> {
-    const response = await fetch(`${API_URL}/bulk/templates/${templateId}`, {
+    const response = await fetch(apiPath(`/bulk/templates/${templateId}`), {
       method: 'PUT',
       headers: {
         ...this.getAuthHeaders(),
@@ -317,7 +317,7 @@ export class BulkOperationsService {
    * Delete a template
    */
   async deleteTemplate(templateId: string): Promise<void> {
-    const response = await fetch(`${API_URL}/bulk/templates/${templateId}`, {
+    const response = await fetch(apiPath(`/bulk/templates/${templateId}`), {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
     });

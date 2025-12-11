@@ -70,7 +70,7 @@ const OnboardingTemplates: React.FC<OnboardingTemplatesProps> = ({
     setError(null);
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch('http://localhost:3001/api/lifecycle/onboarding-templates', {
+      const response = await fetch('/api/v1/lifecycle/onboarding-templates', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -99,7 +99,7 @@ const OnboardingTemplates: React.FC<OnboardingTemplatesProps> = ({
   const fetchDepartments = async () => {
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch('http://localhost:3001/api/departments', {
+      const response = await fetch('/api/v1/departments', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -127,7 +127,7 @@ const OnboardingTemplates: React.FC<OnboardingTemplatesProps> = ({
     setDeleteLoading(true);
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch(`http://localhost:3001/api/lifecycle/onboarding-templates/${templateId}`, {
+      const response = await fetch(`/api/v1/lifecycle/onboarding-templates/${templateId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -153,7 +153,7 @@ const OnboardingTemplates: React.FC<OnboardingTemplatesProps> = ({
   const handleDuplicate = async (template: OnboardingTemplate) => {
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch('http://localhost:3001/api/lifecycle/onboarding-templates', {
+      const response = await fetch('/api/v1/lifecycle/onboarding-templates', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -187,7 +187,7 @@ const OnboardingTemplates: React.FC<OnboardingTemplatesProps> = ({
   const handleSetDefault = async (templateId: string) => {
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch(`http://localhost:3001/api/lifecycle/onboarding-templates/${templateId}`, {
+      const response = await fetch(`/api/v1/lifecycle/onboarding-templates/${templateId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -212,7 +212,7 @@ const OnboardingTemplates: React.FC<OnboardingTemplatesProps> = ({
   const handleToggleActive = async (templateId: string, isActive: boolean) => {
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch(`http://localhost:3001/api/lifecycle/onboarding-templates/${templateId}`, {
+      const response = await fetch(`/api/v1/lifecycle/onboarding-templates/${templateId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

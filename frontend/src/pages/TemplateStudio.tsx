@@ -190,7 +190,7 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch('http://localhost:3001/api/organization/users', {
+      const response = await fetch('/api/v1/organization/users', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -213,7 +213,7 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
   const fetchOrganization = async () => {
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch('http://localhost:3001/api/organization/settings', {
+      const response = await fetch('/api/v1/organization/settings', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -236,7 +236,7 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
       setError(null);
 
       const token = localStorage.getItem('helios_token');
-      const response = await fetch('http://localhost:3001/api/signatures/templates', {
+      const response = await fetch('/api/v1/signatures/templates', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -263,7 +263,7 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
   const fetchCampaigns = async () => {
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch('http://localhost:3001/api/signatures/campaigns', {
+      const response = await fetch('/api/v1/signatures/campaigns', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -314,7 +314,7 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
       }
 
       const token = localStorage.getItem('helios_token');
-      const response = await fetch('http://localhost:3001/api/signatures/templates', {
+      const response = await fetch('/api/v1/signatures/templates', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -395,7 +395,7 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
       }
 
       const token = localStorage.getItem('helios_token');
-      const response = await fetch(`http://localhost:3001/api/signatures/templates/${editingTemplate.id}`, {
+      const response = await fetch(`/api/v1/signatures/templates/${editingTemplate.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -446,7 +446,7 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
 
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch(`http://localhost:3001/api/signatures/templates/${template.id}`, {
+      const response = await fetch(`/api/v1/signatures/templates/${template.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

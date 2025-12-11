@@ -83,7 +83,7 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
       throw new Error('Not authenticated');
     }
 
-    const response = await fetch(`http://localhost:3001${path}`, {
+    const response = await fetch(`${path}`, {
       method,
       headers: {
         'Authorization': `Bearer ${token}`,

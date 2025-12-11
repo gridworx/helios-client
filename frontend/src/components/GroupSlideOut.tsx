@@ -165,7 +165,7 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
     try {
       const token = localStorage.getItem('helios_token');
       const response = await fetch(
-        'http://localhost:3001/api/organization/departments',
+        '/api/v1/organization/departments',
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -188,7 +188,7 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
     try {
       const token = localStorage.getItem('helios_token');
       const response = await fetch(
-        `http://localhost:3001/api/organization/access-groups/${groupId}`,
+        `/api/v1/organization/access-groups/${groupId}`,
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -220,7 +220,7 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
     try {
       const token = localStorage.getItem('helios_token');
       const response = await fetch(
-        `http://localhost:3001/api/organization/access-groups/${groupId}`,
+        `/api/v1/organization/access-groups/${groupId}`,
         {
           method: 'PUT',
           headers: {
@@ -265,7 +265,7 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
     try {
       const token = localStorage.getItem('helios_token');
       const response = await fetch(
-        `http://localhost:3001/api/organization/users?search=${encodeURIComponent(query)}&status=active`,
+        `/api/v1/organization/users?search=${encodeURIComponent(query)}&status=active`,
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -299,7 +299,7 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
     try {
       const token = localStorage.getItem('helios_token');
       const response = await fetch(
-        `http://localhost:3001/api/organization/access-groups/${groupId}/members`,
+        `/api/v1/organization/access-groups/${groupId}/members`,
         {
           method: 'POST',
           headers: {
@@ -332,7 +332,7 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
     try {
       const token = localStorage.getItem('helios_token');
       const response = await fetch(
-        `http://localhost:3001/api/organization/access-groups/${groupId}/members/${userId}`,
+        `/api/v1/organization/access-groups/${groupId}/members/${userId}`,
         {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
@@ -356,7 +356,7 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
     try {
       const token = localStorage.getItem('helios_token');
       const response = await fetch(
-        `http://localhost:3001/api/organization/access-groups/${groupId}`,
+        `/api/v1/organization/access-groups/${groupId}`,
         {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
@@ -388,7 +388,7 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
     try {
       const token = localStorage.getItem('helios_token');
       const response = await fetch(
-        `http://localhost:3001/api/organization/access-groups/${groupId}/rules`,
+        `/api/v1/organization/access-groups/${groupId}/rules`,
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -420,7 +420,7 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
     try {
       const token = localStorage.getItem('helios_token');
       const response = await fetch(
-        `http://localhost:3001/api/organization/access-groups/${groupId}/rules`,
+        `/api/v1/organization/access-groups/${groupId}/rules`,
         {
           method: 'POST',
           headers: {
@@ -452,7 +452,7 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
     try {
       const token = localStorage.getItem('helios_token');
       const response = await fetch(
-        `http://localhost:3001/api/organization/access-groups/${groupId}/rules/${ruleId}`,
+        `/api/v1/organization/access-groups/${groupId}/rules/${ruleId}`,
         {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
@@ -476,7 +476,7 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
     try {
       const token = localStorage.getItem('helios_token');
       const response = await fetch(
-        `http://localhost:3001/api/organization/access-groups/${groupId}/evaluate`,
+        `/api/v1/organization/access-groups/${groupId}/evaluate`,
         {
           method: 'POST',
           headers: {
@@ -510,7 +510,7 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
     try {
       const token = localStorage.getItem('helios_token');
       const response = await fetch(
-        `http://localhost:3001/api/organization/access-groups/${groupId}/apply-rules`,
+        `/api/v1/organization/access-groups/${groupId}/apply-rules`,
         {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` }
@@ -544,7 +544,7 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
     try {
       const token = localStorage.getItem('helios_token');
       const response = await fetch(
-        `http://localhost:3001/api/organization/access-groups/${groupId}/membership-type`,
+        `/api/v1/organization/access-groups/${groupId}/membership-type`,
         {
           method: 'PUT',
           headers: {

@@ -135,7 +135,7 @@ export function ApiKeyWizard({ organizationId: _organizationId, onClose, onSucce
 
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch('http://localhost:3001/api/organization/api-keys', {
+      const response = await fetch('/api/v1/organization/api-keys', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

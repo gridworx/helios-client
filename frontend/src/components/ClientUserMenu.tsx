@@ -114,7 +114,7 @@ export function ClientUserMenu({ userName, userEmail, userRole, onLogout, onChan
                 </button>
                 <button className="menu-item" onClick={() => {
                   setIsOpen(false);
-                  window.open('http://localhost:3001/api/docs', '_blank');
+                  window.open('/api/v1/docs', '_blank');
                 }}>
                   <Book size={14} className="menu-icon-svg" />
                   <span>API Documentation</span>

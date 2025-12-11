@@ -3,7 +3,7 @@
  * Handles all API key-related operations
  */
 
-const API_BASE_URL = 'http://localhost:3001';
+import { apiPath } from '../config/api';
 
 export interface ApiKey {
   id: string;
@@ -94,7 +94,7 @@ class ApiKeysService {
    * Create a new API key
    */
   async createApiKey(data: CreateApiKeyRequest): Promise<CreateApiKeyResponse> {
-    const response = await fetch(`${API_BASE_URL}/api/organization/api-keys`, {
+    const response = await fetch(apiPath('/organization/api-keys'), {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(data)
@@ -117,7 +117,7 @@ class ApiKeysService {
     if (filters?.status) params.append('status', filters.status);
     if (filters?.type) params.append('type', filters.type);
 
-    const url = `${API_BASE_URL}/api/organization/api-keys${params.toString() ? '?' + params.toString() : ''}`;
+    const url = apiPath(`/organization/api-keys${params.toString() ? '?' + params.toString() : ''}`);
 
     const response = await fetch(url, {
       headers: this.getAuthHeaders()
@@ -136,7 +136,7 @@ class ApiKeysService {
    * Get details of a specific API key
    */
   async getApiKey(id: string): Promise<ApiKey> {
-    const response = await fetch(`${API_BASE_URL}/api/organization/api-keys/${id}`, {
+    const response = await fetch(apiPath(`/organization/api-keys/${id}`), {
       headers: this.getAuthHeaders()
     });
 
@@ -153,7 +153,7 @@ class ApiKeysService {
    * Update API key settings
    */
   async updateApiKey(id: string, updates: Partial<Pick<ApiKey, 'permissions'>>): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/api/organization/api-keys/${id}`, {
+    const response = await fetch(apiPath(`/organization/api-keys/${id}`), {
       method: 'PATCH',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(updates)
@@ -170,7 +170,7 @@ class ApiKeysService {
    * Revoke an API key
    */
   async revokeApiKey(id: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/api/organization/api-keys/${id}`, {
+    const response = await fetch(apiPath(`/organization/api-keys/${id}`), {
       method: 'DELETE',
       headers: this.getAuthHeaders()
     });
@@ -186,7 +186,7 @@ class ApiKeysService {
    * Renew an expired API key (generates new key)
    */
   async renewApiKey(id: string, expiresInDays?: number): Promise<CreateApiKeyResponse> {
-    const response = await fetch(`${API_BASE_URL}/api/organization/api-keys/${id}/renew`, {
+    const response = await fetch(apiPath(`/organization/api-keys/${id}/renew`), {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify({ expiresInDays })
@@ -211,7 +211,7 @@ class ApiKeysService {
     });
 
     const response = await fetch(
-      `${API_BASE_URL}/api/organization/api-keys/${id}/usage?${params.toString()}`,
+      apiPath(`/organization/api-keys/${id}/usage?${params.toString()}`),
       { headers: this.getAuthHeaders() }
     );
 

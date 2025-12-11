@@ -85,7 +85,7 @@ export const LabelsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         return;
       }
 
-      const response = await fetch('http://localhost:3001/api/organization/labels/with-availability', {
+      const response = await fetch('/api/v1/organization/labels/with-availability', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

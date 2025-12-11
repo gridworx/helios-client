@@ -3,7 +3,8 @@ import { Plus, Pencil, Trash2, Users, Loader2 } from 'lucide-react';
 import axios from 'axios';
 import './RolesManagement.css';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Use versioned API paths
+const API_BASE = '/api/v1';
 
 interface Role {
   id: string;
@@ -37,7 +38,7 @@ export function RolesManagement() {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/api/organization/users/stats`, {
+      const response = await axios.get(`${API_BASE}/organization/users/stats`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data.success) {

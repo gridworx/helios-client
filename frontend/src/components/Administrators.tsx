@@ -37,7 +37,7 @@ export function Administrators() {
   const fetchAdmins = async () => {
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch('http://localhost:3001/api/organization/admins', {
+      const response = await fetch('/api/v1/organization/admins', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -60,7 +60,7 @@ export function Administrators() {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch('http://localhost:3001/api/organization/users', {
+      const response = await fetch('/api/v1/organization/users', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -84,7 +84,7 @@ export function Administrators() {
 
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch(`http://localhost:3001/api/organization/admins/promote/${selectedUserId}`, {
+      const response = await fetch(`/api/v1/organization/admins/promote/${selectedUserId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -114,7 +114,7 @@ export function Administrators() {
 
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch(`http://localhost:3001/api/organization/admins/demote/${adminId}`, {
+      const response = await fetch(`/api/v1/organization/admins/demote/${adminId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

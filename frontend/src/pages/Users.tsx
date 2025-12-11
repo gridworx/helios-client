@@ -55,17 +55,17 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
 
       // Fetch counts for each user type
       const staffResponse = await fetch(
-        `http://localhost:3001/api/organization/users/count?userType=staff`,
+        `/api/v1/organization/users/count?userType=staff`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
 
       const guestsResponse = await fetch(
-        `http://localhost:3001/api/organization/users/count?userType=guest`,
+        `/api/v1/organization/users/count?userType=guest`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
 
       const contactsResponse = await fetch(
-        `http://localhost:3001/api/organization/users/count?userType=contact`,
+        `/api/v1/organization/users/count?userType=contact`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
 

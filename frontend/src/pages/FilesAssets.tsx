@@ -112,7 +112,7 @@ export function FilesAssets({ organizationId: _organizationId }: FilesAssetsProp
   const fetchStatus = useCallback(async () => {
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch('http://localhost:3001/api/assets/status', {
+      const response = await fetch('/api/v1/assets/status', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -132,7 +132,7 @@ export function FilesAssets({ organizationId: _organizationId }: FilesAssetsProp
   const fetchSettings = useCallback(async () => {
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch('http://localhost:3001/api/assets/settings', {
+      const response = await fetch('/api/v1/assets/settings', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -153,7 +153,7 @@ export function FilesAssets({ organizationId: _organizationId }: FilesAssetsProp
     try {
       setAssetsLoading(true);
       const token = localStorage.getItem('helios_token');
-      let url = 'http://localhost:3001/api/assets';
+      let url = '/api/v1/assets';
       const params = new URLSearchParams();
       if (folderId) {
         params.append('folderId', folderId);
@@ -187,7 +187,7 @@ export function FilesAssets({ organizationId: _organizationId }: FilesAssetsProp
   const fetchFolders = useCallback(async () => {
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch('http://localhost:3001/api/assets/folders', {
+      const response = await fetch('/api/v1/assets/folders', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -232,7 +232,7 @@ export function FilesAssets({ organizationId: _organizationId }: FilesAssetsProp
 
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch('http://localhost:3001/api/assets/setup', {
+      const response = await fetch('/api/v1/assets/setup', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -265,7 +265,7 @@ export function FilesAssets({ organizationId: _organizationId }: FilesAssetsProp
     setCreatingFolder(true);
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch('http://localhost:3001/api/assets/folders', {
+      const response = await fetch('/api/v1/assets/folders', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -300,7 +300,7 @@ export function FilesAssets({ organizationId: _organizationId }: FilesAssetsProp
 
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch(`http://localhost:3001/api/assets/${asset.id}?deleteFile=true`, {
+      const response = await fetch(`/api/v1/assets/${asset.id}?deleteFile=true`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -1043,7 +1043,7 @@ function UploadModal({
       }
 
       const token = localStorage.getItem('helios_token');
-      const response = await fetch('http://localhost:3001/api/assets/upload', {
+      const response = await fetch('/api/v1/assets/upload', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

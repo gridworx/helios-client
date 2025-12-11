@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+import { apiPath } from '../config/api';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -35,7 +35,7 @@ class GoogleWorkspaceService {
 
   async getGroups(organizationId: string): Promise<ApiResponse<{ groups: Group[] }>> {
     try {
-      const response = await fetch(`${API_BASE_URL}/google-workspace/groups/${organizationId}`, {
+      const response = await fetch(apiPath(`/google-workspace/groups/${organizationId}`), {
         method: 'GET',
         headers: this.getAuthHeaders()
       });
@@ -56,7 +56,7 @@ class GoogleWorkspaceService {
 
   async syncGroups(organizationId: string): Promise<ApiResponse<{ count: number; groups: Group[] }>> {
     try {
-      const response = await fetch(`${API_BASE_URL}/google-workspace/sync-groups`, {
+      const response = await fetch(apiPath('/google-workspace/sync-groups'), {
         method: 'POST',
         headers: this.getAuthHeaders(),
         body: JSON.stringify({ organizationId })
@@ -78,7 +78,7 @@ class GoogleWorkspaceService {
 
   async getOrgUnits(organizationId: string): Promise<ApiResponse<{ orgUnits: OrgUnit[] }>> {
     try {
-      const response = await fetch(`${API_BASE_URL}/google-workspace/org-units/${organizationId}`, {
+      const response = await fetch(apiPath(`/google-workspace/org-units/${organizationId}`), {
         method: 'GET',
         headers: this.getAuthHeaders()
       });
@@ -99,7 +99,7 @@ class GoogleWorkspaceService {
 
   async syncOrgUnits(organizationId: string): Promise<ApiResponse<{ count: number; orgUnits: OrgUnit[] }>> {
     try {
-      const response = await fetch(`${API_BASE_URL}/google-workspace/sync-org-units`, {
+      const response = await fetch(apiPath('/google-workspace/sync-org-units'), {
         method: 'POST',
         headers: this.getAuthHeaders(),
         body: JSON.stringify({ organizationId })
@@ -121,7 +121,7 @@ class GoogleWorkspaceService {
 
   async getCachedGroups(organizationId: string): Promise<ApiResponse<any>> {
     try {
-      const response = await fetch(`${API_BASE_URL}/google-workspace/cached-groups/${organizationId}`, {
+      const response = await fetch(apiPath(`/google-workspace/cached-groups/${organizationId}`), {
         method: 'GET',
         headers: this.getAuthHeaders()
       });

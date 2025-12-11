@@ -39,7 +39,7 @@ export function SetupPassword() {
   const verifyToken = async (tokenValue: string) => {
     try {
       const response = await fetch(
-        `http://localhost:3001/api/auth/verify-setup-token?token=${tokenValue}`
+        `/api/v1/auth/verify-setup-token?token=${tokenValue}`
       );
 
       const data: VerificationResult = await response.json();
@@ -80,7 +80,7 @@ export function SetupPassword() {
     setSubmitting(true);
 
     try {
-      const response = await fetch('http://localhost:3001/api/auth/setup-password', {
+      const response = await fetch('/api/v1/auth/setup-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -4,6 +4,16 @@ import path from 'path';
 // .env is in project root, two levels up from src/
 dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
 
+// Validate environment variables immediately after loading
+import { validateEnv } from './config/env-validation';
+try {
+  validateEnv();
+  console.log(`✅ Environment validated (${process.env['NODE_ENV'] || 'development'} mode)`);
+} catch (error) {
+  console.error('❌ Environment validation failed. Exiting...');
+  process.exit(1);
+}
+
 import express from 'express';
 import { createServer } from 'http';
 import cors from 'cors';
@@ -61,6 +71,7 @@ import assetProxyRoutes from './routes/asset-proxy.routes';
 import assetsRoutes from './routes/assets.routes';
 import lifecycleRoutes from './routes/lifecycle.routes';
 import trackingRoutes from './routes/tracking.routes';
+import { requestIdMiddleware, REQUEST_ID_HEADER } from './middleware/request-id';
 const app = express();
 const httpServer = createServer(app);
 const PORT = process.env['PORT'] || 3001;
@@ -118,8 +129,10 @@ const corsOptions = {
     'X-Actor-Email',
     'X-Actor-ID',
     'X-Actor-Type',
-    'X-Client-Reference'
+    'X-Client-Reference',
+    REQUEST_ID_HEADER  // X-Request-ID for request tracing
   ],
+  exposedHeaders: [REQUEST_ID_HEADER],  // Allow client to read X-Request-ID
 };
 
 app.use(cors(corsOptions));
@@ -128,12 +141,29 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
-// Logging middleware
-app.use((req, _res, next) => {
+// Request ID middleware - MUST be early in chain for tracing
+app.use(requestIdMiddleware);
+
+// Logging middleware - now includes requestId
+app.use((req, res, next) => {
+  // Log incoming request
   logger.info(`${req.method} ${req.url}`, {
+    requestId: req.requestId,
     ip: req.ip,
     userAgent: req.get('User-Agent'),
   });
+
+  // Log response on finish
+  res.on('finish', () => {
+    const duration = Date.now() - req.startTime;
+    const level = res.statusCode >= 400 ? 'warn' : 'info';
+    logger.log(level, `${req.method} ${req.url} ${res.statusCode} ${duration}ms`, {
+      requestId: req.requestId,
+      status: res.statusCode,
+      duration,
+    });
+  });
+
   next();
 });
 
@@ -149,13 +179,15 @@ app.get('/health', async (req, res) => {
       platformSetup: platformSetupComplete ? 'complete' : 'pending',
       timestamp: new Date().toISOString(),
       version: process.env['npm_package_version'] || '1.0.0',
+      requestId: req.requestId,
     });
   } catch (error) {
-    logger.error('Health check failed', error);
+    logger.error('Health check failed', { error, requestId: req.requestId });
     res.status(503).json({
       status: 'unhealthy',
       error: 'Health check failed',
       timestamp: new Date().toISOString(),
+      requestId: req.requestId,
     });
   }
 });
@@ -356,6 +388,13 @@ const swaggerCustomCss = `
   }
 `;
 
+// API Documentation - available at both /api/docs and /api/v1/docs
+app.use('/api/v1/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: swaggerCustomCss,
+  customSiteTitle: 'Helios API Documentation',
+  customfavIcon: '/favicon.ico'
+}));
+// Backwards compatibility alias
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   customCss: swaggerCustomCss,
   customSiteTitle: 'Helios API Documentation',
@@ -363,6 +402,11 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 }));
 
 // Serve OpenAPI spec as JSON
+app.get('/api/v1/openapi.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+// Backwards compatibility alias
 app.get('/api/openapi.json', (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerSpec);
@@ -375,22 +419,31 @@ app.use('/a', assetProxyRoutes);
 
 // Tracking pixel endpoints - PUBLIC (no auth required)
 // These are loaded by email clients when recipients view emails
+// Keep at /api/t (not versioned - pixel URLs should be stable)
 app.use('/api/t', trackingRoutes);
 
 // API Key Authentication Middleware - Applied BEFORE JWT
 // This allows API key authentication to take priority
+// Apply to both versioned and unversioned routes for backwards compatibility
+app.use('/api/v1', authenticateApiKey);
 app.use('/api', authenticateApiKey);
 
 // Platform setup check middleware - this is the core routing logic
-app.use('/api', async (req, res, next) => {
+// Helper function for setup check (reused for both /api and /api/v1)
+const setupCheckMiddleware = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
+    // Normalize path for v1 routes (remove /v1 prefix if present)
+    const normalizedPath = req.path.startsWith('/v1') ? req.path.slice(3) : req.path;
+
     // Skip setup check for health, organization setup, auth, and other setup endpoints
-    if (req.path.startsWith('/health') ||
-        req.path.startsWith('/organization/setup') ||
-        req.path.startsWith('/auth') ||
-        req.path.startsWith('/setup') ||
-        req.path.startsWith('/google-workspace') ||
-        req.path.startsWith('/modules')) {
+    if (normalizedPath.startsWith('/health') ||
+        normalizedPath.startsWith('/organization/setup') ||
+        normalizedPath.startsWith('/auth') ||
+        normalizedPath.startsWith('/setup') ||
+        normalizedPath.startsWith('/google-workspace') ||
+        normalizedPath.startsWith('/modules') ||
+        normalizedPath.startsWith('/docs') ||
+        normalizedPath.startsWith('/openapi')) {
       return next();
     }
 
@@ -398,7 +451,7 @@ app.use('/api', async (req, res, next) => {
 
     if (!isPlatformSetup) {
       // If accessing /platform/* routes without setup, allow setup process
-      if (req.path.startsWith('/platform/') || req.path === '/setup' || req.path.startsWith('/setup/')) {
+      if (normalizedPath.startsWith('/platform/') || normalizedPath === '/setup' || normalizedPath.startsWith('/setup/')) {
         return next();
       }
 
@@ -406,63 +459,96 @@ app.use('/api', async (req, res, next) => {
       return res.status(503).json({
         error: 'Platform setup required',
         setupUrl: '/platform/setup',
-        message: 'Please complete platform setup before accessing this resource.'
+        message: 'Please complete platform setup before accessing this resource.',
+        requestId: req.requestId,
       });
     }
 
     next();
   } catch (error) {
-    logger.error('Platform setup check failed', error);
+    logger.error('Platform setup check failed', { error, requestId: req.requestId });
     res.status(500).json({
       error: 'Platform setup check failed',
-      message: 'Unable to determine platform setup status.'
+      message: 'Unable to determine platform setup status.',
+      requestId: req.requestId,
     });
   }
-});
+};
 
-// API Routes - Order matters! More specific routes first
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/organization/api-keys', apiKeysRoutes);
-app.use('/api/organization/labels', labelsRoutes);
-app.use('/api/organization/workspaces', workspacesRoutes);
-app.use('/api/organization/access-groups', accessGroupsRoutes);
-app.use('/api/organization/security-events', securityEventsRoutes);
-app.use('/api/organization/audit-logs', auditLogsRoutes);
-app.use('/api/organization/custom-fields', customFieldsRoutes);
-app.use('/api/organization/departments', departmentsRoutes);
-app.use('/api/organization/locations', locationsRoutes);
-app.use('/api/organization/cost-centers', costCentersRoutes);
-app.use('/api/organization/data-quality', dataQualityRoutes);
-app.use('/api/email-security', emailSecurityRoutes);
-app.use('/api/signatures', signaturesRoutes);
-app.use('/api/signatures/v2/assignments', signatureAssignmentsRoutes);
-app.use('/api/signatures/sync', signatureSyncRoutes);
-app.use('/api/signatures/campaigns', signatureCampaignsRoutes);
-app.use('/api/signatures/permissions', signaturePermissionsRoutes);
-app.use('/api/organization', orgChartRoutes); // Register org chart routes under /api/organization
-app.use('/api/organization', organizationRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/user', userRoutes);
-app.use('/api/user-preferences', userPreferencesRoutes);
-app.use('/api/me', meRoutes);
-app.use('/api/people', peopleRoutes);
-app.use('/api/bulk', bulkOperationsRoutes);
-// app.use('/api/platform', platformRoutes);
-app.use('/api/google-workspace', GoogleWorkspaceRoutes);
-app.use('/api/modules', modulesRoutes);
-app.use('/api/assets', assetsRoutes);
-app.use('/api/lifecycle', lifecycleRoutes);
+// Apply to both versioned and unversioned routes
+app.use('/api/v1', setupCheckMiddleware);
+app.use('/api', setupCheckMiddleware);
+
+// =============================================================================
+// API Routes - v1 (Primary) and unversioned (Backwards Compatibility)
+// =============================================================================
+// All routes are registered under both /api/v1/ (recommended) and /api/ (deprecated)
+// Order matters! More specific routes first
+
+// Helper to register routes on both versioned and unversioned paths
+const registerRoute = (path: string, router: express.Router) => {
+  app.use(`/api/v1${path}`, router);  // Primary: /api/v1/*
+  app.use(`/api${path}`, router);      // Deprecated: /api/*
+};
+
+// Dashboard
+registerRoute('/dashboard', dashboardRoutes);
+
+// Organization management routes (more specific first)
+registerRoute('/organization/api-keys', apiKeysRoutes);
+registerRoute('/organization/labels', labelsRoutes);
+registerRoute('/organization/workspaces', workspacesRoutes);
+registerRoute('/organization/access-groups', accessGroupsRoutes);
+registerRoute('/organization/security-events', securityEventsRoutes);
+registerRoute('/organization/audit-logs', auditLogsRoutes);
+registerRoute('/organization/custom-fields', customFieldsRoutes);
+registerRoute('/organization/departments', departmentsRoutes);
+registerRoute('/organization/locations', locationsRoutes);
+registerRoute('/organization/cost-centers', costCentersRoutes);
+registerRoute('/organization/data-quality', dataQualityRoutes);
+registerRoute('/organization', orgChartRoutes);
+registerRoute('/organization', organizationRoutes);
+
+// Email features
+registerRoute('/email-security', emailSecurityRoutes);
+registerRoute('/signatures/v2/assignments', signatureAssignmentsRoutes);
+registerRoute('/signatures/sync', signatureSyncRoutes);
+registerRoute('/signatures/campaigns', signatureCampaignsRoutes);
+registerRoute('/signatures/permissions', signaturePermissionsRoutes);
+registerRoute('/signatures', signaturesRoutes);
+
+// Authentication & User
+registerRoute('/auth', authRoutes);
+registerRoute('/user', userRoutes);
+registerRoute('/user-preferences', userPreferencesRoutes);
+registerRoute('/me', meRoutes);
+
+// People & Bulk operations
+registerRoute('/people', peopleRoutes);
+registerRoute('/bulk', bulkOperationsRoutes);
+
+// Integrations
+registerRoute('/google-workspace', GoogleWorkspaceRoutes);
+registerRoute('/modules', modulesRoutes);
+
+// Assets & Lifecycle
+registerRoute('/assets', assetsRoutes);
+registerRoute('/lifecycle', lifecycleRoutes);
+
 // Transparent Proxy for Google Workspace APIs (must be before catch-all)
 app.use(transparentProxyRouter);
 
-// Catch-all for undefined API routes
-app.use('/api/*', (req, res) => {
+// Catch-all for undefined API routes (both versioned and unversioned)
+const notFoundHandler = (req: express.Request, res: express.Response) => {
   res.status(404).json({
     error: 'API endpoint not found',
     path: req.path,
     method: req.method,
+    requestId: req.requestId,
   });
-});
+};
+app.use('/api/v1/*', notFoundHandler);
+app.use('/api/*', notFoundHandler);
 
 // Root route - redirect logic based on platform setup
 app.get('/', async (_req, res) => {

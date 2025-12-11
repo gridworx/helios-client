@@ -253,7 +253,7 @@ function AppContent() {
     if (step === 'login' && !loginOrgName) {
       const fetchOrgInfo = async () => {
         try {
-          const response = await fetch('http://localhost:3001/api/organization/current');
+          const response = await fetch('/api/v1/organization/current');
           if (response.ok) {
             const data = await response.json();
             if (data.success && data.data) {
@@ -283,7 +283,7 @@ function AppContent() {
 
         // Verify token is still valid
         try {
-          const response = await fetch('http://localhost:3001/api/auth/verify', {
+          const response = await fetch('/api/v1/auth/verify', {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -321,7 +321,7 @@ function AppContent() {
       }
 
       // Check if organization is set up (determines setup vs login)
-      const checkResponse = await fetch('http://localhost:3001/api/organization/setup/status');
+      const checkResponse = await fetch('/api/v1/organization/setup/status');
       if (checkResponse.ok) {
         const checkData = await checkResponse.json();
         if (checkData.data && checkData.data.isSetupComplete) {
@@ -352,7 +352,7 @@ function AppContent() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-      const response = await fetch(`http://localhost:3001/api/dashboard/stats`, {
+      const response = await fetch('/api/v1/dashboard/stats', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
         },
@@ -396,7 +396,7 @@ function AppContent() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-      const response = await fetch(`http://localhost:3001/api/dashboard/widgets`, {
+      const response = await fetch('/api/v1/dashboard/widgets', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
         },
@@ -452,7 +452,7 @@ function AppContent() {
         config: {}
       }));
 
-      const response = await fetch(`http://localhost:3001/api/dashboard/widgets`, {
+      const response = await fetch('/api/v1/dashboard/widgets', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -481,7 +481,7 @@ function AppContent() {
       setSyncLoading(true);
 
       // Start sync in background
-      const response = await fetch('http://localhost:3001/api/google-workspace/sync-now', {
+      const response = await fetch('/api/v1/google-workspace/sync-now', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ organizationId: config.organizationId })
@@ -690,7 +690,7 @@ function AppContent() {
             }}
             onLogout={async () => {
               try {
-                await fetch('http://localhost:3001/api/auth/logout', {
+                await fetch('/api/v1/auth/logout', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ userId: currentUser?.id })

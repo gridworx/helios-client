@@ -41,7 +41,7 @@ export function ApiKeyList({ organizationId, onCreateKey }: ApiKeyListProps) {
       if (typeFilter !== 'all') params.append('type', typeFilter);
 
       const response = await fetch(
-        `http://localhost:3001/api/organization/api-keys?${params.toString()}`,
+        `/api/v1/organization/api-keys?${params.toString()}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -68,7 +68,7 @@ export function ApiKeyList({ organizationId, onCreateKey }: ApiKeyListProps) {
     try {
       const token = localStorage.getItem('helios_token');
       const response = await fetch(
-        `http://localhost:3001/api/organization/api-keys/${keyId}`,
+        `/api/v1/organization/api-keys/${keyId}`,
         {
           method: 'DELETE',
           headers: {

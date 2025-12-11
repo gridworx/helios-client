@@ -49,7 +49,7 @@ const OrgChart: React.FC = () => {
       setError(null);
 
       const token = localStorage.getItem('helios_token');
-      const response = await fetch('http://localhost:3001/api/organization/org-chart', {
+      const response = await fetch('/api/v1/organization/org-chart', {
         headers: {
           'Authorization': `Bearer ${token}`
         }

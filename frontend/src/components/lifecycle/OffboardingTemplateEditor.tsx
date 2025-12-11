@@ -236,7 +236,7 @@ const OffboardingTemplateEditor: React.FC<OffboardingTemplateEditorProps> = ({
     try {
       const token = localStorage.getItem('helios_token');
       const response = await fetch(
-        `http://localhost:3001/api/lifecycle/offboarding-templates/${templateId}`,
+        `/api/v1/lifecycle/offboarding-templates/${templateId}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -267,7 +267,7 @@ const OffboardingTemplateEditor: React.FC<OffboardingTemplateEditorProps> = ({
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch('http://localhost:3001/api/users', {
+      const response = await fetch('/api/v1/users', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -297,8 +297,8 @@ const OffboardingTemplateEditor: React.FC<OffboardingTemplateEditorProps> = ({
     try {
       const token = localStorage.getItem('helios_token');
       const url = isEditing
-        ? `http://localhost:3001/api/lifecycle/offboarding-templates/${templateId}`
-        : 'http://localhost:3001/api/lifecycle/offboarding-templates';
+        ? `/api/v1/lifecycle/offboarding-templates/${templateId}`
+        : '/api/v1/lifecycle/offboarding-templates';
 
       const response = await fetch(url, {
         method: isEditing ? 'PUT' : 'POST',

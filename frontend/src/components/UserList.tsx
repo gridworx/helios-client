@@ -136,7 +136,7 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
           includeDeleted: 'true'  // Include deleted users for accurate counts
         });
 
-        const allUsersResponse = await fetch(`http://localhost:3001/api/organization/users?${allUsersParams}`, {
+        const allUsersResponse = await fetch(`/api/v1/organization/users?${allUsersParams}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -174,7 +174,7 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
           queryParams.append('status', statusFilter);
         }
 
-        const response = await fetch(`http://localhost:3001/api/organization/users?${queryParams}`, {
+        const response = await fetch(`/api/v1/organization/users?${queryParams}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -283,7 +283,7 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
       setIsDeleting(true);
       const token = localStorage.getItem('helios_token');
 
-      const response = await fetch(`http://localhost:3001/api/organization/users/${userToDelete.id}`, {
+      const response = await fetch(`/api/v1/organization/users/${userToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -356,7 +356,7 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
         requestBody.expiryHours = parseInt(expiryHours);
       }
 
-      const response = await fetch('http://localhost:3001/api/organization/users', {
+      const response = await fetch('/api/v1/organization/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -420,7 +420,7 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
       const token = localStorage.getItem('helios_token');
 
       const promises = Array.from(selectedUserIds).map(userId =>
-        fetch(`http://localhost:3001/api/organization/users/${userId}/status`, {
+        fetch(`/api/v1/organization/users/${userId}/status`, {
           method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -454,7 +454,7 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
       const token = localStorage.getItem('helios_token');
 
       const promises = Array.from(selectedUserIds).map(userId =>
-        fetch(`http://localhost:3001/api/organization/users/${userId}/status`, {
+        fetch(`/api/v1/organization/users/${userId}/status`, {
           method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -488,7 +488,7 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
       const token = localStorage.getItem('helios_token');
 
       const promises = Array.from(selectedUserIds).map(userId =>
-        fetch(`http://localhost:3001/api/organization/users/${userId}`, {
+        fetch(`/api/v1/organization/users/${userId}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -511,7 +511,7 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
   const handleQuickSuspend = async (user: User) => {
     const token = localStorage.getItem('helios_token');
     try {
-      await fetch(`http://localhost:3001/api/organization/users/${user.id}/status`, {
+      await fetch(`/api/v1/organization/users/${user.id}/status`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'suspended' })
@@ -526,7 +526,7 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
   const handleQuickRestore = async (user: User) => {
     const token = localStorage.getItem('helios_token');
     try {
-      await fetch(`http://localhost:3001/api/organization/users/${user.id}/status`, {
+      await fetch(`/api/v1/organization/users/${user.id}/status`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'active' })

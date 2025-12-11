@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { apiPath } from '../config/api';
 
 export type SecurityEvent = {
   id: number;
@@ -38,7 +38,7 @@ export const securityEventsService = {
 
     const token = localStorage.getItem('helios_token');
     const response = await fetch(
-      `${API_URL}/api/organization/security-events?${queryParams.toString()}`,
+      apiPath(`/organization/security-events?${queryParams.toString()}`),
       {
         credentials: 'include',
         headers: {
@@ -58,7 +58,7 @@ export const securityEventsService = {
   async acknowledgeEvent(eventId: number, note?: string): Promise<{ success: boolean; message: string }> {
     const token = localStorage.getItem('helios_token');
     const response = await fetch(
-      `${API_URL}/api/organization/security-events/${eventId}/acknowledge`,
+      apiPath(`/organization/security-events/${eventId}/acknowledge`),
       {
         method: 'PATCH',
         credentials: 'include',

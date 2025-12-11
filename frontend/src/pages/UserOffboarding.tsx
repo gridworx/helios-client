@@ -161,8 +161,8 @@ const UserOffboarding: React.FC<UserOffboardingProps> = ({
       };
 
       const [usersRes, templatesRes] = await Promise.all([
-        fetch('http://localhost:3001/api/users?is_active=true', { headers }),
-        fetch('http://localhost:3001/api/lifecycle/offboarding-templates', { headers }),
+        fetch('/api/v1/users?is_active=true', { headers }),
+        fetch('/api/v1/lifecycle/offboarding-templates', { headers }),
       ]);
 
       if (usersRes.ok) {
@@ -258,7 +258,7 @@ const UserOffboarding: React.FC<UserOffboardingProps> = ({
         actionType: 'offboard',
       };
 
-      const response = await fetch('http://localhost:3001/api/lifecycle/offboard', {
+      const response = await fetch('/api/v1/lifecycle/offboard', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

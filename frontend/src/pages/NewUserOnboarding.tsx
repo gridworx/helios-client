@@ -146,10 +146,10 @@ const NewUserOnboarding: React.FC<NewUserOnboardingProps> = ({
       };
 
       const [templatesRes, departmentsRes, groupsRes, managersRes] = await Promise.all([
-        fetch('http://localhost:3001/api/lifecycle/onboarding-templates', { headers }),
-        fetch('http://localhost:3001/api/departments', { headers }),
-        fetch('http://localhost:3001/api/groups', { headers }),
-        fetch('http://localhost:3001/api/users?role=manager,admin', { headers }),
+        fetch('/api/v1/lifecycle/onboarding-templates', { headers }),
+        fetch('/api/v1/departments', { headers }),
+        fetch('/api/v1/groups', { headers }),
+        fetch('/api/v1/users?role=manager,admin', { headers }),
       ]);
 
       if (templatesRes.ok) {
@@ -261,7 +261,7 @@ const NewUserOnboarding: React.FC<NewUserOnboardingProps> = ({
         actionType: 'onboard',
       };
 
-      const response = await fetch('http://localhost:3001/api/lifecycle/onboard', {
+      const response = await fetch('/api/v1/lifecycle/onboard', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

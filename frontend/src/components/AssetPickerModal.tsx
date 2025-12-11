@@ -30,7 +30,7 @@ interface AssetPickerModalProps {
   category?: string; // Filter by category
 }
 
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE = '/api/v1';
 
 export function AssetPickerModal({
   isOpen,

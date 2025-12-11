@@ -70,7 +70,7 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
   const fetchModuleStatus = async () => {
     try {
       setIsLoadingStatus(true);
-      const response = await fetch(`http://localhost:3001/api/google-workspace/module-status/${organizationId}`);
+      const response = await fetch(`/api/v1/google-workspace/module-status/${organizationId}`);
       const data = await response.json();
 
       if (data.success) {
@@ -217,7 +217,7 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                                 onClick={async () => {
                                   try {
                                     const token = localStorage.getItem('helios_token');
-                                    const response = await fetch('http://localhost:3001/api/google-workspace/sync-now', {
+                                    const response = await fetch('/api/v1/google-workspace/sync-now', {
                                       method: 'POST',
                                       headers: {
                                         'Content-Type': 'application/json',
@@ -245,7 +245,7 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                                 onClick={async () => {
                                   try {
                                     const token = localStorage.getItem('helios_token');
-                                    const response = await fetch('http://localhost:3001/api/google-workspace/test-connection', {
+                                    const response = await fetch('/api/v1/google-workspace/test-connection', {
                                       method: 'POST',
                                       headers: {
                                         'Content-Type': 'application/json',
@@ -292,7 +292,7 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                                         if (confirm('Are you sure you want to disable Google Workspace? This will stop all synchronization.')) {
                                           try {
                                             const token = localStorage.getItem('helios_token');
-                                            const response = await fetch(`http://localhost:3001/api/google-workspace/disable/${organizationId}`, {
+                                            const response = await fetch(`/api/v1/google-workspace/disable/${organizationId}`, {
                                               method: 'POST',
                                               headers: {
                                                 'Authorization': `Bearer ${token}`
@@ -742,7 +742,7 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                     const user = localStorage.getItem('helios_user');
                     const userData = user ? JSON.parse(user) : null;
 
-                    const response = await fetch('http://localhost:3001/api/user/change-password', {
+                    const response = await fetch('/api/v1/user/change-password', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',

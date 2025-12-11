@@ -1,4 +1,5 @@
 import { io, Socket } from 'socket.io-client';
+import { wsUrl } from '../config/api';
 
 export interface BulkOperationProgressEvent {
   bulkOperationId: string;
@@ -42,11 +43,10 @@ class BulkOperationsSocketService {
         return;
       }
 
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const socketUrl = wsUrl('/socket.io/');
 
-      this.socket = io(API_URL, {
+      this.socket = io(socketUrl, {
         auth: { token },
-        path: '/socket.io/',
         transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionAttempts: this.maxReconnectAttempts,

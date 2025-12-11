@@ -15,8 +15,12 @@ export function errorHandler(
 ): void {
   let { statusCode = 500, message } = err;
 
-  // Log error
+  // Get requestId (may not exist if error happens early in middleware chain)
+  const requestId = req.requestId || res.locals.requestId || 'unknown';
+
+  // Log error with requestId for tracing
   logger.error('Error occurred', {
+    requestId,
     error: message,
     stack: err.stack,
     url: req.url,
@@ -30,10 +34,11 @@ export function errorHandler(
     message = 'Internal Server Error';
   }
 
-  // Send error response
+  // Send error response with requestId for client correlation
   res.status(statusCode).json({
     success: false,
     error: message,
+    requestId,
     ...(process.env['NODE_ENV'] === 'development' && { stack: err.stack }),
   });
 }

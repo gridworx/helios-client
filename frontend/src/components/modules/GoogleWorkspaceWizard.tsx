@@ -49,7 +49,7 @@ const GoogleWorkspaceWizard: React.FC<GoogleWorkspaceWizardProps> = ({
         }
 
         if (organizationId) {
-          const response = await fetch(`http://localhost:3001/api/google-workspace/module-status/${organizationId}`);
+          const response = await fetch(`/api/v1/google-workspace/module-status/${organizationId}`);
           const result = await response.json();
 
           if (result.success && result.data.isEnabled && result.data.configuration) {
@@ -112,7 +112,7 @@ const GoogleWorkspaceWizard: React.FC<GoogleWorkspaceWizardProps> = ({
     setError('');
 
     try {
-      const response = await fetch('http://localhost:3001/api/google-workspace/test-credentials', {
+      const response = await fetch('/api/v1/google-workspace/test-credentials', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -154,7 +154,7 @@ const GoogleWorkspaceWizard: React.FC<GoogleWorkspaceWizardProps> = ({
       const orgData = localStorage.getItem('helios_organization');
       const parsedOrgData = orgData ? JSON.parse(orgData) : {};
 
-      const response = await fetch('http://localhost:3001/api/google-workspace/setup', {
+      const response = await fetch('/api/v1/google-workspace/setup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,6 +1,6 @@
 // People Directory API service
 
-const API_BASE = 'http://localhost:3001/api';
+import { apiPath } from '../config/api';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -130,7 +130,7 @@ class PeopleService {
       if (params.newJoinersOnly) queryParams.set('newJoinersOnly', 'true');
       if (params.hasMedia) queryParams.set('hasMedia', 'true');
 
-      const response = await fetch(`${API_BASE}/people?${queryParams}`, {
+      const response = await fetch(apiPath(`/people?${queryParams}`), {
         headers: this.getAuthHeader(),
       });
 
@@ -166,7 +166,7 @@ class PeopleService {
       if (options.limit) queryParams.set('limit', options.limit.toString());
       if (options.fields) queryParams.set('fields', options.fields.join(','));
 
-      const response = await fetch(`${API_BASE}/people/search?${queryParams}`, {
+      const response = await fetch(apiPath(`/people/search?${queryParams}`), {
         headers: this.getAuthHeader(),
       });
 
@@ -188,7 +188,7 @@ class PeopleService {
    */
   async getNewJoiners(limit = 10): Promise<PersonCard[]> {
     try {
-      const response = await fetch(`${API_BASE}/people/new?limit=${limit}`, {
+      const response = await fetch(apiPath(`/people/new?limit=${limit}`), {
         headers: this.getAuthHeader(),
       });
 
@@ -210,7 +210,7 @@ class PeopleService {
    */
   async getFilterOptions(): Promise<FilterOptions | null> {
     try {
-      const response = await fetch(`${API_BASE}/people/filters`, {
+      const response = await fetch(apiPath('/people/filters'), {
         headers: this.getAuthHeader(),
       });
 
@@ -232,7 +232,7 @@ class PeopleService {
    */
   async getPersonProfile(personId: string): Promise<PersonProfile | null> {
     try {
-      const response = await fetch(`${API_BASE}/people/${personId}`, {
+      const response = await fetch(apiPath(`/people/${personId}`), {
         headers: this.getAuthHeader(),
       });
 
@@ -255,7 +255,7 @@ class PeopleService {
   async findByExpertise(topic: string, limit = 10): Promise<PersonCard[]> {
     try {
       const response = await fetch(
-        `${API_BASE}/people/by-skill/${encodeURIComponent(topic)}?limit=${limit}`,
+        apiPath(`/people/by-skill/${encodeURIComponent(topic)}?limit=${limit}`),
         { headers: this.getAuthHeader() }
       );
 
@@ -280,7 +280,7 @@ class PeopleService {
     mediaType: 'voice_intro' | 'video_intro' | 'name_pronunciation'
   ): Promise<{ presignedUrl: string } | null> {
     try {
-      const response = await fetch(`${API_BASE}/people/${personId}/media/${mediaType}`, {
+      const response = await fetch(apiPath(`/people/${personId}/media/${mediaType}`), {
         headers: this.getAuthHeader(),
       });
 

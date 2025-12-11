@@ -42,7 +42,7 @@ export const EmailSecurity: React.FC = () => {
         ...(dateTo && { dateTo })
       });
 
-      const response = await fetch(`http://localhost:3001/api/email-security/search?${params}`, {
+      const response = await fetch(`/api/v1/email-security/search?${params}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
         }
@@ -72,7 +72,7 @@ export const EmailSecurity: React.FC = () => {
     setDeleting(true);
 
     try {
-      const response = await fetch('http://localhost:3001/api/email-security/delete', {
+      const response = await fetch('/api/v1/email-security/delete', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

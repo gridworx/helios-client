@@ -154,7 +154,7 @@ const OnboardingTemplateEditor: React.FC<OnboardingTemplateEditorProps> = ({
     try {
       const token = localStorage.getItem('helios_token');
       const response = await fetch(
-        `http://localhost:3001/api/lifecycle/onboarding-templates/${templateId}`,
+        `/api/v1/lifecycle/onboarding-templates/${templateId}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -185,7 +185,7 @@ const OnboardingTemplateEditor: React.FC<OnboardingTemplateEditorProps> = ({
   const fetchDepartments = async () => {
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch('http://localhost:3001/api/departments', {
+      const response = await fetch('/api/v1/departments', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -206,7 +206,7 @@ const OnboardingTemplateEditor: React.FC<OnboardingTemplateEditorProps> = ({
   const fetchGroups = async () => {
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch('http://localhost:3001/api/groups', {
+      const response = await fetch('/api/v1/groups', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -236,8 +236,8 @@ const OnboardingTemplateEditor: React.FC<OnboardingTemplateEditorProps> = ({
     try {
       const token = localStorage.getItem('helios_token');
       const url = isEditing
-        ? `http://localhost:3001/api/lifecycle/onboarding-templates/${templateId}`
-        : 'http://localhost:3001/api/lifecycle/onboarding-templates';
+        ? `/api/v1/lifecycle/onboarding-templates/${templateId}`
+        : '/api/v1/lifecycle/onboarding-templates';
 
       const response = await fetch(url, {
         method: isEditing ? 'PUT' : 'POST',

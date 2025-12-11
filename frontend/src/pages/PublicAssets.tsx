@@ -59,7 +59,7 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
       setError(null);
 
       const token = localStorage.getItem('helios_token');
-      const response = await fetch('http://localhost:3001/api/public-files', {
+      const response = await fetch('/api/v1/public-files', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -148,7 +148,7 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
       if (tags.length > 0) formData.append('tags', JSON.stringify(tags));
 
       const token = localStorage.getItem('helios_token');
-      const response = await fetch('http://localhost:3001/api/public-files/upload', {
+      const response = await fetch('/api/v1/public-files/upload', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -191,7 +191,7 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
 
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch(`http://localhost:3001/api/public-files/${asset.id}`, {
+      const response = await fetch(`/api/v1/public-files/${asset.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -308,7 +308,7 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
                 <div className="asset-card-preview">
                   {isImage ? (
                     <img
-                      src={`http://localhost:3001${asset.public_url}`}
+                      src={`${asset.public_url}`}
                       alt={asset.original_file_name}
                       className="asset-image"
                       onError={(e) => {
@@ -360,7 +360,7 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
                     className="btn-icon"
                     title="Copy URL"
                     onClick={() => {
-                      navigator.clipboard.writeText(`http://localhost:3001${asset.public_url}`);
+                      navigator.clipboard.writeText(`${asset.public_url}`);
                       alert('URL copied to clipboard!');
                     }}
                   >
@@ -572,7 +572,7 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
               <div className="asset-preview">
                 {selectedAsset.mime_type.startsWith('image/') ? (
                   <img
-                    src={`http://localhost:3001${selectedAsset.public_url}`}
+                    src={`${selectedAsset.public_url}`}
                     alt={selectedAsset.original_file_name}
                     className="preview-image"
                   />
@@ -613,7 +613,7 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
                 </div>
                 <div className="detail-row">
                   <span className="detail-label">URL:</span>
-                  <span className="detail-value url">{`http://localhost:3001${selectedAsset.public_url}`}</span>
+                  <span className="detail-value url">{`${selectedAsset.public_url}`}</span>
                 </div>
                 <div className="detail-row">
                   <span className="detail-label">Uploaded:</span>
@@ -647,7 +647,7 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
               <button
                 className="btn-primary"
                 onClick={() => {
-                  navigator.clipboard.writeText(`http://localhost:3001${selectedAsset.public_url}`);
+                  navigator.clipboard.writeText(`${selectedAsset.public_url}`);
                   alert('URL copied to clipboard!');
                 }}
               >

@@ -93,7 +93,7 @@ const OffboardingTemplates: React.FC<OffboardingTemplatesProps> = ({
     setError(null);
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch('http://localhost:3001/api/lifecycle/offboarding-templates', {
+      const response = await fetch('/api/v1/lifecycle/offboarding-templates', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -127,7 +127,7 @@ const OffboardingTemplates: React.FC<OffboardingTemplatesProps> = ({
     setDeleteLoading(true);
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch(`http://localhost:3001/api/lifecycle/offboarding-templates/${templateId}`, {
+      const response = await fetch(`/api/v1/lifecycle/offboarding-templates/${templateId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -153,7 +153,7 @@ const OffboardingTemplates: React.FC<OffboardingTemplatesProps> = ({
   const handleDuplicate = async (template: OffboardingTemplate) => {
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch('http://localhost:3001/api/lifecycle/offboarding-templates', {
+      const response = await fetch('/api/v1/lifecycle/offboarding-templates', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -191,7 +191,7 @@ const OffboardingTemplates: React.FC<OffboardingTemplatesProps> = ({
   const handleSetDefault = async (templateId: string) => {
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch(`http://localhost:3001/api/lifecycle/offboarding-templates/${templateId}`, {
+      const response = await fetch(`/api/v1/lifecycle/offboarding-templates/${templateId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -215,7 +215,7 @@ const OffboardingTemplates: React.FC<OffboardingTemplatesProps> = ({
   const handleToggleActive = async (templateId: string, isActive: boolean) => {
     try {
       const token = localStorage.getItem('helios_token');
-      const response = await fetch(`http://localhost:3001/api/lifecycle/offboarding-templates/${templateId}`, {
+      const response = await fetch(`/api/v1/lifecycle/offboarding-templates/${templateId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

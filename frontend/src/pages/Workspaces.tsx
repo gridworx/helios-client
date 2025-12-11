@@ -29,7 +29,7 @@ export function Workspaces({ organizationId }: WorkspacesProps) {
     try {
       setIsLoading(true);
       const token = localStorage.getItem('helios_token');
-      const response = await fetch(`http://localhost:3001/api/organization/workspaces`, {
+      const response = await fetch(`/api/v1/organization/workspaces`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();

@@ -1,6 +1,5 @@
 import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { apiPath } from '../config/api';
 
 export interface Ticket {
   id: string;
@@ -90,7 +89,7 @@ class HelpdeskService {
       if (filters.limit) params.append('limit', filters.limit.toString());
       if (filters.offset) params.append('offset', filters.offset.toString());
 
-      const response = await axios.get(`${API_URL}/api/helpdesk/tickets?${params.toString()}`, {
+      const response = await axios.get(apiPath(`/helpdesk/tickets?${params.toString()}`), {
         headers: this.getAuthHeaders(),
       });
       return response.data.data;
@@ -102,7 +101,7 @@ class HelpdeskService {
 
   async getTicket(id: string): Promise<Ticket> {
     try {
-      const response = await axios.get(`${API_URL}/api/helpdesk/tickets/${id}`, {
+      const response = await axios.get(apiPath(`/helpdesk/tickets/${id}`), {
         headers: this.getAuthHeaders(),
       });
       return response.data.data;
@@ -124,7 +123,7 @@ class HelpdeskService {
   }): Promise<Ticket> {
     try {
       const response = await axios.post(
-        `${API_URL}/api/helpdesk/tickets`,
+        apiPath('/helpdesk/tickets'),
         data,
         { headers: this.getAuthHeaders() }
       );
@@ -138,7 +137,7 @@ class HelpdeskService {
   async assignTicket(ticketId: string, assignToUserId?: string): Promise<any> {
     try {
       const response = await axios.post(
-        `${API_URL}/api/helpdesk/tickets/${ticketId}/assign`,
+        apiPath(`/helpdesk/tickets/${ticketId}/assign`),
         { assignToUserId },
         { headers: this.getAuthHeaders() }
       );
@@ -152,7 +151,7 @@ class HelpdeskService {
   async unassignTicket(ticketId: string): Promise<any> {
     try {
       const response = await axios.delete(
-        `${API_URL}/api/helpdesk/tickets/${ticketId}/assign`,
+        apiPath(`/helpdesk/tickets/${ticketId}/assign`),
         { headers: this.getAuthHeaders() }
       );
       return response.data.data;
@@ -165,7 +164,7 @@ class HelpdeskService {
   async updateTicketStatus(ticketId: string, status: string): Promise<Ticket> {
     try {
       const response = await axios.patch(
-        `${API_URL}/api/helpdesk/tickets/${ticketId}/status`,
+        apiPath(`/helpdesk/tickets/${ticketId}/status`),
         { status },
         { headers: this.getAuthHeaders() }
       );
@@ -179,7 +178,7 @@ class HelpdeskService {
   async getTicketNotes(ticketId: string): Promise<TicketNote[]> {
     try {
       const response = await axios.get(
-        `${API_URL}/api/helpdesk/tickets/${ticketId}/notes`,
+        apiPath(`/helpdesk/tickets/${ticketId}/notes`),
         { headers: this.getAuthHeaders() }
       );
       return response.data.data;
@@ -192,7 +191,7 @@ class HelpdeskService {
   async addNote(ticketId: string, content: string, mentionedUsers: string[] = []): Promise<TicketNote> {
     try {
       const response = await axios.post(
-        `${API_URL}/api/helpdesk/tickets/${ticketId}/notes`,
+        apiPath(`/helpdesk/tickets/${ticketId}/notes`),
         { content, mentionedUsers },
         { headers: this.getAuthHeaders() }
       );
@@ -206,7 +205,7 @@ class HelpdeskService {
   async getTicketPresence(ticketId: string): Promise<PresenceData> {
     try {
       const response = await axios.get(
-        `${API_URL}/api/helpdesk/tickets/${ticketId}/presence`,
+        apiPath(`/helpdesk/tickets/${ticketId}/presence`),
         { headers: this.getAuthHeaders() }
       );
       return response.data.data;
@@ -219,7 +218,7 @@ class HelpdeskService {
   async getStats(): Promise<TicketStats> {
     try {
       const response = await axios.get(
-        `${API_URL}/api/helpdesk/stats`,
+        apiPath('/helpdesk/stats'),
         { headers: this.getAuthHeaders() }
       );
       return response.data.data;
@@ -236,7 +235,7 @@ class HelpdeskService {
       if (endDate) params.append('end_date', endDate.toISOString());
 
       const response = await axios.get(
-        `${API_URL}/api/helpdesk/analytics?${params.toString()}`,
+        apiPath(`/helpdesk/analytics?${params.toString()}`),
         { headers: this.getAuthHeaders() }
       );
       return response.data.data;

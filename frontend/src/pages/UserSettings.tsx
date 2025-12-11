@@ -134,7 +134,7 @@ export function UserSettings({ organizationId: _organizationId }: UserSettingsPr
     }
 
     try {
-      const response = await fetch('http://localhost:3001/api/auth/change-password', {
+      const response = await fetch('/api/v1/auth/change-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

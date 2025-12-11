@@ -52,7 +52,7 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
     try {
       // First get group info from the groups list
       const response = await fetch(
-        `http://localhost:3001/api/google-workspace/groups/${organizationId}`,
+        `/api/v1/google-workspace/groups/${organizationId}`,
         {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
@@ -78,7 +78,7 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
       setError(null);
 
       const response = await fetch(
-        `http://localhost:3001/api/google-workspace/groups/${groupId}/members?organizationId=${organizationId}`,
+        `/api/v1/google-workspace/groups/${groupId}/members?organizationId=${organizationId}`,
         {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
@@ -111,7 +111,7 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
       setError(null);
 
       const response = await fetch(
-        `http://localhost:3001/api/google-workspace/groups/${groupId}/members`,
+        `/api/v1/google-workspace/groups/${groupId}/members`,
         {
           method: 'POST',
           headers: {
@@ -153,7 +153,7 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
       setError(null);
 
       const response = await fetch(
-        `http://localhost:3001/api/google-workspace/groups/${groupId}/members/${encodeURIComponent(memberEmail)}?organizationId=${organizationId}`,
+        `/api/v1/google-workspace/groups/${groupId}/members/${encodeURIComponent(memberEmail)}?organizationId=${organizationId}`,
         {
           method: 'DELETE',
           headers: {
@@ -182,7 +182,7 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
       setError(null);
 
       const response = await fetch(
-        `http://localhost:3001/api/google-workspace/groups/${groupId}`,
+        `/api/v1/google-workspace/groups/${groupId}`,
         {
           method: 'PATCH',
           headers: {

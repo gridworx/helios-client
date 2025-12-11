@@ -188,7 +188,7 @@ export function MasterDataSection({ organizationId }: MasterDataSectionProps) {
 
   const fetchDepartments = async () => {
     const response = await fetch(
-      `http://localhost:3001/api/organization/departments`,
+      `/api/v1/organization/departments`,
       { headers: getAuthHeaders() }
     );
     const data = await response.json();
@@ -206,7 +206,7 @@ export function MasterDataSection({ organizationId }: MasterDataSectionProps) {
 
   const fetchLocations = async () => {
     const response = await fetch(
-      `http://localhost:3001/api/organization/locations`,
+      `/api/v1/organization/locations`,
       { headers: getAuthHeaders() }
     );
     const data = await response.json();
@@ -224,7 +224,7 @@ export function MasterDataSection({ organizationId }: MasterDataSectionProps) {
 
   const fetchCostCenters = async () => {
     const response = await fetch(
-      `http://localhost:3001/api/organization/cost-centers`,
+      `/api/v1/organization/cost-centers`,
       { headers: getAuthHeaders() }
     );
     const data = await response.json();
@@ -241,7 +241,7 @@ export function MasterDataSection({ organizationId }: MasterDataSectionProps) {
 
   const fetchQualityIssues = async () => {
     const response = await fetch(
-      `http://localhost:3001/api/organization/data-quality/orphans`,
+      `/api/v1/organization/data-quality/orphans`,
       { headers: getAuthHeaders() }
     );
     const data = await response.json();
@@ -356,7 +356,7 @@ export function MasterDataSection({ organizationId }: MasterDataSectionProps) {
 
     try {
       const response = await fetch(
-        `http://localhost:3001/api/organization/${endpoints[type]}/${id}`,
+        `/api/v1/organization/${endpoints[type]}/${id}`,
         {
           method: 'DELETE',
           headers: getAuthHeaders()
@@ -454,8 +454,8 @@ export function MasterDataSection({ organizationId }: MasterDataSectionProps) {
 
     const isEdit = !!editingItem;
     const url = isEdit
-      ? `http://localhost:3001/api/organization/departments/${editingItem.id}`
-      : `http://localhost:3001/api/organization/departments`;
+      ? `/api/v1/organization/departments/${editingItem.id}`
+      : `/api/v1/organization/departments`;
 
     try {
       const response = await fetch(url, {
@@ -492,8 +492,8 @@ export function MasterDataSection({ organizationId }: MasterDataSectionProps) {
 
     const isEdit = !!editingItem;
     const url = isEdit
-      ? `http://localhost:3001/api/organization/locations/${editingItem.id}`
-      : `http://localhost:3001/api/organization/locations`;
+      ? `/api/v1/organization/locations/${editingItem.id}`
+      : `/api/v1/organization/locations`;
 
     try {
       const response = await fetch(url, {
@@ -536,8 +536,8 @@ export function MasterDataSection({ organizationId }: MasterDataSectionProps) {
 
     const isEdit = !!editingItem;
     const url = isEdit
-      ? `http://localhost:3001/api/organization/cost-centers/${editingItem.id}`
-      : `http://localhost:3001/api/organization/cost-centers`;
+      ? `/api/v1/organization/cost-centers/${editingItem.id}`
+      : `/api/v1/organization/cost-centers`;
 
     try {
       const response = await fetch(url, {

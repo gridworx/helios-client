@@ -50,7 +50,7 @@ export function Groups({ organizationId, customLabel: _customLabel, onSelectGrou
 
       // Fetch from new access_groups API
       const token = localStorage.getItem('helios_token');
-      const response = await fetch(`http://localhost:3001/api/organization/access-groups`, {
+      const response = await fetch(`/api/v1/organization/access-groups`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -125,7 +125,7 @@ export function Groups({ organizationId, customLabel: _customLabel, onSelectGrou
       setError(null);
 
       const response = await fetch(
-        `http://localhost:3001/api/google-workspace/groups`,
+        `/api/v1/google-workspace/groups`,
         {
           method: 'POST',
           headers: {

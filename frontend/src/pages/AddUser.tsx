@@ -51,7 +51,7 @@ export function AddUser() {
     try {
       setIsLoadingUser(true);
       const token = localStorage.getItem('helios_token');
-      const response = await fetch(`http://localhost:3001/api/organization/users`, {
+      const response = await fetch(`/api/v1/organization/users`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -299,7 +299,7 @@ export function AddUser() {
 
       for (const user of validUsers) {
         try {
-          const response = await fetch('http://localhost:3001/api/organization/users', {
+          const response = await fetch('/api/v1/organization/users', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -519,8 +519,8 @@ export function AddUser() {
       }
 
       const url = isEditMode
-        ? `http://localhost:3001/api/organization/users/${editUserId}`
-        : 'http://localhost:3001/api/organization/users';
+        ? `/api/v1/organization/users/${editUserId}`
+        : '/api/v1/organization/users';
 
       const response = await fetch(url, {
         method: isEditMode ? 'PUT' : 'POST',

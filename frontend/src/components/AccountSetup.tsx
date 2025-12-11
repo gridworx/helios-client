@@ -35,7 +35,7 @@ export function AccountSetup({ onComplete }: AccountSetupProps) {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('http://localhost:3001/api/organization/setup', {
+      const response = await fetch('/api/v1/organization/setup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

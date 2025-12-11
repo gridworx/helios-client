@@ -20,14 +20,17 @@ Access Google Workspace and Microsoft 365 APIs through Helios with full audit tr
 
 ### Google Workspace Proxy
 
-Any request to \`/api/google/*\` is proxied to Google Workspace APIs:
+Any request to \`/api/v1/google/*\` is proxied to Google Workspace APIs:
 
 **Example:**
 \`\`\`bash
 # Instead of calling Google directly:
 POST https://admin.googleapis.com/admin/directory/v1/users
 
-# Call through Helios:
+# Call through Helios (recommended - versioned):
+POST https://helios.company.com/api/v1/google/admin/directory/v1/users
+
+# Also works (deprecated - unversioned):
 POST https://helios.company.com/api/google/admin/directory/v1/users
 \`\`\`
 
@@ -94,15 +97,19 @@ For MSP/partner access with human attribution:
     },
     servers: [
       {
-        url: 'http://localhost:3001',
-        description: 'Development server'
+        url: 'http://localhost:3001/api/v1',
+        description: 'Development server (versioned API)'
       },
       {
-        url: 'https://{domain}',
+        url: 'http://localhost:80/api/v1',
+        description: 'Development server (via nginx proxy)'
+      },
+      {
+        url: 'https://{domain}/api/v1',
         description: 'Production server',
         variables: {
           domain: {
-            default: 'api.helios.company.com',
+            default: 'helios.example.com',
             description: 'Your Helios instance domain'
           }
         }
@@ -144,7 +151,7 @@ For MSP/partner access with human attribution:
           type: 'http',
           scheme: 'bearer',
           bearerFormat: 'JWT',
-          description: 'JWT token obtained from /api/auth/login'
+          description: 'JWT token obtained from /api/v1/auth/login'
         },
         ServiceApiKey: {
           type: 'http',
