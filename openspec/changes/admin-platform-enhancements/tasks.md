@@ -83,16 +83,16 @@ microsoft_365_relay               = false  (not implemented)
 ## Phase 0: User Offboarding Workflow (P0 - Critical)
 
 ### 0.1 Data Transfer API
-- [ ] Create `POST /api/v1/organization/users/:id/transfer` endpoint
-- [ ] Implement Google Data Transfer API integration
-- [ ] Support Drive transfer to user or Shared Drive
-- [ ] Support Calendar transfer to user
-- [ ] Track transfer progress and status
+- [x] Create `POST /api/v1/organization/users/:id/transfer` endpoint
+- [x] Implement Google Data Transfer API integration (via transparent proxy)
+- [x] Support Drive transfer to user
+- [x] Support Calendar transfer to user
+- [ ] Track transfer progress and status (future: poll transfer status)
 - [ ] Handle partial failures gracefully
 
 **Files:**
-- `backend/src/routes/users.routes.ts`
-- `backend/src/services/google-transfer.service.ts`
+- `backend/src/routes/organization.routes.ts` (added)
+- `backend/src/services/data-transfer.service.ts` (existing)
 
 ### 0.2 Email Forwarding & Delegation
 - [ ] Create `POST /api/v1/organization/users/:id/email-settings` endpoint
@@ -105,42 +105,52 @@ microsoft_365_relay               = false  (not implemented)
 - `backend/src/services/gmail-settings.service.ts`
 
 ### 0.3 Delegate Validation
-- [ ] Create `GET /api/v1/organization/users/:email/validate-delegate` endpoint
-- [ ] Check user exists in Google Workspace
-- [ ] Check user is NOT suspended
-- [ ] Check user is NOT archived
-- [ ] Check user is NOT pending deletion
-- [ ] Return warning if not in Helios
-- [ ] Real-time validation in UI
+- [x] Create `GET /api/v1/organization/users/validate-delegate` endpoint
+- [x] Check user exists in Google Workspace
+- [x] Check user is NOT suspended
+- [x] Check user is NOT archived
+- [x] Check user is NOT pending deletion
+- [x] Return warning if not in Helios
+- [ ] Real-time validation in UI (frontend integration)
 
 **Files:**
-- `backend/src/routes/users.routes.ts`
-- `frontend/src/components/DelegateValidator.tsx`
+- `backend/src/routes/organization.routes.ts` (added)
 
-### 0.4 Offboarding Wizard UI
-- [ ] Create `UserOffboardingWizard.tsx` component
-- [ ] Step 1: Access revocation options
-- [ ] Step 2: Drive transfer configuration
-- [ ] Step 3: Calendar transfer configuration
-- [ ] Step 4: Email handling (forward/delegate/archive)
-- [ ] Step 5: Account disposition (suspend/delete/AU license)
-- [ ] Summary with license cost impact
-- [ ] Inline validation for all delegate fields
+### 0.4 Direct Reports Reassignment
+- [x] Create `POST /api/v1/organization/users/:id/reassign-reports` endpoint
+- [x] Support "all_to_one" mode (reassign all to single manager)
+- [x] Support "individual" mode (custom assignments per report)
+- [x] Add Step 2 to UserOffboarding.tsx for direct reports
+- [x] Frontend calls reassign-reports API before lifecycle offboard
+
+**Files:**
+- `backend/src/routes/organization.routes.ts` (added)
+- `frontend/src/pages/UserOffboarding.tsx` (updated)
+- `frontend/src/pages/UserOffboarding.css` (updated)
+
+### 0.5 Offboarding Wizard UI
+- [x] Existing UserOffboarding.tsx component
+- [x] Step 1: Select user
+- [x] Step 2: Direct Reports reassignment (NEW)
+- [x] Step 3: Template selection
+- [x] Step 4: Schedule configuration
+- [x] Step 5: Confirmation with summary
+- [ ] Inline validation for delegate fields (DelegateValidator component)
 - [ ] Progress tracking during execution
 
 **Files:**
-- `frontend/src/pages/UserOffboardingWizard.tsx`
-- `frontend/src/pages/UserOffboardingWizard.css`
+- `frontend/src/pages/UserOffboarding.tsx` (enhanced)
+- `frontend/src/pages/UserOffboarding.css` (enhanced)
 
-### 0.5 Bulk Access Revocation
-- [ ] Force sign-out via Admin SDK
-- [ ] Password reset to random value
-- [ ] Revoke all OAuth tokens
+### 0.6 Bulk Access Revocation
+- [x] Force sign-out via Admin SDK (in organization.routes.ts /block endpoint)
+- [x] Password reset to random value (in organization.routes.ts /block endpoint)
+- [x] Revoke OAuth tokens (in organization.routes.ts /block endpoint)
 - [ ] Remove from all groups
 - [ ] Wipe mobile devices (if MDM enabled)
 
 **Files:**
-- `backend/src/services/access-revocation.service.ts`
+- `backend/src/routes/organization.routes.ts` (existing /block endpoint)
 
 ---
 
