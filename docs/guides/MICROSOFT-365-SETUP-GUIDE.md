@@ -60,24 +60,29 @@ After registration, you'll see the **Overview** page. Copy these values:
 3. Select **Microsoft Graph**
 4. Select **Application permissions** (not Delegated)
 
-### Required Permissions
+### Required Permissions (Read-Only Sync)
 
-Add these permissions:
+Minimum permissions for user/group sync:
 
 | Permission | Purpose |
 |------------|---------|
 | `User.Read.All` | Read all user profiles |
-| `User.ReadWrite.All` | Create and update users (optional) |
 | `Group.Read.All` | Read all groups |
-| `Group.ReadWrite.All` | Create and update groups (optional) |
 | `Directory.Read.All` | Read directory data |
 | `Organization.Read.All` | Read organization info |
 
-### Optional Permissions (for license management)
+### Recommended Permissions (Full Management)
+
+For creating users, managing groups, and assigning licenses:
 
 | Permission | Purpose |
 |------------|---------|
+| `User.ReadWrite.All` | Create, update, delete users |
+| `Group.ReadWrite.All` | Create, update, delete groups |
+| `GroupMember.ReadWrite.All` | Add/remove group members |
 | `LicenseAssignment.ReadWrite.All` | Assign/remove licenses |
+
+**Note:** Helios automatically detects all available licenses in your tenant (Microsoft 365 E3, E5, Business Premium, etc.) - no configuration required.
 
 5. After adding permissions, click **Grant admin consent for [Your Org]**
 6. Confirm by clicking **Yes**

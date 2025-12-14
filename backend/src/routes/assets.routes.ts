@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import multer from 'multer';
 import { db } from '../database/connection';
@@ -6,6 +6,7 @@ import { logger } from '../utils/logger';
 import { authenticateToken } from '../middleware/auth';
 import { mediaAssetStorageService } from '../services/media-asset-storage.service';
 import { mediaAssetCacheService } from '../services/media-asset-cache.service';
+import { googleDriveService } from '../services/google-drive.service';
 import type {
   MediaAsset,
   MediaAssetWithUrl,
@@ -317,9 +318,16 @@ router.get('/', async (req: Request, res: Response) => {
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
-router.get('/:id', async (req: Request, res: Response) => {
-  const organizationId = getOrganizationId(req);
+router.get('/:id', async (req: Request, res: Response, next) => {
   const { id } = req.params;
+
+  // Skip if id is not a valid UUID (let other routes handle it)
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    return next('route');
+  }
+
+  const organizationId = getOrganizationId(req);
 
   try {
     const result = await db.query(
@@ -548,9 +556,16 @@ router.post('/', async (req: Request, res: Response) => {
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
-router.put('/:id', async (req: Request, res: Response) => {
-  const organizationId = getOrganizationId(req);
+router.put('/:id', async (req: Request, res: Response, next) => {
   const { id } = req.params;
+
+  // Skip if id is not a valid UUID
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    return next('route');
+  }
+
+  const organizationId = getOrganizationId(req);
   const body: UpdateMediaAssetRequest = req.body;
 
   try {
@@ -662,9 +677,16 @@ router.put('/:id', async (req: Request, res: Response) => {
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
-router.delete('/:id', async (req: Request, res: Response) => {
-  const organizationId = getOrganizationId(req);
+router.delete('/:id', async (req: Request, res: Response, next) => {
   const { id } = req.params;
+
+  // Skip if id is not a valid UUID
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    return next('route');
+  }
+
+  const organizationId = getOrganizationId(req);
 
   try {
     // Get asset info first
@@ -1366,19 +1388,30 @@ router.get('/status', async (req: Request, res: Response) => {
       [organizationId]
     );
 
-    // Check if Google Workspace is configured
+    // Check if Google Workspace is configured and enabled
     const gwResult = await db.query(
-      `SELECT is_enabled FROM organization_modules om
+      `SELECT om.is_enabled FROM organization_modules om
        JOIN modules m ON om.module_id = m.id
        WHERE om.organization_id = $1 AND m.slug = 'google_workspace'`,
       [organizationId]
     );
+    const hasGoogleWorkspace = gwResult.rows.length > 0 && gwResult.rows[0].is_enabled;
+
+    // Check if Drive API is accessible (independent of asset storage setup)
+    // If already configured and can upload, use that
+    // Otherwise, test Drive API access using the workspace credentials
+    let hasDriveAccess = status.canUpload;
+    if (!hasDriveAccess && hasGoogleWorkspace) {
+      // Test Drive API access using Google Workspace service
+      const driveTestResult = await googleDriveService.testConnection(organizationId);
+      hasDriveAccess = driveTestResult.success;
+    }
 
     const setupStatus: MediaAssetSetupStatus = {
       isConfigured: status.isConfigured,
       storageBackend: status.backend,
-      hasGoogleWorkspace: gwResult.rows.length > 0 && gwResult.rows[0].is_enabled,
-      hasDriveAccess: status.canUpload,
+      hasGoogleWorkspace,
+      hasDriveAccess,
       sharedDriveName: settings?.driveSharedDriveId ? 'Helios Assets' : undefined,
       folderCount: parseInt(folderCountResult.rows[0]?.count || '0'),
       assetCount: parseInt(assetCountResult.rows[0]?.count || '0'),

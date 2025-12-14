@@ -206,8 +206,9 @@ transparentProxyRouter.all('/api/google/*', combinedAuth, async (req: Request, r
     }
 
     // Return error response
-    const statusCode = error.response?.status || 500;
-    const errorData = error.response?.data || {
+    // Handle both axios errors (error.response) and our custom thrown errors (error.data)
+    const statusCode = error.status || error.response?.status || 500;
+    const errorData = error.data || error.response?.data || {
       error: {
         code: statusCode,
         message: error.message,
