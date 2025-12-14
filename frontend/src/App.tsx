@@ -310,6 +310,7 @@ function AppContent() {
 
               setStep('dashboard');
               fetchOrganizationStats(orgData.organizationId);
+              loadUserPreferences();
               return;
             }
           }
@@ -842,15 +843,15 @@ function AppContent() {
               <div className="quick-actions-section">
                 <h2 className="section-title">Quick Actions</h2>
                 <div className="quick-actions-grid">
-                  <button className="quick-action-btn primary" onClick={() => setCurrentPage('users')}>
+                  <button className="quick-action-btn primary" onClick={() => navigate('/add-user')}>
                     <UserPlus size={20} />
                     <span>Add User</span>
                   </button>
-                  <button className="quick-action-btn secondary">
+                  <button className="quick-action-btn secondary" onClick={() => setCurrentPage('users')}>
                     <Upload size={20} />
                     <span>Import CSV</span>
                   </button>
-                  <button className="quick-action-btn secondary">
+                  <button className="quick-action-btn secondary" onClick={() => setCurrentPage('users')}>
                     <Download size={20} />
                     <span>Export Report</span>
                   </button>
