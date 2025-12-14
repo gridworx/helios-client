@@ -3,6 +3,7 @@ import './Settings.css';
 import { RolesManagement } from './RolesManagement';
 import { ThemeSelector } from './ThemeSelector';
 import GoogleWorkspaceWizard from './modules/GoogleWorkspaceWizard';
+import Microsoft365Wizard from './modules/Microsoft365Wizard';
 import { ApiKeyList } from './integrations/ApiKeyList';
 import { ApiKeyWizard } from './integrations/ApiKeyWizard';
 import { ApiKeyShowOnce } from './integrations/ApiKeyShowOnce';
@@ -57,6 +58,19 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
     lastSync: null,
     configuration: null
   });
+  const [microsoftStatus, setMicrosoftStatus] = useState<{
+    isConfigured: boolean;
+    isActive: boolean;
+    syncStatus: string;
+    lastSyncAt: string | null;
+    stats: { users: number; groups: number; licenses: number };
+  }>({
+    isConfigured: false,
+    isActive: false,
+    syncStatus: 'not_configured',
+    lastSyncAt: null,
+    stats: { users: 0, groups: 0, licenses: 0 }
+  });
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
   
   const [showApiKeyWizard, setShowApiKeyWizard] = useState(false);
@@ -71,11 +85,24 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
   const fetchModuleStatus = async () => {
     try {
       setIsLoadingStatus(true);
-      const response = await fetch(`/api/v1/google-workspace/module-status/${organizationId}`);
-      const data = await response.json();
+      const token = localStorage.getItem('helios_token');
 
-      if (data.success) {
-        setGoogleWorkspaceStatus(data.data);
+      // Fetch both Google and Microsoft status in parallel
+      const [gwResponse, msResponse] = await Promise.all([
+        fetch(`/api/v1/google-workspace/module-status/${organizationId}`),
+        fetch('/api/v1/microsoft/status', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      ]);
+
+      const gwData = await gwResponse.json();
+      if (gwData.success) {
+        setGoogleWorkspaceStatus(gwData.data);
+      }
+
+      const msData = await msResponse.json();
+      if (msData.success) {
+        setMicrosoftStatus(msData.data);
       }
     } catch (error) {
       console.error('Failed to fetch module status:', error);
@@ -364,20 +391,103 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                       <div className="module-icon"><Building2 size={24} /></div>
                       <div className="module-details">
                         <h3>Microsoft 365</h3>
-                        <p>Manage Azure AD, Teams, and Exchange</p>
+                        <p>Manage Entra ID users, groups, and licenses</p>
+                        {microsoftStatus.isConfigured && (
+                          <p style={{ fontSize: '0.875rem', color: '#666', marginTop: '4px' }}>
+                            {microsoftStatus.stats.users} user{microsoftStatus.stats.users !== 1 ? 's' : ''} synced
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="module-status">
-                      <span className="status-badge coming-soon">Coming Soon</span>
+                      {isLoadingStatus ? (
+                        <span className="status-badge" style={{ backgroundColor: '#f0f0f0', color: '#666' }}>Loading...</span>
+                      ) : (
+                        <>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {microsoftStatus.isConfigured && (
+                              <div
+                                style={{
+                                  width: '10px',
+                                  height: '10px',
+                                  borderRadius: '50%',
+                                  backgroundColor: microsoftStatus.isActive ? '#4CAF50' : '#ff9800',
+                                  boxShadow: microsoftStatus.isActive ? '0 0 5px rgba(76,175,80,0.5)' : '0 0 5px rgba(255,152,0,0.5)'
+                                }}
+                                title={microsoftStatus.isActive ? 'Connected' : 'Inactive'}
+                              />
+                            )}
+                            <span className={`status-badge ${microsoftStatus.isConfigured ? 'enabled' : 'disabled'}`}>
+                              {microsoftStatus.isConfigured ? 'Enabled' : 'Disabled'}
+                            </span>
+                          </div>
+                          {!microsoftStatus.isConfigured && (
+                            <button
+                              className="enable-btn"
+                              onClick={() => {
+                                setConfiguringModule('microsoft-365');
+                                setShowModuleConfig(true);
+                              }}
+                            >
+                              Enable
+                            </button>
+                          )}
+                          {microsoftStatus.isConfigured && (
+                            <div className="module-actions">
+                              <button
+                                className="btn btn-info"
+                                onClick={async () => {
+                                  try {
+                                    const token = localStorage.getItem('helios_token');
+                                    const response = await fetch('/api/v1/microsoft/sync', {
+                                      method: 'POST',
+                                      headers: {
+                                        'Authorization': `Bearer ${token}`
+                                      }
+                                    });
+
+                                    const data = await response.json();
+                                    if (data.success) {
+                                      alert('Sync started! Check back in a few moments.');
+                                      setTimeout(() => fetchModuleStatus(), 3000);
+                                    } else {
+                                      alert(`Sync failed: ${data.message || data.error?.message}`);
+                                    }
+                                  } catch (error: any) {
+                                    alert(`Sync failed: ${error.message}`);
+                                  }
+                                }}
+                              >
+                                <RefreshCw size={14} /> Sync Now
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="module-description">
-                    <p>Connect your Microsoft 365 tenant to manage Azure AD users, Teams, Exchange Online, and SharePoint permissions.</p>
+                    <p>Connect your Microsoft 365 tenant to manage Entra ID users, groups, and license assignments.</p>
                     <div className="module-features">
-                      <span className="feature-tag disabled">Azure AD</span>
-                      <span className="feature-tag disabled">Teams Management</span>
-                      <span className="feature-tag disabled">Exchange Online</span>
+                      <span className="feature-tag">Entra ID</span>
+                      <span className="feature-tag">User Management</span>
+                      <span className="feature-tag">License Management</span>
                     </div>
+                    {microsoftStatus.isConfigured && (
+                      <div style={{ marginTop: '12px', padding: '12px', background: '#eff6ff', border: '1px solid #93c5fd', borderRadius: '6px' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#1d4ed8', fontWeight: '600', marginBottom: '6px' }}>
+                          Sync Status: {microsoftStatus.syncStatus}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#1e40af', marginBottom: '4px' }}>
+                          <strong>Users:</strong> {microsoftStatus.stats.users} | <strong>Groups:</strong> {microsoftStatus.stats.groups} | <strong>Licenses:</strong> {microsoftStatus.stats.licenses}
+                        </div>
+                        {microsoftStatus.lastSyncAt && (
+                          <div style={{ fontSize: '0.75rem', color: '#1e40af', marginTop: '6px' }}>
+                            <strong>Last synced:</strong> {new Date(microsoftStatus.lastSyncAt).toLocaleString()}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -664,6 +774,16 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
 
       {showModuleConfig && configuringModule === 'google-workspace' && (
         <GoogleWorkspaceWizard
+          onClose={() => setShowModuleConfig(false)}
+          onSuccess={async () => {
+            setShowModuleConfig(false);
+            await fetchModuleStatus();
+          }}
+        />
+      )}
+
+      {showModuleConfig && configuringModule === 'microsoft-365' && (
+        <Microsoft365Wizard
           onClose={() => setShowModuleConfig(false)}
           onSuccess={async () => {
             setShowModuleConfig(false);

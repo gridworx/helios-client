@@ -33,6 +33,7 @@ import { errorHandler } from './middleware/errorHandler';
 import userRoutes from './routes/user.routes';
 import authRoutes from './routes/auth.routes';
 import GoogleWorkspaceRoutes from './routes/google-workspace.routes';
+import microsoftRoutes from './routes/microsoft.routes';
 import modulesRoutes from './routes/modules.routes';
 import organizationRoutes from './routes/organization.routes';
 import apiKeysRoutes from './routes/api-keys.routes';
@@ -562,6 +563,7 @@ registerRoute('/bulk', bulkOperationsRoutes);
 
 // Integrations
 registerRoute('/google-workspace', GoogleWorkspaceRoutes);
+registerRoute('/microsoft', microsoftRoutes);
 registerRoute('/modules', modulesRoutes);
 
 // Assets & Lifecycle
