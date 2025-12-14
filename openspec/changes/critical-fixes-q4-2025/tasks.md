@@ -175,53 +175,50 @@ location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
 
 ---
 
-## Phase 2: Dashboard & UX Polish (P1)
+## Phase 2: Dashboard & UX Polish (P1) ✅ COMPLETE
 
-### TASK-FIX-007: Fix widget persistence
+All Phase 2 tasks verified working on 2025-12-14:
+- TASK-FIX-007: Widget persistence API fully functional
+- TASK-FIX-008: Loading timeouts and retry already implemented
+
+### TASK-FIX-007: Fix widget persistence ✅
 **Priority:** P1
+**Status:** VERIFIED WORKING
 **Files:** `frontend/src/App.tsx`, `backend/src/routes/dashboard.routes.ts`
 
 **Problem:** Dashboard customization doesn't persist on refresh
 
-**Investigation:**
-1. Check PUT `/api/v1/dashboard/widgets` is called on save
-2. Check GET `/api/v1/dashboard/widgets` returns saved data
-3. Check database table `user_dashboard_widgets`
+**Solution:** Already implemented:
+- GET `/api/v1/dashboard/widgets` returns saved preferences
+- PUT `/api/v1/dashboard/widgets` saves preferences to `user_dashboard_widgets` table
+- Frontend loads and saves via `loadUserPreferences()` and `saveWidgetPreferences()`
 
 **Acceptance Criteria:**
-- [ ] Customizing and saving persists
-- [ ] Refresh shows saved configuration
-- [ ] Different users have different configurations
+- [x] Customizing and saving persists
+- [x] Refresh shows saved configuration
+- [x] Different users have different configurations
 
 ---
 
-### TASK-FIX-008: Add loading timeouts and retry
+### TASK-FIX-008: Add loading timeouts and retry ✅
 **Priority:** P1
+**Status:** VERIFIED WORKING
 **Files:** `frontend/src/App.tsx`
 
-**Add:**
+**Already Implemented:**
 ```typescript
-const LOAD_TIMEOUT = 10000; // 10 seconds
-
-// Add timeout to fetch calls
 const controller = new AbortController();
-const timeoutId = setTimeout(() => controller.abort(), LOAD_TIMEOUT);
-
-try {
-  const response = await fetch(url, { signal: controller.signal });
-  clearTimeout(timeoutId);
-  // ...
-} catch (err) {
-  if (err.name === 'AbortError') {
-    setError('Request timed out. Please try again.');
-  }
+const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+// ...
+if (err.name === 'AbortError') {
+  setStatsError('Request timed out. Please try again.');
 }
 ```
 
 **Acceptance Criteria:**
-- [ ] Loads timeout after 10 seconds
-- [ ] Timeout shows friendly message
-- [ ] Retry button visible on error
+- [x] Loads timeout after 10 seconds
+- [x] Timeout shows friendly message
+- [x] Retry button visible on error
 
 ---
 
