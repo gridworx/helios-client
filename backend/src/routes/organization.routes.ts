@@ -583,6 +583,177 @@ router.get('/users/count', authenticateToken, async (req: Request, res: Response
 });
 
 /**
+ * @openapi
+ * /api/v1/organization/users/export:
+ *   get:
+ *     summary: Export users as CSV or JSON
+ *     description: Export organization users in CSV or JSON format
+ *     tags: [Users]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: userType
+ *         schema:
+ *           type: string
+ *           enum: [staff, guest, contact]
+ *         description: Filter by user type
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [active, pending, suspended, deleted]
+ *         description: Filter by status
+ *       - in: query
+ *         name: format
+ *         schema:
+ *           type: string
+ *           enum: [csv, json]
+ *           default: csv
+ *         description: Export format
+ *     responses:
+ *       200:
+ *         description: File download
+ *         content:
+ *           text/csv:
+ *             schema:
+ *               type: string
+ *           application/json:
+ *             schema:
+ *               type: array
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+router.get('/users/export', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    let organizationId = req.user?.organizationId;
+    const userType = req.query.userType as string || 'staff';
+    const status = req.query.status as string;
+    const format = req.query.format as string || 'csv';
+
+    if (!organizationId) {
+      const orgResult = await db.query('SELECT id FROM organizations LIMIT 1');
+      if (orgResult.rows.length > 0) {
+        organizationId = orgResult.rows[0].id;
+      } else {
+        return notFoundResponse(res, 'Organization');
+      }
+    }
+
+    // Build query
+    let whereClause = 'WHERE organization_id = $1 AND user_type = $2';
+    const params: any[] = [organizationId, userType];
+
+    // Add status filter if provided
+    if (status && status !== 'all') {
+      if (status === 'pending') {
+        whereClause += ' AND user_status = $3';
+        params.push('staged');
+      } else {
+        whereClause += ' AND user_status = $3';
+        params.push(status);
+      }
+    }
+
+    const result = await db.query(`
+      SELECT
+        email,
+        first_name,
+        last_name,
+        role,
+        job_title,
+        department,
+        location,
+        employee_id,
+        employee_type,
+        mobile_phone,
+        work_phone,
+        user_status,
+        is_active,
+        google_workspace_id,
+        microsoft_365_id,
+        created_at,
+        last_login
+      FROM organization_users
+      ${whereClause}
+      ORDER BY last_name, first_name
+    `, params);
+
+    const users = result.rows;
+
+    if (format === 'json') {
+      // Return JSON
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="users-${userType}-export.json"`);
+      return res.send(JSON.stringify(users, null, 2));
+    } else {
+      // Return CSV
+      const headers = [
+        'Email',
+        'First Name',
+        'Last Name',
+        'Role',
+        'Job Title',
+        'Department',
+        'Location',
+        'Employee ID',
+        'Employee Type',
+        'Mobile Phone',
+        'Work Phone',
+        'Status',
+        'Active',
+        'Google Workspace ID',
+        'Microsoft 365 ID',
+        'Created At',
+        'Last Login'
+      ];
+
+      const csvRows = [headers.join(',')];
+
+      for (const user of users) {
+        const row = [
+          escapeCsvValue(user.email),
+          escapeCsvValue(user.first_name),
+          escapeCsvValue(user.last_name),
+          escapeCsvValue(user.role),
+          escapeCsvValue(user.job_title),
+          escapeCsvValue(user.department),
+          escapeCsvValue(user.location),
+          escapeCsvValue(user.employee_id),
+          escapeCsvValue(user.employee_type),
+          escapeCsvValue(user.mobile_phone),
+          escapeCsvValue(user.work_phone),
+          escapeCsvValue(user.user_status),
+          user.is_active ? 'Yes' : 'No',
+          escapeCsvValue(user.google_workspace_id),
+          escapeCsvValue(user.microsoft_365_id),
+          user.created_at ? new Date(user.created_at).toISOString() : '',
+          user.last_login ? new Date(user.last_login).toISOString() : ''
+        ];
+        csvRows.push(row.join(','));
+      }
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="users-${userType}-export.csv"`);
+      return res.send(csvRows.join('\n'));
+    }
+  } catch (error: any) {
+    logger.error('Failed to export users', { error: error.message });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to export users');
+  }
+});
+
+// Helper function for CSV escaping
+function escapeCsvValue(value: any): string {
+  if (value === null || value === undefined) return '';
+  const str = String(value);
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+/**
  * GET /api/organization/users/stats
  * Get user statistics by role, status, and type
  */

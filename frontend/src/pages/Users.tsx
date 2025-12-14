@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { UserPlus, ChevronDown } from 'lucide-react';
+import { UserPlus, ChevronDown, Download, RefreshCw, CheckCircle, PauseCircle, Trash2, FileSpreadsheet, FileJson } from 'lucide-react';
 import { UserList } from '../components/UserList';
 import { useTabPersistence } from '../hooks/useTabPersistence';
 import './Users.css';
@@ -31,13 +31,24 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
     deleted: 0
   });
   const [showAddDropdown, setShowAddDropdown] = useState(false);
+  const [showExportDropdown, setShowExportDropdown] = useState(false);
+  const [showActionsDropdown, setShowActionsDropdown] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const addDropdownRef = useRef<HTMLDivElement>(null);
+  const exportDropdownRef = useRef<HTMLDivElement>(null);
+  const actionsDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (addDropdownRef.current && !addDropdownRef.current.contains(event.target as Node)) {
         setShowAddDropdown(false);
+      }
+      if (exportDropdownRef.current && !exportDropdownRef.current.contains(event.target as Node)) {
+        setShowExportDropdown(false);
+      }
+      if (actionsDropdownRef.current && !actionsDropdownRef.current.contains(event.target as Node)) {
+        setShowActionsDropdown(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -105,6 +116,56 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
     if (activeTab === 'staff') return 'Users';
     if (activeTab === 'guests') return 'Guests';
     return 'Contacts';
+  };
+
+  // Export users as CSV or JSON
+  const handleExport = async (format: 'csv' | 'json') => {
+    try {
+      setIsExporting(true);
+      setShowExportDropdown(false);
+
+      const token = localStorage.getItem('helios_token');
+      const apiUserType = activeTab === 'guests' ? 'guest' : activeTab === 'contacts' ? 'contact' : 'staff';
+
+      const response = await fetch(
+        `/api/v1/organization/users/export?userType=${apiUserType}&format=${format}${statusFilter !== 'all' ? `&status=${statusFilter}` : ''}`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `users-${apiUserType}-${new Date().toISOString().split('T')[0]}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Failed to export users. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Handle bulk actions
+  const handleBulkAction = async (action: 'activate' | 'suspend' | 'delete' | 'sync') => {
+    setShowActionsDropdown(false);
+
+    if (action === 'sync') {
+      // Refresh the user list
+      fetchCounts();
+      return;
+    }
+
+    // For bulk user actions, we'd need to get selected users from UserList
+    // For now, show a message that selection is required
+    alert(`Please select users in the table to ${action} them.`);
   };
 
   const getStatusTabs = () => {
@@ -256,19 +317,71 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
             </svg>
           </button>
 
-          <button className="btn-filter-pill">
-            Export
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M6 8L2 4h8z" fill="currentColor"/>
-            </svg>
-          </button>
+          {/* Export Dropdown */}
+          <div className="dropdown-wrapper" ref={exportDropdownRef}>
+            <button
+              className="btn-filter-pill"
+              onClick={() => setShowExportDropdown(!showExportDropdown)}
+              disabled={isExporting}
+            >
+              {isExporting ? (
+                <>
+                  <RefreshCw size={12} className="spinning" />
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <Download size={12} />
+                  Export
+                  <ChevronDown size={12} className={showExportDropdown ? 'rotate-180' : ''} />
+                </>
+              )}
+            </button>
+            {showExportDropdown && (
+              <div className="filter-dropdown-menu">
+                <button className="filter-dropdown-item" onClick={() => handleExport('csv')}>
+                  <FileSpreadsheet size={14} />
+                  Export as CSV
+                </button>
+                <button className="filter-dropdown-item" onClick={() => handleExport('json')}>
+                  <FileJson size={14} />
+                  Export as JSON
+                </button>
+              </div>
+            )}
+          </div>
 
-          <button className="btn-filter-pill">
-            Actions
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M6 8L2 4h8z" fill="currentColor"/>
-            </svg>
-          </button>
+          {/* Actions Dropdown */}
+          <div className="dropdown-wrapper" ref={actionsDropdownRef}>
+            <button
+              className="btn-filter-pill"
+              onClick={() => setShowActionsDropdown(!showActionsDropdown)}
+            >
+              Actions
+              <ChevronDown size={12} className={showActionsDropdown ? 'rotate-180' : ''} />
+            </button>
+            {showActionsDropdown && (
+              <div className="filter-dropdown-menu">
+                <button className="filter-dropdown-item" onClick={() => handleBulkAction('sync')}>
+                  <RefreshCw size={14} />
+                  Refresh List
+                </button>
+                <div className="filter-dropdown-divider"></div>
+                <button className="filter-dropdown-item" onClick={() => handleBulkAction('activate')}>
+                  <CheckCircle size={14} />
+                  Activate Selected
+                </button>
+                <button className="filter-dropdown-item" onClick={() => handleBulkAction('suspend')}>
+                  <PauseCircle size={14} />
+                  Suspend Selected
+                </button>
+                <button className="filter-dropdown-item filter-dropdown-item-danger" onClick={() => handleBulkAction('delete')}>
+                  <Trash2 size={14} />
+                  Delete Selected
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

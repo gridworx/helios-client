@@ -208,8 +208,8 @@
 }
 
 .table-header {
-  display: grid;
-  grid-template-columns: 36px 180px 200px 120px 90px 100px 90px 100px 48px 36px;
+  display: flex;
+  align-items: center;
   padding: 8px 16px;
   background: #fafbfc;
   border-bottom: 1px solid #e5e7eb;
@@ -219,8 +219,8 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   height: 36px;
-  align-items: center;
   position: relative;
+  gap: 8px;
 }
 
 /* Edit Columns Button - Far right in table header */
@@ -257,15 +257,15 @@
 }
 
 .table-row {
-  display: grid;
-  grid-template-columns: 36px 180px 200px 120px 90px 100px 90px 100px 48px 36px;
+  display: flex;
+  align-items: center;
   padding: 0 16px;
   border-bottom: 1px solid #f5f5f5;
   transition: background 0.1s ease;
-  align-items: center;
   height: 48px;
   min-height: 48px;
   max-height: 48px;
+  gap: 8px;
 }
 
 .table-row.clickable {
@@ -284,8 +284,10 @@
   background: #ede9fe;
 }
 
-/* Checkbox Column */
+/* Column Widths - Flexbox */
 .col-checkbox {
+  width: 36px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -293,6 +295,8 @@
 
 /* User Column */
 .col-user {
+  min-width: 140px;
+  flex: 1;
   display: flex;
   align-items: center;
   overflow: hidden;
@@ -329,6 +333,8 @@
 
 /* Email Column */
 .col-email {
+  min-width: 180px;
+  flex: 1.5;
   color: #6b7280;
   font-size: 13px;
   white-space: nowrap;
@@ -338,6 +344,8 @@
 
 /* Platform Column */
 .col-platforms {
+  width: 70px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
 }
@@ -465,6 +473,8 @@
 
 /* Last Login Column */
 .col-last-login {
+  width: 100px;
+  flex-shrink: 0;
   color: #9ca3af;
   font-size: 12px;
   white-space: nowrap;
@@ -474,11 +484,9 @@
 
 /* Department, Company, etc. */
 .col-department,
-.col-company,
-.col-phone,
-.col-title,
-.col-expires,
-.col-added-date {
+.col-company {
+  min-width: 100px;
+  flex: 0.8;
   color: #6b7280;
   font-size: 13px;
   white-space: nowrap;
@@ -486,9 +494,29 @@
   text-overflow: ellipsis;
 }
 
-.col-role,
-.col-platforms,
+.col-phone,
+.col-title,
+.col-expires,
+.col-added-date {
+  width: 100px;
+  flex-shrink: 0;
+  color: #6b7280;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.col-role {
+  width: 80px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
 .col-status {
+  width: 90px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
 }
@@ -496,7 +524,14 @@
 /* Actions Column */
 .col-actions {
   width: 48px;
+  flex-shrink: 0;
   position: relative;
+}
+
+/* Spacer for right alignment */
+.col-spacer {
+  flex: 1;
+  min-width: 0;
 }
 
 .btn-ellipsis {
@@ -703,12 +738,20 @@
 
 /* Responsive Design */
 @media (max-width: 1400px) {
-  .table-header,
-  .table-row {
-    grid-template-columns: 36px 160px 180px 100px 90px 90px 90px 36px;
-  }
-
   .col-last-login {
+    display: none;
+  }
+}
+
+@media (max-width: 1200px) {
+  .col-department,
+  .col-company {
+    display: none;
+  }
+}
+
+@media (max-width: 1000px) {
+  .col-platforms {
     display: none;
   }
 }
@@ -728,6 +771,7 @@
     flex-direction: column;
     gap: 12px;
     align-items: stretch;
+    height: auto;
   }
 
   .bulk-action-left,
@@ -739,16 +783,15 @@
     flex-wrap: wrap;
   }
 
-  .table-header,
-  .table-row {
-    grid-template-columns: 50px 1fr 100px 80px;
-  }
-
   .col-email,
   .col-role,
-  .col-last-login,
-  .col-actions {
+  .col-status {
     display: none;
+  }
+
+  .col-user {
+    flex: 1;
+    min-width: 120px;
   }
 }
 

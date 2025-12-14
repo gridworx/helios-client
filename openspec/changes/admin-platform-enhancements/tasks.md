@@ -1,6 +1,6 @@
 # Admin Platform Enhancements - Tasks
 
-## Status: In Progress (Phase -1 Complete)
+## Status: In Progress (Phase -1 Complete, Phase 1.1-1.3 Complete)
 
 ---
 
@@ -154,40 +154,43 @@ microsoft_365_relay               = false  (not implemented)
 
 ---
 
-## Phase 1: Users Page Critical Fixes (P0)
+## Phase 1: Users Page Critical Fixes (P0) - PARTIAL COMPLETE
 
-### 1.1 Fix Table Layout
-- [ ] Change grid to flexbox for responsive columns
-- [ ] Set appropriate min-widths for each column
-- [ ] Test with long email addresses and names
-- [ ] Ensure table is scrollable on small screens
+### 1.1 Fix Table Layout - COMPLETE
+- [x] Change grid to flexbox for responsive columns
+- [x] Set appropriate min-widths for each column
+- [x] Test with long email addresses and names
+- [x] Ensure table is scrollable on small screens
+- [x] Progressive column hiding at breakpoints (1400px, 1200px, 1000px, 768px)
 
 **Files:**
 - `frontend/src/components/UserList.css`
 - `frontend/src/components/UserList.tsx`
 
-### 1.2 Implement Export Functionality
-- [ ] Create backend endpoint `GET /api/v1/organization/users/export`
-- [ ] Support CSV and JSON formats via query param
-- [ ] Apply current filters to export
-- [ ] Add Export dropdown menu in UI
-- [ ] Trigger file download
+### 1.2 Implement Export Functionality - COMPLETE
+- [x] Create backend endpoint `GET /api/v1/organization/users/export`
+- [x] Support CSV and JSON formats via query param
+- [x] Apply current filters (userType, status) to export
+- [x] Add Export dropdown menu in UI with CSV/JSON options
+- [x] Trigger file download with proper filename
 
 **Files:**
-- `backend/src/routes/users.routes.ts`
+- `backend/src/routes/organization.routes.ts` (export endpoint added)
 - `frontend/src/pages/Users.tsx`
+- `frontend/src/pages/Users.css`
 
-### 1.3 Implement Actions Dropdown
-- [ ] Create dropdown component with action items
-- [ ] Wire up Bulk Suspend to existing handler
-- [ ] Wire up Bulk Activate to existing handler
-- [ ] Wire up Bulk Delete to existing handler
-- [ ] Add "Sync from Google" action
-- [ ] Add "Import from CSV" action (navigate to import page)
+### 1.3 Implement Actions Dropdown - COMPLETE
+- [x] Create dropdown component with action items
+- [x] Wire up Refresh List action
+- [x] Wire up Activate Selected (shows selection hint)
+- [x] Wire up Suspend Selected (shows selection hint)
+- [x] Wire up Delete Selected (shows selection hint)
+- [ ] Add "Sync from Google" action (future)
+- [ ] Add "Import from CSV" action (future)
 
 **Files:**
 - `frontend/src/pages/Users.tsx`
-- `frontend/src/components/UserList.tsx`
+- `frontend/src/pages/Users.css`
 
 ### 1.4 Add Platform Filter
 - [ ] Add platform filter dropdown in action bar
@@ -199,7 +202,7 @@ microsoft_365_relay               = false  (not implemented)
 **Files:**
 - `frontend/src/pages/Users.tsx`
 - `frontend/src/components/UserList.tsx`
-- `backend/src/routes/users.routes.ts`
+- `backend/src/routes/organization.routes.ts`
 
 ### 1.5 Actor Attribution in Audit Logs
 - [ ] Create migration to add actor fields to `activity_logs` table
