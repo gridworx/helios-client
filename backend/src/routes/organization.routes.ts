@@ -2209,4 +2209,528 @@ router.post('/users/:userId/block', authenticateToken, async (req: Request, res:
   }
 });
 
+// ==========================================
+// DELEGATE VALIDATION & DATA TRANSFER
+// ==========================================
+
+/**
+ * @openapi
+ * /api/v1/organization/users/validate-delegate:
+ *   get:
+ *     summary: Validate a potential delegate user
+ *     description: Checks if a user is valid for delegation (not suspended, archived, or pending deletion)
+ *     tags: [Users]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: email
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Email of the potential delegate
+ *     responses:
+ *       200:
+ *         description: Validation result
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     valid:
+ *                       type: boolean
+ *                     status:
+ *                       type: string
+ *                       enum: [valid, invalid, warning]
+ *                     errors:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     warnings:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         email:
+ *                           type: string
+ *                         name:
+ *                           type: string
+ *                         suspended:
+ *                           type: boolean
+ *                         archived:
+ *                           type: boolean
+ *                         existsInHelios:
+ *                           type: boolean
+ *       400:
+ *         description: Email parameter required
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+router.get('/users/validate-delegate', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { email } = req.query;
+    const organizationId = req.user?.organizationId;
+    const authToken = req.headers.authorization;
+
+    if (!organizationId) {
+      return res.status(401).json({ success: false, error: 'Organization ID not found' });
+    }
+
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Email parameter is required'
+      });
+    }
+
+    const result: {
+      valid: boolean;
+      status: 'valid' | 'invalid' | 'warning';
+      errors: string[];
+      warnings: string[];
+      user?: {
+        email: string;
+        name: string;
+        suspended: boolean;
+        archived: boolean;
+        existsInHelios: boolean;
+      };
+    } = {
+      valid: true,
+      status: 'valid',
+      errors: [],
+      warnings: []
+    };
+
+    // Try to get user from Google Workspace
+    try {
+      const gwResponse = await fetch(`http://localhost:3001/api/google/admin/directory/v1/users/${encodeURIComponent(email)}`, {
+        headers: { 'Authorization': authToken || '' }
+      });
+
+      if (!gwResponse.ok) {
+        result.valid = false;
+        result.status = 'invalid';
+        result.errors.push('User not found in Google Workspace');
+        return res.json({ success: true, data: result });
+      }
+
+      const gwUser: any = await gwResponse.json();
+
+      // Check if suspended
+      if (gwUser.suspended) {
+        result.valid = false;
+        result.status = 'invalid';
+        result.errors.push('Cannot delegate to a suspended user');
+        return res.json({ success: true, data: result });
+      }
+
+      // Check if archived
+      if (gwUser.archived) {
+        result.valid = false;
+        result.status = 'invalid';
+        result.errors.push('Cannot delegate to an archived user');
+        return res.json({ success: true, data: result });
+      }
+
+      // Check if pending deletion
+      if (gwUser.deletionTime) {
+        result.valid = false;
+        result.status = 'invalid';
+        result.errors.push('Cannot delegate to a user pending deletion');
+        return res.json({ success: true, data: result });
+      }
+
+      // Check if exists in Helios
+      const heliosUser = await db.query(
+        'SELECT id FROM organization_users WHERE LOWER(email) = LOWER($1) AND organization_id = $2',
+        [email, organizationId]
+      );
+
+      const existsInHelios = heliosUser.rows.length > 0;
+      if (!existsInHelios) {
+        result.status = 'warning';
+        result.warnings.push('User exists in Google Workspace but is not synced to Helios');
+      }
+
+      result.user = {
+        email: gwUser.primaryEmail,
+        name: `${gwUser.name?.givenName || ''} ${gwUser.name?.familyName || ''}`.trim(),
+        suspended: gwUser.suspended || false,
+        archived: gwUser.archived || false,
+        existsInHelios
+      };
+
+    } catch (error: any) {
+      logger.error('Error validating delegate via Google API', { error: error.message });
+      result.valid = false;
+      result.status = 'invalid';
+      result.errors.push('Failed to validate user in Google Workspace');
+    }
+
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    logger.error('Error validating delegate', { error: error.message });
+    res.status(500).json({ success: false, error: 'Failed to validate delegate' });
+  }
+});
+
+/**
+ * @openapi
+ * /api/v1/organization/users/{userId}/transfer:
+ *   post:
+ *     summary: Initiate data transfer from one user to another
+ *     description: Transfer Drive and/or Calendar data to another user
+ *     tags: [Users]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: UUID of the source user
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - toUserId
+ *               - applications
+ *             properties:
+ *               toUserId:
+ *                 type: string
+ *                 description: UUID or email of the target user
+ *               applications:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   enum: [drive, calendar]
+ *                 description: Applications to transfer
+ *     responses:
+ *       200:
+ *         description: Transfer initiated
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         description: User not found
+ */
+router.post('/users/:userId/transfer', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const { toUserId, applications } = req.body;
+    const organizationId = req.user?.organizationId;
+    const authToken = req.headers.authorization;
+
+    if (!organizationId) {
+      return res.status(401).json({ success: false, error: 'Organization ID not found' });
+    }
+
+    // Check admin permissions
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Admin access required' });
+    }
+
+    if (!toUserId || !applications || !Array.isArray(applications) || applications.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'toUserId and applications array are required'
+      });
+    }
+
+    // Get source user
+    const sourceResult = await db.query(
+      'SELECT * FROM organization_users WHERE id = $1 AND organization_id = $2',
+      [userId, organizationId]
+    );
+
+    if (sourceResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Source user not found' });
+    }
+
+    const sourceUser = sourceResult.rows[0];
+
+    // Get target user (by UUID or email)
+    let targetEmail: string;
+    const targetResult = await db.query(
+      'SELECT email FROM organization_users WHERE (id = $1 OR LOWER(email) = LOWER($1)) AND organization_id = $2',
+      [toUserId, organizationId]
+    );
+
+    if (targetResult.rows.length > 0) {
+      targetEmail = targetResult.rows[0].email;
+    } else {
+      // Assume it's an email if not found by UUID
+      targetEmail = toUserId;
+    }
+
+    // Initiate transfer via Google Admin API
+    const { initiateDataTransfer } = await import('../services/data-transfer.service');
+    const transferResult = await initiateDataTransfer(
+      sourceUser,
+      {
+        enabled: true,
+        transferTo: targetEmail,
+        items: applications
+      },
+      authToken || ''
+    );
+
+    if (!transferResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: transferResult.error || 'Data transfer failed'
+      });
+    }
+
+    // Log the action
+    await db.query(`
+      INSERT INTO activity_logs (
+        organization_id,
+        actor_user_id,
+        actor_email,
+        action,
+        resource_type,
+        resource_id,
+        description,
+        metadata
+      ) VALUES ($1, $2, $3, 'data_transfer_initiated', 'user', $4, $5, $6)
+    `, [
+      organizationId,
+      req.user?.userId,
+      req.user?.email,
+      userId,
+      `Data transfer initiated from ${sourceUser.email} to ${targetEmail}`,
+      JSON.stringify({
+        sourceEmail: sourceUser.email,
+        targetEmail,
+        applications,
+        transferId: transferResult.transferId
+      })
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        transferId: transferResult.transferId,
+        sourceEmail: sourceUser.email,
+        targetEmail,
+        applications,
+        status: 'initiated'
+      },
+      message: `Data transfer initiated from ${sourceUser.email} to ${targetEmail}`
+    });
+  } catch (error: any) {
+    logger.error('Error initiating data transfer', { error: error.message });
+    res.status(500).json({ success: false, error: 'Failed to initiate data transfer' });
+  }
+});
+
+/**
+ * @openapi
+ * /api/v1/organization/users/{userId}/reassign-reports:
+ *   post:
+ *     summary: Reassign direct reports to new managers
+ *     description: Reassign direct reports when a manager is being offboarded
+ *     tags: [Users]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: UUID of the departing manager
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               mode:
+ *                 type: string
+ *                 enum: [all_to_one, individual]
+ *                 description: Reassignment mode
+ *               targetManagerId:
+ *                 type: string
+ *                 description: UUID of new manager (for all_to_one mode)
+ *               assignments:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     reportId:
+ *                       type: string
+ *                     newManagerId:
+ *                       type: string
+ *                 description: Individual assignments (for individual mode)
+ *     responses:
+ *       200:
+ *         description: Reports reassigned
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
+router.post('/users/:userId/reassign-reports', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const { mode, targetManagerId, assignments } = req.body;
+    const organizationId = req.user?.organizationId;
+
+    if (!organizationId) {
+      return res.status(401).json({ success: false, error: 'Organization ID not found' });
+    }
+
+    // Check admin permissions
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Admin access required' });
+    }
+
+    // Validate inputs
+    if (!mode || (mode !== 'all_to_one' && mode !== 'individual')) {
+      return res.status(400).json({
+        success: false,
+        error: 'mode must be either "all_to_one" or "individual"'
+      });
+    }
+
+    if (mode === 'all_to_one' && !targetManagerId) {
+      return res.status(400).json({
+        success: false,
+        error: 'targetManagerId is required for all_to_one mode'
+      });
+    }
+
+    if (mode === 'individual' && (!assignments || !Array.isArray(assignments) || assignments.length === 0)) {
+      return res.status(400).json({
+        success: false,
+        error: 'assignments array is required for individual mode'
+      });
+    }
+
+    // Get current direct reports
+    const reportsResult = await db.query(
+      'SELECT id, email, first_name, last_name FROM organization_users WHERE reporting_manager_id = $1 AND organization_id = $2',
+      [userId, organizationId]
+    );
+
+    const directReports = reportsResult.rows;
+    let reassignedCount = 0;
+    const results: { reportId: string; email: string; newManagerId: string; success: boolean; error?: string }[] = [];
+
+    if (mode === 'all_to_one') {
+      // Reassign all to one manager
+      const updateResult = await db.query(
+        'UPDATE organization_users SET reporting_manager_id = $1, updated_at = NOW() WHERE reporting_manager_id = $2 AND organization_id = $3 RETURNING id, email',
+        [targetManagerId, userId, organizationId]
+      );
+      reassignedCount = updateResult.rowCount || 0;
+
+      for (const report of updateResult.rows) {
+        results.push({
+          reportId: report.id,
+          email: report.email,
+          newManagerId: targetManagerId,
+          success: true
+        });
+      }
+    } else {
+      // Individual assignments
+      for (const assignment of assignments) {
+        try {
+          const updateResult = await db.query(
+            'UPDATE organization_users SET reporting_manager_id = $1, updated_at = NOW() WHERE id = $2 AND organization_id = $3 RETURNING id, email',
+            [assignment.newManagerId, assignment.reportId, organizationId]
+          );
+
+          if (updateResult.rowCount && updateResult.rowCount > 0) {
+            reassignedCount++;
+            results.push({
+              reportId: assignment.reportId,
+              email: updateResult.rows[0].email,
+              newManagerId: assignment.newManagerId,
+              success: true
+            });
+          } else {
+            results.push({
+              reportId: assignment.reportId,
+              email: 'unknown',
+              newManagerId: assignment.newManagerId,
+              success: false,
+              error: 'Report not found'
+            });
+          }
+        } catch (error: any) {
+          results.push({
+            reportId: assignment.reportId,
+            email: 'unknown',
+            newManagerId: assignment.newManagerId,
+            success: false,
+            error: error.message
+          });
+        }
+      }
+    }
+
+    // Log the action
+    await db.query(`
+      INSERT INTO activity_logs (
+        organization_id,
+        actor_user_id,
+        actor_email,
+        action,
+        resource_type,
+        resource_id,
+        description,
+        metadata
+      ) VALUES ($1, $2, $3, 'direct_reports_reassigned', 'user', $4, $5, $6)
+    `, [
+      organizationId,
+      req.user?.userId,
+      req.user?.email,
+      userId,
+      `Reassigned ${reassignedCount} direct reports`,
+      JSON.stringify({
+        mode,
+        targetManagerId: mode === 'all_to_one' ? targetManagerId : null,
+        totalReports: directReports.length,
+        reassignedCount,
+        results
+      })
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        totalReports: directReports.length,
+        reassignedCount,
+        results
+      },
+      message: `Successfully reassigned ${reassignedCount} of ${directReports.length} direct reports`
+    });
+  } catch (error: any) {
+    logger.error('Error reassigning direct reports', { error: error.message });
+    res.status(500).json({ success: false, error: 'Failed to reassign direct reports' });
+  }
+});
+
 export default router;
