@@ -1,9 +1,18 @@
 # Critical Fixes - Implementation Tasks
 
-## Phase 1: Critical Bug Fixes (P0 - IMMEDIATE)
+## Phase 1: Critical Bug Fixes (P0 - IMMEDIATE) ✅ COMPLETE
 
-### TASK-FIX-001: Fix nginx SPA routing for page refresh
+All Phase 1 bugs verified working on 2025-12-14:
+- TASK-FIX-001: SPA routing already working (fallback returns 200)
+- TASK-FIX-002: Dashboard error handling already implemented (timeout + retry)
+- TASK-FIX-003: Cache-busting headers added to nginx
+- TASK-FIX-004: Add User API and frontend already complete
+- TASK-FIX-005: Template creation API and frontend already complete
+- TASK-FIX-006: Quick Actions now navigate correctly
+
+### TASK-FIX-001: Fix nginx SPA routing for page refresh ✅
 **Priority:** P0
+**Status:** VERIFIED WORKING
 **Files:** `nginx/nginx.conf`
 
 **Problem:** 500 error when refreshing on routes like `/admin/users`
@@ -32,15 +41,16 @@ location @fallback {
 ```
 
 **Acceptance Criteria:**
-- [ ] Refresh on `/admin/users` returns the app (not 500)
-- [ ] Refresh on `/admin/groups` works
-- [ ] Refresh on `/people` works
-- [ ] Direct URL access works from another browser
+- [x] Refresh on `/admin/users` returns the app (not 500)
+- [x] Refresh on `/admin/groups` works
+- [x] Refresh on `/people` works
+- [x] Direct URL access works from another browser
 
 ---
 
-### TASK-FIX-002: Fix dashboard error handling
+### TASK-FIX-002: Fix dashboard error handling ✅
 **Priority:** P0
+**Status:** VERIFIED WORKING (already implemented)
 **Files:** `frontend/src/App.tsx`
 
 **Problem:** Dashboard shows infinite spinner instead of errors
@@ -64,14 +74,15 @@ location @fallback {
 ```
 
 **Acceptance Criteria:**
-- [ ] Network errors show error message, not spinner
-- [ ] Retry button reloads data
-- [ ] Timeout after 10 seconds shows timeout message
+- [x] Network errors show error message, not spinner
+- [x] Retry button reloads data
+- [x] Timeout after 10 seconds shows timeout message
 
 ---
 
-### TASK-FIX-003: Add cache-busting for HTML files
+### TASK-FIX-003: Add cache-busting for HTML files ✅
 **Priority:** P0
+**Status:** FIXED
 **Files:** `nginx/nginx.conf`
 
 **Problem:** Browsers cache old JavaScript with hardcoded URLs
@@ -92,14 +103,15 @@ location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
 ```
 
 **Acceptance Criteria:**
-- [ ] HTML files have no-cache headers
-- [ ] Static assets have long cache headers
-- [ ] Changes deploy without manual cache clear
+- [x] HTML files have no-cache headers
+- [x] Static assets have long cache headers
+- [x] Changes deploy without manual cache clear
 
 ---
 
-### TASK-FIX-004: Fix Add User functionality
+### TASK-FIX-004: Fix Add User functionality ✅
 **Priority:** P0
+**Status:** VERIFIED WORKING (API and frontend complete)
 **Files:** `frontend/src/pages/AddUser.tsx`, `frontend/src/pages/NewUserOnboarding.tsx`
 
 **Problem:** Quick Add and full onboarding don't work
@@ -110,30 +122,32 @@ location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
 3. Check error display
 
 **Acceptance Criteria:**
-- [ ] Quick Add creates a user
-- [ ] Full onboarding wizard completes
-- [ ] Errors displayed to user
-- [ ] Success redirects appropriately
+- [x] Quick Add creates a user
+- [x] Full onboarding wizard completes
+- [x] Errors displayed to user
+- [x] Success redirects appropriately
 
 ---
 
-### TASK-FIX-005: Fix template creation
+### TASK-FIX-005: Fix template creation ✅
 **Priority:** P0
+**Status:** VERIFIED WORKING (API and frontend complete)
 **Files:** `frontend/src/components/lifecycle/OnboardingTemplateEditor.tsx`
 
 **Problem:** Cannot create onboarding/offboarding templates
 
 **Acceptance Criteria:**
-- [ ] Can create new onboarding template
-- [ ] Can create new offboarding template
-- [ ] Can create multiple templates
-- [ ] Templates show in list
-- [ ] Templates can be selected when onboarding
+- [x] Can create new onboarding template
+- [x] Can create new offboarding template
+- [x] Can create multiple templates
+- [x] Templates show in list
+- [x] Templates can be selected when onboarding
 
 ---
 
-### TASK-FIX-006: Fix Quick Actions
+### TASK-FIX-006: Fix Quick Actions ✅
 **Priority:** P1
+**Status:** FIXED
 **Files:** `frontend/src/App.tsx`
 
 **Problem:** Quick action buttons do nothing
@@ -155,9 +169,9 @@ location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
 ```
 
 **Acceptance Criteria:**
-- [ ] "Add User" opens add user page
-- [ ] "Import CSV" opens import modal or page
-- [ ] "Export Report" triggers download or opens export page
+- [x] "Add User" opens add user page
+- [x] "Import CSV" opens import modal or page
+- [x] "Export Report" triggers download or opens export page
 
 ---
 
@@ -259,8 +273,47 @@ CREATE TABLE IF NOT EXISTS ms_synced_users (
 - `getAccessToken()` - Client credentials flow
 - `listUsers()` - GET /users
 - `getUser(id)` - GET /users/{id}
+- `createUser(userData)` - POST /users
+- `updateUser(id, userData)` - PATCH /users/{id}
 - `listGroups()` - GET /groups
-- `getLicenseUsage()` - GET /subscribedSkus
+- `getGroup(id)` - GET /groups/{id}
+- `createGroup(groupData)` - POST /groups
+- `addGroupMember(groupId, userId)` - POST /groups/{id}/members/$ref
+- `removeGroupMember(groupId, userId)` - DELETE /groups/{id}/members/{userId}/$ref
+- `getSubscribedSkus()` - GET /subscribedSkus (dynamic license detection)
+- `assignLicense(userId, skuId)` - POST /users/{id}/assignLicense
+- `removeLicense(userId, skuId)` - POST /users/{id}/assignLicense (with removeLicenses)
+- `getUserLicenses(userId)` - GET /users/{id}/licenseDetails
+
+**Dynamic License Detection:**
+The `/subscribedSkus` endpoint returns all licenses available in the tenant. This allows:
+1. Auto-discovery of all license SKUs (no hardcoding)
+2. Display available licenses with remaining units
+3. License assignment UI shows only available SKUs
+
+**Example `/subscribedSkus` Response:**
+```json
+{
+  "value": [
+    {
+      "skuId": "c7df2760-2c81-4ef7-b578-5b5392b571df",
+      "skuPartNumber": "ENTERPRISEPREMIUM",
+      "servicePlans": [...],
+      "prepaidUnits": { "enabled": 50 },
+      "consumedUnits": 23
+    }
+  ]
+}
+```
+
+**SKU to Friendly Name Mapping:**
+Common SKUs (fallback to skuPartNumber if unknown):
+- `ENTERPRISEPREMIUM` → Microsoft 365 E5
+- `ENTERPRISEPACK` → Microsoft 365 E3
+- `SPE_E3` → Microsoft 365 E3
+- `BUSINESS_PREMIUM` → Microsoft 365 Business Premium
+- `EXCHANGESTANDARD` → Exchange Online (Plan 1)
+- `POWER_BI_PRO` → Power BI Pro
 
 ---
 
@@ -268,12 +321,31 @@ CREATE TABLE IF NOT EXISTS ms_synced_users (
 **Priority:** P2
 **File:** `backend/src/routes/microsoft.routes.ts`
 
-**Endpoints:**
+**Connection & Sync Endpoints:**
 - POST `/api/v1/microsoft/connect` - Save credentials
 - POST `/api/v1/microsoft/test` - Test connection
 - POST `/api/v1/microsoft/sync` - Trigger sync
 - GET `/api/v1/microsoft/status` - Get sync status
 - DELETE `/api/v1/microsoft/disconnect` - Remove credentials
+
+**User Management Endpoints:**
+- GET `/api/v1/microsoft/users` - List synced users
+- POST `/api/v1/microsoft/users` - Create user in Entra ID
+- PATCH `/api/v1/microsoft/users/:id` - Update user
+- DELETE `/api/v1/microsoft/users/:id` - Delete user (or disable)
+
+**Group Management Endpoints:**
+- GET `/api/v1/microsoft/groups` - List groups
+- POST `/api/v1/microsoft/groups` - Create group
+- DELETE `/api/v1/microsoft/groups/:id` - Delete group
+- POST `/api/v1/microsoft/groups/:id/members` - Add member
+- DELETE `/api/v1/microsoft/groups/:id/members/:userId` - Remove member
+
+**License Management Endpoints:**
+- GET `/api/v1/microsoft/licenses` - List available licenses (from /subscribedSkus)
+- GET `/api/v1/microsoft/users/:id/licenses` - Get user's licenses
+- POST `/api/v1/microsoft/users/:id/licenses` - Assign license(s)
+- DELETE `/api/v1/microsoft/users/:id/licenses/:skuId` - Remove license
 
 ---
 
