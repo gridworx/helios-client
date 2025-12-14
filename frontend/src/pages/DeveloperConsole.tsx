@@ -102,7 +102,27 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
 
     const data = await response.json();
     if (!response.ok) {
-      throw new Error(data.error || data.message || `HTTP ${response.status}`);
+      // Handle various error response formats
+      let errorMessage = `HTTP ${response.status}`;
+
+      if (typeof data.error === 'string') {
+        // Simple string error
+        errorMessage = data.error;
+      } else if (data.error?.message) {
+        // Google API style: { error: { code: 400, message: "..." } }
+        errorMessage = data.error.message;
+        if (data.error.code) {
+          errorMessage = `[${data.error.code}] ${errorMessage}`;
+        }
+      } else if (data.message) {
+        // Simple message field
+        errorMessage = data.message;
+      } else if (typeof data.error === 'object') {
+        // Unknown object error - stringify it
+        errorMessage = JSON.stringify(data.error);
+      }
+
+      throw new Error(errorMessage);
     }
     return data;
   };

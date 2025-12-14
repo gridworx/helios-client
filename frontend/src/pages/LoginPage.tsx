@@ -35,7 +35,11 @@ export function LoginPage({ onLoginSuccess, organizationDomain: _organizationDom
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Login failed');
+        // Handle standardized error response format: { error: { code, message } }
+        const errorMessage = typeof data.error === 'object' && data.error?.message
+          ? data.error.message
+          : (typeof data.error === 'string' ? data.error : 'Login failed');
+        throw new Error(errorMessage);
       }
 
       if (data.success) {
@@ -55,7 +59,11 @@ export function LoginPage({ onLoginSuccess, organizationDomain: _organizationDom
 
         onLoginSuccess(data);
       } else {
-        setError(data.error || 'Login failed');
+        // Handle standardized error response format
+        const errorMessage = typeof data.error === 'object' && data.error?.message
+          ? data.error.message
+          : (typeof data.error === 'string' ? data.error : 'Login failed');
+        setError(errorMessage);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to login. Please check your credentials.');

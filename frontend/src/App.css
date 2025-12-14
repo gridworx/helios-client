@@ -451,6 +451,8 @@
 .client-layout {
   display: flex;
   flex: 1;
+  height: calc(100vh - 60px); /* Account for any top header */
+  overflow: hidden;
 }
 
 .sidebar {
@@ -459,7 +461,11 @@
   border-right: 1px solid #e5e7eb;
   padding: 0;
   transition: all 0.3s ease;
-  position: relative;
+  position: sticky;
+  top: 0;
+  height: 100%;
+  overflow-y: auto;
+  flex-shrink: 0;
 }
 
 .sidebar.collapsed {
@@ -563,6 +569,7 @@
   flex: 1;
   padding: 2rem;
   overflow-y: auto;
+  height: 100%;
 }
 
 .page-header {

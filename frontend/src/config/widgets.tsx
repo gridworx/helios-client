@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, UserX, Shield, Package, RefreshCw, AlertCircle, Activity, UserPlus } from 'lucide-react';
+import { Users, UserX, Shield, Package, RefreshCw, AlertCircle, Activity, UserPlus, Trash2, Clock, UserMinus, Key, Calendar } from 'lucide-react';
 
 export type WidgetId = string;
 export type WidgetCategory = 'google' | 'microsoft' | 'helios' | 'system';
@@ -61,6 +61,24 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
     enabled: false, // Hidden by default
     platformColor: '#4285f4',
   },
+  {
+    id: 'google-recently-deleted',
+    category: 'google',
+    title: 'Recently Deleted',
+    icon: <Trash2 size={16} />,
+    gridColumn: 3,
+    enabled: false,
+    platformColor: '#4285f4',
+  },
+  {
+    id: 'google-inactive-users',
+    category: 'google',
+    title: 'Inactive (30d)',
+    icon: <Clock size={16} />,
+    gridColumn: 3,
+    enabled: false,
+    platformColor: '#4285f4',
+  },
 
   // Microsoft 365 Widgets
   {
@@ -95,6 +113,33 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
     category: 'microsoft',
     title: 'License Usage',
     icon: <Package size={16} />,
+    gridColumn: 3,
+    enabled: false,
+    platformColor: '#00a4ef',
+  },
+  {
+    id: 'microsoft-recently-deleted',
+    category: 'microsoft',
+    title: 'Recently Deleted',
+    icon: <Trash2 size={16} />,
+    gridColumn: 3,
+    enabled: false,
+    platformColor: '#00a4ef',
+  },
+  {
+    id: 'microsoft-inactive-users',
+    category: 'microsoft',
+    title: 'Inactive (30d)',
+    icon: <Clock size={16} />,
+    gridColumn: 3,
+    enabled: false,
+    platformColor: '#00a4ef',
+  },
+  {
+    id: 'microsoft-password-expiring',
+    category: 'microsoft',
+    title: 'Password Expiring',
+    icon: <Key size={16} />,
     gridColumn: 3,
     enabled: false,
     platformColor: '#00a4ef',
@@ -147,6 +192,33 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
     gridColumn: 3,
     enabled: false,
     platformColor: '#6b7280',
+  },
+  {
+    id: 'system-pending-offboarding',
+    category: 'system',
+    title: 'Pending Offboarding',
+    icon: <UserMinus size={16} />,
+    gridColumn: 3,
+    enabled: false,
+    platformColor: '#ef4444',
+  },
+  {
+    id: 'system-scheduled-actions',
+    category: 'system',
+    title: 'Scheduled Actions',
+    icon: <Calendar size={16} />,
+    gridColumn: 3,
+    enabled: false,
+    platformColor: '#8b5cf6',
+  },
+  {
+    id: 'system-sync-errors',
+    category: 'system',
+    title: 'Sync Errors',
+    icon: <AlertCircle size={16} />,
+    gridColumn: 3,
+    enabled: false,
+    platformColor: '#ef4444',
   },
 
   // TODO: Future system stats widgets

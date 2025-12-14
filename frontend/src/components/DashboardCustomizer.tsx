@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Check } from 'lucide-react';
 import { WIDGET_REGISTRY, type WidgetId, type WidgetCategory } from '../config/widgets';
 import './DashboardCustomizer.css';
@@ -22,6 +22,11 @@ export const DashboardCustomizer: React.FC<DashboardCustomizerProps> = ({
   connectedPlatforms,
 }) => {
   const [tempSelection, setTempSelection] = useState<WidgetId[]>(selectedWidgets);
+
+  // Sync tempSelection when selectedWidgets changes (e.g., after refresh/load)
+  useEffect(() => {
+    setTempSelection(selectedWidgets);
+  }, [selectedWidgets]);
 
   if (!isOpen) return null;
 

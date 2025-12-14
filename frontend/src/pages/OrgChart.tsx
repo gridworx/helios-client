@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Users, Search, Download, Grid3x3, List, Network, Loader, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Users, Search, Download, Grid3x3, List, Network, Loader, AlertCircle, ChevronsDownUp, ChevronsUpDown, ChevronDown, ArrowDownUp, ArrowLeftRight } from 'lucide-react';
 import OrgChartTree from '../components/OrgChartTree';
 import OrgChartList from '../components/OrgChartList';
 import OrgChartCard from '../components/OrgChartCard';
@@ -29,10 +30,13 @@ interface OrgChartData {
 }
 
 type ViewMode = 'tree' | 'list' | 'card';
+type TreeOrientation = 'horizontal' | 'vertical';
 
 const OrgChart: React.FC = () => {
+  const navigate = useNavigate();
   const [data, setData] = useState<OrgChartData | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('tree');
+  const [treeOrientation, setTreeOrientation] = useState<TreeOrientation>('horizontal');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
@@ -190,6 +194,77 @@ const OrgChart: React.FC = () => {
     });
   };
 
+  // Collect all node IDs from the tree
+  const collectAllNodeIds = useCallback((node: OrgNode): string[] => {
+    const ids = [node.userId];
+    node.directReports.forEach(child => {
+      ids.push(...collectAllNodeIds(child));
+    });
+    return ids;
+  }, []);
+
+  // Collect nodes at a specific level
+  const collectNodesAtLevel = useCallback((node: OrgNode, targetLevel: number, currentLevel: number = 0): string[] => {
+    if (currentLevel === targetLevel) {
+      return [node.userId];
+    }
+    const ids: string[] = [];
+    node.directReports.forEach(child => {
+      ids.push(...collectNodesAtLevel(child, targetLevel, currentLevel + 1));
+    });
+    return ids;
+  }, []);
+
+  // Get current max expanded level
+  const getCurrentMaxExpandedLevel = useCallback((): number => {
+    if (!data?.root) return 0;
+    let maxLevel = 0;
+    const checkLevel = (node: OrgNode, level: number) => {
+      if (expandedNodes.has(node.userId)) {
+        maxLevel = Math.max(maxLevel, level);
+        node.directReports.forEach(child => checkLevel(child, level + 1));
+      }
+    };
+    checkLevel(data.root, 0);
+    return maxLevel;
+  }, [data, expandedNodes]);
+
+  const handleExpandAll = () => {
+    if (!data?.root) return;
+    const allIds = collectAllNodeIds(data.root);
+    setExpandedNodes(new Set(allIds));
+  };
+
+  const handleCollapseAll = () => {
+    // Keep only root expanded
+    if (data?.root) {
+      setExpandedNodes(new Set([data.root.userId]));
+    } else {
+      setExpandedNodes(new Set());
+    }
+  };
+
+  const handleExpandNextLevel = () => {
+    if (!data?.root) return;
+    const currentMax = getCurrentMaxExpandedLevel();
+    const nextLevelNodes = collectNodesAtLevel(data.root, currentMax + 1);
+    setExpandedNodes(prev => {
+      const next = new Set(prev);
+      nextLevelNodes.forEach(id => next.add(id));
+      return next;
+    });
+  };
+
+  const toggleOrientation = () => {
+    setTreeOrientation(prev => prev === 'horizontal' ? 'vertical' : 'horizontal');
+  };
+
+  const handleNodeOpen = (node: OrgNode) => {
+    // Navigate to user settings page with the user's email
+    // The UserSettings page can look up the user by email
+    navigate(`/admin/user-settings?email=${encodeURIComponent(node.email)}`);
+  };
+
   const filterNodes = (node: OrgNode): OrgNode | null => {
     if (!searchTerm) return node;
 
@@ -287,6 +362,40 @@ const OrgChart: React.FC = () => {
             </button>
           </div>
 
+          {/* Tree-specific controls */}
+          {viewMode === 'tree' && (
+            <div className="tree-controls">
+              <button
+                className="tree-control-btn"
+                onClick={toggleOrientation}
+                title={treeOrientation === 'horizontal' ? 'Switch to Vertical' : 'Switch to Horizontal'}
+              >
+                {treeOrientation === 'horizontal' ? <ArrowDownUp size={16} /> : <ArrowLeftRight size={16} />}
+              </button>
+              <button
+                className="tree-control-btn"
+                onClick={handleExpandNextLevel}
+                title="Expand Next Level"
+              >
+                <ChevronDown size={16} />
+              </button>
+              <button
+                className="tree-control-btn"
+                onClick={handleExpandAll}
+                title="Expand All"
+              >
+                <ChevronsUpDown size={16} />
+              </button>
+              <button
+                className="tree-control-btn"
+                onClick={handleCollapseAll}
+                title="Collapse All"
+              >
+                <ChevronsDownUp size={16} />
+              </button>
+            </div>
+          )}
+
           <div className="export-controls">
             <button
               className="export-btn"
@@ -315,8 +424,10 @@ const OrgChart: React.FC = () => {
             expandedNodes={expandedNodes}
             selectedNode={selectedNode}
             searchTerm={searchTerm}
+            orientation={treeOrientation}
             onNodeClick={handleNodeClick}
             onNodeToggle={handleNodeToggle}
+            onNodeOpen={handleNodeOpen}
           />
         )}
 

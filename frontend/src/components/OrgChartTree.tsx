@@ -15,13 +15,17 @@ interface OrgNode {
   totalReports: number;
 }
 
+type TreeOrientation = 'horizontal' | 'vertical';
+
 interface OrgChartTreeProps {
   data: OrgNode;
   expandedNodes: Set<string>;
   selectedNode: string | null;
   searchTerm: string;
+  orientation?: TreeOrientation;
   onNodeClick: (nodeId: string) => void;
   onNodeToggle: (nodeId: string) => void;
+  onNodeOpen?: (node: OrgNode) => void; // Shift+click to open user details
 }
 
 const OrgChartTree: React.FC<OrgChartTreeProps> = ({
@@ -29,11 +33,14 @@ const OrgChartTree: React.FC<OrgChartTreeProps> = ({
   expandedNodes,
   selectedNode,
   searchTerm,
+  orientation = 'horizontal',
   onNodeClick,
-  onNodeToggle
+  onNodeToggle,
+  onNodeOpen
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [nodeOffsets, setNodeOffsets] = useState<Map<string, { dx: number; dy: number }>>(new Map());
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -52,13 +59,16 @@ const OrgChartTree: React.FC<OrgChartTreeProps> = ({
     if (!svgRef.current || dimensions.width === 0) return;
 
     renderTree();
-  }, [data, expandedNodes, selectedNode, searchTerm, dimensions]);
+  }, [data, expandedNodes, selectedNode, searchTerm, dimensions, orientation]);
 
   const renderTree = () => {
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
 
-    const margin = { top: 40, right: 120, bottom: 40, left: 120 };
+    const isVertical = orientation === 'vertical';
+    const margin = isVertical
+      ? { top: 80, right: 40, bottom: 40, left: 40 }
+      : { top: 40, right: 120, bottom: 40, left: 120 };
     const width = dimensions.width - margin.left - margin.right;
     const height = dimensions.height - margin.top - margin.bottom;
 
@@ -87,34 +97,75 @@ const OrgChartTree: React.FC<OrgChartTreeProps> = ({
 
     const root = d3.hierarchy(processNode(data));
 
-    // Create tree layout
+    // Create tree layout - swap dimensions for vertical orientation
     const treeLayout = d3.tree<any>()
-      .size([height, width])
+      .size(isVertical ? [width, height] : [height, width])
       .separation((a, b) => a.parent === b.parent ? 1.5 : 2);
 
     treeLayout(root);
 
-    // Draw links
+    // Draw links - use different link generator based on orientation
+    const linkGenerator = isVertical
+      ? d3.linkVertical<any, any>().x((d: any) => d.x).y((d: any) => d.y)
+      : d3.linkHorizontal<any, any>().x((d: any) => d.y).y((d: any) => d.x);
+
     g.selectAll('.link')
       .data(root.links())
       .enter()
       .append('path')
       .attr('class', 'link')
-      .attr('d', d3.linkHorizontal<any, any>()
-        .x((d: any) => d.y)
-        .y((d: any) => d.x)
-      )
+      .attr('d', linkGenerator)
       .style('fill', 'none')
       .style('stroke', '#d1d5db')
       .style('stroke-width', 1);
 
-    // Draw nodes
+    // Draw nodes - position based on orientation with manual offsets
     const node = g.selectAll('.node')
       .data(root.descendants())
       .enter()
       .append('g')
       .attr('class', 'node')
-      .attr('transform', (d: any) => `translate(${d.y},${d.x})`);
+      .attr('transform', (d: any) => {
+        const offset = nodeOffsets.get(d.data.userId) || { dx: 0, dy: 0 };
+        const baseX = isVertical ? d.x : d.y;
+        const baseY = isVertical ? d.y : d.x;
+        return `translate(${baseX + offset.dx},${baseY + offset.dy})`;
+      });
+
+    // Add drag behavior for repositioning nodes
+    const drag = d3.drag<SVGGElement, any>()
+      .on('start', function(_event) {
+        d3.select(this).raise().classed('dragging', true);
+      })
+      .on('drag', function(event, _d: any) {
+        const currentTransform = d3.select(this).attr('transform');
+        const match = currentTransform.match(/translate\(([^,]+),([^)]+)\)/);
+        if (match) {
+          const newX = parseFloat(match[1]) + event.dx;
+          const newY = parseFloat(match[2]) + event.dy;
+          d3.select(this).attr('transform', `translate(${newX},${newY})`);
+        }
+      })
+      .on('end', function(_event, d: any) {
+        d3.select(this).classed('dragging', false);
+        // Store the offset for this node
+        const currentTransform = d3.select(this).attr('transform');
+        const match = currentTransform.match(/translate\(([^,]+),([^)]+)\)/);
+        if (match) {
+          const finalX = parseFloat(match[1]);
+          const finalY = parseFloat(match[2]);
+          const baseX = isVertical ? d.x : d.y;
+          const baseY = isVertical ? d.y : d.x;
+          const newOffset = { dx: finalX - baseX, dy: finalY - baseY };
+          setNodeOffsets(prev => {
+            const next = new Map(prev);
+            next.set(d.data.userId, newOffset);
+            return next;
+          });
+        }
+      });
+
+    node.call(drag as any);
 
     // Add node rectangles
     const nodeWidth = 180;
@@ -144,7 +195,19 @@ const OrgChartTree: React.FC<OrgChartTreeProps> = ({
       .style('cursor', 'pointer')
       .on('click', (event, d: any) => {
         event.stopPropagation();
-        onNodeClick(d.data.userId);
+        if (event.shiftKey && onNodeOpen) {
+          // Shift+click opens user details
+          onNodeOpen(d.data);
+        } else {
+          onNodeClick(d.data.userId);
+        }
+      })
+      .on('dblclick', (event, d: any) => {
+        // Double-click also opens user details
+        event.stopPropagation();
+        if (onNodeOpen) {
+          onNodeOpen(d.data);
+        }
       });
 
     // Add expand/collapse button for nodes with children
@@ -248,8 +311,14 @@ const OrgChartTree: React.FC<OrgChartTreeProps> = ({
       .style('font-weight', '500')
       .text((d: any) => `${d.data.directReports.length} reports`);
 
-    // Center the root node
-    svg.call(zoom.transform as any, d3.zoomIdentity.translate(margin.left, dimensions.height / 2));
+    // Center the root node based on orientation with smooth transition
+    const initialTransform = isVertical
+      ? d3.zoomIdentity.translate(dimensions.width / 2, margin.top)
+      : d3.zoomIdentity.translate(margin.left, dimensions.height / 2);
+
+    svg.transition()
+      .duration(300)
+      .call(zoom.transform as any, initialTransform);
   };
 
   const matchesSearch = (node: OrgNode): boolean => {
@@ -265,6 +334,10 @@ const OrgChartTree: React.FC<OrgChartTreeProps> = ({
     return text.length > maxLength ? text.substring(0, maxLength - 2) + '...' : text;
   };
 
+  const handleResetPositions = () => {
+    setNodeOffsets(new Map());
+  };
+
   return (
     <div className="org-chart-tree">
       <svg ref={svgRef} width="100%" height="100%"></svg>
@@ -278,6 +351,19 @@ const OrgChartTree: React.FC<OrgChartTreeProps> = ({
         }}>
           Reset Zoom
         </button>
+        {nodeOffsets.size > 0 && (
+          <button className="zoom-btn" onClick={handleResetPositions}>
+            Reset Positions
+          </button>
+        )}
+      </div>
+      <div className="org-chart-hints">
+        <span className="org-chart-hint">Drag cards to reposition</span>
+        {onNodeOpen && (
+          <span className="org-chart-hint">
+            Double-click or Shift+click to open user
+          </span>
+        )}
       </div>
     </div>
   );

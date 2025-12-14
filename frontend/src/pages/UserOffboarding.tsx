@@ -26,6 +26,8 @@ import {
   ChevronRight,
   Check,
   X,
+  Users,
+  UserCheck,
 } from 'lucide-react';
 import './UserOffboarding.css';
 
@@ -39,6 +41,23 @@ interface User {
   managerId?: string;
   managerName?: string;
   photoUrl?: string;
+  directReportCount?: number;
+}
+
+interface DirectReport {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  jobTitle?: string;
+  photoUrl?: string;
+  newManagerId?: string;
+}
+
+interface ReassignmentMode {
+  type: 'all_to_one' | 'individual';
+  targetManagerId?: string;
+  individualAssignments: Map<string, string>;
 }
 
 interface OffboardingTemplate {
@@ -72,9 +91,10 @@ interface UserOffboardingProps {
 
 const STEPS = [
   { id: 1, title: 'Select User', icon: UserMinus },
-  { id: 2, title: 'Template', icon: FileText },
-  { id: 3, title: 'Schedule', icon: Clock },
-  { id: 4, title: 'Confirm', icon: CheckCircle },
+  { id: 2, title: 'Direct Reports', icon: Users },
+  { id: 3, title: 'Template', icon: FileText },
+  { id: 4, title: 'Schedule', icon: Clock },
+  { id: 5, title: 'Confirm', icon: CheckCircle },
 ];
 
 const driveActionLabels: Record<string, string> = {
@@ -116,6 +136,17 @@ const UserOffboarding: React.FC<UserOffboardingProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  // Direct reports management
+  const [directReports, setDirectReports] = useState<DirectReport[]>([]);
+  const [loadingDirectReports, setLoadingDirectReports] = useState(false);
+  const [reassignment, setReassignment] = useState<ReassignmentMode>({
+    type: 'all_to_one',
+    targetManagerId: undefined,
+    individualAssignments: new Map(),
+  });
+  const [managerSearchQuery, setManagerSearchQuery] = useState('');
+
   const [customization, setCustomization] = useState<OffboardingCustomization>({
     templateId: null,
     lastDay: new Date().toISOString().split('T')[0],
@@ -137,6 +168,55 @@ const UserOffboarding: React.FC<UserOffboardingProps> = ({
       setSelectedUser(user || null);
     }
   }, [selectedUserId, users]);
+
+  // Fetch direct reports when user is selected and we move to step 2
+  useEffect(() => {
+    if (selectedUserId && currentStep === 2) {
+      fetchDirectReports(selectedUserId);
+    }
+  }, [selectedUserId, currentStep]);
+
+  const fetchDirectReports = async (userId: string) => {
+    setLoadingDirectReports(true);
+    try {
+      const token = localStorage.getItem('helios_token');
+      const response = await fetch(`/api/v1/organization/users/${userId}/direct-reports`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Transform API response to match DirectReport interface
+        const reports = (data.data || []).map((r: any) => {
+          // Backend returns userId, name, title - need to transform
+          const nameParts = (r.name || '').split(' ');
+          return {
+            id: r.userId,
+            firstName: nameParts[0] || '',
+            lastName: nameParts.slice(1).join(' ') || '',
+            email: r.email,
+            jobTitle: r.title,
+            photoUrl: r.photoUrl,
+          };
+        });
+        setDirectReports(reports);
+
+        // Auto-suggest the departing user's manager as target
+        if (selectedUser?.managerId) {
+          setReassignment(prev => ({
+            ...prev,
+            targetManagerId: selectedUser.managerId,
+          }));
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching direct reports:', err);
+    } finally {
+      setLoadingDirectReports(false);
+    }
+  };
 
   // Pre-select default template
   useEffect(() => {
@@ -208,14 +288,33 @@ const UserOffboarding: React.FC<UserOffboardingProps> = ({
       }
     }
 
-    if (currentStep === 2) {
+    // Step 2: Direct Reports - validate reassignments if there are any
+    if (currentStep === 2 && directReports.length > 0) {
+      if (reassignment.type === 'all_to_one') {
+        if (!reassignment.targetManagerId) {
+          setError('Please select a manager to reassign all direct reports to');
+          return;
+        }
+      } else {
+        // Individual mode - check all are assigned
+        const unassigned = directReports.filter(
+          dr => !reassignment.individualAssignments.get(dr.id)
+        );
+        if (unassigned.length > 0) {
+          setError(`Please assign a new manager for all ${unassigned.length} direct reports`);
+          return;
+        }
+      }
+    }
+
+    if (currentStep === 3) {
       if (!customization.templateId) {
         setError('Please select an offboarding template');
         return;
       }
     }
 
-    if (currentStep === 3) {
+    if (currentStep === 4) {
       if (customization.scheduleFor === 'custom' && !customization.customScheduleDate) {
         setError('Please select a date for the scheduled offboarding');
         return;
@@ -223,7 +322,7 @@ const UserOffboarding: React.FC<UserOffboardingProps> = ({
     }
 
     setError(null);
-    setCurrentStep((prev) => Math.min(prev + 1, 4));
+    setCurrentStep((prev) => Math.min(prev + 1, 5));
   };
 
   const handleBack = () => {
@@ -246,6 +345,20 @@ const UserOffboarding: React.FC<UserOffboardingProps> = ({
         scheduledFor = new Date(customization.customScheduleDate).toISOString();
       }
 
+      // Build reassignment data
+      let directReportReassignments: Array<{ userId: string; newManagerId: string }> = [];
+      if (directReports.length > 0) {
+        if (reassignment.type === 'all_to_one' && reassignment.targetManagerId) {
+          directReportReassignments = directReports.map(dr => ({
+            userId: dr.id,
+            newManagerId: reassignment.targetManagerId!,
+          }));
+        } else {
+          directReportReassignments = Array.from(reassignment.individualAssignments.entries())
+            .map(([userId, newManagerId]) => ({ userId, newManagerId }));
+        }
+      }
+
       const payload = {
         userId: selectedUserId,
         offboardingTemplateId: customization.templateId,
@@ -255,6 +368,7 @@ const UserOffboarding: React.FC<UserOffboardingProps> = ({
           notifyManager: customization.notifyManager,
           notificationMessage: customization.customMessage || undefined,
         },
+        directReportReassignments,
         actionType: 'offboard',
       };
 
@@ -448,8 +562,203 @@ const UserOffboarding: React.FC<UserOffboardingProps> = ({
           </div>
         )}
 
-        {/* Step 2: Select Template */}
+        {/* Step 2: Direct Reports */}
         {currentStep === 2 && (
+          <div className="step-form">
+            <h2>Reassign Direct Reports</h2>
+            <p className="step-description">
+              {directReports.length > 0
+                ? `${selectedUser?.firstName} has ${directReports.length} direct report${directReports.length > 1 ? 's' : ''}. Choose how to reassign them.`
+                : `${selectedUser?.firstName} has no direct reports. You can proceed to the next step.`
+              }
+            </p>
+
+            {selectedUser && (
+              <div className="selected-user-card">
+                <div className="user-avatar">
+                  {selectedUser.photoUrl ? (
+                    <img src={selectedUser.photoUrl} alt={`${selectedUser.firstName} ${selectedUser.lastName}`} />
+                  ) : (
+                    <div className="avatar-placeholder">
+                      {selectedUser.firstName[0]}{selectedUser.lastName[0]}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <h3>{selectedUser.firstName} {selectedUser.lastName}</h3>
+                  <p>{selectedUser.email}</p>
+                </div>
+              </div>
+            )}
+
+            {loadingDirectReports ? (
+              <div className="loading-state" style={{ padding: '40px' }}>
+                <RefreshCw className="animate-spin" size={24} />
+                <span>Loading direct reports...</span>
+              </div>
+            ) : directReports.length === 0 ? (
+              <div className="empty-direct-reports">
+                <UserCheck size={48} />
+                <h3>No Direct Reports</h3>
+                <p>This user has no one reporting to them. You can proceed to the next step.</p>
+              </div>
+            ) : (
+              <>
+                {/* Reassignment mode selection */}
+                <div className="reassignment-mode">
+                  <label className="radio-label">
+                    <input
+                      type="radio"
+                      name="reassignment-mode"
+                      checked={reassignment.type === 'all_to_one'}
+                      onChange={() => setReassignment(prev => ({ ...prev, type: 'all_to_one' }))}
+                    />
+                    <div className="radio-content">
+                      <span className="radio-title">Transfer all to one manager</span>
+                      <span className="radio-description">Assign all direct reports to a single person</span>
+                    </div>
+                  </label>
+                  <label className="radio-label">
+                    <input
+                      type="radio"
+                      name="reassignment-mode"
+                      checked={reassignment.type === 'individual'}
+                      onChange={() => setReassignment(prev => ({ ...prev, type: 'individual' }))}
+                    />
+                    <div className="radio-content">
+                      <span className="radio-title">Assign individually</span>
+                      <span className="radio-description">Choose a different manager for each person</span>
+                    </div>
+                  </label>
+                </div>
+
+                {/* All to one mode */}
+                {reassignment.type === 'all_to_one' && (
+                  <div className="reassignment-target">
+                    <label>Select new manager for all {directReports.length} direct reports:</label>
+                    <div className="manager-search">
+                      <Search size={16} />
+                      <input
+                        type="text"
+                        placeholder="Search for a manager..."
+                        value={managerSearchQuery}
+                        onChange={(e) => setManagerSearchQuery(e.target.value)}
+                      />
+                    </div>
+                    <div className="manager-list">
+                      {users
+                        .filter(u => u.id !== selectedUserId && !directReports.some(dr => dr.id === u.id))
+                        .filter(u => {
+                          if (!managerSearchQuery) return true;
+                          const q = managerSearchQuery.toLowerCase();
+                          return u.firstName.toLowerCase().includes(q) ||
+                                 u.lastName.toLowerCase().includes(q) ||
+                                 u.email.toLowerCase().includes(q);
+                        })
+                        .slice(0, 10)
+                        .map(user => (
+                          <div
+                            key={user.id}
+                            className={`manager-option ${reassignment.targetManagerId === user.id ? 'selected' : ''}`}
+                            onClick={() => setReassignment(prev => ({ ...prev, targetManagerId: user.id }))}
+                          >
+                            <div className="user-avatar-small">
+                              {user.photoUrl ? (
+                                <img src={user.photoUrl} alt="" />
+                              ) : (
+                                <span>{user.firstName[0]}{user.lastName[0]}</span>
+                              )}
+                            </div>
+                            <div className="manager-info">
+                              <span className="manager-name">{user.firstName} {user.lastName}</span>
+                              <span className="manager-title">{user.jobTitle || user.email}</span>
+                            </div>
+                            {reassignment.targetManagerId === user.id && <Check size={16} className="check-icon" />}
+                          </div>
+                        ))
+                      }
+                    </div>
+                  </div>
+                )}
+
+                {/* Individual mode */}
+                {reassignment.type === 'individual' && (
+                  <div className="individual-assignments">
+                    <label>Assign each direct report to their new manager:</label>
+                    <div className="direct-reports-list">
+                      {directReports.map(report => {
+                        const assignedManagerId = reassignment.individualAssignments.get(report.id);
+                        const assignedManager = users.find(u => u.id === assignedManagerId);
+                        return (
+                          <div key={report.id} className="direct-report-row">
+                            <div className="direct-report-info">
+                              <div className="user-avatar-small">
+                                {report.photoUrl ? (
+                                  <img src={report.photoUrl} alt="" />
+                                ) : (
+                                  <span>{report.firstName[0]}{report.lastName[0]}</span>
+                                )}
+                              </div>
+                              <div>
+                                <span className="report-name">{report.firstName} {report.lastName}</span>
+                                <span className="report-title">{report.jobTitle || report.email}</span>
+                              </div>
+                            </div>
+                            <div className="assignment-select">
+                              <select
+                                value={assignedManagerId || ''}
+                                onChange={(e) => {
+                                  const newMap = new Map(reassignment.individualAssignments);
+                                  if (e.target.value) {
+                                    newMap.set(report.id, e.target.value);
+                                  } else {
+                                    newMap.delete(report.id);
+                                  }
+                                  setReassignment(prev => ({ ...prev, individualAssignments: newMap }));
+                                }}
+                              >
+                                <option value="">Select manager...</option>
+                                {users
+                                  .filter(u => u.id !== selectedUserId && u.id !== report.id)
+                                  .map(u => (
+                                    <option key={u.id} value={u.id}>
+                                      {u.firstName} {u.lastName}
+                                    </option>
+                                  ))
+                                }
+                              </select>
+                              {assignedManager && (
+                                <span className="assigned-badge">
+                                  <Check size={12} /> Assigned
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Summary */}
+                <div className="reassignment-summary">
+                  <Users size={16} />
+                  <span>
+                    {reassignment.type === 'all_to_one' && reassignment.targetManagerId
+                      ? `All ${directReports.length} direct reports will be reassigned to ${users.find(u => u.id === reassignment.targetManagerId)?.firstName} ${users.find(u => u.id === reassignment.targetManagerId)?.lastName}`
+                      : reassignment.type === 'individual'
+                        ? `${reassignment.individualAssignments.size} of ${directReports.length} direct reports assigned`
+                        : 'Select a manager to continue'
+                    }
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Step 3: Select Template */}
+        {currentStep === 3 && (
           <div className="step-form">
             <h2>Select Offboarding Template</h2>
             <p className="step-description">Choose a template to define the offboarding process.</p>
@@ -514,8 +823,8 @@ const UserOffboarding: React.FC<UserOffboardingProps> = ({
           </div>
         )}
 
-        {/* Step 3: Schedule */}
-        {currentStep === 3 && (
+        {/* Step 4: Schedule */}
+        {currentStep === 4 && (
           <div className="step-form">
             <h2>Schedule Offboarding</h2>
             <p className="step-description">Configure when the offboarding should occur.</p>
@@ -605,8 +914,8 @@ const UserOffboarding: React.FC<UserOffboardingProps> = ({
           </div>
         )}
 
-        {/* Step 4: Confirm */}
-        {currentStep === 4 && (
+        {/* Step 5: Confirm */}
+        {currentStep === 5 && (
           <div className="step-form">
             <h2>Confirm Offboarding</h2>
             <p className="step-description">Review the details and confirm to start the offboarding process.</p>
@@ -630,6 +939,17 @@ const UserOffboarding: React.FC<UserOffboardingProps> = ({
                 </div>
 
                 <div className="summary-details">
+                  {directReports.length > 0 && (
+                    <div className="summary-row highlight">
+                      <span className="label">Direct Reports</span>
+                      <span className="value">
+                        {directReports.length} will be reassigned
+                        {reassignment.type === 'all_to_one' && reassignment.targetManagerId && (
+                          <> to {users.find(u => u.id === reassignment.targetManagerId)?.firstName} {users.find(u => u.id === reassignment.targetManagerId)?.lastName}</>
+                        )}
+                      </span>
+                    </div>
+                  )}
                   <div className="summary-row">
                     <span className="label">Template</span>
                     <span className="value">{selectedTemplate?.name}</span>
@@ -680,7 +1000,7 @@ const UserOffboarding: React.FC<UserOffboardingProps> = ({
           </button>
         )}
         <div className="footer-spacer" />
-        {currentStep < 4 ? (
+        {currentStep < 5 ? (
           <button className="btn-primary" onClick={handleNext}>
             Next
             <ArrowRight size={16} />
