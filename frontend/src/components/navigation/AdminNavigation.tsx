@@ -20,6 +20,7 @@ import {
   BarChart2,
 } from 'lucide-react';
 import { useLabels } from '../../contexts/LabelsContext';
+import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 import { ENTITIES } from '../../config/entities';
 
 interface AdminNavigationProps {
@@ -47,6 +48,7 @@ export const AdminNavigation: React.FC<AdminNavigationProps> = ({
   labelsLoading,
 }) => {
   const { labels, isEntityAvailable } = useLabels();
+  const { isEnabled } = useFeatureFlags();
 
   return (
     <nav className="nav">
@@ -189,26 +191,35 @@ export const AdminNavigation: React.FC<AdminNavigationProps> = ({
           <Clock size={16} className="nav-icon" />
           <span>Scheduled Actions</span>
         </button>
-        <button className="nav-item" data-testid="nav-workflows">
-          <span className="nav-icon"><Zap size={16} /></span>
-          <span>Workflows</span>
-        </button>
+        {/* Workflows - Only shown if feature flag enabled */}
+        {isEnabled('nav.workflows') && (
+          <button className="nav-item" data-testid="nav-workflows">
+            <span className="nav-icon"><Zap size={16} /></span>
+            <span>Workflows</span>
+          </button>
+        )}
       </div>
 
       <div className="nav-section">
         <div className="nav-section-title">Insights</div>
-        <button
-          className={`nav-item ${currentPage === 'team-analytics' ? 'active' : ''}`}
-          onClick={() => onNavigate('team-analytics')}
-          data-testid="nav-team-analytics"
-        >
-          <BarChart2 size={16} className="nav-icon" />
-          <span>Team Analytics</span>
-        </button>
-        <button className="nav-item" data-testid="nav-reports">
-          <span className="nav-icon"><TrendingUp size={16} /></span>
-          <span>Reports</span>
-        </button>
+        {/* Team Analytics - Only shown if feature flag enabled */}
+        {isEnabled('insights.team_analytics') && (
+          <button
+            className={`nav-item ${currentPage === 'team-analytics' ? 'active' : ''}`}
+            onClick={() => onNavigate('team-analytics')}
+            data-testid="nav-team-analytics"
+          >
+            <BarChart2 size={16} className="nav-icon" />
+            <span>Team Analytics</span>
+          </button>
+        )}
+        {/* Reports - Only shown if feature flag enabled */}
+        {isEnabled('nav.reports') && (
+          <button className="nav-item" data-testid="nav-reports">
+            <span className="nav-icon"><TrendingUp size={16} /></span>
+            <span>Reports</span>
+          </button>
+        )}
       </div>
 
       <button

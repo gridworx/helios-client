@@ -42,6 +42,7 @@ const ScheduledActions = lazy(() => import('./pages/admin/ScheduledActions'))
 const TeamAnalytics = lazy(() => import('./pages/admin/TeamAnalytics'))
 import { LabelsProvider, useLabels } from './contexts/LabelsContext'
 import { ViewProvider, useView } from './contexts/ViewContext'
+import { FeatureFlagsProvider } from './contexts/FeatureFlagsContext'
 import { AdminNavigation, UserNavigation, ViewSwitcher, ViewOnboarding } from './components/navigation'
 import { EmailEngagementWidget } from './components/widgets/EmailEngagementWidget'
 import { getWidgetData } from './utils/widget-data'
@@ -1232,14 +1233,16 @@ function AppContent() {
   );
 }
 
-// Main App wrapper with BrowserRouter, LabelsProvider, and ViewProvider
+// Main App wrapper with BrowserRouter, LabelsProvider, ViewProvider, and FeatureFlagsProvider
 function App() {
   return (
     <BrowserRouter>
       <LabelsProvider>
-        <ViewProvider>
-          <AppContent />
-        </ViewProvider>
+        <FeatureFlagsProvider>
+          <ViewProvider>
+            <AppContent />
+          </ViewProvider>
+        </FeatureFlagsProvider>
       </LabelsProvider>
     </BrowserRouter>
   );
