@@ -337,7 +337,41 @@ const UserOffboarding: React.FC<UserOffboardingProps> = ({
     try {
       const token = localStorage.getItem('helios_token');
 
-      // Determine schedule time
+      // Step 1: Reassign direct reports first (if any)
+      if (directReports.length > 0 && selectedUserId) {
+        const hasReassignments = reassignment.type === 'all_to_one'
+          ? !!reassignment.targetManagerId
+          : reassignment.individualAssignments.size > 0;
+
+        if (hasReassignments) {
+          const reassignPayload = reassignment.type === 'all_to_one'
+            ? {
+                mode: 'all_to_one' as const,
+                targetManagerId: reassignment.targetManagerId,
+              }
+            : {
+                mode: 'individual' as const,
+                assignments: Array.from(reassignment.individualAssignments.entries())
+                  .map(([reportId, newManagerId]) => ({ reportId, newManagerId })),
+              };
+
+          const reassignResponse = await fetch(`/api/v1/organization/users/${selectedUserId}/reassign-reports`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(reassignPayload),
+          });
+
+          if (!reassignResponse.ok) {
+            const data = await reassignResponse.json();
+            throw new Error(data.error || 'Failed to reassign direct reports');
+          }
+        }
+      }
+
+      // Step 2: Determine schedule time
       let scheduledFor: string | undefined;
       if (customization.scheduleFor === 'last_day' && customization.lastDay) {
         scheduledFor = new Date(customization.lastDay).toISOString();
@@ -345,31 +379,16 @@ const UserOffboarding: React.FC<UserOffboardingProps> = ({
         scheduledFor = new Date(customization.customScheduleDate).toISOString();
       }
 
-      // Build reassignment data
-      let directReportReassignments: Array<{ userId: string; newManagerId: string }> = [];
-      if (directReports.length > 0) {
-        if (reassignment.type === 'all_to_one' && reassignment.targetManagerId) {
-          directReportReassignments = directReports.map(dr => ({
-            userId: dr.id,
-            newManagerId: reassignment.targetManagerId!,
-          }));
-        } else {
-          directReportReassignments = Array.from(reassignment.individualAssignments.entries())
-            .map(([userId, newManagerId]) => ({ userId, newManagerId }));
-        }
-      }
-
+      // Step 3: Call the lifecycle offboard endpoint
       const payload = {
         userId: selectedUserId,
-        offboardingTemplateId: customization.templateId,
+        templateId: customization.templateId,
         scheduledFor: scheduledFor || undefined,
+        lastDay: customization.lastDay,
         configOverrides: {
-          lastDay: customization.lastDay,
           notifyManager: customization.notifyManager,
           notificationMessage: customization.customMessage || undefined,
         },
-        directReportReassignments,
-        actionType: 'offboard',
       };
 
       const response = await fetch('/api/v1/lifecycle/offboard', {
