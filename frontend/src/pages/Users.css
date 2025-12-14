@@ -365,6 +365,12 @@
   cursor: not-allowed;
 }
 
+.btn-filter-pill.active {
+  border-color: var(--theme-primary);
+  background: rgba(139, 92, 246, 0.08);
+  color: var(--theme-primary);
+}
+
 /* Dropdown Wrapper */
 .dropdown-wrapper {
   position: relative;
@@ -406,9 +412,20 @@
   background: #f9fafb;
 }
 
+.filter-dropdown-item.selected {
+  background: rgba(139, 92, 246, 0.08);
+  color: var(--theme-primary);
+}
+
 .filter-dropdown-item svg {
   color: #6b7280;
   flex-shrink: 0;
+}
+
+.filter-dropdown-item.selected svg,
+.filter-dropdown-item .check-icon {
+  color: var(--theme-primary);
+  margin-left: auto;
 }
 
 .filter-dropdown-item-danger {

@@ -64,6 +64,11 @@ interface Actor {
   vendorName?: string;
   serviceName?: string;
   serviceOwner?: string;
+  // Additional attribution fields
+  apiKeyId?: string;
+  technicianName?: string;
+  technicianEmail?: string;
+  ticketReference?: string;
 }
 
 interface GoogleCredentials {
@@ -426,16 +431,21 @@ async function createAuditLogEntry(params: {
   body: any;
   query: any;
 }): Promise<string> {
-  // Determine user_id and actor_id based on actor type
+  // Determine user_id, actor_id, and actor_type based on actor type
   let userId = null;
   let actorId = null;
+  let actorType: 'internal' | 'service' | 'vendor' = 'internal';
 
   if (params.actor.type === 'user') {
     // For regular users, set both user_id and actor_id to the user's UUID
     userId = params.actor.id;
     actorId = params.actor.id;
+    actorType = 'internal';
+  } else if (params.actor.type === 'service') {
+    actorType = 'service';
+  } else if (params.actor.type === 'vendor') {
+    actorType = 'vendor';
   }
-  // For service/vendor, both remain null (logged in metadata instead)
 
   const result = await db.query(`
     INSERT INTO activity_logs (
@@ -449,8 +459,18 @@ async function createAuditLogEntry(params: {
       metadata,
       ip_address,
       user_agent,
+      actor_type,
+      api_key_id,
+      api_key_name,
+      vendor_name,
+      vendor_technician_name,
+      vendor_technician_email,
+      ticket_reference,
+      service_name,
+      service_owner,
+      result,
       created_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, NOW())
     RETURNING id
   `, [
     params.organizationId,
@@ -465,19 +485,20 @@ async function createAuditLogEntry(params: {
       path: params.path,
       body: params.body,
       query: params.query,
-      actor: {
-        type: params.actor.type,
-        id: params.actor.id,
-        name: params.actor.name,
-        email: params.actor.email,
-        serviceName: params.actor.serviceName,
-        serviceOwner: params.actor.serviceOwner,
-        vendorName: params.actor.vendorName
-      },
       status: 'in_progress'
     }),
     null, // IP address (can be extracted from req if needed)
-    null  // User agent
+    null, // User agent
+    actorType,
+    params.actor.apiKeyId || null,
+    params.actor.name || null,
+    params.actor.vendorName || null,
+    params.actor.technicianName || null,
+    params.actor.technicianEmail || null,
+    params.actor.ticketReference || null,
+    params.actor.serviceName || null,
+    params.actor.serviceOwner || null,
+    'success' // Default to success, will be updated on completion
   ]);
 
   return result.rows[0].id;
@@ -500,6 +521,7 @@ async function updateAuditLogEntry(
     UPDATE activity_logs
     SET
       metadata = metadata || $1::jsonb,
+      result = $3,
       created_at = created_at
     WHERE id = $2
   `, [
@@ -511,7 +533,8 @@ async function updateAuditLogEntry(
       durationMs: update.duration,
       completedAt: new Date().toISOString()
     }),
-    auditLogId
+    auditLogId,
+    update.status // Update the result column with success/failure
   ]);
 }
 

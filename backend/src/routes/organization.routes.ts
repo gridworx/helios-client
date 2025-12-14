@@ -328,6 +328,9 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
     // Get guest filter from query params (deprecated - use userType instead)
     const guestOnly = req.query.guestOnly === 'true';
 
+    // Get platform filter from query params (local, google_workspace, microsoft_365, all)
+    const platformFilter = (req.query.platform as string)?.toLowerCase() || 'all';
+
     // If no organizationId, get the only organization (single-organization)
     if (!organizationId) {
       const orgResult = await db.query('SELECT id FROM organizations LIMIT 1');
@@ -338,7 +341,7 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
       }
     }
 
-    logger.info('Fetching users for organization', { organizationId, statusFilter, guestOnly, includeDeleted });
+    logger.info('Fetching users for organization', { organizationId, statusFilter, platformFilter, guestOnly, includeDeleted });
 
     // Check if Google Workspace is enabled
     const moduleCheckResult = await db.query(`
@@ -380,6 +383,17 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
       // Fallback to old guest filter for backwards compatibility
       statusCondition += " AND ou.is_guest = true";
     }
+
+    // Add platform filter condition
+    if (platformFilter === 'local') {
+      // Local-only users have no platform IDs
+      statusCondition += " AND ou.google_workspace_id IS NULL AND ou.microsoft_365_id IS NULL";
+    } else if (platformFilter === 'google_workspace') {
+      statusCondition += " AND ou.google_workspace_id IS NOT NULL";
+    } else if (platformFilter === 'microsoft_365') {
+      statusCondition += " AND ou.microsoft_365_id IS NOT NULL";
+    }
+    // 'all' means no platform filter
 
     // Always fetch local organization users first
     logger.info('Fetching users from local database');
@@ -2204,7 +2218,8 @@ router.post('/users/:userId/block', authenticateToken, async (req: Request, res:
       tokensRevoked: 0,
       delegationEnabled: false,
       emailForwardingEnabled: false,
-      dataTransferInitiated: false
+      dataTransferInitiated: false,
+      groupsRemoved: 0
     };
 
     // 1. Generate random password
@@ -2316,6 +2331,58 @@ router.post('/users/:userId/block', authenticateToken, async (req: Request, res:
       blockResult.dataTransferInitiated = transferResult.success;
     }
 
+    // 7.5. Remove user from all groups in Google Workspace
+    try {
+      const { googleWorkspaceService } = await import('../services/google-workspace.service');
+
+      // Get all groups the user belongs to
+      const userGroupsResult = await googleWorkspaceService.getUserGroups(
+        organizationId,
+        user.google_workspace_id
+      );
+
+      if (userGroupsResult.success && userGroupsResult.data.length > 0) {
+        logger.info('Removing user from groups during block', {
+          userEmail: user.email,
+          groupCount: userGroupsResult.data.length
+        });
+
+        // Remove user from each group
+        for (const group of userGroupsResult.data) {
+          try {
+            const removeResult = await googleWorkspaceService.removeUserFromGroup(
+              organizationId,
+              user.email,
+              group.id
+            );
+            if (removeResult.success) {
+              blockResult.groupsRemoved++;
+            }
+          } catch (groupError: any) {
+            // Log but continue - don't fail the entire block operation
+            logger.warn('Failed to remove user from group', {
+              userEmail: user.email,
+              groupId: group.id,
+              groupEmail: group.email,
+              error: groupError.message
+            });
+          }
+        }
+
+        logger.info('Completed group removal during block', {
+          userEmail: user.email,
+          groupsRemoved: blockResult.groupsRemoved,
+          totalGroups: userGroupsResult.data.length
+        });
+      }
+    } catch (groupRemovalError: any) {
+      // Log but don't fail the block operation
+      logger.warn('Error during group removal', {
+        userEmail: user.email,
+        error: groupRemovalError.message
+      });
+    }
+
     // 8. Update Helios database
     await db.query(`
       UPDATE organization_users
@@ -2353,7 +2420,8 @@ router.post('/users/:userId/block', authenticateToken, async (req: Request, res:
         reason,
         delegateTo,
         emailForwardingEnabled: blockResult.emailForwardingEnabled,
-        dataTransferInitiated: blockResult.dataTransferInitiated
+        dataTransferInitiated: blockResult.dataTransferInitiated,
+        groupsRemoved: blockResult.groupsRemoved
       })
     ]);
 
@@ -2361,7 +2429,8 @@ router.post('/users/:userId/block', authenticateToken, async (req: Request, res:
       userId,
       userEmail: user.email,
       blockedBy: req.user?.email,
-      delegationEnabled: blockResult.delegationEnabled
+      delegationEnabled: blockResult.delegationEnabled,
+      groupsRemoved: blockResult.groupsRemoved
     });
 
     res.json({

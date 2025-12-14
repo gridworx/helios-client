@@ -29,6 +29,8 @@ export type ActivityType =
   | 'security.suspicious_login'
   | 'admin.permission_changed';
 
+export type ActorType = 'internal' | 'service' | 'vendor';
+
 export interface ActivityEvent {
   id?: string;
   organizationId: string;
@@ -44,6 +46,17 @@ export interface ActivityEvent {
   ipAddress?: string;
   userAgent?: string;
   timestamp?: Date;
+  // Actor attribution fields
+  actorType?: ActorType;
+  apiKeyId?: string;
+  apiKeyName?: string;
+  vendorName?: string;
+  vendorTechnicianName?: string;
+  vendorTechnicianEmail?: string;
+  ticketReference?: string;
+  serviceName?: string;
+  serviceOwner?: string;
+  result?: 'success' | 'failure' | 'denied';
 }
 
 class ActivityTrackerService {

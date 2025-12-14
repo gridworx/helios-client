@@ -146,7 +146,7 @@ microsoft_365_relay               = false  (not implemented)
 - [x] Force sign-out via Admin SDK (in organization.routes.ts /block endpoint)
 - [x] Password reset to random value (in organization.routes.ts /block endpoint)
 - [x] Revoke OAuth tokens (in organization.routes.ts /block endpoint)
-- [ ] Remove from all groups
+- [x] Remove from all groups (added to /block endpoint - gets user groups via getUserGroups, removes via removeUserFromGroup)
 - [ ] Wipe mobile devices (if MDM enabled)
 
 **Files:**
@@ -192,30 +192,31 @@ microsoft_365_relay               = false  (not implemented)
 - `frontend/src/pages/Users.tsx`
 - `frontend/src/pages/Users.css`
 
-### 1.4 Add Platform Filter
-- [ ] Add platform filter dropdown in action bar
-- [ ] Update `fetchUsers` to include platform filter param
-- [ ] Update backend to filter by platform/source
-- [ ] Show filter state visually
-- [ ] Options: All, Local Only, Google Workspace, Microsoft 365
+### 1.4 Add Platform Filter - COMPLETE
+- [x] Add platform filter dropdown in action bar
+- [x] Update `fetchUsers` to include platform filter param
+- [x] Update backend to filter by platform/source
+- [x] Show filter state visually
+- [x] Options: All, Local Only, Google Workspace, Microsoft 365
 
 **Files:**
-- `frontend/src/pages/Users.tsx`
-- `frontend/src/components/UserList.tsx`
-- `backend/src/routes/organization.routes.ts`
+- `frontend/src/pages/Users.tsx` (updated)
+- `frontend/src/components/UserList.tsx` (updated)
+- `frontend/src/pages/Users.css` (updated)
+- `backend/src/routes/organization.routes.ts` (updated)
 
-### 1.5 Actor Attribution in Audit Logs
-- [ ] Create migration to add actor fields to `activity_logs` table
-- [ ] Add columns: actor_type, api_key_id, vendor_name, vendor_technician_name, vendor_technician_email, ticket_reference, service_name, result
-- [ ] Add indexes for actor_type and vendor_name
-- [ ] Update transparent-proxy to populate actor fields from API key context
-- [ ] Enforce X-Actor-Name, X-Actor-Email headers for vendor keys with requireActorAttribution
-- [ ] Return 400 if vendor key requires attribution but headers missing
+### 1.5 Actor Attribution in Audit Logs - COMPLETE
+- [x] Create migration to add actor fields to `activity_logs` table
+- [x] Add columns: actor_type, api_key_id, api_key_name, vendor_name, vendor_technician_name, vendor_technician_email, ticket_reference, service_name, service_owner, result
+- [x] Add indexes for actor_type, vendor_name, api_key_id, and result
+- [x] Update transparent-proxy to populate actor fields from API key context
+- [ ] Enforce X-Actor-Name, X-Actor-Email headers for vendor keys with requireActorAttribution (future enhancement)
+- [ ] Return 400 if vendor key requires attribution but headers missing (future enhancement)
 
 **Files:**
-- `database/migrations/046_add_actor_attribution_to_activity_logs.sql`
-- `backend/src/middleware/transparent-proxy.ts`
-- `backend/src/middleware/api-key-auth.ts`
+- `database/migrations/053_add_actor_attribution_to_activity_logs.sql` (created)
+- `backend/src/middleware/transparent-proxy.ts` (updated)
+- `backend/src/services/activity-tracker.service.ts` (updated)
 
 ### 1.6 Console Command Audit Logging
 - [ ] Create `POST /api/v1/organization/audit-logs/console` endpoint

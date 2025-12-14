@@ -65,17 +65,17 @@ interface UserListProps {
   onCountChange?: () => void;
   searchQuery?: string;
   statusFilter?: string;
+  platformFilter?: string;
   onStatusCountsChange?: (counts: any) => void;
   onNavigate?: (page: string, params?: Record<string, string>) => void;
 }
 
-export function UserList({ organizationId, userType, onCountChange, searchQuery = '', statusFilter, onStatusCountsChange, onNavigate }: UserListProps) {
+export function UserList({ organizationId, userType, onCountChange, searchQuery = '', statusFilter, platformFilter = 'all', onStatusCountsChange, onNavigate }: UserListProps) {
   // Component for managing organization users
   const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filterPlatform, setFilterPlatform] = useState<string>('all');
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
@@ -104,12 +104,12 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
 
   useEffect(() => {
     fetchUsers();
-  }, [organizationId, userType, statusFilter]);
+  }, [organizationId, userType, statusFilter, platformFilter]);
 
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
-  }, [statusFilter, searchQuery, userType]);
+  }, [statusFilter, searchQuery, userType, platformFilter]);
 
   const fetchUsers = async () => {
     try {
@@ -172,6 +172,11 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
         // Add status filter if provided
         if (statusFilter && statusFilter !== 'all') {
           queryParams.append('status', statusFilter);
+        }
+
+        // Add platform filter if provided
+        if (platformFilter && platformFilter !== 'all') {
+          queryParams.append('platform', platformFilter);
         }
 
         const response = await fetch(`/api/v1/organization/users?${queryParams}`, {
@@ -885,20 +890,9 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
     }
   };
 
-  // Apply platform filter
-  let filteredUsers = filterPlatform === 'all'
-    ? users
-    : users.filter(user => {
-        // Check if user has the selected platform
-        if (user.platforms.includes(filterPlatform)) {
-          return true;
-        }
-        // Also check for google_workspace connection
-        if (filterPlatform === 'google_workspace' && user.googleWorkspaceId) {
-          return true;
-        }
-        return false;
-      });
+  // Platform filtering is now done server-side via API
+  // Just use the users from API directly
+  let filteredUsers = users;
 
   // Apply search filter - includes custom attributes
   if (searchQuery) {
@@ -992,20 +986,6 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
           <span className="user-count">{filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''}</span>
         </div>
         <div className="header-right">
-          <div className="platform-filter">
-            <label>Platform:</label>
-            <select value={filterPlatform} onChange={(e) => setFilterPlatform(e.target.value)}>
-              <option value="all">All Integrations</option>
-              {uniquePlatforms.map(platform => {
-                const icon = getPlatformIcon(platform);
-                return (
-                  <option key={platform} value={platform}>
-                    {icon.title}
-                  </option>
-                );
-              })}
-            </select>
-          </div>
           <button className="btn-sync" onClick={fetchUsers}>
             <RefreshCw size={14} /> Sync
           </button>
@@ -1092,8 +1072,8 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
               <span className="empty-icon"><Users size={48} /></span>
               <h3>No users found</h3>
               <p>
-                {filterPlatform !== 'all'
-                  ? `No users found with ${getPlatformIcon(filterPlatform).title} integration`
+                {platformFilter !== 'all'
+                  ? `No users found with ${getPlatformIcon(platformFilter).title} integration`
                   : 'Start by connecting to Google Workspace in Settings'
                 }
               </p>

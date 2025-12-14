@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { UserPlus, ChevronDown, Download, RefreshCw, CheckCircle, PauseCircle, Trash2, FileSpreadsheet, FileJson } from 'lucide-react';
+import { UserPlus, ChevronDown, Download, RefreshCw, CheckCircle, PauseCircle, Trash2, FileSpreadsheet, FileJson, Filter } from 'lucide-react';
 import { UserList } from '../components/UserList';
 import { useTabPersistence } from '../hooks/useTabPersistence';
 import './Users.css';
@@ -13,9 +13,13 @@ type UserType = 'staff' | 'guests' | 'contacts';
 
 type StatusFilter = 'all' | 'active' | 'pending' | 'suspended' | 'expired' | 'deleted';
 
+type PlatformFilter = 'all' | 'local' | 'google_workspace' | 'microsoft_365';
+
 export function Users({ organizationId, onNavigate }: UsersProps) {
   const [activeTab, setActiveTab] = useTabPersistence<UserType>('helios_users_tab', 'staff');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [platformFilter, setPlatformFilter] = useState<PlatformFilter>('all');
+  const [showPlatformDropdown, setShowPlatformDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [counts, setCounts] = useState({
     staff: 0,
@@ -37,6 +41,7 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
   const addDropdownRef = useRef<HTMLDivElement>(null);
   const exportDropdownRef = useRef<HTMLDivElement>(null);
   const actionsDropdownRef = useRef<HTMLDivElement>(null);
+  const platformDropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -49,6 +54,9 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
       }
       if (actionsDropdownRef.current && !actionsDropdownRef.current.contains(event.target as Node)) {
         setShowActionsDropdown(false);
+      }
+      if (platformDropdownRef.current && !platformDropdownRef.current.contains(event.target as Node)) {
+        setShowPlatformDropdown(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -191,6 +199,18 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
     }
   };
 
+  const platformOptions = [
+    { id: 'all' as PlatformFilter, label: 'All Platforms' },
+    { id: 'local' as PlatformFilter, label: 'Local Only' },
+    { id: 'google_workspace' as PlatformFilter, label: 'Google Workspace' },
+    { id: 'microsoft_365' as PlatformFilter, label: 'Microsoft 365' }
+  ];
+
+  const getPlatformLabel = () => {
+    const option = platformOptions.find(opt => opt.id === platformFilter);
+    return option?.label || 'All Platforms';
+  };
+
   return (
     <div className="users-page">
       {/* Page Title */}
@@ -317,6 +337,35 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
             </svg>
           </button>
 
+          {/* Platform Filter Dropdown */}
+          <div className="dropdown-wrapper" ref={platformDropdownRef}>
+            <button
+              className={`btn-filter-pill ${platformFilter !== 'all' ? 'active' : ''}`}
+              onClick={() => setShowPlatformDropdown(!showPlatformDropdown)}
+            >
+              <Filter size={12} />
+              {getPlatformLabel()}
+              <ChevronDown size={12} className={showPlatformDropdown ? 'rotate-180' : ''} />
+            </button>
+            {showPlatformDropdown && (
+              <div className="filter-dropdown-menu">
+                {platformOptions.map((option) => (
+                  <button
+                    key={option.id}
+                    className={`filter-dropdown-item ${platformFilter === option.id ? 'selected' : ''}`}
+                    onClick={() => {
+                      setPlatformFilter(option.id);
+                      setShowPlatformDropdown(false);
+                    }}
+                  >
+                    {option.label}
+                    {platformFilter === option.id && <CheckCircle size={14} className="check-icon" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Export Dropdown */}
           <div className="dropdown-wrapper" ref={exportDropdownRef}>
             <button
@@ -395,6 +444,7 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
           onCountChange={fetchCounts}
           searchQuery={searchQuery}
           statusFilter={statusFilter}
+          platformFilter={platformFilter}
           onStatusCountsChange={setStatusCounts}
           onNavigate={(page, params) => {
             if (params?.userId) {
