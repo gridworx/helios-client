@@ -80,6 +80,7 @@ import trackingRoutes from './routes/tracking.routes';
 import trackingAnalyticsRoutes from './routes/tracking-analytics.routes';
 import mcpRoutes from './routes/mcp.routes';
 import featureFlagsRoutes from './routes/feature-flags.routes';
+import aiRoutes from './routes/ai.routes';
 import { requestIdMiddleware, REQUEST_ID_HEADER } from './middleware/request-id';
 const app = express();
 const httpServer = createServer(app);
@@ -581,6 +582,9 @@ registerRoute('/admin', trackingAnalyticsRoutes);
 
 // MCP (Model Context Protocol) for AI integration
 registerRoute('/mcp', mcpRoutes);
+
+// AI Assistant
+registerRoute('/ai', aiRoutes);
 
 // Feature Flags
 registerRoute('/organization/feature-flags', featureFlagsRoutes);

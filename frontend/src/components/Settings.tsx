@@ -4,6 +4,7 @@ import { RolesManagement } from './RolesManagement';
 import { ThemeSelector } from './ThemeSelector';
 import GoogleWorkspaceWizard from './modules/GoogleWorkspaceWizard';
 import Microsoft365Wizard from './modules/Microsoft365Wizard';
+import { AISettings } from './settings/AISettings';
 import { ApiKeyList } from './integrations/ApiKeyList';
 import { ApiKeyWizard } from './integrations/ApiKeyWizard';
 import { ApiKeyShowOnce } from './integrations/ApiKeyShowOnce';
@@ -12,7 +13,7 @@ import { TrackingSettings } from './settings/TrackingSettings';
 import SecurityEvents from '../pages/SecurityEvents';
 import AuditLogs from '../pages/AuditLogs';
 import { useTabPersistence } from '../hooks/useTabPersistence';
-import { Package, Building2, Shield, Lock, Palette, Settings as SettingsIcon, Key, Search as SearchIcon, RefreshCw, BarChart3, Info, ShieldAlert, Activity, MoreVertical, Power, Database } from 'lucide-react';
+import { Package, Building2, Shield, Lock, Palette, Settings as SettingsIcon, Key, Search as SearchIcon, RefreshCw, BarChart3, Info, ShieldAlert, Activity, MoreVertical, Power, Database, Bot } from 'lucide-react';
 
 interface SettingsProps {
   organizationName: string;
@@ -32,7 +33,7 @@ interface ModuleStatus {
 }
 
 export function Settings({ organizationName, domain, organizationId, showPasswordModal: externalShowPasswordModal, onPasswordModalChange, currentUser }: SettingsProps) {
-  const [activeTab, setActiveTab] = useTabPersistence<'modules' | 'organization' | 'roles' | 'security' | 'customization' | 'integrations' | 'masterdata' | 'advanced'>('helios_settings_tab', 'modules');
+  const [activeTab, setActiveTab] = useTabPersistence<'modules' | 'organization' | 'roles' | 'security' | 'customization' | 'integrations' | 'masterdata' | 'ai' | 'advanced'>('helios_settings_tab', 'modules');
   const [securitySubTab, setSecuritySubTab] = useState<'settings' | 'events' | 'audit'>('settings');
   const [showModuleConfig, setShowModuleConfig] = useState(false);
   const [configuringModule, setConfiguringModule] = useState<string | null>(null);
@@ -169,6 +170,13 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
             >
               <Database className="nav-icon" size={16} />
               <span>Master Data</span>
+            </button>
+            <button
+              className={`settings-nav-item ${activeTab === 'ai' ? 'active' : ''}`}
+              onClick={() => setActiveTab('ai')}
+            >
+              <Bot className="nav-icon" size={16} />
+              <span>AI Assistant</span>
             </button>
             <button
               className={`settings-nav-item ${activeTab === 'advanced' ? 'active' : ''}`}
@@ -716,6 +724,10 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
 
           {activeTab === 'masterdata' && (
             <MasterDataSection organizationId={organizationId} />
+          )}
+
+          {activeTab === 'ai' && (
+            <AISettings organizationId={organizationId} />
           )}
 
           {activeTab === 'advanced' && (

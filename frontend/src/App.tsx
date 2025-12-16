@@ -40,6 +40,7 @@ const NewUserOnboarding = lazy(() => import('./pages/NewUserOnboarding'))
 const UserOffboarding = lazy(() => import('./pages/UserOffboarding'))
 const ScheduledActions = lazy(() => import('./pages/admin/ScheduledActions'))
 const TeamAnalytics = lazy(() => import('./pages/admin/TeamAnalytics'))
+import { CommandBar } from './components/ai/CommandBar'
 import { LabelsProvider, useLabels } from './contexts/LabelsContext'
 import { ViewProvider, useView } from './contexts/ViewContext'
 import { FeatureFlagsProvider } from './contexts/FeatureFlagsContext'
@@ -247,6 +248,8 @@ function AppContent() {
   const [visibleWidgets, setVisibleWidgets] = useState<WidgetId[]>([]);
   const [widgetsLoading, setWidgetsLoading] = useState(true);
   const [widgetsError, setWidgetsError] = useState<string | null>(null);
+  const [showCommandBar, setShowCommandBar] = useState(false);
+  const [aiEnabled, setAiEnabled] = useState(false);
 
   // Helper to navigate to group detail (admin route)
   const navigateToGroup = (groupId: string) => navigate(`/admin/groups/${groupId}`);
@@ -275,6 +278,40 @@ function AppContent() {
   }, [step, loginOrgName]);
 
   // No need to save currentPage to localStorage - React Router handles URL state
+
+  // Command Bar keyboard shortcut (Cmd+K / Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowCommandBar(prev => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Check AI status when authenticated
+  useEffect(() => {
+    const checkAiStatus = async () => {
+      if (step !== 'dashboard') return;
+      try {
+        const token = localStorage.getItem('helios_token');
+        if (!token) return;
+        const response = await fetch('/api/v1/ai/status', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (data.success) {
+          setAiEnabled(data.data.available);
+        }
+      } catch {
+        // Ignore errors
+      }
+    };
+    checkAiStatus();
+  }, [step]);
 
   const checkConfiguration = async () => {
     try {
@@ -1244,6 +1281,14 @@ function AppContent() {
           Powered by <a href="https://helios.gridworx.io" target="_blank" rel="noopener noreferrer">Helios</a>
         </p>
       </footer>
+
+      {/* Command Bar (Cmd+K) */}
+      <CommandBar
+        isOpen={showCommandBar}
+        onClose={() => setShowCommandBar(false)}
+        onNavigate={(route) => navigate(route)}
+        aiEnabled={aiEnabled}
+      />
     </div>
   );
 }
