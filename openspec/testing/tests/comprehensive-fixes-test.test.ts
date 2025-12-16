@@ -10,8 +10,8 @@ test('Comprehensive fixes verification', async ({ page }) => {
   console.log('\n=== STEP 1: Login ===');
   await page.goto('http://localhost:3000');
   await page.waitForLoadState('networkidle');
-  await page.fill('input[type="email"]', 'jack@gridworx.io');
-  await page.fill('input[type="password"]', 'Password123!');
+  await page.fill('input[type="email"]', 'mike@gridworx.io');
+  await page.fill('input[type="password"]', 'admin123');
   await page.click('button[type="submit"]');
   await page.waitForLoadState('networkidle');
   await page.waitForTimeout(2000);

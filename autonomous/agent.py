@@ -137,8 +137,9 @@ def run_claude_session(prompt: str, settings_path: Path) -> tuple[int, str]:
     env = os.environ.copy()
     env["CLAUDE_CODE_SETTINGS"] = str(settings_path)
 
+    session_start = time.strftime("%Y-%m-%d %H:%M:%S")
     print(f"\n{'='*70}")
-    print("  CLAUDE SESSION STARTING")
+    print(f"  SESSION STARTED: {session_start}")
     print(f"{'='*70}\n")
 
     try:
@@ -156,13 +157,29 @@ def run_claude_session(prompt: str, settings_path: Path) -> tuple[int, str]:
             output += f"\n\nSTDERR:\n{result.stderr}"
 
         print(output)
+
+        session_end = time.strftime("%Y-%m-%d %H:%M:%S")
+        duration = "completed"
+        print(f"\n{'='*70}")
+        print(f"  SESSION ENDED: {session_end}")
+        print(f"  Status: Exit code {result.returncode}")
+        print(f"{'='*70}\n")
+
         return result.returncode, output
 
     except subprocess.TimeoutExpired:
-        print("Session timed out after 30 minutes")
+        session_end = time.strftime("%Y-%m-%d %H:%M:%S")
+        print(f"\n{'='*70}")
+        print(f"  SESSION TIMED OUT: {session_end}")
+        print(f"  Duration: 30 minutes (limit reached)")
+        print(f"{'='*70}\n")
         return 1, "TIMEOUT"
     except Exception as e:
-        print(f"Error running Claude: {e}")
+        session_end = time.strftime("%Y-%m-%d %H:%M:%S")
+        print(f"\n{'='*70}")
+        print(f"  SESSION ERROR: {session_end}")
+        print(f"  Error: {e}")
+        print(f"{'='*70}\n")
         return 1, str(e)
 
 
