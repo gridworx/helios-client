@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { HelpCircle, BookOpen, Trash2, X } from 'lucide-react';
+import { HelpCircle, BookOpen, Trash2, X, PanelLeftOpen, PanelRightOpen } from 'lucide-react';
+import { ConsoleHelpPanel } from '../components/ConsoleHelpPanel';
 import './DeveloperConsole.css';
 
 interface ConsoleOutput {
@@ -31,6 +32,16 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
   const [isExecuting, setIsExecuting] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showExamplesModal, setShowExamplesModal] = useState(false);
+  // Dockable help panel state
+  const [showHelpPanel, setShowHelpPanel] = useState(() => {
+    return localStorage.getItem('helios_console_help_panel_open') === 'true';
+  });
+  const [helpPanelDockPosition, setHelpPanelDockPosition] = useState<'left' | 'right'>(() => {
+    return (localStorage.getItem('helios_console_help_panel_dock') as 'left' | 'right') || 'right';
+  });
+  const [isHelpPanelPinned, setIsHelpPanelPinned] = useState(() => {
+    return localStorage.getItem('helios_console_help_panel_pinned') === 'true';
+  });
   const outputRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -45,6 +56,30 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  // Persist help panel settings to localStorage
+  useEffect(() => {
+    localStorage.setItem('helios_console_help_panel_open', showHelpPanel.toString());
+  }, [showHelpPanel]);
+
+  useEffect(() => {
+    localStorage.setItem('helios_console_help_panel_dock', helpPanelDockPosition);
+  }, [helpPanelDockPosition]);
+
+  useEffect(() => {
+    localStorage.setItem('helios_console_help_panel_pinned', isHelpPanelPinned.toString());
+  }, [isHelpPanelPinned]);
+
+  // Handler for inserting commands from help panel
+  const handleInsertCommand = (command: string) => {
+    setCurrentCommand(command);
+    inputRef.current?.focus();
+  };
+
+  // Toggle help panel
+  const toggleHelpPanel = () => {
+    setShowHelpPanel(prev => !prev);
+  };
 
   const addOutput = (type: ConsoleOutput['type'], content: string) => {
     setOutput(prev => [...prev, { type, content, timestamp: new Date() }]);
@@ -1667,10 +1702,12 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
       setCurrentCommand('');
       inputRef.current?.focus();
     } else if (e.key === 'Escape') {
-      // Escape to close modals or focus input
+      // Escape to close modals or unpinned panel, then focus input
       if (showHelpModal || showExamplesModal) {
         setShowHelpModal(false);
         setShowExamplesModal(false);
+      } else if (showHelpPanel && !isHelpPanelPinned) {
+        setShowHelpPanel(false);
       }
       inputRef.current?.focus();
     }
@@ -1687,61 +1724,80 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
         <p className="page-subtitle">Execute commands and interact with Helios API</p>
       </div>
 
-      <div className="console-container" onClick={() => inputRef.current?.focus()}>
-        <div className="console-toolbar">
-          <div className="console-toolbar-left">
-            <div className="console-status">
-              <span className={`status-dot ${isExecuting ? 'executing' : 'ready'}`}></span>
-              <span>{isExecuting ? 'Executing...' : 'Ready'}</span>
+      <div className={`console-wrapper ${showHelpPanel ? `with-panel panel-${helpPanelDockPosition}` : ''}`}>
+        <div className="console-container" onClick={() => inputRef.current?.focus()}>
+          <div className="console-toolbar">
+            <div className="console-toolbar-left">
+              <div className="console-status">
+                <span className={`status-dot ${isExecuting ? 'executing' : 'ready'}`}></span>
+                <span>{isExecuting ? 'Executing...' : 'Ready'}</span>
+              </div>
+            </div>
+            <div className="console-toolbar-right">
+              <button
+                onClick={toggleHelpPanel}
+                className={`btn-console-action ${showHelpPanel ? 'active' : ''}`}
+                title={showHelpPanel ? 'Hide command panel' : 'Show command panel'}
+              >
+                {helpPanelDockPosition === 'left' ? <PanelLeftOpen size={16} /> : <PanelRightOpen size={16} />}
+              </button>
+              <button
+                onClick={() => setShowHelpModal(true)}
+                className="btn-console-action"
+                title="Show help (modal)"
+              >
+                <HelpCircle size={16} />
+              </button>
+              <button
+                onClick={() => setShowExamplesModal(true)}
+                className="btn-console-action"
+                title="Show examples"
+              >
+                <BookOpen size={16} />
+              </button>
+              <button
+                onClick={() => setOutput([])}
+                className="btn-console-action"
+                title="Clear console"
+              >
+                <Trash2 size={16} />
+              </button>
             </div>
           </div>
-          <div className="console-toolbar-right">
-            <button
-              onClick={() => setShowHelpModal(true)}
-              className="btn-console-action"
-              title="Show help"
-            >
-              <HelpCircle size={16} />
-            </button>
-            <button
-              onClick={() => setShowExamplesModal(true)}
-              className="btn-console-action"
-              title="Show examples"
-            >
-              <BookOpen size={16} />
-            </button>
-            <button
-              onClick={() => setOutput([])}
-              className="btn-console-action"
-              title="Clear console"
-            >
-              <Trash2 size={16} />
-            </button>
+
+          <div className="console-output" ref={outputRef}>
+            {output.map((item, index) => (
+              <div key={index} className={`output-line output-${item.type}`}>
+                <span className="output-timestamp">[{formatTimestamp(item.timestamp)}]</span>
+                <span className="output-content" style={{ whiteSpace: 'pre-wrap' }}>{item.content}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="console-input">
+            <span className="input-prompt">$</span>
+            <input
+              ref={inputRef}
+              type="text"
+              value={currentCommand}
+              onChange={(e) => setCurrentCommand(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={isExecuting}
+              placeholder="Type a command..."
+              className="input-field"
+            />
           </div>
         </div>
 
-        <div className="console-output" ref={outputRef}>
-          {output.map((item, index) => (
-            <div key={index} className={`output-line output-${item.type}`}>
-              <span className="output-timestamp">[{formatTimestamp(item.timestamp)}]</span>
-              <span className="output-content" style={{ whiteSpace: 'pre-wrap' }}>{item.content}</span>
-            </div>
-          ))}
-        </div>
-
-        <div className="console-input">
-          <span className="input-prompt">$</span>
-          <input
-            ref={inputRef}
-            type="text"
-            value={currentCommand}
-            onChange={(e) => setCurrentCommand(e.target.value)}
-            onKeyDown={handleKeyDown}
-            disabled={isExecuting}
-            placeholder="Type a command..."
-            className="input-field"
-          />
-        </div>
+        <ConsoleHelpPanel
+          isOpen={showHelpPanel}
+          onClose={() => setShowHelpPanel(false)}
+          onInsertCommand={handleInsertCommand}
+          dockPosition={helpPanelDockPosition}
+          onChangeDockPosition={setHelpPanelDockPosition}
+          isPinned={isHelpPanelPinned}
+          onTogglePin={() => setIsHelpPanelPinned(prev => !prev)}
+        />
       </div>
 
       {/* Help Modal */}

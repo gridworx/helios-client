@@ -249,26 +249,29 @@ microsoft_365_relay               = false  (not implemented)
 
 ---
 
-## Phase 2: Developer Console UX (P1)
+## Phase 2: Developer Console UX (P1) - IN PROGRESS
 
-### 2.1 Pinnable Help Panel
-- [ ] Create `ConsoleHelpPanel` component
-- [ ] Add dock left/right toggle buttons
-- [ ] Save dock preference to localStorage
-- [ ] Implement search within commands
-- [ ] Add Insert button for each command
-- [ ] Style panel to match console theme
+### 2.1 Pinnable Help Panel - COMPLETE
+- [x] Create `ConsoleHelpPanel` component
+- [x] Add dock left/right toggle buttons
+- [x] Save dock preference to localStorage
+- [x] Implement search within commands
+- [x] Add Insert button for each command
+- [x] Style panel to match console theme
+- [x] Pin/unpin functionality
+- [x] Copy to clipboard feature
 
 **Files:**
-- `frontend/src/components/ConsoleHelpPanel.tsx`
-- `frontend/src/components/ConsoleHelpPanel.css`
-- `frontend/src/pages/DeveloperConsole.tsx`
+- `frontend/src/components/ConsoleHelpPanel.tsx` (created)
+- `frontend/src/components/ConsoleHelpPanel.css` (created)
+- `frontend/src/pages/DeveloperConsole.tsx` (updated)
+- `frontend/src/pages/DeveloperConsole.css` (updated)
 
-### 2.2 Insert Command Button
-- [ ] Each command/example has [Insert] button
-- [ ] Clicking inserts template into command input
-- [ ] Optionally highlight placeholders (e.g., `<email>`)
-- [ ] Focus input after insert
+### 2.2 Insert Command Button - COMPLETE
+- [x] Each command/example has [Insert] button
+- [x] Clicking inserts template into command input
+- [x] Focus input after insert
+- [x] Copy button for clipboard
 
 **Files:**
 - `frontend/src/components/ConsoleHelpPanel.tsx`

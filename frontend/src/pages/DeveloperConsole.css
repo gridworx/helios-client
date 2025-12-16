@@ -1,7 +1,52 @@
 .developer-console-page {
   padding: 24px;
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
+}
+
+/* Console Wrapper - for dockable help panel */
+.console-wrapper {
+  position: relative;
+  display: flex;
+  transition: all 0.2s ease;
+}
+
+.console-wrapper .console-container {
+  flex: 1;
+  min-width: 0;
+}
+
+.console-wrapper.with-panel.panel-left {
+  flex-direction: row-reverse;
+}
+
+.console-wrapper.with-panel.panel-right {
+  flex-direction: row;
+}
+
+.console-wrapper.with-panel .console-container {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.console-wrapper.with-panel.panel-left .console-container {
+  margin-left: 330px;
+}
+
+.console-wrapper.with-panel.panel-right .console-container {
+  margin-right: 330px;
+}
+
+/* Active button state */
+.btn-console-action.active {
+  background: #8b5cf6;
+  border-color: #8b5cf6;
+  color: white;
+}
+
+.btn-console-action.active:hover {
+  background: #7c3aed;
+  border-color: #7c3aed;
 }
 
 .page-header {
