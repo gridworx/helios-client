@@ -269,4 +269,133 @@ router.get('/export', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * @openapi
+ * /api/v1/organization/audit-logs/console:
+ *   post:
+ *     summary: Log a console command
+ *     description: Record a Developer Console command execution to the audit log.
+ *     tags: [Audit Logs]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - command
+ *             properties:
+ *               command:
+ *                 type: string
+ *                 description: The command that was executed
+ *                 example: "helios gw users list"
+ *               durationMs:
+ *                 type: integer
+ *                 description: Execution duration in milliseconds
+ *                 example: 250
+ *               resultStatus:
+ *                 type: string
+ *                 enum: [success, error]
+ *                 description: Whether the command succeeded or failed
+ *                 example: "success"
+ *               resultCount:
+ *                 type: integer
+ *                 description: Number of results returned (if applicable)
+ *                 example: 42
+ *               errorMessage:
+ *                 type: string
+ *                 description: Error message if the command failed
+ *     responses:
+ *       201:
+ *         description: Audit log entry created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *       400:
+ *         description: Invalid request body
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+router.post('/console', async (req: Request, res: Response) => {
+  try {
+    const organizationId = req.user?.organizationId;
+    const userId = req.user?.userId;
+    const { command, durationMs, resultStatus, resultCount, errorMessage } = req.body;
+
+    if (!command || typeof command !== 'string') {
+      return res.status(400).json({ success: false, error: 'Command is required' });
+    }
+
+    // Truncate command for description (max 500 chars)
+    const description = command.length > 500 ? command.substring(0, 497) + '...' : command;
+
+    // Build metadata object
+    const metadata: Record<string, any> = {
+      command,
+      duration_ms: durationMs,
+      result_status: resultStatus || 'success',
+    };
+
+    if (resultCount !== undefined) {
+      metadata.result_count = resultCount;
+    }
+
+    if (errorMessage) {
+      metadata.error_message = errorMessage;
+    }
+
+    // Get IP and user agent from request
+    const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.connection?.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+
+    const result = await db.query(
+      `INSERT INTO activity_logs (
+        id, organization_id, user_id, actor_id, action, resource_type,
+        description, metadata, ip_address, user_agent, actor_type, result, created_at
+      ) VALUES (
+        gen_random_uuid(), $1, $2, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW()
+      ) RETURNING id`,
+      [
+        organizationId,
+        userId,
+        'console_command_executed',
+        'developer_console',
+        description,
+        JSON.stringify(metadata),
+        ipAddress,
+        userAgent,
+        'internal',
+        resultStatus || 'success'
+      ]
+    );
+
+    logger.info('Console command logged', {
+      userId,
+      command: description,
+      durationMs,
+      resultStatus
+    });
+
+    res.status(201).json({
+      success: true,
+      data: { id: result.rows[0].id }
+    });
+  } catch (error: any) {
+    logger.error('Failed to log console command', { error: error.message });
+    res.status(500).json({ success: false, error: 'Failed to log console command' });
+  }
+});
+
 export default router;

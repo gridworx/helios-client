@@ -127,6 +127,38 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
     return data;
   };
 
+  // Log command execution to audit log (fire-and-forget)
+  const logCommandToAudit = async (
+    command: string,
+    durationMs: number,
+    resultStatus: 'success' | 'error',
+    errorMessage?: string
+  ) => {
+    try {
+      const token = getToken();
+      if (!token) return;
+
+      // Fire and forget - don't await or block on audit logging
+      fetch('/api/v1/organization/audit-logs/console', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          command,
+          durationMs,
+          resultStatus,
+          errorMessage
+        })
+      }).catch(() => {
+        // Silently ignore audit logging failures
+      });
+    } catch {
+      // Silently ignore audit logging failures
+    }
+  };
+
   const executeCommand = async (command: string) => {
     const trimmedCommand = command.trim();
     if (!trimmedCommand) return;
@@ -139,15 +171,21 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
     setHistoryIndex(-1);
 
     setIsExecuting(true);
+    const startTime = Date.now();
+    let resultStatus: 'success' | 'error' = 'success';
+    let errorMessage: string | undefined;
 
     try {
-      // Handle built-in commands
+      // Handle built-in commands (don't audit these)
       if (trimmedCommand === 'help') {
         showHelp();
+        return; // Skip audit for help
       } else if (trimmedCommand === 'examples') {
         showExamples();
+        return; // Skip audit for examples
       } else if (trimmedCommand === 'clear') {
         setOutput([]);
+        return; // Skip audit for clear
       } else {
         // Auto-prepend "helios" if command starts with a known module
         const knownModules = ['api', 'gw', 'google-workspace', 'users', 'groups', 'ms', 'microsoft'];
@@ -161,12 +199,21 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
         if (commandToExecute.startsWith('helios ')) {
           await executeHeliosCommand(commandToExecute);
         } else {
+          resultStatus = 'error';
+          errorMessage = `Unknown command: ${trimmedCommand}`;
           addOutput('error', `Unknown command: ${trimmedCommand}. Type "help" for available commands.`);
         }
       }
     } catch (error: any) {
+      resultStatus = 'error';
+      errorMessage = error.message;
       addOutput('error', `Error: ${error.message}`);
     } finally {
+      const durationMs = Date.now() - startTime;
+
+      // Log command to audit trail (fire-and-forget)
+      logCommandToAudit(trimmedCommand, durationMs, resultStatus, errorMessage);
+
       setIsExecuting(false);
       // Re-focus input after command completes
       setTimeout(() => inputRef.current?.focus(), 10);
