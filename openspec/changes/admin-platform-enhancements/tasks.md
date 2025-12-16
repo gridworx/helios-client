@@ -218,12 +218,12 @@ microsoft_365_relay               = false  (not implemented)
 - `backend/src/middleware/transparent-proxy.ts` (updated)
 - `backend/src/services/activity-tracker.service.ts` (updated)
 
-### 1.6 Console Command Audit Logging
-- [ ] Create `POST /api/v1/organization/audit-logs/console` endpoint
-- [ ] Log command, duration, result status
-- [ ] Include actor_type='internal' and user context
-- [ ] Update DeveloperConsole to POST after each command
-- [ ] Add console commands to audit log viewer
+### 1.6 Console Command Audit Logging - COMPLETE
+- [x] Create `POST /api/v1/organization/audit-logs/console` endpoint
+- [x] Log command, duration, result status
+- [x] Include actor_type='internal' and user context
+- [x] Update DeveloperConsole to POST after each command
+- [ ] Add console commands to audit log viewer (future enhancement)
 
 **Files:**
 - `backend/src/routes/audit-logs.routes.ts`
