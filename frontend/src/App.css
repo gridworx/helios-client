@@ -435,6 +435,15 @@
   background: #f3f4f6;
 }
 
+.icon-btn.ai-chat-btn {
+  color: #8b5cf6;
+}
+
+.icon-btn.ai-chat-btn:hover {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
 .user-avatar {
   width: 36px;
   height: 36px;

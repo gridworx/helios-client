@@ -41,6 +41,7 @@ const UserOffboarding = lazy(() => import('./pages/UserOffboarding'))
 const ScheduledActions = lazy(() => import('./pages/admin/ScheduledActions'))
 const TeamAnalytics = lazy(() => import('./pages/admin/TeamAnalytics'))
 import { CommandBar } from './components/ai/CommandBar'
+import { ChatPanel } from './components/ai/ChatPanel'
 import { LabelsProvider, useLabels } from './contexts/LabelsContext'
 import { ViewProvider, useView } from './contexts/ViewContext'
 import { FeatureFlagsProvider } from './contexts/FeatureFlagsContext'
@@ -48,7 +49,7 @@ import { AdminNavigation, UserNavigation, ViewSwitcher, ViewOnboarding } from '.
 import { EmailEngagementWidget } from './components/widgets/EmailEngagementWidget'
 import { getWidgetData } from './utils/widget-data'
 import { getEnabledWidgets, type WidgetId } from './config/widgets'
-import { UserPlus, Upload, Download, RefreshCw, AlertCircle, Info, Edit3, Bell, Building, HelpCircle, Search, Users as UsersIcon, Loader2 } from 'lucide-react'
+import { UserPlus, Upload, Download, RefreshCw, AlertCircle, Info, Edit3, Bell, Building, HelpCircle, Search, Users as UsersIcon, Loader2, MessageSquare } from 'lucide-react'
 
 // Loading fallback for lazy-loaded components
 const PageLoader = () => (
@@ -249,6 +250,8 @@ function AppContent() {
   const [widgetsLoading, setWidgetsLoading] = useState(true);
   const [widgetsError, setWidgetsError] = useState<string | null>(null);
   const [showCommandBar, setShowCommandBar] = useState(false);
+  const [showChatPanel, setShowChatPanel] = useState(false);
+  const [chatInitialMessage, setChatInitialMessage] = useState<string | undefined>(undefined);
   const [aiEnabled, setAiEnabled] = useState(false);
 
   // Helper to navigate to group detail (admin route)
@@ -719,6 +722,15 @@ function AppContent() {
           <div className="welcome-stats">
             <span className="welcome-text">Welcome, {currentUser?.firstName || 'User'}!</span>
           </div>
+          {aiEnabled && (
+            <button
+              className="icon-btn ai-chat-btn"
+              title="AI Assistant (Chat)"
+              onClick={() => setShowChatPanel(true)}
+            >
+              <MessageSquare size={18} />
+            </button>
+          )}
           <button className="icon-btn" title="Help" onClick={() => setCurrentPage('settings')}><HelpCircle size={18} /></button>
           <button className="icon-btn" title="Notifications"><Bell size={18} /></button>
           <ClientUserMenu
@@ -1288,6 +1300,21 @@ function AppContent() {
         onClose={() => setShowCommandBar(false)}
         onNavigate={(route) => navigate(route)}
         aiEnabled={aiEnabled}
+      />
+
+      {/* AI Chat Panel */}
+      <ChatPanel
+        isOpen={showChatPanel}
+        onClose={() => {
+          setShowChatPanel(false);
+          setChatInitialMessage(undefined);
+        }}
+        aiEnabled={aiEnabled}
+        onConfigure={() => {
+          setShowChatPanel(false);
+          navigate('/admin/settings');
+        }}
+        initialMessage={chatInitialMessage}
       />
     </div>
   );
