@@ -322,6 +322,134 @@
   color: #374151;
 }
 
+/* Actor type badges */
+.actor-type-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.actor-type-internal {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.actor-type-service {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.actor-type-vendor {
+  background-color: #f3e8ff;
+  color: #7c3aed;
+}
+
+/* Result badges */
+.result-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.result-success {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.result-failure {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.result-denied {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+/* Source cell styling */
+.source-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 100px;
+}
+
+.vendor-name,
+.api-key-name,
+.service-name {
+  font-size: 11px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* Result cell */
+.result-cell {
+  white-space: nowrap;
+}
+
+/* Ticket reference in actor cell */
+.ticket-reference {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  color: #8b5cf6;
+  background-color: #f3e8ff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-top: 2px;
+}
+
+/* Error row highlighting */
+.log-row-error {
+  background-color: #fef2f2;
+}
+
+.log-row-error:hover {
+  background-color: #fee2e2;
+}
+
+/* Vendor filters section */
+.vendor-filters {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Filter input styling */
+.filter-input {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #111827;
+  background-color: white;
+  width: 100%;
+}
+
+.filter-input:hover {
+  border-color: var(--theme-primary);
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: var(--theme-primary);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.filter-input::placeholder {
+  color: #9ca3af;
+}
+
 .resource-cell {
   min-width: 120px;
 }
@@ -458,10 +586,20 @@
   }
 
   .logs-table {
-    min-width: 900px;
+    min-width: 1100px;
   }
 
   .description-cell {
     max-width: 250px;
+  }
+}
+
+@media (max-width: 1400px) {
+  .logs-table {
+    min-width: 1000px;
+  }
+
+  .description-cell {
+    max-width: 200px;
   }
 }

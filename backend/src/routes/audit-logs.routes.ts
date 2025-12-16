@@ -12,7 +12,7 @@ router.use(authenticateToken);
  * /api/v1/organization/audit-logs:
  *   get:
  *     summary: List audit logs
- *     description: Get audit logs for the organization with filtering options.
+ *     description: Get audit logs for the organization with filtering options including actor attribution.
  *     tags: [Audit Logs]
  *     security:
  *       - BearerAuth: []
@@ -46,6 +46,33 @@ router.use(authenticateToken);
  *           type: string
  *         description: Search in description and metadata
  *       - in: query
+ *         name: actorType
+ *         schema:
+ *           type: string
+ *           enum: [internal, service, vendor]
+ *         description: Filter by actor type
+ *       - in: query
+ *         name: vendorName
+ *         schema:
+ *           type: string
+ *         description: Filter by vendor name (only applicable when actorType is vendor)
+ *       - in: query
+ *         name: technician
+ *         schema:
+ *           type: string
+ *         description: Filter by technician name or email
+ *       - in: query
+ *         name: ticketReference
+ *         schema:
+ *           type: string
+ *         description: Filter by ticket reference
+ *       - in: query
+ *         name: result
+ *         schema:
+ *           type: string
+ *           enum: [success, failure, denied]
+ *         description: Filter by action result
+ *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
@@ -59,7 +86,7 @@ router.use(authenticateToken);
  *         description: Number of results to skip
  *     responses:
  *       200:
- *         description: Audit logs
+ *         description: Audit logs with actor attribution
  *         content:
  *           application/json:
  *             schema:
@@ -82,6 +109,20 @@ router.use(authenticateToken);
  *                         type: string
  *                       actorEmail:
  *                         type: string
+ *                       actorType:
+ *                         type: string
+ *                         enum: [internal, service, vendor]
+ *                       vendorName:
+ *                         type: string
+ *                       vendorTechnicianName:
+ *                         type: string
+ *                       vendorTechnicianEmail:
+ *                         type: string
+ *                       ticketReference:
+ *                         type: string
+ *                       result:
+ *                         type: string
+ *                         enum: [success, failure, denied]
  *                       createdAt:
  *                         type: string
  *                         format: date-time
@@ -91,7 +132,20 @@ router.use(authenticateToken);
 router.get('/', async (req: Request, res: Response) => {
   try {
     const organizationId = req.user?.organizationId;
-    const { action, userId, startDate, endDate, limit = 100, offset = 0, search } = req.query;
+    const {
+      action,
+      userId,
+      startDate,
+      endDate,
+      limit = 100,
+      offset = 0,
+      search,
+      actorType,
+      vendorName,
+      technician,
+      ticketReference,
+      result
+    } = req.query;
 
     let query = `
       SELECT
@@ -107,6 +161,16 @@ router.get('/', async (req: Request, res: Response) => {
         al.ip_address,
         al.user_agent,
         al.created_at,
+        al.actor_type,
+        al.api_key_id,
+        al.api_key_name,
+        al.vendor_name,
+        al.vendor_technician_name,
+        al.vendor_technician_email,
+        al.ticket_reference,
+        al.service_name,
+        al.service_owner,
+        al.result,
         u.email as actor_email,
         u.first_name as actor_first_name,
         u.last_name as actor_last_name
@@ -142,14 +206,40 @@ router.get('/', async (req: Request, res: Response) => {
       query += ` AND (al.description ILIKE $${params.length} OR al.metadata::text ILIKE $${params.length})`;
     }
 
+    // Actor attribution filters
+    if (actorType) {
+      params.push(actorType);
+      query += ` AND al.actor_type = $${params.length}`;
+    }
+
+    if (vendorName) {
+      params.push(`%${vendorName}%`);
+      query += ` AND al.vendor_name ILIKE $${params.length}`;
+    }
+
+    if (technician) {
+      params.push(`%${technician}%`);
+      query += ` AND (al.vendor_technician_name ILIKE $${params.length} OR al.vendor_technician_email ILIKE $${params.length})`;
+    }
+
+    if (ticketReference) {
+      params.push(`%${ticketReference}%`);
+      query += ` AND al.ticket_reference ILIKE $${params.length}`;
+    }
+
+    if (result) {
+      params.push(result);
+      query += ` AND al.result = $${params.length}`;
+    }
+
     query += ` ORDER BY al.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
     params.push(limit, offset);
 
-    const result = await db.query(query, params);
+    const result_data = await db.query(query, params);
 
     res.json({
       success: true,
-      data: result.rows
+      data: result_data.rows
     });
   } catch (error: any) {
     logger.error('Failed to fetch audit logs', { error: error.message });
@@ -162,7 +252,7 @@ router.get('/', async (req: Request, res: Response) => {
  * /api/v1/organization/audit-logs/export:
  *   get:
  *     summary: Export audit logs
- *     description: Export audit logs to CSV format.
+ *     description: Export audit logs to CSV format with actor attribution fields.
  *     tags: [Audit Logs]
  *     security:
  *       - BearerAuth: []
@@ -190,6 +280,23 @@ router.get('/', async (req: Request, res: Response) => {
  *           type: string
  *           format: date-time
  *         description: Filter logs before this date
+ *       - in: query
+ *         name: actorType
+ *         schema:
+ *           type: string
+ *           enum: [internal, service, vendor]
+ *         description: Filter by actor type
+ *       - in: query
+ *         name: vendorName
+ *         schema:
+ *           type: string
+ *         description: Filter by vendor name
+ *       - in: query
+ *         name: result
+ *         schema:
+ *           type: string
+ *           enum: [success, failure, denied]
+ *         description: Filter by action result
  *     responses:
  *       200:
  *         description: CSV file
@@ -203,7 +310,7 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/export', async (req: Request, res: Response) => {
   try {
     const organizationId = req.user?.organizationId;
-    const { action, userId, startDate, endDate } = req.query;
+    const { action, userId, startDate, endDate, actorType, vendorName, result } = req.query;
 
     let query = `
       SELECT
@@ -213,7 +320,15 @@ router.get('/export', async (req: Request, res: Response) => {
         al.resource_type,
         al.resource_id,
         al.description,
-        al.ip_address
+        al.ip_address,
+        al.actor_type,
+        al.vendor_name,
+        al.vendor_technician_name,
+        al.vendor_technician_email,
+        al.ticket_reference,
+        al.api_key_name,
+        al.service_name,
+        al.result
       FROM activity_logs al
       LEFT JOIN organization_users u ON al.actor_id = u.id
       WHERE al.organization_id = $1
@@ -241,21 +356,48 @@ router.get('/export', async (req: Request, res: Response) => {
       query += ` AND al.created_at <= $${params.length}`;
     }
 
+    if (actorType) {
+      params.push(actorType);
+      query += ` AND al.actor_type = $${params.length}`;
+    }
+
+    if (vendorName) {
+      params.push(`%${vendorName}%`);
+      query += ` AND al.vendor_name ILIKE $${params.length}`;
+    }
+
+    if (result) {
+      params.push(result);
+      query += ` AND al.result = $${params.length}`;
+    }
+
     query += ` ORDER BY al.created_at DESC`;
 
-    const result = await db.query(query, params);
+    const export_result = await db.query(query, params);
 
-    // Generate CSV
-    const headers = ['Timestamp', 'Actor', 'Action', 'Resource Type', 'Resource ID', 'Description', 'IP Address'];
+    // Generate CSV with actor attribution columns
+    const headers = [
+      'Timestamp', 'Actor Type', 'Actor', 'Vendor', 'Technician', 'Technician Email',
+      'Ticket', 'API Key', 'Service', 'Action', 'Resource Type', 'Resource ID',
+      'Description', 'Result', 'IP Address'
+    ];
     const csv = [
       headers.join(','),
-      ...result.rows.map((row: any) => [
+      ...export_result.rows.map((row: any) => [
         new Date(row.created_at).toISOString(),
+        row.actor_type || 'internal',
         row.actor_email || 'System',
+        row.vendor_name || '',
+        row.vendor_technician_name || '',
+        row.vendor_technician_email || '',
+        row.ticket_reference || '',
+        row.api_key_name || '',
+        row.service_name || '',
         row.action,
         row.resource_type || '',
         row.resource_id || '',
         `"${(row.description || '').replace(/"/g, '""')}"`,
+        row.result || 'success',
         row.ip_address || ''
       ].join(','))
     ].join('\n');

@@ -1,6 +1,6 @@
 # Admin Platform Enhancements - Tasks
 
-## Status: In Progress (Phase -1 Complete, Phase 1.1-1.3 Complete)
+## Status: In Progress (Phase -1 Complete, Phase 1 Complete)
 
 ---
 
@@ -229,17 +229,23 @@ microsoft_365_relay               = false  (not implemented)
 - `backend/src/routes/audit-logs.routes.ts`
 - `frontend/src/pages/DeveloperConsole.tsx`
 
-### 1.7 Audit Log Viewer Filters
-- [ ] Add actor_type filter dropdown (All / Internal / Service / Vendor)
-- [ ] Add vendor name filter (only shown when vendor selected)
-- [ ] Add technician filter
-- [ ] Add ticket reference search
-- [ ] Add result filter (success / failure / denied)
-- [ ] Update API to support new filter parameters
+### 1.7 Audit Log Viewer Filters - COMPLETE
+- [x] Add actor_type filter dropdown (All / Internal / Service / Vendor)
+- [x] Add vendor name filter (only shown when vendor selected)
+- [x] Add technician filter
+- [x] Add ticket reference search
+- [x] Add result filter (success / failure / denied)
+- [x] Update API to support new filter parameters
+- [x] Display new actor attribution columns (Source, Result) in table
+- [x] Add vendor-specific info display (vendor name, technician, ticket reference)
+- [x] Update AuditLog type to include all new fields
+- [x] Add CSS styling for new badges and filters
 
 **Files:**
-- `frontend/src/pages/AuditLogs.tsx`
-- `backend/src/routes/audit-logs.routes.ts`
+- `frontend/src/pages/AuditLogs.tsx` (updated)
+- `frontend/src/pages/AuditLogs.css` (updated)
+- `frontend/src/services/audit-logs.service.ts` (updated)
+- `backend/src/routes/audit-logs.routes.ts` (updated)
 
 ---
 
