@@ -3,6 +3,7 @@
  *
  * These tools provide read-only access to Helios data for the AI assistant.
  * The AI can query users, groups, and generate reports, but cannot modify data.
+ * It can also generate commands/scripts for users to execute themselves.
  */
 
 // Help Search Tool
@@ -55,6 +56,20 @@ export {
   ReportType
 } from './report.tools';
 
+// Command Generation Tools
+export {
+  generateApiCommandToolDefinition,
+  generateBulkScriptToolDefinition,
+  generateApiCommand,
+  generateBulkScript,
+  formatCommandForLLM,
+  formatScriptForLLM,
+  CommandFormat,
+  CommandAction,
+  GeneratedCommand,
+  GeneratedScript
+} from './command.tools';
+
 /**
  * All tool definitions for registration with MCP server
  */
@@ -71,5 +86,8 @@ export const allToolDefinitions = [
   'compareGroupsToolDefinition',
   // Reports
   'generateReportToolDefinition',
-  'getDashboardStatsToolDefinition'
+  'getDashboardStatsToolDefinition',
+  // Commands
+  'generateApiCommandToolDefinition',
+  'generateBulkScriptToolDefinition'
 ];
