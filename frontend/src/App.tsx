@@ -186,6 +186,10 @@ function AppContent() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
+  // Check if we're in popup mode (for console)
+  const urlParams = new URLSearchParams(location.search);
+  const isPopupMode = urlParams.get('mode') === 'popup' && location.pathname.includes('/console');
+
   // Derive current page from URL path
   const currentPage = getPageFromPath(location.pathname);
 
@@ -638,6 +642,17 @@ function AppContent() {
             </div>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // Popup mode: Render only the console without header/sidebar
+  if (isPopupMode && currentPage === 'console') {
+    return (
+      <div className="popup-console-app">
+        <Suspense fallback={<PageLoader />}>
+          <DeveloperConsole organizationId={config?.organizationId || ''} isPopup={true} />
+        </Suspense>
       </div>
     );
   }

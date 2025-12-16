@@ -1,6 +1,6 @@
 # Admin Platform Enhancements - Tasks
 
-## Status: In Progress (Phase -1 Complete, Phase 1 Complete)
+## Status: In Progress (Phases -1, 0, 1, 2, 4, 5 Complete; Phases 3, 6 Pending)
 
 ---
 
@@ -388,53 +388,64 @@ microsoft_365_relay               = false  (not implemented)
 
 ---
 
-## Phase 4: Microsoft 365 Relay (P2)
+## Phase 4: Microsoft 365 Relay (P2) - COMPLETE
 
-### 4.1 Microsoft Graph Transparent Proxy
-- [ ] Install `@microsoft/microsoft-graph-client`
-- [ ] Create `microsoft-transparent-proxy.ts` middleware
-- [ ] Mount at `/api/microsoft/*`
-- [ ] Implement authentication with tenant credentials
-- [ ] Forward requests to Graph API
-- [ ] Log all requests to audit logs
+### 4.1 Microsoft Graph Transparent Proxy - COMPLETE
+- [x] Install `@microsoft/microsoft-graph-client` (already installed)
+- [x] Create `microsoft-transparent-proxy.ts` middleware
+- [x] Mount at `/api/microsoft/graph/*`
+- [x] Implement authentication with tenant credentials
+- [x] Forward requests to Graph API
+- [x] Log all requests to audit logs (actor attribution)
+- [x] Intelligent sync for users and groups
 
 **Files:**
-- `backend/src/middleware/microsoft-transparent-proxy.ts`
-- `backend/src/index.ts`
-- `package.json`
+- `backend/src/middleware/microsoft-transparent-proxy.ts` (created)
+- `backend/src/index.ts` (updated)
 
-### 4.2 Microsoft 365 Console Commands
-- [ ] Implement `helios m365 users list`
-- [ ] Implement `helios m365 users get`
-- [ ] Implement `helios m365 licenses list`
-- [ ] Implement `helios m365 groups list`
+### 4.2 Microsoft 365 Console Commands - COMPLETE
+- [x] Implement `helios m365 users list` (with table formatting)
+- [x] Implement `helios m365 users get <email>` (detailed view)
+- [x] Implement `helios m365 users create/update/delete`
+- [x] Implement `helios m365 users reset-password/enable/disable`
+- [x] Implement `helios m365 licenses list/assign/remove`
+- [x] Implement `helios m365 groups list/get/create/add-member/remove-member`
+- [x] Add to ConsoleHelpPanel documentation
 
 **Files:**
 - `frontend/src/pages/DeveloperConsole.tsx`
+- `frontend/src/components/ConsoleHelpPanel.tsx`
 
 ### 4.3 Microsoft 365 Offboarding
-- [ ] Implement OneDrive transfer
-- [ ] Implement mailbox conversion to shared
-- [ ] Implement license removal
-- [ ] Add to offboarding wizard
+- [ ] Implement OneDrive transfer (future)
+- [ ] Implement mailbox conversion to shared (future)
+- [ ] Implement license removal (future)
+- [ ] Add to offboarding wizard (future)
+
+**Note:** This is deferred pending full MS365 offboarding workflow implementation.
 
 **Files:**
-- `backend/src/services/microsoft-offboarding.service.ts`
+- `backend/src/services/microsoft-offboarding.service.ts` (future)
 
 ---
 
-## Phase 5: Pop-out Console (P2)
+## Phase 5: Pop-out Console (P2) - COMPLETE
 
-### 5.1 Pop-out Window Implementation
-- [ ] Create `/console?mode=popup` route variant
-- [ ] Remove duplicate header/sidebar in popup mode
-- [ ] Implement `window.open()` for pop-out
-- [ ] Maintain auth state in popup
-- [ ] Add pop-out button to console toolbar
+### 5.1 Pop-out Window Implementation - COMPLETE
+- [x] Create `/console?mode=popup` route variant
+- [x] Remove duplicate header/sidebar in popup mode
+- [x] Implement `window.open()` for pop-out
+- [x] Maintain auth state in popup (via shared localStorage token)
+- [x] Add pop-out button to console toolbar
+- [x] Add close button (Minimize2 icon) when in popup mode
+- [x] Add CSS for popup mode (full height, no borders)
+- [x] Add toolbar separator for visual separation
 
 **Files:**
-- `frontend/src/pages/DeveloperConsole.tsx`
-- `frontend/src/App.tsx` (routing)
+- `frontend/src/pages/DeveloperConsole.tsx` (updated)
+- `frontend/src/pages/DeveloperConsole.css` (updated)
+- `frontend/src/App.tsx` (added popup mode handling)
+- `frontend/src/index.css` (added popup-console-app style)
 
 ---
 

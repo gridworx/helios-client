@@ -70,6 +70,7 @@ import { startCampaignSchedulerJob, stopCampaignSchedulerJob } from './jobs/camp
 import { startTrackingRetentionJob, stopTrackingRetentionJob } from './jobs/tracking-retention.job';
 
 import transparentProxyRouter from './middleware/transparent-proxy';
+import microsoftTransparentProxyRouter from './middleware/microsoft-transparent-proxy';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 import assetProxyRoutes from './routes/asset-proxy.routes';
@@ -586,6 +587,9 @@ registerRoute('/organization/feature-flags', featureFlagsRoutes);
 
 // Transparent Proxy for Google Workspace APIs (must be before catch-all)
 app.use(transparentProxyRouter);
+
+// Transparent Proxy for Microsoft Graph APIs (must be before catch-all)
+app.use(microsoftTransparentProxyRouter);
 
 // Catch-all for undefined API routes (both versioned and unversioned)
 const notFoundHandler = (req: express.Request, res: express.Response) => {

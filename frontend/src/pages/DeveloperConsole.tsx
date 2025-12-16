@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { HelpCircle, BookOpen, Trash2, X, PanelLeftOpen, PanelRightOpen } from 'lucide-react';
+import { HelpCircle, BookOpen, Trash2, X, PanelLeftOpen, PanelRightOpen, ExternalLink, Minimize2 } from 'lucide-react';
 import { ConsoleHelpPanel } from '../components/ConsoleHelpPanel';
 import './DeveloperConsole.css';
 
@@ -11,13 +11,18 @@ interface ConsoleOutput {
 
 interface DeveloperConsoleProps {
   organizationId: string;
+  isPopup?: boolean;
 }
 
-export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
+export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperConsoleProps) {
+  // Detect popup mode from URL params as well
+  const urlParams = new URLSearchParams(window.location.search);
+  const isPopupMode = isPopup || urlParams.get('mode') === 'popup';
+
   const [output, setOutput] = useState<ConsoleOutput[]>([
     {
       type: 'info',
-      content: 'Helios Developer Console v1.0.0',
+      content: 'Helios Developer Console v1.0.0' + (isPopupMode ? ' (Pop-out Window)' : ''),
       timestamp: new Date()
     },
     {
@@ -2344,14 +2349,41 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
     return date.toLocaleTimeString('en-US', { hour12: false });
   };
 
-  return (
-    <div className="developer-console-page">
-      <div className="page-header">
-        <h1>Developer Console</h1>
-        <p className="page-subtitle">Execute commands and interact with Helios API</p>
-      </div>
+  // Pop-out console to a new window
+  const handlePopOut = () => {
+    const width = 900;
+    const height = 700;
+    const left = (window.screen.width - width) / 2;
+    const top = (window.screen.height - height) / 2;
 
-      <div className={`console-wrapper ${showHelpPanel ? `with-panel panel-${helpPanelDockPosition}` : ''}`}>
+    const popupWindow = window.open(
+      '/admin/console?mode=popup',
+      'HeliosConsole',
+      `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes`
+    );
+
+    if (popupWindow) {
+      popupWindow.focus();
+      // Optionally navigate away from console in main window
+      // window.location.href = '/admin/dashboard';
+    }
+  };
+
+  // Close popup and return to main window
+  const handleClosePopup = () => {
+    window.close();
+  };
+
+  return (
+    <div className={`developer-console-page ${isPopupMode ? 'popup-mode' : ''}`}>
+      {!isPopupMode && (
+        <div className="page-header">
+          <h1>Developer Console</h1>
+          <p className="page-subtitle">Execute commands and interact with Helios API</p>
+        </div>
+      )}
+
+      <div className={`console-wrapper ${showHelpPanel ? `with-panel panel-${helpPanelDockPosition}` : ''} ${isPopupMode ? 'popup-wrapper' : ''}`}>
         <div className="console-container" onClick={() => inputRef.current?.focus()}>
           <div className="console-toolbar">
             <div className="console-toolbar-left">
@@ -2389,6 +2421,24 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
               >
                 <Trash2 size={16} />
               </button>
+              <div className="toolbar-separator" />
+              {isPopupMode ? (
+                <button
+                  onClick={handleClosePopup}
+                  className="btn-console-action btn-close-popup"
+                  title="Close popup window"
+                >
+                  <Minimize2 size={16} />
+                </button>
+              ) : (
+                <button
+                  onClick={handlePopOut}
+                  className="btn-console-action"
+                  title="Pop out to new window"
+                >
+                  <ExternalLink size={16} />
+                </button>
+              )}
             </div>
           </div>
 

@@ -56,3 +56,11 @@ button:focus-visible {
   outline: 2px solid var(--theme-primary, #4f46e5);
   outline-offset: 2px;
 }
+
+/* Popup console mode - full screen, no chrome */
+.popup-console-app {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #1e1e1e;
+}
