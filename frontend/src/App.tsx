@@ -42,6 +42,7 @@ const ScheduledActions = lazy(() => import('./pages/admin/ScheduledActions'))
 const TeamAnalytics = lazy(() => import('./pages/admin/TeamAnalytics'))
 import { CommandBar } from './components/ai/CommandBar'
 import { ChatPanel } from './components/ai/ChatPanel'
+import { HelpWidget } from './components/ai/HelpWidget'
 import { LabelsProvider, useLabels } from './contexts/LabelsContext'
 import { ViewProvider, useView } from './contexts/ViewContext'
 import { FeatureFlagsProvider } from './contexts/FeatureFlagsContext'
@@ -1316,6 +1317,19 @@ function AppContent() {
         }}
         initialMessage={chatInitialMessage}
       />
+
+      {/* Contextual Help Widget */}
+      {!showChatPanel && (
+        <HelpWidget
+          currentPage={currentPage}
+          aiEnabled={aiEnabled}
+          onOpenChat={(message) => {
+            if (message) setChatInitialMessage(message);
+            setShowChatPanel(true);
+          }}
+          onConfigure={() => navigate('/admin/settings')}
+        />
+      )}
     </div>
   );
 }

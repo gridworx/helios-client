@@ -413,6 +413,7 @@ POST /api/v1/ai/chat             - Send chat message (main interaction endpoint)
 
 ### TASK-AI-015: Create contextual help widget
 **Priority:** P2
+**Status:** COMPLETED
 **File:** `frontend/src/components/ai/HelpWidget.tsx`
 
 **Features:**
@@ -421,11 +422,26 @@ POST /api/v1/ai/chat             - Send chat message (main interaction endpoint)
 - Quick questions relevant to page
 - Expandable to full chat
 
+**Implementation (2025-12-16):**
+- Created `HelpWidget.tsx` component with:
+  - Floating purple (?) button in bottom-right corner
+  - Keyboard shortcut (?) to toggle
+  - Context-aware suggestions for 15+ page types
+  - Three suggestion categories: Quick, How-to, Explain
+  - Quick answer feature for brief responses
+  - Expand to full ChatPanel integration
+  - Disabled state when AI not configured
+- Created `HelpWidget.css` with professional styling
+- Integrated into App.tsx:
+  - Widget hidden when ChatPanel is open
+  - Passes currentPage context automatically
+  - Opens ChatPanel with pre-filled question
+
 **Acceptance Criteria:**
-- [ ] Shows on all pages
-- [ ] Suggestions relevant to page
-- [ ] Can expand to chat panel
-- [ ] Non-intrusive positioning
+- [x] Shows on all pages
+- [x] Suggestions relevant to page
+- [x] Can expand to chat panel
+- [x] Non-intrusive positioning
 
 ---
 
