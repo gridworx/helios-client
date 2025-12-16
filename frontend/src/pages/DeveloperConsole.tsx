@@ -314,7 +314,7 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
   const handleGoogleWorkspaceCommand = async (args: string[]) => {
     if (args.length === 0) {
       addOutput('error', 'Usage: helios gw <resource> <action> [options]');
-      addOutput('info', 'Resources: users, groups, orgunits, delegates, drive, shared-drives, sync');
+      addOutput('info', 'Resources: users, groups, orgunits, delegates, drive, shared-drives, transfer, forwarding, vacation, sync');
       return;
     }
 
@@ -340,6 +340,15 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
         break;
       case 'shared-drives':
         await handleGWSharedDrives(action, restArgs);
+        break;
+      case 'transfer':
+        await handleGWTransfer(action, restArgs);
+        break;
+      case 'forwarding':
+        await handleGWForwarding(action, restArgs);
+        break;
+      case 'vacation':
+        await handleGWVacation(action, restArgs);
         break;
       case 'sync':
         await handleGWSync(action, restArgs);
@@ -608,8 +617,193 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
         break;
       }
 
+      case 'offboard': {
+        if (args.length === 0) {
+          addOutput('error', 'Usage: gw users offboard <email> [options]');
+          addOutput('info', '');
+          addOutput('info', 'Offboard a user with optional data transfer and access revocation.');
+          addOutput('info', '');
+          addOutput('info', 'Options:');
+          addOutput('info', '  --transfer-to=<email>     Transfer Drive/Calendar data to this user');
+          addOutput('info', '  --forward-to=<email>      Forward emails to this user');
+          addOutput('info', '  --suspend                 Suspend the user after offboarding');
+          addOutput('info', '  --delete                  Delete the user after offboarding');
+          addOutput('info', '  --vacation="message"      Set vacation responder before offboarding');
+          addOutput('info', '  --revoke-access           Sign out sessions, revoke OAuth tokens');
+          addOutput('info', '');
+          addOutput('info', 'Example:');
+          addOutput('info', '  gw users offboard john@company.com --transfer-to=manager@company.com --forward-to=support@company.com --suspend');
+          return;
+        }
+
+        const email = args[0];
+        const params = parseArgs(args.slice(1));
+
+        addOutput('info', `[OFFBOARD]Starting offboarding for ${email}...`);
+        addOutput('info', '');
+
+        const APPLICATION_IDS: Record<string, string> = {
+          drive: '435070579839',
+          calendar: '55656082996',
+          sites: '529327477839'
+        };
+
+        let stepNum = 0;
+        const results: { step: string; success: boolean; message: string }[] = [];
+
+        try {
+          // Step 1: Set vacation responder if requested
+          if (params.vacation) {
+            stepNum++;
+            addOutput('info', `[STEP]Step ${stepNum}: Setting vacation responder...`);
+            try {
+              await apiRequest('PUT', `/api/google/gmail/v1/users/${email}/settings/vacation`, {
+                enableAutoReply: true,
+                responseBodyPlainText: params.vacation,
+                responseBodyHtml: `<p>${params.vacation.replace(/\n/g, '<br>')}</p>`
+              });
+              results.push({ step: 'Vacation responder', success: true, message: 'Enabled' });
+              addOutput('success', `   Vacation responder set`);
+            } catch (e: any) {
+              results.push({ step: 'Vacation responder', success: false, message: e.message });
+              addOutput('error', `   Failed: ${e.message}`);
+            }
+          }
+
+          // Step 2: Data transfer if requested
+          if (params['transfer-to'] || params.transferTo) {
+            const transferTo = params['transfer-to'] || params.transferTo;
+            stepNum++;
+            addOutput('info', `[STEP]Step ${stepNum}: Initiating data transfer to ${transferTo}...`);
+            try {
+              const transferResponse = await apiRequest('POST', '/api/google/admin/datatransfer/v1/transfers', {
+                oldOwnerUserId: email,
+                newOwnerUserId: transferTo,
+                applicationDataTransfers: [
+                  { applicationId: APPLICATION_IDS.drive, applicationTransferParams: [] },
+                  { applicationId: APPLICATION_IDS.calendar, applicationTransferParams: [] },
+                  { applicationId: APPLICATION_IDS.sites, applicationTransferParams: [] }
+                ]
+              });
+              results.push({ step: 'Data transfer', success: true, message: `Transfer ID: ${transferResponse.id}` });
+              addOutput('success', `   Transfer initiated (ID: ${transferResponse.id})`);
+            } catch (e: any) {
+              results.push({ step: 'Data transfer', success: false, message: e.message });
+              addOutput('error', `   Failed: ${e.message}`);
+            }
+          }
+
+          // Step 3: Email forwarding if requested
+          if (params['forward-to'] || params.forwardTo) {
+            const forwardTo = params['forward-to'] || params.forwardTo;
+            stepNum++;
+            addOutput('info', `[STEP]Step ${stepNum}: Setting up email forwarding to ${forwardTo}...`);
+            try {
+              // Add forwarding address first
+              try {
+                await apiRequest('POST', `/api/google/gmail/v1/users/${email}/settings/forwardingAddresses`, {
+                  forwardingEmail: forwardTo
+                });
+              } catch {
+                // May already exist, ignore
+              }
+
+              // Enable auto-forwarding
+              await apiRequest('PUT', `/api/google/gmail/v1/users/${email}/settings/autoForwarding`, {
+                enabled: true,
+                emailAddress: forwardTo,
+                disposition: 'leaveInInbox'
+              });
+              results.push({ step: 'Email forwarding', success: true, message: `Forwarding to ${forwardTo}` });
+              addOutput('success', `   Forwarding enabled`);
+            } catch (e: any) {
+              results.push({ step: 'Email forwarding', success: false, message: e.message });
+              addOutput('error', `   Failed: ${e.message}`);
+            }
+          }
+
+          // Step 4: Revoke access if requested
+          if (params['revoke-access'] !== undefined || params.revokeAccess !== undefined) {
+            stepNum++;
+            addOutput('info', `[STEP]Step ${stepNum}: Revoking access...`);
+            try {
+              // Sign out all sessions
+              await apiRequest('POST', `/api/google/admin/directory/v1/users/${email}/signOut`, {});
+              addOutput('info', `   Signed out all sessions`);
+
+              // Revoke OAuth tokens (requires Admin SDK with user management scope)
+              try {
+                const tokens = await apiRequest('GET', `/api/google/admin/directory/v1/users/${email}/tokens`);
+                if (tokens.items) {
+                  for (const token of tokens.items) {
+                    await apiRequest('DELETE', `/api/google/admin/directory/v1/users/${email}/tokens/${token.clientId}`);
+                  }
+                  addOutput('info', `   Revoked ${tokens.items.length} OAuth tokens`);
+                }
+              } catch {
+                addOutput('info', `   No OAuth tokens to revoke`);
+              }
+
+              results.push({ step: 'Revoke access', success: true, message: 'Sessions signed out' });
+            } catch (e: any) {
+              results.push({ step: 'Revoke access', success: false, message: e.message });
+              addOutput('error', `   Failed: ${e.message}`);
+            }
+          }
+
+          // Step 5: Suspend user if requested
+          if (params.suspend !== undefined) {
+            stepNum++;
+            addOutput('info', `[STEP]Step ${stepNum}: Suspending user...`);
+            try {
+              await apiRequest('PATCH', `/api/google/admin/directory/v1/users/${email}`, { suspended: true });
+              results.push({ step: 'Suspend user', success: true, message: 'User suspended' });
+              addOutput('success', `   User suspended`);
+            } catch (e: any) {
+              results.push({ step: 'Suspend user', success: false, message: e.message });
+              addOutput('error', `   Failed: ${e.message}`);
+            }
+          }
+
+          // Step 6: Delete user if requested (mutually exclusive with suspend)
+          if (params.delete !== undefined && params.suspend === undefined) {
+            stepNum++;
+            addOutput('info', `[STEP]Step ${stepNum}: Deleting user...`);
+            addOutput('info', '[WARN]This action is IRREVERSIBLE!');
+            try {
+              await apiRequest('DELETE', `/api/google/admin/directory/v1/users/${email}`);
+              results.push({ step: 'Delete user', success: true, message: 'User deleted' });
+              addOutput('success', `   User deleted`);
+            } catch (e: any) {
+              results.push({ step: 'Delete user', success: false, message: e.message });
+              addOutput('error', `   Failed: ${e.message}`);
+            }
+          }
+
+          // Summary
+          addOutput('info', '');
+          addOutput('info', '='.repeat(60));
+          addOutput('success', `[OK]Offboarding complete for ${email}`);
+          addOutput('info', '');
+          addOutput('info', 'Summary:');
+          for (const result of results) {
+            const icon = result.success ? '[✓]' : '[✗]';
+            addOutput(result.success ? 'info' : 'error', `  ${icon} ${result.step}: ${result.message}`);
+          }
+
+          if (results.some(r => !r.success)) {
+            addOutput('info', '');
+            addOutput('error', '[WARN]Some steps failed. Review the errors above.');
+          }
+
+        } catch (error: any) {
+          addOutput('error', `Offboarding failed: ${error.message}`);
+        }
+        break;
+      }
+
       default:
-        addOutput('error', `Unknown action: ${action}. Use: list, get, create, update, suspend, restore, delete, move, groups, reset-password, add-alias, remove-alias, make-admin`);
+        addOutput('error', `Unknown action: ${action}. Use: list, get, create, update, suspend, restore, delete, move, groups, reset-password, add-alias, remove-alias, make-admin, offboard`);
     }
   };
 
@@ -1145,6 +1339,439 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
 
       default:
         addOutput('error', `Unknown action: ${action}. Use: create, list, get, add-member, list-permissions, delete`);
+    }
+  };
+
+  // ----- Google Workspace: Data Transfer -----
+  const handleGWTransfer = async (action: string, args: string[]) => {
+    // Application IDs for Google Data Transfer API
+    const APPLICATION_IDS: Record<string, string> = {
+      drive: '435070579839',
+      calendar: '55656082996',
+      sites: '529327477839',
+      groups: '588034504559'
+    };
+
+    switch (action) {
+      case 'drive': {
+        if (args.length < 2) {
+          addOutput('error', 'Usage: gw transfer drive <from-email> --to=<to-email>');
+          addOutput('info', 'Transfers all Drive ownership from one user to another via Google Data Transfer API');
+          return;
+        }
+        const fromEmail = args[0];
+        const params = parseArgs(args.slice(1));
+        const toEmail = params.to;
+
+        if (!toEmail) {
+          addOutput('error', 'Missing --to parameter. Usage: gw transfer drive <from-email> --to=<to-email>');
+          return;
+        }
+
+        addOutput('info', `[SYNC]Initiating Drive data transfer...`);
+        addOutput('info', `   From: ${fromEmail}`);
+        addOutput('info', `   To: ${toEmail}`);
+
+        try {
+          // Use Google Data Transfer API via transparent proxy
+          const response = await apiRequest('POST', '/api/google/admin/datatransfer/v1/transfers', {
+            oldOwnerUserId: fromEmail,
+            newOwnerUserId: toEmail,
+            applicationDataTransfers: [{
+              applicationId: APPLICATION_IDS.drive,
+              applicationTransferParams: []
+            }]
+          });
+
+          addOutput('success', `[OK]Drive transfer initiated!`);
+          addOutput('info', `   Transfer ID: ${response.id}`);
+          addOutput('info', `   Status: ${response.overallTransferStatusCode || 'pending'}`);
+          addOutput('info', '');
+          addOutput('info', '[INFO]Transfer is running in the background. Use "gw transfer status" to check progress.');
+        } catch (error: any) {
+          addOutput('error', `Transfer failed: ${error.message}`);
+        }
+        break;
+      }
+
+      case 'calendar': {
+        if (args.length < 2) {
+          addOutput('error', 'Usage: gw transfer calendar <from-email> --to=<to-email>');
+          addOutput('info', 'Transfers calendar ownership from one user to another via Google Data Transfer API');
+          return;
+        }
+        const fromEmail = args[0];
+        const params = parseArgs(args.slice(1));
+        const toEmail = params.to;
+
+        if (!toEmail) {
+          addOutput('error', 'Missing --to parameter. Usage: gw transfer calendar <from-email> --to=<to-email>');
+          return;
+        }
+
+        addOutput('info', `[SYNC]Initiating Calendar data transfer...`);
+        addOutput('info', `   From: ${fromEmail}`);
+        addOutput('info', `   To: ${toEmail}`);
+
+        try {
+          const response = await apiRequest('POST', '/api/google/admin/datatransfer/v1/transfers', {
+            oldOwnerUserId: fromEmail,
+            newOwnerUserId: toEmail,
+            applicationDataTransfers: [{
+              applicationId: APPLICATION_IDS.calendar,
+              applicationTransferParams: []
+            }]
+          });
+
+          addOutput('success', `[OK]Calendar transfer initiated!`);
+          addOutput('info', `   Transfer ID: ${response.id}`);
+          addOutput('info', `   Status: ${response.overallTransferStatusCode || 'pending'}`);
+        } catch (error: any) {
+          addOutput('error', `Transfer failed: ${error.message}`);
+        }
+        break;
+      }
+
+      case 'all': {
+        if (args.length < 2) {
+          addOutput('error', 'Usage: gw transfer all <from-email> --to=<to-email>');
+          addOutput('info', 'Transfers Drive, Calendar, and Sites from one user to another');
+          return;
+        }
+        const fromEmail = args[0];
+        const params = parseArgs(args.slice(1));
+        const toEmail = params.to;
+
+        if (!toEmail) {
+          addOutput('error', 'Missing --to parameter. Usage: gw transfer all <from-email> --to=<to-email>');
+          return;
+        }
+
+        addOutput('info', `[SYNC]Initiating full data transfer...`);
+        addOutput('info', `   From: ${fromEmail}`);
+        addOutput('info', `   To: ${toEmail}`);
+        addOutput('info', `   Applications: Drive, Calendar, Sites`);
+
+        try {
+          const response = await apiRequest('POST', '/api/google/admin/datatransfer/v1/transfers', {
+            oldOwnerUserId: fromEmail,
+            newOwnerUserId: toEmail,
+            applicationDataTransfers: [
+              { applicationId: APPLICATION_IDS.drive, applicationTransferParams: [] },
+              { applicationId: APPLICATION_IDS.calendar, applicationTransferParams: [] },
+              { applicationId: APPLICATION_IDS.sites, applicationTransferParams: [] }
+            ]
+          });
+
+          addOutput('success', `[OK]Full data transfer initiated!`);
+          addOutput('info', `   Transfer ID: ${response.id}`);
+          addOutput('info', `   Status: ${response.overallTransferStatusCode || 'pending'}`);
+        } catch (error: any) {
+          addOutput('error', `Transfer failed: ${error.message}`);
+        }
+        break;
+      }
+
+      case 'status': {
+        if (args.length === 0) {
+          addOutput('error', 'Usage: gw transfer status <transfer-id>');
+          addOutput('info', 'Check the status of a data transfer');
+          return;
+        }
+        const transferId = args[0];
+
+        try {
+          const response = await apiRequest('GET', `/api/google/admin/datatransfer/v1/transfers/${transferId}`);
+
+          const formatField = (label: string, value: any) => {
+            return value ? `  ${label.padEnd(20)}: ${value}` : '';
+          };
+
+          const output = [
+            '\nData Transfer Status:',
+            '='.repeat(60),
+            formatField('Transfer ID', response.id),
+            formatField('From', response.oldOwnerUserId),
+            formatField('To', response.newOwnerUserId),
+            formatField('Status', response.overallTransferStatusCode),
+            formatField('Request Time', response.requestTime ? new Date(response.requestTime).toLocaleString() : ''),
+            '='.repeat(60)
+          ].filter(line => line).join('\n');
+
+          addOutput('success', output);
+
+          // Show per-application status
+          if (response.applicationDataTransfers) {
+            addOutput('info', '\nApplication Details:');
+            for (const app of response.applicationDataTransfers) {
+              const appName = Object.entries(APPLICATION_IDS).find(([_, id]) => id === app.applicationId)?.[0] || 'Unknown';
+              addOutput('info', `  ${appName.padEnd(12)}: ${app.applicationTransferStatus}`);
+            }
+          }
+        } catch (error: any) {
+          addOutput('error', `Failed to get transfer status: ${error.message}`);
+        }
+        break;
+      }
+
+      case 'list': {
+        addOutput('info', '[SYNC]Fetching recent data transfers...');
+
+        try {
+          const response = await apiRequest('GET', '/api/google/admin/datatransfer/v1/transfers?maxResults=20');
+
+          if (response.dataTransfers && response.dataTransfers.length > 0) {
+            addOutput('success', '\nRecent Data Transfers:');
+            addOutput('success', '='.repeat(100));
+
+            for (const transfer of response.dataTransfers) {
+              const from = (transfer.oldOwnerUserId || '').substring(0, 30).padEnd(32);
+              const to = (transfer.newOwnerUserId || '').substring(0, 30).padEnd(32);
+              const status = (transfer.overallTransferStatusCode || 'unknown').padEnd(12);
+              addOutput('info', `${from}→ ${to}${status}`);
+            }
+          } else {
+            addOutput('info', 'No recent data transfers found');
+          }
+        } catch (error: any) {
+          addOutput('error', `Failed to list transfers: ${error.message}`);
+        }
+        break;
+      }
+
+      default:
+        addOutput('error', `Unknown action: ${action}. Use: drive, calendar, all, status, list`);
+    }
+  };
+
+  // ----- Google Workspace: Email Forwarding -----
+  const handleGWForwarding = async (action: string, args: string[]) => {
+    switch (action) {
+      case 'get': {
+        if (args.length === 0) {
+          addOutput('error', 'Usage: gw forwarding get <user-email>');
+          addOutput('info', 'Get forwarding settings for a user');
+          return;
+        }
+        const userEmail = args[0];
+
+        try {
+          // Get auto-forwarding settings
+          const settings = await apiRequest('GET', `/api/google/gmail/v1/users/${userEmail}/settings/autoForwarding`);
+
+          const formatField = (label: string, value: any) => {
+            return value !== undefined ? `  ${label.padEnd(20)}: ${value}` : '';
+          };
+
+          const output = [
+            `\nForwarding Settings for ${userEmail}:`,
+            '='.repeat(60),
+            formatField('Enabled', settings.enabled ? 'Yes' : 'No'),
+            formatField('Forward To', settings.emailAddress || '(not set)'),
+            formatField('Disposition', settings.disposition || '(not set)'),
+            '='.repeat(60),
+            '',
+            'Disposition values:',
+            '  leaveInInbox      - Keep copy in inbox',
+            '  archive           - Archive original',
+            '  trash             - Move original to trash',
+            '  markRead          - Mark as read'
+          ].filter(line => line !== '').join('\n');
+
+          addOutput('success', output);
+        } catch (error: any) {
+          addOutput('error', `Failed to get forwarding: ${error.message}`);
+        }
+        break;
+      }
+
+      case 'set': {
+        if (args.length < 2) {
+          addOutput('error', 'Usage: gw forwarding set <user-email> --to=<forward-to-email> [--disposition=leaveInInbox|archive|trash|markRead]');
+          addOutput('info', 'Enable email forwarding for a user');
+          return;
+        }
+        const userEmail = args[0];
+        const params = parseArgs(args.slice(1));
+        const forwardTo = params.to;
+        const disposition = params.disposition || 'leaveInInbox';
+
+        if (!forwardTo) {
+          addOutput('error', 'Missing --to parameter. Usage: gw forwarding set <user> --to=<email>');
+          return;
+        }
+
+        try {
+          // First, create a forwarding address
+          addOutput('info', `[STEP]Step 1/2: Adding forwarding address ${forwardTo}...`);
+
+          try {
+            await apiRequest('POST', `/api/google/gmail/v1/users/${userEmail}/settings/forwardingAddresses`, {
+              forwardingEmail: forwardTo
+            });
+            addOutput('success', `   Forwarding address added`);
+          } catch (e: any) {
+            // May already exist, which is fine
+            if (e.message.includes('already exists') || e.message.includes('409')) {
+              addOutput('info', `   Forwarding address already exists`);
+            } else {
+              throw e;
+            }
+          }
+
+          // Then enable auto-forwarding
+          addOutput('info', `[STEP]Step 2/2: Enabling auto-forwarding...`);
+
+          await apiRequest('PUT', `/api/google/gmail/v1/users/${userEmail}/settings/autoForwarding`, {
+            enabled: true,
+            emailAddress: forwardTo,
+            disposition: disposition
+          });
+
+          addOutput('success', `[OK]Forwarding enabled for ${userEmail}`);
+          addOutput('info', `   Forward to: ${forwardTo}`);
+          addOutput('info', `   Disposition: ${disposition}`);
+        } catch (error: any) {
+          addOutput('error', `Failed to set forwarding: ${error.message}`);
+        }
+        break;
+      }
+
+      case 'disable': {
+        if (args.length === 0) {
+          addOutput('error', 'Usage: gw forwarding disable <user-email>');
+          addOutput('info', 'Disable email forwarding for a user');
+          return;
+        }
+        const userEmail = args[0];
+
+        try {
+          await apiRequest('PUT', `/api/google/gmail/v1/users/${userEmail}/settings/autoForwarding`, {
+            enabled: false
+          });
+
+          addOutput('success', `[OK]Forwarding disabled for ${userEmail}`);
+        } catch (error: any) {
+          addOutput('error', `Failed to disable forwarding: ${error.message}`);
+        }
+        break;
+      }
+
+      default:
+        addOutput('error', `Unknown action: ${action}. Use: get, set, disable`);
+    }
+  };
+
+  // ----- Google Workspace: Vacation/Out-of-Office -----
+  const handleGWVacation = async (action: string, args: string[]) => {
+    switch (action) {
+      case 'get': {
+        if (args.length === 0) {
+          addOutput('error', 'Usage: gw vacation get <user-email>');
+          addOutput('info', 'Get vacation/out-of-office settings for a user');
+          return;
+        }
+        const userEmail = args[0];
+
+        try {
+          const settings = await apiRequest('GET', `/api/google/gmail/v1/users/${userEmail}/settings/vacation`);
+
+          const formatField = (label: string, value: any) => {
+            return value !== undefined ? `  ${label.padEnd(20)}: ${value}` : '';
+          };
+
+          const output = [
+            `\nVacation Settings for ${userEmail}:`,
+            '='.repeat(60),
+            formatField('Enabled', settings.enableAutoReply ? 'Yes' : 'No'),
+            formatField('Subject', settings.responseSubject || '(default)'),
+            formatField('Response Mode', settings.restrictToContacts ? 'Contacts only' : (settings.restrictToDomain ? 'Domain only' : 'Everyone')),
+            formatField('Start Time', settings.startTime ? new Date(parseInt(settings.startTime)).toLocaleString() : '(not set)'),
+            formatField('End Time', settings.endTime ? new Date(parseInt(settings.endTime)).toLocaleString() : '(not set)'),
+            '='.repeat(60),
+            '',
+            settings.responseBodyPlainText ? `Message:\n${settings.responseBodyPlainText}` : ''
+          ].filter(line => line !== '').join('\n');
+
+          addOutput('success', output);
+        } catch (error: any) {
+          addOutput('error', `Failed to get vacation settings: ${error.message}`);
+        }
+        break;
+      }
+
+      case 'set': {
+        if (args.length < 2) {
+          addOutput('error', 'Usage: gw vacation set <user-email> --message="I am out of office" [--subject="Out of Office"] [--start=YYYY-MM-DD] [--end=YYYY-MM-DD]');
+          addOutput('info', 'Enable vacation responder for a user');
+          return;
+        }
+        const userEmail = args[0];
+        const params = parseArgs(args.slice(1));
+        const message = params.message;
+
+        if (!message) {
+          addOutput('error', 'Missing --message parameter');
+          return;
+        }
+
+        const body: any = {
+          enableAutoReply: true,
+          responseBodyPlainText: message,
+          responseBodyHtml: `<p>${message.replace(/\n/g, '<br>')}</p>`
+        };
+
+        if (params.subject) {
+          body.responseSubject = params.subject;
+        }
+        if (params.start) {
+          body.startTime = new Date(params.start).getTime().toString();
+        }
+        if (params.end) {
+          body.endTime = new Date(params.end).getTime().toString();
+        }
+        if (params.contactsOnly) {
+          body.restrictToContacts = true;
+        }
+        if (params.domainOnly) {
+          body.restrictToDomain = true;
+        }
+
+        try {
+          await apiRequest('PUT', `/api/google/gmail/v1/users/${userEmail}/settings/vacation`, body);
+
+          addOutput('success', `[OK]Vacation responder enabled for ${userEmail}`);
+          if (params.subject) addOutput('info', `   Subject: ${params.subject}`);
+          if (params.start) addOutput('info', `   Start: ${params.start}`);
+          if (params.end) addOutput('info', `   End: ${params.end}`);
+        } catch (error: any) {
+          addOutput('error', `Failed to set vacation: ${error.message}`);
+        }
+        break;
+      }
+
+      case 'disable': {
+        if (args.length === 0) {
+          addOutput('error', 'Usage: gw vacation disable <user-email>');
+          addOutput('info', 'Disable vacation responder for a user');
+          return;
+        }
+        const userEmail = args[0];
+
+        try {
+          await apiRequest('PUT', `/api/google/gmail/v1/users/${userEmail}/settings/vacation`, {
+            enableAutoReply: false
+          });
+
+          addOutput('success', `[OK]Vacation responder disabled for ${userEmail}`);
+        } catch (error: any) {
+          addOutput('error', `Failed to disable vacation: ${error.message}`);
+        }
+        break;
+      }
+
+      default:
+        addOutput('error', `Unknown action: ${action}. Use: get, set, disable`);
     }
   };
 
@@ -1981,6 +2608,97 @@ export function DeveloperConsole({ organizationId }: DeveloperConsoleProps) {
                     <tr>
                       <td className="command-name">gw sync all</td>
                       <td className="command-desc">Sync all data (users, groups, OUs) at once</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Data Transfer */}
+              <div className="help-section">
+                <h3>Data Transfer (Google)</h3>
+                <table className="command-table">
+                  <tbody>
+                    <tr>
+                      <td className="command-name">gw transfer drive &lt;from&gt; --to=&lt;to&gt;</td>
+                      <td className="command-desc">Transfer Drive ownership to another user</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">gw transfer calendar &lt;from&gt; --to=&lt;to&gt;</td>
+                      <td className="command-desc">Transfer Calendar events to another user</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">gw transfer all &lt;from&gt; --to=&lt;to&gt;</td>
+                      <td className="command-desc">Transfer Drive, Calendar, and Sites to another user</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">gw transfer status &lt;transfer-id&gt;</td>
+                      <td className="command-desc">Check the status of a data transfer</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">gw transfer list</td>
+                      <td className="command-desc">List recent data transfers</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Email Settings */}
+              <div className="help-section">
+                <h3>Email Settings (Google)</h3>
+                <table className="command-table">
+                  <tbody>
+                    <tr>
+                      <td className="command-name">gw forwarding get &lt;email&gt;</td>
+                      <td className="command-desc">Get forwarding settings for a user</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">gw forwarding set &lt;email&gt; --to=&lt;forward-to&gt;</td>
+                      <td className="command-desc">Enable email forwarding for a user</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">gw forwarding disable &lt;email&gt;</td>
+                      <td className="command-desc">Disable email forwarding</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">gw vacation get &lt;email&gt;</td>
+                      <td className="command-desc">Get vacation/out-of-office settings</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">gw vacation set &lt;email&gt; --message="..."</td>
+                      <td className="command-desc">Enable vacation responder</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">gw vacation disable &lt;email&gt;</td>
+                      <td className="command-desc">Disable vacation responder</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* User Offboarding */}
+              <div className="help-section">
+                <h3>User Offboarding (Google)</h3>
+                <table className="command-table">
+                  <tbody>
+                    <tr>
+                      <td className="command-name">gw users offboard &lt;email&gt;</td>
+                      <td className="command-desc">Show offboarding options and help</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">gw users offboard &lt;email&gt; --transfer-to=&lt;email&gt;</td>
+                      <td className="command-desc">Transfer Drive/Calendar data during offboarding</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">gw users offboard &lt;email&gt; --forward-to=&lt;email&gt;</td>
+                      <td className="command-desc">Forward emails during offboarding</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">gw users offboard &lt;email&gt; --suspend</td>
+                      <td className="command-desc">Suspend user after offboarding steps</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">gw users offboard &lt;email&gt; --revoke-access</td>
+                      <td className="command-desc">Sign out sessions and revoke OAuth tokens</td>
                     </tr>
                   </tbody>
                 </table>

@@ -84,6 +84,37 @@ const COMMAND_SECTIONS: CommandSection[] = [
     ]
   },
   {
+    title: 'Data Transfer',
+    commands: [
+      { command: 'gw transfer drive <from> --to=<to>', description: 'Transfer Drive ownership', example: 'gw transfer drive john@example.com --to=manager@example.com' },
+      { command: 'gw transfer calendar <from> --to=<to>', description: 'Transfer Calendar events', example: 'gw transfer calendar john@example.com --to=manager@example.com' },
+      { command: 'gw transfer all <from> --to=<to>', description: 'Transfer Drive, Calendar, Sites', example: 'gw transfer all john@example.com --to=manager@example.com' },
+      { command: 'gw transfer status <id>', description: 'Check transfer status', example: 'gw transfer status transfer-id-here' },
+      { command: 'gw transfer list', description: 'List recent transfers', example: 'gw transfer list' }
+    ]
+  },
+  {
+    title: 'Email Settings',
+    commands: [
+      { command: 'gw forwarding get <email>', description: 'Get forwarding settings', example: 'gw forwarding get john@example.com' },
+      { command: 'gw forwarding set <email> --to=<to>', description: 'Enable email forwarding', example: 'gw forwarding set john@example.com --to=support@example.com' },
+      { command: 'gw forwarding disable <email>', description: 'Disable forwarding', example: 'gw forwarding disable john@example.com' },
+      { command: 'gw vacation get <email>', description: 'Get vacation settings', example: 'gw vacation get john@example.com' },
+      { command: 'gw vacation set <email> --message="..."', description: 'Enable vacation responder', example: 'gw vacation set john@example.com --message="I am out of office"' },
+      { command: 'gw vacation disable <email>', description: 'Disable vacation responder', example: 'gw vacation disable john@example.com' }
+    ]
+  },
+  {
+    title: 'User Offboarding',
+    commands: [
+      { command: 'gw users offboard <email>', description: 'Show offboarding options', example: 'gw users offboard john@example.com' },
+      { command: 'gw users offboard <email> --transfer-to=<to>', description: 'Offboard with data transfer', example: 'gw users offboard john@example.com --transfer-to=manager@example.com' },
+      { command: 'gw users offboard <email> --forward-to=<to>', description: 'Offboard with forwarding', example: 'gw users offboard john@example.com --forward-to=support@example.com' },
+      { command: 'gw users offboard <email> --suspend', description: 'Offboard and suspend', example: 'gw users offboard john@example.com --suspend --transfer-to=manager@example.com' },
+      { command: 'gw users offboard <email> --revoke-access', description: 'Revoke sessions and tokens', example: 'gw users offboard john@example.com --revoke-access --suspend' }
+    ]
+  },
+  {
     title: 'Microsoft 365 Users',
     commands: [
       { command: 'm365 users list', description: 'List all Microsoft 365 users', example: 'm365 users list' },
