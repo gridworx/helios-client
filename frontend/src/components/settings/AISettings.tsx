@@ -10,7 +10,9 @@ import {
   Bot,
   Zap,
   Server,
-  Activity
+  Activity,
+  BarChart3,
+  ExternalLink
 } from 'lucide-react';
 import './AISettings.css';
 
@@ -52,6 +54,7 @@ interface UsageStats {
 
 interface AISettingsProps {
   organizationId: string;
+  onViewUsage?: () => void;
 }
 
 const COMMON_ENDPOINTS = [
@@ -79,7 +82,7 @@ const COMMON_MODELS = [
   'mixtral:8x7b'
 ];
 
-export function AISettings({ organizationId }: AISettingsProps) {
+export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState<'primary' | 'fallback' | null>(null);
@@ -572,6 +575,13 @@ export function AISettings({ organizationId }: AISettingsProps) {
           <div className="section-title">
             <Activity size={18} />
             <span>Usage (Last 30 Days)</span>
+            {onViewUsage && (
+              <button className="view-usage-btn" onClick={onViewUsage}>
+                <BarChart3 size={14} />
+                <span>View Detailed Usage</span>
+                <ExternalLink size={12} />
+              </button>
+            )}
           </div>
 
           <div className="usage-stats-grid">

@@ -153,6 +153,32 @@
   color: #8b5cf6;
 }
 
+.view-usage-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 6px 12px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.view-usage-btn:hover {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+  color: #374151;
+}
+
+.view-usage-btn svg {
+  color: inherit;
+}
+
 .required-badge {
   font-size: 11px;
   font-weight: 500;

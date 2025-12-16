@@ -447,6 +447,7 @@ POST /api/v1/ai/chat             - Send chat message (main interaction endpoint)
 
 ### TASK-AI-016: Create AI usage dashboard
 **Priority:** P2
+**Status:** COMPLETED
 **File:** `frontend/src/pages/settings/AIUsage.tsx`
 
 **Metrics:**
@@ -456,11 +457,28 @@ POST /api/v1/ai/chat             - Send chat message (main interaction endpoint)
 - Tool invocation breakdown
 - Error rate
 
+**Implementation (2025-12-16):**
+- Created `AIUsage.tsx` component with:
+  - Summary cards: Total Requests, Total Tokens, Avg Latency, Error Rate
+  - Trend indicators comparing this week vs last week
+  - Quota bars for token/request limits (when available)
+  - Daily usage bar chart (last 14 days)
+  - Model breakdown with percentage bars
+  - Tool invocations section (when available)
+  - Daily breakdown table with avg tokens/request
+  - Date range selector (7/30/90 days)
+  - CSV export functionality
+  - Refresh button
+- Created `AIUsage.css` with professional styling
+- Updated `AISettings.tsx`:
+  - Added "View Detailed Usage" button in usage section
+  - Added `onViewUsage` callback prop
+
 **Acceptance Criteria:**
-- [ ] Shows usage over time
-- [ ] Shows remaining quota
-- [ ] Export usage data
-- [ ] Filter by date range
+- [x] Shows usage over time
+- [x] Shows remaining quota
+- [x] Export usage data
+- [x] Filter by date range
 
 ---
 
