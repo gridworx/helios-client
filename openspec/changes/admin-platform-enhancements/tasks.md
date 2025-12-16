@@ -94,15 +94,18 @@ microsoft_365_relay               = false  (not implemented)
 - `backend/src/routes/organization.routes.ts` (added)
 - `backend/src/services/data-transfer.service.ts` (existing)
 
-### 0.2 Email Forwarding & Delegation
-- [ ] Create `POST /api/v1/organization/users/:id/email-settings` endpoint
-- [ ] Implement Gmail forwarding via Admin SDK
-- [ ] Implement Gmail delegation via Admin SDK
-- [ ] Enforce 25-delegate limit per Google
+### 0.2 Email Forwarding & Delegation - COMPLETE
+- [x] Create `GET /api/v1/organization/users/:id/email-settings` endpoint
+- [x] Create `POST /api/v1/organization/users/:id/email-settings` endpoint
+- [x] Implement Gmail forwarding via Admin SDK (setupEmailForwarding, disableEmailForwarding)
+- [x] Implement Gmail delegation via Admin SDK (addGmailDelegate, removeGmailDelegate, listGmailDelegates)
+- [x] Implement vacation responder via Admin SDK (setVacationResponder, disableVacationResponder)
+- [x] Implement getEmailSettings for retrieving current settings
+- [x] Enforce 25-delegate limit per Google (checked before adding delegates)
 
 **Files:**
-- `backend/src/routes/users.routes.ts`
-- `backend/src/services/gmail-settings.service.ts`
+- `backend/src/routes/organization.routes.ts` (added email-settings endpoints)
+- `backend/src/services/google-workspace.service.ts` (added delegation methods)
 
 ### 0.3 Delegate Validation
 - [x] Create `GET /api/v1/organization/users/validate-delegate` endpoint

@@ -2023,6 +2023,306 @@ export class GoogleWorkspaceService {
   }
 
   /**
+   * Add a Gmail delegate for a user
+   * Delegates can read, send, and delete messages on behalf of the user
+   * Note: Google has a limit of 25 delegates per user
+   */
+  async addGmailDelegate(
+    organizationId: string,
+    userEmail: string,
+    delegateEmail: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        return { success: false, error: 'Google Workspace not configured' };
+      }
+
+      // Impersonate the user to add delegate
+      const jwtClient = new JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: ['https://www.googleapis.com/auth/gmail.settings.sharing'],
+        subject: userEmail
+      });
+
+      const gmail = google.gmail({ version: 'v1', auth: jwtClient });
+
+      await gmail.users.settings.delegates.create({
+        userId: 'me',
+        requestBody: {
+          delegateEmail: delegateEmail
+        }
+      });
+
+      logger.info('Gmail delegate added', {
+        userEmail,
+        delegateEmail
+      });
+
+      return { success: true };
+    } catch (error: any) {
+      logger.error('Failed to add Gmail delegate', {
+        userEmail,
+        delegateEmail,
+        error: error.message
+      });
+
+      let errorMessage = error.message;
+      if (error.message?.includes('quota')) {
+        errorMessage = 'Cannot add delegate - user has reached the maximum limit of 25 delegates';
+      } else if (error.message?.includes('already exists')) {
+        errorMessage = 'This user is already a delegate';
+      } else if (error.message?.includes('Delegation denied')) {
+        errorMessage = 'Cannot add delegate - user may be suspended or delegation is not enabled';
+      }
+
+      return { success: false, error: errorMessage };
+    }
+  }
+
+  /**
+   * Remove a Gmail delegate from a user
+   */
+  async removeGmailDelegate(
+    organizationId: string,
+    userEmail: string,
+    delegateEmail: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        return { success: false, error: 'Google Workspace not configured' };
+      }
+
+      const jwtClient = new JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: ['https://www.googleapis.com/auth/gmail.settings.sharing'],
+        subject: userEmail
+      });
+
+      const gmail = google.gmail({ version: 'v1', auth: jwtClient });
+
+      await gmail.users.settings.delegates.delete({
+        userId: 'me',
+        delegateEmail: delegateEmail
+      });
+
+      logger.info('Gmail delegate removed', {
+        userEmail,
+        delegateEmail
+      });
+
+      return { success: true };
+    } catch (error: any) {
+      logger.error('Failed to remove Gmail delegate', {
+        userEmail,
+        delegateEmail,
+        error: error.message
+      });
+
+      let errorMessage = error.message;
+      if (error.message?.includes('not found')) {
+        errorMessage = 'Delegate not found';
+      }
+
+      return { success: false, error: errorMessage };
+    }
+  }
+
+  /**
+   * List Gmail delegates for a user
+   */
+  async listGmailDelegates(
+    organizationId: string,
+    userEmail: string
+  ): Promise<{ success: boolean; delegates?: Array<{ email: string; verificationStatus: string }>; error?: string }> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        return { success: false, error: 'Google Workspace not configured' };
+      }
+
+      const jwtClient = new JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: ['https://www.googleapis.com/auth/gmail.settings.basic'],
+        subject: userEmail
+      });
+
+      const gmail = google.gmail({ version: 'v1', auth: jwtClient });
+
+      const response = await gmail.users.settings.delegates.list({
+        userId: 'me'
+      });
+
+      const delegates = (response.data.delegates || []).map((d: any) => ({
+        email: d.delegateEmail,
+        verificationStatus: d.verificationStatus
+      }));
+
+      return { success: true, delegates };
+    } catch (error: any) {
+      logger.error('Failed to list Gmail delegates', {
+        userEmail,
+        error: error.message
+      });
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get current email settings (forwarding, vacation, delegates) for a user
+   */
+  async getEmailSettings(
+    organizationId: string,
+    userEmail: string
+  ): Promise<{
+    success: boolean;
+    settings?: {
+      forwarding: { enabled: boolean; emailAddress?: string; disposition?: string };
+      vacation: { enabled: boolean; subject?: string; message?: string };
+      delegateCount: number;
+    };
+    error?: string;
+  }> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        return { success: false, error: 'Google Workspace not configured' };
+      }
+
+      const jwtClient = new JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: ['https://www.googleapis.com/auth/gmail.settings.basic'],
+        subject: userEmail
+      });
+
+      const gmail = google.gmail({ version: 'v1', auth: jwtClient });
+
+      // Get forwarding settings
+      const forwardingResponse = await gmail.users.settings.getAutoForwarding({
+        userId: 'me'
+      });
+
+      // Get vacation settings
+      const vacationResponse = await gmail.users.settings.getVacation({
+        userId: 'me'
+      });
+
+      // Get delegates count
+      const delegatesResponse = await gmail.users.settings.delegates.list({
+        userId: 'me'
+      });
+
+      return {
+        success: true,
+        settings: {
+          forwarding: {
+            enabled: forwardingResponse.data.enabled || false,
+            emailAddress: forwardingResponse.data.emailAddress || undefined,
+            disposition: forwardingResponse.data.disposition || undefined
+          },
+          vacation: {
+            enabled: vacationResponse.data.enableAutoReply || false,
+            subject: vacationResponse.data.responseSubject || undefined,
+            message: vacationResponse.data.responseBodyPlainText || undefined
+          },
+          delegateCount: (delegatesResponse.data.delegates || []).length
+        }
+      };
+    } catch (error: any) {
+      logger.error('Failed to get email settings', {
+        userEmail,
+        error: error.message
+      });
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Disable email forwarding for a user
+   */
+  async disableEmailForwarding(
+    organizationId: string,
+    userEmail: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        return { success: false, error: 'Google Workspace not configured' };
+      }
+
+      const jwtClient = new JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: ['https://www.googleapis.com/auth/gmail.settings.sharing'],
+        subject: userEmail
+      });
+
+      const gmail = google.gmail({ version: 'v1', auth: jwtClient });
+
+      await gmail.users.settings.updateAutoForwarding({
+        userId: 'me',
+        requestBody: {
+          enabled: false
+        }
+      });
+
+      logger.info('Email forwarding disabled', { userEmail });
+      return { success: true };
+    } catch (error: any) {
+      logger.error('Failed to disable email forwarding', {
+        userEmail,
+        error: error.message
+      });
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Disable vacation responder for a user
+   */
+  async disableVacationResponder(
+    organizationId: string,
+    userEmail: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        return { success: false, error: 'Google Workspace not configured' };
+      }
+
+      const jwtClient = new JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: ['https://www.googleapis.com/auth/gmail.settings.basic'],
+        subject: userEmail
+      });
+
+      const gmail = google.gmail({ version: 'v1', auth: jwtClient });
+
+      await gmail.users.settings.updateVacation({
+        userId: 'me',
+        requestBody: {
+          enableAutoReply: false
+        }
+      });
+
+      logger.info('Vacation responder disabled', { userEmail });
+      return { success: true };
+    } catch (error: any) {
+      logger.error('Failed to disable vacation responder', {
+        userEmail,
+        error: error.message
+      });
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
    * Transfer Drive file ownership to another user
    * Note: This requires the Data Transfer API which has limitations
    * For now, this will transfer specific files, not bulk transfer

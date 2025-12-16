@@ -2973,4 +2973,299 @@ router.post('/users/:userId/reassign-reports', authenticateToken, async (req: Re
   }
 });
 
+/**
+ * @openapi
+ * /api/v1/organization/users/{userId}/email-settings:
+ *   get:
+ *     summary: Get email settings for a user
+ *     description: Returns current email forwarding, vacation responder, and delegate settings
+ *     tags: [Users]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: The user ID
+ *     responses:
+ *       200:
+ *         description: Email settings retrieved successfully
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
+ */
+router.get('/users/:userId/email-settings', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const organizationId = req.user?.organizationId;
+
+    if (!organizationId) {
+      return res.status(401).json({ success: false, error: 'Organization ID not found' });
+    }
+
+    // Get user
+    const userResult = await db.query(
+      'SELECT id, email, first_name, last_name FROM organization_users WHERE id = $1 AND organization_id = $2',
+      [userId, organizationId]
+    );
+
+    if (!userResult.rows[0]) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    const user = userResult.rows[0];
+
+    // Get email settings from Google Workspace
+    const googleWorkspaceService = await import('../services/google-workspace.service');
+    const gwService = new googleWorkspaceService.GoogleWorkspaceService();
+
+    const settingsResult = await gwService.getEmailSettings(organizationId, user.email);
+
+    if (!settingsResult.success) {
+      return res.status(500).json({
+        success: false,
+        error: settingsResult.error || 'Failed to retrieve email settings'
+      });
+    }
+
+    // Get delegates list
+    const delegatesResult = await gwService.listGmailDelegates(organizationId, user.email);
+
+    res.json({
+      success: true,
+      data: {
+        userId,
+        email: user.email,
+        forwarding: settingsResult.settings?.forwarding,
+        vacation: settingsResult.settings?.vacation,
+        delegates: delegatesResult.success ? delegatesResult.delegates : [],
+        delegateCount: settingsResult.settings?.delegateCount || 0,
+        maxDelegates: 25 // Google's limit
+      }
+    });
+  } catch (error: any) {
+    logger.error('Error getting email settings', { error: error.message });
+    res.status(500).json({ success: false, error: 'Failed to get email settings' });
+  }
+});
+
+/**
+ * @openapi
+ * /api/v1/organization/users/{userId}/email-settings:
+ *   post:
+ *     summary: Update email settings for a user
+ *     description: Configure email forwarding, vacation responder, and delegates for a user
+ *     tags: [Users]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: The user ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               forwarding:
+ *                 type: object
+ *                 properties:
+ *                   enabled:
+ *                     type: boolean
+ *                   forwardTo:
+ *                     type: string
+ *                     format: email
+ *               vacation:
+ *                 type: object
+ *                 properties:
+ *                   enabled:
+ *                     type: boolean
+ *                   subject:
+ *                     type: string
+ *                   message:
+ *                     type: string
+ *               addDelegates:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: email
+ *               removeDelegates:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: email
+ *     responses:
+ *       200:
+ *         description: Email settings updated successfully
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
+ */
+router.post('/users/:userId/email-settings', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const organizationId = req.user?.organizationId;
+    const { forwarding, vacation, addDelegates, removeDelegates } = req.body;
+
+    if (!organizationId) {
+      return res.status(401).json({ success: false, error: 'Organization ID not found' });
+    }
+
+    // Get user
+    const userResult = await db.query(
+      'SELECT id, email, first_name, last_name FROM organization_users WHERE id = $1 AND organization_id = $2',
+      [userId, organizationId]
+    );
+
+    if (!userResult.rows[0]) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    const user = userResult.rows[0];
+
+    const googleWorkspaceService = await import('../services/google-workspace.service');
+    const gwService = new googleWorkspaceService.GoogleWorkspaceService();
+
+    const results: {
+      forwarding?: { success: boolean; error?: string };
+      vacation?: { success: boolean; error?: string };
+      delegatesAdded?: Array<{ email: string; success: boolean; error?: string }>;
+      delegatesRemoved?: Array<{ email: string; success: boolean; error?: string }>;
+    } = {};
+
+    // Handle forwarding
+    if (forwarding !== undefined) {
+      if (forwarding.enabled && forwarding.forwardTo) {
+        results.forwarding = await gwService.setupEmailForwarding(
+          organizationId,
+          user.email,
+          forwarding.forwardTo
+        );
+      } else if (forwarding.enabled === false) {
+        results.forwarding = await gwService.disableEmailForwarding(
+          organizationId,
+          user.email
+        );
+      }
+    }
+
+    // Handle vacation responder
+    if (vacation !== undefined) {
+      if (vacation.enabled && vacation.subject && vacation.message) {
+        results.vacation = await gwService.setVacationResponder(
+          organizationId,
+          user.email,
+          {
+            subject: vacation.subject,
+            body: vacation.message,
+            restrictToContacts: vacation.restrictToContacts || false,
+            restrictToDomain: vacation.restrictToDomain || false
+          }
+        );
+      } else if (vacation.enabled === false) {
+        results.vacation = await gwService.disableVacationResponder(
+          organizationId,
+          user.email
+        );
+      }
+    }
+
+    // Handle adding delegates (with 25 delegate limit check)
+    if (addDelegates && Array.isArray(addDelegates) && addDelegates.length > 0) {
+      // Check current delegate count
+      const currentDelegates = await gwService.listGmailDelegates(organizationId, user.email);
+      const currentCount = currentDelegates.delegates?.length || 0;
+
+      if (currentCount + addDelegates.length > 25) {
+        return res.status(400).json({
+          success: false,
+          error: `Cannot add ${addDelegates.length} delegates. Current count: ${currentCount}, maximum: 25`
+        });
+      }
+
+      results.delegatesAdded = [];
+      for (const delegateEmail of addDelegates) {
+        const result = await gwService.addGmailDelegate(organizationId, user.email, delegateEmail);
+        results.delegatesAdded.push({
+          email: delegateEmail,
+          success: result.success,
+          error: result.error
+        });
+      }
+    }
+
+    // Handle removing delegates
+    if (removeDelegates && Array.isArray(removeDelegates) && removeDelegates.length > 0) {
+      results.delegatesRemoved = [];
+      for (const delegateEmail of removeDelegates) {
+        const result = await gwService.removeGmailDelegate(organizationId, user.email, delegateEmail);
+        results.delegatesRemoved.push({
+          email: delegateEmail,
+          success: result.success,
+          error: result.error
+        });
+      }
+    }
+
+    // Log the action
+    await db.query(`
+      INSERT INTO activity_logs (
+        organization_id,
+        actor_user_id,
+        actor_email,
+        action,
+        resource_type,
+        resource_id,
+        description,
+        metadata
+      ) VALUES ($1, $2, $3, 'email_settings_updated', 'user', $4, $5, $6)
+    `, [
+      organizationId,
+      req.user?.userId,
+      req.user?.email,
+      userId,
+      `Updated email settings for ${user.email}`,
+      JSON.stringify({
+        forwarding: forwarding ? {
+          enabled: forwarding.enabled,
+          forwardTo: forwarding.forwardTo
+        } : undefined,
+        vacation: vacation ? {
+          enabled: vacation.enabled,
+          subject: vacation.subject
+        } : undefined,
+        delegatesAdded: addDelegates?.length || 0,
+        delegatesRemoved: removeDelegates?.length || 0,
+        results
+      })
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        userId,
+        email: user.email,
+        results
+      },
+      message: 'Email settings updated'
+    });
+  } catch (error: any) {
+    logger.error('Error updating email settings', { error: error.message });
+    res.status(500).json({ success: false, error: 'Failed to update email settings' });
+  }
+});
+
 export default router;
