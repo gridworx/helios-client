@@ -40,6 +40,7 @@ const NewUserOnboarding = lazy(() => import('./pages/NewUserOnboarding'))
 const UserOffboarding = lazy(() => import('./pages/UserOffboarding'))
 const ScheduledActions = lazy(() => import('./pages/admin/ScheduledActions'))
 const TeamAnalytics = lazy(() => import('./pages/admin/TeamAnalytics'))
+const ExternalSharingManager = lazy(() => import('./pages/admin/ExternalSharingManager'))
 import { CommandBar } from './components/ai/CommandBar'
 import { ChatPanel } from './components/ai/ChatPanel'
 import { HelpWidget } from './components/ai/HelpWidget'
@@ -142,6 +143,7 @@ function getPageFromPath(pathname: string): string {
   if (pathname.startsWith('/admin/signatures')) return 'signatures';
   if (pathname.startsWith('/admin/security-events')) return 'security-events';
   if (pathname.startsWith('/admin/audit-logs')) return 'audit-logs';
+  if (pathname.startsWith('/admin/external-sharing')) return 'external-sharing';
   if (pathname.startsWith('/admin/settings')) return 'settings';
   if (pathname.startsWith('/admin/administrators')) return 'administrators';
   if (pathname.startsWith('/admin/console')) return 'console';
@@ -211,6 +213,7 @@ function AppContent() {
       'signatures': '/admin/signatures',
       'security-events': '/admin/security-events',
       'audit-logs': '/admin/audit-logs',
+      'external-sharing': '/admin/external-sharing',
       'settings': '/admin/settings',
       'administrators': '/admin/administrators',
       'console': '/admin/console',
@@ -1132,6 +1135,12 @@ function AppContent() {
 
           {currentPage === 'audit-logs' && (
             <AuditLogs />
+          )}
+
+          {currentPage === 'external-sharing' && (
+            <Suspense fallback={<PageLoader />}>
+              <ExternalSharingManager />
+            </Suspense>
           )}
 
           {currentPage === 'console' && (

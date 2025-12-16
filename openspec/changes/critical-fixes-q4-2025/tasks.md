@@ -383,29 +383,59 @@ User-facing guide with screenshots for:
 
 ---
 
-## Phase 4: Google External Sharing Manager (P3)
+## Phase 4: Google External Sharing Manager (P3) ✅ COMPLETE
 
-### TASK-SHARE-001: Create sharing audit service
+All Phase 4 tasks verified complete on 2025-12-16.
+
+### TASK-SHARE-001: Create sharing audit service ✅
 **Priority:** P3
+**Status:** COMPLETE
 **File:** `backend/src/services/drive-sharing-audit.service.ts`
 
-**Methods:**
-- `scanSharedFiles(driveId)` - Scan for externally shared files
-- `getExternalShares()` - List all external shares
-- `revokeAccess(fileId, email)` - Remove external access
-- `bulkRevoke(shares[])` - Remove multiple accesses
+**Implemented Methods:**
+- `scanForExternalSharing(organizationId, options)` - Scan for externally shared files with risk classification
+- `revokeAccess(organizationId, fileId, permissionId)` - Remove external access
+- `bulkRevokeAccess(organizationId, shares[])` - Remove multiple accesses
+- `getFileSharing(organizationId, fileId)` - Get sharing details for a file
+- `getSharesByRiskLevel(organizationId, riskLevel, limit)` - Filter by risk level
+- `generateCsvReport(shares)` - Export sharing report as CSV
+
+**Features:**
+- Risk level classification (high/medium/low)
+- Personal account detection
+- Organization domain-based external detection
+- Summary statistics calculation
 
 ---
 
-### TASK-SHARE-002: Create sharing manager UI
+### TASK-SHARE-002: Create sharing manager UI ✅
 **Priority:** P3
+**Status:** COMPLETE
 **File:** `frontend/src/pages/admin/ExternalSharingManager.tsx`
 
-**Features:**
-- Overview stats (total shared, risk levels)
-- File list with sharing details
-- Bulk actions (revoke, export)
-- Filters (by risk, by domain, by date)
+**Implemented Features:**
+- Overview summary cards (total shares, high risk, personal accounts, anyone with link)
+- File list with sorting and filtering
+- Risk level badges and visual indicators
+- Bulk actions (revoke selected)
+- Single item revoke action
+- CSV export functionality
+- Search by file name or shared-with user
+- Filter by risk level (all/high/medium/low)
+- Loading states and error handling
+
+**API Routes:** `backend/src/routes/external-sharing.routes.ts`
+- POST `/api/v1/external-sharing/scan` - Full scan
+- GET `/api/v1/external-sharing/summary` - Quick summary
+- GET `/api/v1/external-sharing/risk/:level` - Filter by risk
+- GET `/api/v1/external-sharing/file/:fileId` - File details
+- POST `/api/v1/external-sharing/revoke` - Revoke single
+- POST `/api/v1/external-sharing/bulk-revoke` - Bulk revoke
+- POST `/api/v1/external-sharing/export` - CSV export
+
+**Navigation:**
+- Added to AdminNavigation.tsx under Security section
+- Route: `/admin/external-sharing`
 
 ---
 

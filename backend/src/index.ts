@@ -81,6 +81,7 @@ import trackingAnalyticsRoutes from './routes/tracking-analytics.routes';
 import mcpRoutes from './routes/mcp.routes';
 import featureFlagsRoutes from './routes/feature-flags.routes';
 import aiRoutes from './routes/ai.routes';
+import externalSharingRoutes from './routes/external-sharing.routes';
 import { requestIdMiddleware, REQUEST_ID_HEADER } from './middleware/request-id';
 const app = express();
 const httpServer = createServer(app);
@@ -585,6 +586,9 @@ registerRoute('/mcp', mcpRoutes);
 
 // AI Assistant
 registerRoute('/ai', aiRoutes);
+
+// External Sharing Audit (Google Drive)
+registerRoute('/external-sharing', externalSharingRoutes);
 
 // Feature Flags
 registerRoute('/organization/feature-flags', featureFlagsRoutes);

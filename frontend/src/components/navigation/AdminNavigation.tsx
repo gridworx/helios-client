@@ -18,6 +18,7 @@ import {
   UserMinus,
   Clock,
   BarChart2,
+  Share2,
 } from 'lucide-react';
 import { useLabels } from '../../contexts/LabelsContext';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
@@ -162,6 +163,14 @@ export const AdminNavigation: React.FC<AdminNavigationProps> = ({
         >
           <ClipboardList size={16} className="nav-icon" />
           <span>Audit Logs</span>
+        </button>
+        <button
+          className={`nav-item ${currentPage === 'external-sharing' ? 'active' : ''}`}
+          onClick={() => onNavigate('external-sharing')}
+          data-testid="nav-external-sharing"
+        >
+          <Share2 size={16} className="nav-icon" />
+          <span>External Sharing</span>
         </button>
       </div>
 
