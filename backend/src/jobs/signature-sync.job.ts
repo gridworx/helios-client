@@ -54,14 +54,15 @@ async function processPendingSignatures(config: SignatureSyncJobConfig): Promise
 
   try {
     // Get organizations with Google Workspace configured and signature sync enabled
+    // organization_settings uses key-value pattern, so we look for 'signature_sync_enabled' key
     const orgsResult = await db.query(`
       SELECT DISTINCT o.id, o.name
       FROM organizations o
       INNER JOIN gw_credentials gc ON gc.organization_id = o.id
       WHERE gc.service_account_key IS NOT NULL
         AND COALESCE(
-          (SELECT signature_sync_enabled FROM organization_settings
-           WHERE organization_id = o.id LIMIT 1),
+          (SELECT value::boolean FROM organization_settings
+           WHERE organization_id = o.id AND key = 'signature_sync_enabled' LIMIT 1),
           true
         ) = true
     `);
