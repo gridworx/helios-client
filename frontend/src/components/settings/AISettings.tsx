@@ -514,6 +514,50 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
         )}
       </div>
 
+      {/* Tool Call Model Section */}
+      <div className="ai-settings-section">
+        <div className="section-title">
+          <Zap size={18} />
+          <span>Tool Call Model</span>
+          <span className="optional-badge">Optional</span>
+        </div>
+        <p className="section-description">
+          Use a different model for requests that include tool/function calls.
+          This allows you to use a smaller, faster model for simple queries and a more capable model for tool calls.
+        </p>
+
+        <div className="checkbox-group">
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={enableToolCallModel}
+              onChange={(e) => setEnableToolCallModel(e.target.checked)}
+            />
+            <span className="checkbox-text">Use separate model for tool calls</span>
+          </label>
+        </div>
+
+        {enableToolCallModel && (
+          <div className="form-group">
+            <label>Tool Call Model</label>
+            <input
+              type="text"
+              value={toolCallModel}
+              onChange={(e) => setToolCallModel(e.target.value)}
+              placeholder="gpt-4o (leave empty to use primary model)"
+              list="tool-models"
+            />
+            <datalist id="tool-models">
+              {COMMON_MODELS.map(m => <option key={m} value={m} />)}
+            </datalist>
+            <p className="form-hint">
+              When tool calls are detected, this model will be used instead of the primary model.
+              Recommended: Use a model with strong function calling support like gpt-4o.
+            </p>
+          </div>
+        )}
+      </div>
+
       <div className="ai-settings-section">
         <div className="section-title">
           <Activity size={18} />

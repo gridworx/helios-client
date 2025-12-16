@@ -484,6 +484,7 @@ POST /api/v1/ai/chat             - Send chat message (main interaction endpoint)
 
 ### TASK-AI-017: Add tool call model routing
 **Priority:** P2
+**Status:** COMPLETED
 **File:** `backend/src/services/llm-gateway.service.ts` (update)
 
 **Logic:**
@@ -491,10 +492,23 @@ POST /api/v1/ai/chat             - Send chat message (main interaction endpoint)
 - Otherwise use primary model
 - Automatically detect if request needs tools
 
+**Implementation (2025-12-16):**
+- Backend already implemented routing in llm-gateway.service.ts:
+  - Lines 451-457: Checks for tools and uses toolCallModel if set
+  - Lines 478-484: Fallback endpoint also respects toolCallModel
+- Added UI configuration in AISettings.tsx:
+  - New "Tool Call Model" section with checkbox toggle
+  - Model input field with datalist suggestions
+  - Explanation text for feature usage
+- Added CSS for new UI elements:
+  - .section-description for explanatory text
+  - .checkbox-group and .checkbox-label for toggle
+  - .checkbox-text styling
+
 **Acceptance Criteria:**
-- [ ] Tool requests routed to tool model
-- [ ] Non-tool requests use primary
-- [ ] Config UI allows setting tool model
+- [x] Tool requests routed to tool model
+- [x] Non-tool requests use primary
+- [x] Config UI allows setting tool model
 
 ---
 
