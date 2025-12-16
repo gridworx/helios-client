@@ -218,28 +218,31 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
         <h1>{getTypeLabel()}</h1>
       </div>
 
-      {/* Statistics Dashboard */}
-      <div className="users-stats-bar">
-        <div className="stat-card">
+      {/* Inline Statistics Bar */}
+      <div className="users-stats-inline">
+        <div className="stat-item">
           <span className="stat-value">{counts.staff + counts.guests + counts.contacts}</span>
-          <span className="stat-label">Total Users</span>
+          <span className="stat-label">Total</span>
         </div>
-        <div className="stat-card">
-          <span className="stat-value">{statusCounts.active}</span>
+        <span className="stat-divider">|</span>
+        <div className="stat-item">
+          <span className="stat-value stat-active">{statusCounts.active}</span>
           <span className="stat-label">Active</span>
         </div>
-        <div className="stat-card">
-          <span className="stat-value">{statusCounts.pending}</span>
+        <div className="stat-item">
+          <span className="stat-value stat-pending">{statusCounts.pending}</span>
           <span className="stat-label">Pending</span>
         </div>
-        <div className="stat-card">
-          <span className="stat-value">{statusCounts.suspended}</span>
+        <div className="stat-item">
+          <span className="stat-value stat-suspended">{statusCounts.suspended}</span>
           <span className="stat-label">Suspended</span>
         </div>
-        <div className="stat-card">
-          <span className="stat-value">{statusCounts.deleted}</span>
-          <span className="stat-label">Deleted</span>
-        </div>
+        {statusCounts.deleted > 0 && (
+          <div className="stat-item">
+            <span className="stat-value stat-deleted">{statusCounts.deleted}</span>
+            <span className="stat-label">Deleted</span>
+          </div>
+        )}
       </div>
 
       {/* Type Tabs - JumpCloud Style */}

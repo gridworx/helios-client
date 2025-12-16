@@ -21,37 +21,55 @@
   letter-spacing: -0.01em;
 }
 
-/* Statistics Dashboard */
-.users-stats-bar {
+/* Inline Statistics Bar - Compact horizontal display */
+.users-stats-inline {
   display: flex;
-  gap: 16px;
-  padding: 20px 24px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
   background: white;
   border-bottom: 1px solid #e5e7eb;
 }
 
-.stat-card {
+.stat-item {
   display: flex;
-  flex-direction: column;
-  padding: 12px 20px;
-  background: #f9fafb;
-  border-radius: 8px;
-  min-width: 120px;
+  align-items: baseline;
+  gap: 4px;
 }
 
-.stat-value {
-  font-size: 24px;
+.stat-item .stat-value {
+  font-size: 16px;
   font-weight: 600;
   color: #1a1a1a;
-  margin-bottom: 4px;
 }
 
-.stat-label {
+.stat-item .stat-label {
   font-size: 12px;
   font-weight: 500;
   color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+}
+
+/* Status-specific colors for stat values */
+.stat-item .stat-value.stat-active {
+  color: #059669;
+}
+
+.stat-item .stat-value.stat-pending {
+  color: #d97706;
+}
+
+.stat-item .stat-value.stat-suspended {
+  color: #dc2626;
+}
+
+.stat-item .stat-value.stat-deleted {
+  color: #9ca3af;
+}
+
+.stat-divider {
+  color: #d1d5db;
+  font-size: 14px;
+  font-weight: 300;
 }
 
 /* Type Tabs (Staff / Guests / Contacts) */

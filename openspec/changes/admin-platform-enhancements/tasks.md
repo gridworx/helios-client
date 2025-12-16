@@ -1,6 +1,6 @@
 # Admin Platform Enhancements - Tasks
 
-## Status: In Progress (Phases -1, 0, 1, 2, 4, 5 Complete; Phases 3, 6 Pending)
+## Status: Mostly Complete (Phases -1, 0, 1, 2, 4, 5, 6 Complete; Phase 3 Deferred)
 
 ---
 
@@ -449,26 +449,40 @@ microsoft_365_relay               = false  (not implemented)
 
 ---
 
-## Phase 6: Cleanup (P3)
+## Phase 6: Cleanup (P3) - COMPLETE
 
-### 6.1 User Avatars
+### 6.1 User Avatars - COMPLETE
 - [ ] Option A: Remove initials entirely
-- [ ] Option B: Implement Gravatar fallback
+- [x] Option B: Implement Gravatar fallback
 - [ ] Option C: Use react-avatar library
-- [ ] Ensure consistent sizing
+- [x] Ensure consistent sizing
+
+**Implementation (2025-12-16):**
+- Created new `UserAvatar` component (`frontend/src/components/ui/UserAvatar.tsx`)
+- Uses Gravatar with MD5 hash of email
+- Falls back to colorful initials if no Gravatar exists
+- Consistent color palette based on email hash
+- Size prop for flexible sizing
 
 **Files:**
-- `frontend/src/components/UserList.tsx`
-- `frontend/src/components/UserList.css`
+- `frontend/src/components/ui/UserAvatar.tsx` (new)
+- `frontend/src/components/UserList.tsx` (updated to use UserAvatar)
 
-### 6.2 Stats Bar Redesign
+### 6.2 Stats Bar Redesign - COMPLETE
 - [ ] Option A: Remove stats bar entirely
-- [ ] Option B: Move to horizontal bar above tabs
-- [ ] Ensure stats are accurate and update on filter change
+- [x] Option B: Move to horizontal bar above tabs
+- [x] Ensure stats are accurate and update on filter change
+
+**Implementation (2025-12-16):**
+- Converted vertical card-based stats to inline horizontal format
+- Compact display: "28 Total | 25 Active 2 Pending 1 Suspended"
+- Color-coded values: green for active, orange for pending, red for suspended
+- Only shows deleted count if > 0
+- Takes less vertical space, cleaner look
 
 **Files:**
-- `frontend/src/pages/Users.tsx`
-- `frontend/src/pages/Users.css`
+- `frontend/src/pages/Users.tsx` (updated)
+- `frontend/src/pages/Users.css` (updated)
 
 ---
 

@@ -4,6 +4,7 @@ import './UserList.css';
 import { UserSlideOut } from './UserSlideOut';
 import { MoreVertical, Eye, PauseCircle, PlayCircle, Lock, Copy, Trash2, CheckCircle, Users, RefreshCw, UserPlus, Loader, Mail, Key, UserMinus } from 'lucide-react';
 import { PlatformIcon } from './ui/PlatformIcon';
+import { UserAvatar } from './ui/UserAvatar';
 
 interface User {
   id: string;
@@ -626,7 +627,6 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
   // Render cell content based on column key
   const renderCell = (column: { key: string; className: string }, user: User) => {
     const roleBadge = getRoleBadge(user.role);
-    const initials = `${user.firstName[0]}${user.lastName[0] || ''}`.toUpperCase();
 
     switch (column.key) {
       case 'checkbox':
@@ -645,9 +645,13 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
         return (
           <div className={column.className}>
             <div className="user-info">
-              <div className="user-avatar" style={{ backgroundColor: "#e5e7eb", color: "#6b7280" }}>
-                {initials}
-              </div>
+              <UserAvatar
+                email={user.email}
+                firstName={user.firstName}
+                lastName={user.lastName}
+                size={32}
+                avatarUrl={user.avatarUrl}
+              />
               <span className="user-name">{user.firstName} {user.lastName}</span>
             </div>
           </div>
