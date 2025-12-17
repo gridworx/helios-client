@@ -708,22 +708,13 @@ class LLMGatewayService {
       throw new Error('No response from model');
     }
 
-    // Detect when model mentions tool names in text instead of calling them
-    const content = choice.message.content || '';
-    const toolNames = ['search_knowledge', 'query_gw_users', 'query_gw_groups', 'get_command', 'list_commands', 'query_ms365_users', 'get_sync_status'];
-    const mentionedTools = toolNames.filter(t => content.toLowerCase().includes(t.toLowerCase()));
-
-    if (mentionedTools.length > 0 && !choice.message.tool_calls?.length) {
-      logger.warn('Model mentioned tools in text but did not call them', {
-        mentionedTools,
-        model: data.model
-      });
-
-      // Append a warning note to the response
-      choice.message.content = content +
-        '\n\n---\n*Note: Your AI model may not support function calling. ' +
-        'Consider switching to qwen2.5-coder or llama3.1 for data query features.*';
-    }
+    // NOTE: We removed the automatic warning detection that was triggering false positives.
+    // The detection was marking normal responses as failed tool calls when the model
+    // was just explaining how to use tools (e.g., "use search_knowledge({ query: ... })").
+    //
+    // The tool support test endpoint (/api/v1/ai/test-tools) is the proper way to detect
+    // if a model supports function calling. Users should use that to test before
+    // configuring a model for production use.
 
     return {
       id: data.id,
