@@ -1,16 +1,17 @@
 {
-  "iterations": 1675,
+  "iterations": 1680,
   "tasks_completed": [
     "BUG-001: Module not showing as enabled - FIXED",
     "BUG-004: Users list - VERIFIED WORKING (4 users in DB, API returns correctly)",
     "BUG-005: Groups list - VERIFIED WORKING (3 groups in access_groups table)",
     "admin-user-separation: All 29 tasks COMPLETED (but with regressions)",
     "group-management-slideout: COMPLETED",
-    "people-directory: COMPLETED"
+    "people-directory: COMPLETED",
+    "fix-ai-tool-calling: COMPLETED (all 5 tasks - model discovery, tool support test, error handling, UI selector, E2E tests)"
   ],
   "current_task": "Pre-Release Infrastructure (BLOCKING - API versioning, OpenAPI docs, MCP prep)",
   "started_at": "2025-12-07 12:13:26",
-  "last_session": "2025-12-17 02:26:13",
+  "last_session": "2025-12-17 10:15:00",
   "bugs_resolved": {
     "BUG-004": {
       "status": "verified_working",
@@ -330,13 +331,6 @@
       "title": "Admin/User UI Separation",
       "status": "COMPLETED_WITH_BUGS",
       "note": "Implementation complete but introduced regressions - see admin-user-separation-fixes"
-    },
-    {
-      "id": "fix-ai-tool-calling",
-      "title": "Fix AI Tool Calling",
-      "status": "COMPLETED",
-      "completed_at": "2025-12-17",
-      "summary": "Model discovery endpoint, tool support testing, improved error handling, UI model selector with tool support badges"
     }
   ],
   "agent_instructions": {
@@ -369,7 +363,7 @@
     "type": "openspec",
     "proposal": "fix-ai-tool-calling",
     "status": "COMPLETED",
-    "note": "All tasks verified - model discovery, tool testing, error handling, UI updates"
+    "note": "All 5 tasks completed: model discovery, tool support test, JSON error handling, UI model selector, E2E tests - 6/6 tests pass"
   },
   "deferred_actions": [
     {
