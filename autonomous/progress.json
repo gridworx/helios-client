@@ -1,5 +1,5 @@
 {
-  "iterations": 1671,
+  "iterations": 1672,
   "tasks_completed": [
     "BUG-001: Module not showing as enabled - FIXED",
     "BUG-004: Users list - VERIFIED WORKING (4 users in DB, API returns correctly)",
@@ -10,7 +10,7 @@
   ],
   "current_task": "Pre-Release Infrastructure (BLOCKING - API versioning, OpenAPI docs, MCP prep)",
   "started_at": "2025-12-07 12:13:26",
-  "last_session": "2025-12-16 20:46:40",
+  "last_session": "2025-12-17 15:58:00",
   "bugs_resolved": {
     "BUG-004": {
       "status": "verified_working",
@@ -330,6 +330,12 @@
       "title": "Admin/User UI Separation",
       "status": "COMPLETED_WITH_BUGS",
       "note": "Implementation complete but introduced regressions - see admin-user-separation-fixes"
+    },
+    {
+      "id": "fix-ai-tool-calling",
+      "title": "AI Tool Calling Improvements",
+      "status": "COMPLETED",
+      "note": "Model discovery, tool support testing, improved JSON error handling, and UI updates all implemented and verified"
     }
   ],
   "agent_instructions": {
@@ -357,17 +363,12 @@
       "STAY IN SCOPE - only work on current task"
     ]
   },
-  "next_task": {
-    "type": "openspec",
-    "proposal": "openspec/changes/fix-ai-tool-calling",
-    "approach": "implement",
-    "instructions": "Fix AI tool calling: 1) TASK-TOOL-003 first - fix JSON parsing errors, 2) TASK-TOOL-001 - add model discovery endpoint, 3) TASK-TOOL-002 - add tool support test endpoint, 4) TASK-TOOL-004 - update UI with model selector. User's Ollama has: qwen2.5-coder:latest (recommended), granite4:micro-h, llama3.2:3b. Test with qwen2.5-coder. Ollama endpoint is likely http://localhost:11434/v1/chat/completions"
-  },
+  "next_task": null,
   "previous_action": {
-    "type": "critical_bugs",
-    "proposal": "critical-fixes-q4-2025",
+    "type": "openspec",
+    "proposal": "fix-ai-tool-calling",
     "status": "COMPLETED",
-    "note": "All critical bugs fixed in previous sessions"
+    "note": "All AI tool calling tasks verified and working. Model discovery, tool support testing, and improved error handling all functional."
   },
   "deferred_actions": [
     {

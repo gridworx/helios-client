@@ -96,9 +96,9 @@ router.get('/models', requireAdmin, async (req: Request, res: Response) => {
 ```
 
 **Acceptance Criteria:**
-- [ ] GET /api/v1/ai/models returns list of available Ollama models
-- [ ] Each model includes name, size, and estimated tool support
-- [ ] Works with user's Ollama endpoint
+- [x] GET /api/v1/ai/models returns list of available Ollama models
+- [x] Each model includes name, size, and estimated tool support
+- [x] Works with user's Ollama endpoint
 
 ---
 
@@ -221,9 +221,9 @@ router.post('/test-tools', requireAdmin, async (req: Request, res: Response) => 
 ```
 
 **Acceptance Criteria:**
-- [ ] POST /api/v1/ai/test-tools tests tool support for a model
-- [ ] Returns clear result: success, no_tool_call, parse_error, or error
-- [ ] Can identify models that output tool names as text
+- [x] POST /api/v1/ai/test-tools tests tool support for a model
+- [x] Returns clear result: success, no_tool_call, parse_error, or error
+- [x] Can identify models that output tool names as text
 
 ---
 
@@ -292,9 +292,9 @@ if (mentionedTools.length > 0 && !response.message.tool_calls?.length) {
 ```
 
 **Acceptance Criteria:**
-- [ ] No more "Unexpected token" errors shown to user
-- [ ] Clear error message when model doesn't support tools
-- [ ] Warning appended when model mentions but doesn't call tools
+- [x] No more "Unexpected token" errors shown to user
+- [x] Clear error message when model doesn't support tools
+- [x] Warning appended when model mentions but doesn't call tools
 
 ---
 
@@ -418,10 +418,10 @@ const testToolSupport = async () => {
 ```
 
 **Acceptance Criteria:**
-- [ ] "Discover" button fetches and displays available models
-- [ ] Model dropdown shows models with size and tool support estimate
-- [ ] "Test Tool Support" button verifies tool calling works
-- [ ] Clear feedback on tool support status
+- [x] "Discover" button fetches and displays available models
+- [x] Model dropdown shows models with size and tool support estimate
+- [x] "Test Tool Support" button verifies tool calling works
+- [x] Clear feedback on tool support status
 
 ---
 
@@ -457,9 +457,9 @@ const testToolSupport = async () => {
    - Should show warning about tool support
 
 **Acceptance Criteria:**
-- [ ] All test cases pass
-- [ ] No crashes or unhandled errors
-- [ ] Clear user feedback in all scenarios
+- [x] All test cases pass
+- [x] No crashes or unhandled errors
+- [x] Clear user feedback in all scenarios
 
 ---
 
