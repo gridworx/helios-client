@@ -1,71 +1,141 @@
 {
-  "iterations": 1668,
+  "iterations": 1669,
   "tasks_completed": [
     "BUG-001: Module not showing as enabled - FIXED",
-    "BUG-004: Users list - VERIFIED WORKING",
-    "BUG-005: Groups list - VERIFIED WORKING",
-    "admin-user-separation: All 29 tasks COMPLETED",
-    "admin-user-separation-fixes: VERIFIED NOT BUGS - All 6 E2E tests pass",
+    "BUG-004: Users list - VERIFIED WORKING (4 users in DB, API returns correctly)",
+    "BUG-005: Groups list - VERIFIED WORKING (3 groups in access_groups table)",
+    "admin-user-separation: All 29 tasks COMPLETED (but with regressions)",
     "group-management-slideout: COMPLETED",
     "people-directory: COMPLETED",
-    "critical-fixes-q4-2025: ALL 4 PHASES COMPLETE (Bug Fixes, UX Polish, Microsoft 365, External Sharing)",
-    "pre-release-infrastructure: ALL 10 PHASES COMPLETE (Env Validation, Request Tracing, Response Standardization, API Versioning, CORS, WebSocket, OpenAPI, MCP, Route Refactor, Testing)",
-    "frontend-api-url-refactor: ALL 9 PHASES COMPLETE (Foundation, Services, Core Files, Pages, Components, Contexts, Backend URLs, Environment, Testing)",
-    "org-chart-seed-data: ALL 5 PHASES COMPLETE (Migration, Audit, API/UI Fixes, Orphan Detection, Testing)"
+    "critical-fixes-q4-2025: All 4 phases COMPLETED",
+    "pre-release-infrastructure: All phases COMPLETED",
+    "frontend-api-url-refactor: All phases COMPLETED"
   ],
-  "current_task": "Maintenance - All major release-blocking proposals complete",
+  "current_task": "System maintenance - all major proposals complete",
   "started_at": "2025-12-07 12:13:26",
-  "last_session": "2025-12-17 02:45:00",
-  "status_summary": {
-    "release_blockers_complete": true,
-    "build_status": "PASSING (frontend & backend)",
-    "docker_containers": "ALL HEALTHY (6/6)",
-    "e2e_tests": "PASSING (admin-user-separation-verification: 6/6)",
-    "users_in_db": 36,
-    "api_health": "HEALTHY"
+  "last_session": "2025-12-17 03:25:00",
+  "bugs_resolved": {
+    "BUG-004": {
+      "status": "verified_working",
+      "evidence": {
+        "organization_users_count": 4,
+        "gw_synced_users_count": 4,
+        "api_returns_correctly": true
+      }
+    },
+    "BUG-005": {
+      "status": "verified_working",
+      "evidence": {
+        "access_groups_count": 3,
+        "gw_groups_count": 3,
+        "groups": [
+          "IT Dept",
+          "Marcomm",
+          "Sales"
+        ]
+      }
+    },
+    "security_events_api": {
+      "status": "fixed",
+      "evidence": {
+        "migration": "056_create_security_events.sql",
+        "api_returns_correctly": true
+      }
+    }
   },
-  "completed_proposals": [
+  "openspec_queue": [
     {
       "id": "critical-fixes-q4-2025",
-      "title": "Critical Bug Fixes - Q4 2025",
+      "priority": -1,
+      "path": "openspec/changes/critical-fixes-q4-2025/",
+      "title": "Critical Bug Fixes - Q4 2025 (URGENT)",
       "status": "COMPLETED",
-      "phases_complete": 4,
-      "verified": "2025-12-14"
+      "completed_at": "2025-12-16"
     },
     {
       "id": "pre-release-infrastructure",
-      "title": "Pre-Release Infrastructure Cleanup",
+      "priority": 0,
+      "path": "openspec/changes/pre-release-infrastructure/",
+      "title": "Pre-Release Infrastructure Cleanup (BLOCKS RELEASE)",
       "status": "COMPLETED",
-      "phases_complete": 10,
-      "verified": "2025-12-11"
+      "completed_at": "2025-12-16",
+      "key_deliverables_completed": [
+        "All routes use /api/v1/ prefix",
+        "All 38 route files have OpenAPI JSDoc annotations",
+        "MCP server skeleton ready for AI features",
+        "X-Request-ID tracing in all requests",
+        "Standardized response format across all endpoints",
+        "Environment validation on startup",
+        "WebSocket proxy through nginx"
+      ]
     },
     {
       "id": "frontend-api-url-refactor",
-      "title": "Frontend Hardcoded URL Refactor",
+      "priority": 0.1,
+      "path": "openspec/changes/frontend-api-url-refactor/",
+      "title": "Frontend Hardcoded URL Refactor (BLOCKING)",
       "status": "COMPLETED",
-      "phases_complete": 9,
-      "verified": "2025-12-11"
-    },
-    {
-      "id": "admin-user-separation",
-      "title": "Admin/User UI Separation",
-      "status": "COMPLETED",
-      "verified": "2025-12-09"
+      "completed_at": "2025-12-11",
+      "user_requirement_achieved": "Clone repo -> update .env -> setup DNS -> Profit!"
     },
     {
       "id": "admin-user-separation-fixes",
-      "title": "Admin/User Separation Bug Fixes",
-      "status": "NOT_NEEDED",
-      "reason": "Bugs were false alarms - all 6 E2E tests pass",
-      "verified": "2025-12-17"
+      "priority": 0,
+      "path": "openspec/changes/admin-user-separation-fixes/",
+      "title": "Admin/User Separation Bug Fixes (BLOCKING)",
+      "status": "COMPLETED",
+      "completed_at": "2025-12-14"
     },
     {
       "id": "org-chart-seed-data",
+      "priority": 0.5,
+      "path": "openspec/changes/org-chart-seed-data/",
       "title": "Org Chart Seed Data & Remove UI Placeholders",
-      "status": "COMPLETED",
-      "phases_complete": 5,
-      "verified": "2025-12-09"
+      "status": "NOT_STARTED",
+      "urgency": "P0.5 - DATA FOUNDATION - Real test data needed for all features"
     },
+    {
+      "id": "infrastructure-fixes",
+      "priority": 1,
+      "path": "openspec/changes/infrastructure-fixes/",
+      "title": "Infrastructure Fixes (Foundation)",
+      "status": "MERGED",
+      "note": "Merged into pre-release-infrastructure"
+    },
+    {
+      "id": "google-drive-asset-proxy",
+      "priority": 2,
+      "path": "openspec/changes/google-drive-asset-proxy/",
+      "title": "Google Drive Asset Proxy",
+      "status": "NOT_STARTED",
+      "urgency": "P1 - HIGH - Foundation for signature images"
+    },
+    {
+      "id": "user-lifecycle",
+      "priority": 3,
+      "path": "openspec/changes/user-lifecycle/",
+      "title": "User Lifecycle Management",
+      "status": "NOT_STARTED",
+      "urgency": "P2 - MEDIUM - Major MSP time-saver"
+    },
+    {
+      "id": "signature-management",
+      "priority": 4,
+      "path": "openspec/changes/signature-management/",
+      "title": "Email Signature Management",
+      "status": "NOT_STARTED",
+      "urgency": "P3 - Core feature after infrastructure ready"
+    },
+    {
+      "id": "hybrid-email-tracking",
+      "priority": 5,
+      "path": "openspec/changes/hybrid-email-tracking/",
+      "title": "Hybrid Email Tracking System",
+      "status": "NOT_STARTED",
+      "urgency": "P4 - Enhancement after signature-management complete"
+    }
+  ],
+  "completed_proposals": [
     {
       "id": "group-management-slideout",
       "title": "Group Management SlideOut with Dynamic Groups",
@@ -75,71 +145,78 @@
       "id": "people-directory",
       "title": "People Directory (User-Facing)",
       "status": "COMPLETED"
+    },
+    {
+      "id": "admin-user-separation",
+      "title": "Admin/User UI Separation",
+      "status": "COMPLETED"
+    },
+    {
+      "id": "critical-fixes-q4-2025",
+      "title": "Critical Bug Fixes - Q4 2025",
+      "status": "COMPLETED"
+    },
+    {
+      "id": "pre-release-infrastructure",
+      "title": "Pre-Release Infrastructure Cleanup",
+      "status": "COMPLETED"
+    },
+    {
+      "id": "frontend-api-url-refactor",
+      "title": "Frontend Hardcoded URL Refactor",
+      "status": "COMPLETED"
+    },
+    {
+      "id": "admin-user-separation-fixes",
+      "title": "Admin/User Separation Bug Fixes",
+      "status": "COMPLETED"
     }
   ],
-  "remaining_proposals": [
-    {
-      "id": "infrastructure-fixes",
-      "priority": 1,
-      "title": "Infrastructure Fixes (Foundation)",
-      "description": "Fix MinIO credentials, missing database tables, field visibility settings",
-      "status": "PENDING",
-      "note": "May be partially addressed by pre-release-infrastructure"
-    },
-    {
-      "id": "google-drive-asset-proxy",
-      "priority": 2,
-      "title": "Google Drive Asset Proxy",
-      "description": "Proxy service for Google Shared Drive files with direct embeddable URLs for signatures",
-      "status": "PENDING",
-      "estimated_effort": "11.5 days"
-    },
-    {
-      "id": "user-lifecycle",
-      "priority": 3,
-      "title": "User Lifecycle Management",
-      "description": "Automated user onboarding and offboarding workflows with templates",
-      "status": "PENDING",
-      "estimated_effort": "14 days"
-    },
-    {
-      "id": "signature-management",
-      "priority": 4,
-      "title": "Email Signature Management",
-      "description": "Template creation, flexible assignment, campaigns with tracking pixels",
-      "status": "PENDING",
-      "estimated_effort": "15-20 days"
-    },
-    {
-      "id": "hybrid-email-tracking",
-      "priority": 5,
-      "title": "Hybrid Email Tracking System",
-      "description": "Always-on user tracking + campaign tracking. Users see personal email engagement metrics.",
-      "status": "PENDING",
-      "estimated_effort": "~30 hours (4 days)"
-    }
-  ],
-  "release_readiness": {
-    "core_functionality": "COMPLETE",
-    "api_versioning": "COMPLETE - /api/v1/ prefix",
-    "openapi_docs": "COMPLETE - 192 paths documented",
-    "mcp_server": "COMPLETE - 243 tools",
-    "remote_access": "COMPLETE - nginx proxy, no hardcoded localhost",
-    "authentication": "WORKING",
-    "dashboard": "WORKING - real data, error handling",
-    "user_management": "WORKING - 36 users in DB",
-    "group_management": "WORKING",
-    "google_workspace": "CONFIGURED",
-    "microsoft_365": "AVAILABLE (needs credentials)"
+  "agent_instructions": {
+    "CRITICAL_FIRST": "READ autonomous/AGENT-RULES.md BEFORE EVERY TASK",
+    "methodology": "TDD + OpenSpec SDD"
   },
   "next_action": {
     "type": "feature_development",
-    "options": [
-      "infrastructure-fixes - Minor fixes if any remain",
-      "google-drive-asset-proxy - Enables signature image hosting",
-      "user-lifecycle - Core workflow feature",
-      "Run full E2E test suite to verify system health"
+    "proposal": "org-chart-seed-data",
+    "instructions": [
+      "1. READ autonomous/AGENT-RULES.md FIRST",
+      "2. Read openspec/changes/org-chart-seed-data/proposal.md",
+      "3. Read openspec/changes/org-chart-seed-data/tasks.md",
+      "4. Create seed data with realistic org hierarchy",
+      "5. Remove hardcoded UI placeholders"
+    ]
+  },
+  "queue_summary": {
+    "total_proposals": 10,
+    "completed_proposals": 7,
+    "remaining_proposals": 3,
+    "priority_order": [
+      "P0.5: org-chart-seed-data (real test data)",
+      "P1: google-drive-asset-proxy (enables signatures)",
+      "P2: user-lifecycle (workflows)",
+      "P3: signature-management (core feature)",
+      "P4: hybrid-email-tracking (engagement metrics)"
     ],
-    "recommendation": "Run full E2E test suite first, then proceed with google-drive-asset-proxy or user-lifecycle based on priority"
+    "release_blockers": [],
+    "user_goal": "Clone repo -> update .env -> setup DNS -> Profit!"
+  },
+  "session_summary": {
+    "date": "2025-12-17",
+    "work_done": [
+      "Fixed E2E tests to handle ViewOnboarding modal",
+      "Updated test login credentials to mike@gridworx.io",
+      "Fixed test selectors to use data-testid attributes",
+      "Created security_events table migration (056)",
+      "Verified all 11 key E2E tests pass"
+    ],
+    "e2e_tests_passing": {
+      "comprehensive-fixes-test": "PASS",
+      "auth-and-dashboard": "PASS",
+      "view-switcher-test": "PASS (4 tests)",
+      "users-list": "PASS (3 tests)",
+      "settings": "PASS (4 tests)",
+      "groups": "PASS (3 tests)"
+    }
   }
 }

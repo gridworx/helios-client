@@ -2,8 +2,8 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Settings Feature', () => {
   const baseUrl = 'http://localhost:3000';
-  const testEmail = 'jack@gridworx.io';
-  const testPassword = 'TestPassword123!';
+  const testEmail = 'mike@gridworx.io';
+  const testPassword = 'admin123';
 
   // Clean up browser state before each test
   test.beforeEach(async ({ page, context }) => {
@@ -19,7 +19,7 @@ test.describe('Settings Feature', () => {
     await page.waitForLoadState('networkidle');
   });
 
-  // Helper to login
+  // Helper to login and dismiss ViewOnboarding modal if present
   async function login(page) {
     // Wait for login form to be visible
     const emailInput = page.locator('input[type="email"]').first();
@@ -30,6 +30,17 @@ test.describe('Settings Feature', () => {
     await page.locator('button[type="submit"]').first().click();
 
     await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
+
+    // Dismiss ViewOnboarding modal if it appears
+    const onboardingModal = page.locator('.view-onboarding-overlay');
+    if (await onboardingModal.isVisible({ timeout: 2000 }).catch(() => false)) {
+      const closeBtn = page.locator('.view-onboarding-close, button.view-onboarding-button.primary');
+      if (await closeBtn.first().isVisible({ timeout: 1000 }).catch(() => false)) {
+        await closeBtn.first().click();
+        await page.waitForTimeout(500);
+      }
+    }
   }
 
   test('Navigate to Settings and verify page loads', async ({ page }) => {
@@ -150,7 +161,7 @@ test.describe('Settings Feature', () => {
     console.log('1️⃣  Logging in and navigating to Settings...');
     await login(page);
     // Use navigation button specifically
-    await page.locator('nav button:has-text("Settings")').first().click();
+    await page.locator('[data-testid="nav-settings"]').first().click();
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
     console.log('   ✅ On Settings page');
