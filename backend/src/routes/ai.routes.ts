@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { authenticateToken, requireAdmin } from '../middleware/auth';
-import { llmGatewayService, ChatMessage, Tool, ToolCall, AIRole } from '../services/llm-gateway.service';
+import { llmGatewayService, ChatMessage, Tool, ToolCall, AIRole, OllamaModel, ToolTestResult } from '../services/llm-gateway.service';
 import { logger } from '../utils/logger';
 import {
   successResponse,
@@ -316,6 +316,139 @@ router.post('/test-connection', requireAdmin, async (req: Request, res: Response
   } catch (error: any) {
     logger.error('Connection test failed', { error: error.message });
     errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Connection test failed');
+  }
+});
+
+/**
+ * @openapi
+ * /ai/models:
+ *   get:
+ *     summary: List available models from Ollama
+ *     description: Returns a list of available models from the configured Ollama endpoint. Admin only.
+ *     tags: [AI Assistant]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of available models
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     models:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           name:
+ *                             type: string
+ *                           size:
+ *                             type: number
+ *                           sizeFormatted:
+ *                             type: string
+ *                           estimatedToolSupport:
+ *                             type: string
+ *                             enum: [likely, unlikely, unknown]
+ *                     endpoint:
+ *                       type: string
+ */
+router.get('/models', requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const organizationId = req.user?.organizationId;
+
+    if (!organizationId) {
+      validationErrorResponse(res, [{ field: 'organizationId', message: 'Organization ID not found' }]);
+      return;
+    }
+
+    // Get configured endpoint or use default
+    const config = await llmGatewayService.getConfig(organizationId);
+
+    // Extract base URL from endpoint (remove /v1/chat/completions)
+    let endpoint = config?.primaryEndpointUrl || 'http://localhost:11434/v1';
+    // Clean up the endpoint to get the base Ollama URL
+    endpoint = endpoint.replace(/\/v1(\/chat\/completions)?\/?$/, '');
+
+    const models = await llmGatewayService.listModels(endpoint);
+    successResponse(res, { models, endpoint });
+  } catch (error: any) {
+    logger.error('Failed to list models', { error: error.message });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to list models: ' + error.message);
+  }
+});
+
+/**
+ * @openapi
+ * /ai/test-tools:
+ *   post:
+ *     summary: Test if a model supports tool/function calling
+ *     description: Sends a test prompt with a tool definition to verify the model can make structured tool calls. Admin only.
+ *     tags: [AI Assistant]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - endpoint
+ *               - model
+ *             properties:
+ *               endpoint:
+ *                 type: string
+ *                 description: LLM endpoint URL
+ *               apiKey:
+ *                 type: string
+ *                 description: API key (optional for local models)
+ *               model:
+ *                 type: string
+ *                 description: Model name to test
+ *     responses:
+ *       200:
+ *         description: Tool support test result
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     supportsTools:
+ *                       type: boolean
+ *                     testResult:
+ *                       type: string
+ *                       enum: [success, no_tool_call, parse_error, error]
+ *                     details:
+ *                       type: string
+ */
+router.post('/test-tools', requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { endpoint, apiKey, model } = req.body;
+
+    if (!endpoint || !model) {
+      validationErrorResponse(res, [
+        !endpoint && { field: 'endpoint', message: 'Endpoint is required' },
+        !model && { field: 'model', message: 'Model is required' }
+      ].filter(Boolean) as Array<{ field: string; message: string }>);
+      return;
+    }
+
+    const result = await llmGatewayService.testToolSupport(endpoint, apiKey, model);
+    successResponse(res, result);
+  } catch (error: any) {
+    logger.error('Tool support test failed', { error: error.message });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, error.message);
   }
 });
 

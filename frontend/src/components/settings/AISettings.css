@@ -784,3 +784,160 @@
     flex-direction: column;
   }
 }
+
+/* Model Selector Enhancements */
+.model-selector-row {
+  display: flex;
+  gap: 8px;
+}
+
+.model-selector-row .model-input {
+  flex: 1;
+}
+
+.model-selector-row .discover-btn {
+  flex-shrink: 0;
+}
+
+.discovered-models {
+  margin-top: 12px;
+  padding: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.models-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.models-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.model-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 10px 14px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+}
+
+.model-chip:hover {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+
+.model-chip.selected {
+  border-color: #8b5cf6;
+  background: #faf5ff;
+}
+
+.model-chip .model-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.model-chip .model-size {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.tool-badge {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-top: 2px;
+}
+
+.tool-badge.likely {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.tool-badge.unlikely {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.tool-badge.unknown {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.models-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #dc2626;
+}
+
+.models-error svg {
+  flex-shrink: 0;
+}
+
+/* Tool Test Result */
+.tool-test-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.tool-test-result.success {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #dcfce7;
+}
+
+.tool-test-result.warning {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fef3c7;
+}
+
+.tool-test-result svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.tool-test-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tool-test-hint {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Responsive for model selector */
+@media (max-width: 768px) {
+  .model-selector-row {
+    flex-direction: column;
+  }
+
+  .model-chip {
+    width: 100%;
+  }
+}

@@ -670,11 +670,59 @@ class LLMGatewayService {
       };
     }
 
-    const data = await response.json() as OpenAIResponse;
+    // Parse response with robust error handling
+    let data: OpenAIResponse;
+    try {
+      data = await response.json() as OpenAIResponse;
+    } catch (parseError: any) {
+      // Try to get raw text for debugging
+      let rawText = '';
+      try {
+        rawText = await response.clone().text();
+      } catch {
+        rawText = 'Unable to read response';
+      }
+
+      logger.warn('Failed to parse LLM response as JSON', {
+        error: parseError.message,
+        rawText: rawText.substring(0, 500),
+        model
+      });
+
+      // Check if it looks like the model tried to output tool calls as text
+      if (rawText.includes('function') || rawText.includes('tool_call') ||
+          rawText.includes('search_knowledge') || rawText.includes('query_gw')) {
+        throw new Error(
+          `Model "${model}" appears to not support function calling properly. ` +
+          `It output tool information as text instead of structured calls. ` +
+          `Try a different model like qwen2.5-coder or llama3.1.`
+        );
+      }
+
+      throw new Error(`Failed to parse response from ${model}: ${parseError.message}`);
+    }
+
     const choice = data.choices?.[0];
 
     if (!choice) {
       throw new Error('No response from model');
+    }
+
+    // Detect when model mentions tool names in text instead of calling them
+    const content = choice.message.content || '';
+    const toolNames = ['search_knowledge', 'query_gw_users', 'query_gw_groups', 'get_command', 'list_commands', 'query_ms365_users', 'get_sync_status'];
+    const mentionedTools = toolNames.filter(t => content.toLowerCase().includes(t.toLowerCase()));
+
+    if (mentionedTools.length > 0 && !choice.message.tool_calls?.length) {
+      logger.warn('Model mentioned tools in text but did not call them', {
+        mentionedTools,
+        model: data.model
+      });
+
+      // Append a warning note to the response
+      choice.message.content = content +
+        '\n\n---\n*Note: Your AI model may not support function calling. ' +
+        'Consider switching to qwen2.5-coder or llama3.1 for data query features.*';
     }
 
     return {
@@ -857,6 +905,249 @@ class LLMGatewayService {
       return [];
     }
   }
+
+  /**
+   * Extract base URL from endpoint (remove /v1/chat/completions if present)
+   */
+  private getOllamaBaseUrl(endpoint: string): string {
+    return endpoint.replace(/\/v1(\/chat\/completions)?\/?$/, '');
+  }
+
+  /**
+   * Estimate if a model likely supports tool calling based on name
+   */
+  private estimateToolSupport(modelName: string): 'likely' | 'unlikely' | 'unknown' {
+    const name = modelName.toLowerCase();
+
+    // Models known to support tools well
+    if (name.includes('llama3.1') || name.includes('llama-3.1')) return 'likely';
+    if (name.includes('llama3.3') || name.includes('llama-3.3')) return 'likely';
+    if (name.includes('qwen2.5') || name.includes('qwen-2.5')) return 'likely';
+    if (name.includes('qwen3')) return 'likely';
+    if (name.includes('granite3') || name.includes('granite4')) return 'likely';
+    if (name.includes('mistral-nemo')) return 'likely';
+    if (name.includes('command-r')) return 'likely';
+    if (name.includes('gpt-4') || name.includes('gpt-3.5')) return 'likely';
+    if (name.includes('claude')) return 'likely';
+
+    // Models known NOT to support tools well
+    if (name.includes('llama3.2:1b') || name.includes('llama3.2:3b')) return 'unlikely';
+    if (name.includes('llama3:') && !name.includes('llama3.1')) return 'unlikely';
+    if (name.includes('phi3')) return 'unlikely';
+    if (name.includes('tinyllama')) return 'unlikely';
+    if (name.includes('gemma')) return 'unlikely';
+
+    return 'unknown';
+  }
+
+  /**
+   * Format bytes to human-readable size
+   */
+  private formatBytes(bytes: number): string {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  }
+
+  /**
+   * List available models from Ollama
+   */
+  async listModels(endpoint: string): Promise<OllamaModel[]> {
+    const baseUrl = this.getOllamaBaseUrl(endpoint);
+
+    try {
+      const response = await fetch(`${baseUrl}/api/tags`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+      }
+
+      const data = await response.json() as {
+        models: Array<{
+          name: string;
+          size: number;
+          modified_at: string;
+          digest: string;
+          details?: {
+            family?: string;
+            parameter_size?: string;
+            quantization_level?: string;
+          };
+        }>;
+      };
+
+      return data.models.map((m) => ({
+        name: m.name,
+        size: m.size,
+        sizeFormatted: this.formatBytes(m.size),
+        modifiedAt: m.modified_at,
+        digest: m.digest,
+        family: m.details?.family,
+        parameterSize: m.details?.parameter_size,
+        quantization: m.details?.quantization_level,
+        estimatedToolSupport: this.estimateToolSupport(m.name)
+      }));
+    } catch (error: any) {
+      logger.error('Failed to list Ollama models', { endpoint: baseUrl, error: error.message });
+      throw new Error(`Failed to list models from ${baseUrl}: ${error.message}`);
+    }
+  }
+
+  /**
+   * Test if a model supports tool/function calling
+   */
+  async testToolSupport(
+    endpoint: string,
+    apiKey: string | undefined,
+    model: string
+  ): Promise<ToolTestResult> {
+    const testTool: Tool = {
+      type: 'function',
+      function: {
+        name: 'get_current_time',
+        description: 'Get the current time in a specific timezone',
+        parameters: {
+          type: 'object',
+          properties: {
+            timezone: {
+              type: 'string',
+              description: 'Timezone name (e.g., UTC, America/New_York)'
+            }
+          },
+          required: []
+        }
+      }
+    };
+
+    const messages: ChatMessage[] = [
+      {
+        role: 'system',
+        content: 'You are a helpful assistant. When asked about time, use the get_current_time tool.'
+      },
+      {
+        role: 'user',
+        content: 'What time is it right now?'
+      }
+    ];
+
+    try {
+      const url = `${endpoint.replace(/\/$/, '')}/chat/completions`;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+
+      if (apiKey) {
+        headers['Authorization'] = `Bearer ${apiKey}`;
+      }
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          model,
+          messages,
+          tools: [testTool],
+          tool_choice: 'auto',
+          max_tokens: 100
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return {
+          supportsTools: false,
+          testResult: 'error',
+          details: `HTTP ${response.status}: ${errorText.substring(0, 200)}`
+        };
+      }
+
+      let data: any;
+      try {
+        data = await response.json();
+      } catch (parseError: any) {
+        return {
+          supportsTools: false,
+          testResult: 'parse_error',
+          details: 'Failed to parse model response. Model likely does not support tool calling format.'
+        };
+      }
+
+      // Check if response has tool_calls
+      const choice = data.choices?.[0];
+      if (choice?.message?.tool_calls?.length > 0) {
+        const toolCall = choice.message.tool_calls[0];
+        return {
+          supportsTools: true,
+          testResult: 'success',
+          details: `Model successfully called tool: ${toolCall.function.name}`,
+          rawResponse: data
+        };
+      }
+
+      // Check if model output tool name as text (common failure mode)
+      const content = choice?.message?.content || '';
+      if (content.toLowerCase().includes('get_current_time') ||
+          content.toLowerCase().includes('tool') ||
+          content.toLowerCase().includes('function')) {
+        return {
+          supportsTools: false,
+          testResult: 'no_tool_call',
+          details: 'Model mentioned the tool but did not make a structured call. Model may not support function calling.',
+          rawResponse: data
+        };
+      }
+
+      return {
+        supportsTools: false,
+        testResult: 'no_tool_call',
+        details: 'Model responded without using tools. May not support function calling.',
+        rawResponse: data
+      };
+    } catch (error: any) {
+      if (error.message.includes('Unexpected token') || error.message.includes('JSON')) {
+        return {
+          supportsTools: false,
+          testResult: 'parse_error',
+          details: 'Failed to parse model response. Model likely does not support tool calling format.'
+        };
+      }
+      return {
+        supportsTools: false,
+        testResult: 'error',
+        details: error.message
+      };
+    }
+  }
+}
+
+/**
+ * Ollama model information
+ */
+export interface OllamaModel {
+  name: string;
+  size: number;
+  sizeFormatted: string;
+  modifiedAt: string;
+  digest: string;
+  family?: string;
+  parameterSize?: string;
+  quantization?: string;
+  estimatedToolSupport: 'likely' | 'unlikely' | 'unknown';
+}
+
+/**
+ * Tool support test result
+ */
+export interface ToolTestResult {
+  supportsTools: boolean;
+  testResult: 'success' | 'no_tool_call' | 'parse_error' | 'error';
+  details: string;
+  rawResponse?: any;
 }
 
 // Export singleton instance

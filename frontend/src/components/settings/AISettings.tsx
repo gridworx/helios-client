@@ -22,7 +22,9 @@ import {
   HelpCircle,
   Shield,
   UserCog,
-  UserCheck
+  UserCheck,
+  RefreshCw,
+  AlertTriangle
 } from 'lucide-react';
 
 type AIRole = 'viewer' | 'operator' | 'admin';
@@ -78,6 +80,24 @@ interface UsageStats {
   errorRate: number;
   byDay: Array<{ date: string; requests: number; tokens: number }>;
   byModel: Array<{ model: string; requests: number; tokens: number }>;
+}
+
+interface OllamaModel {
+  name: string;
+  size: number;
+  sizeFormatted: string;
+  modifiedAt: string;
+  digest: string;
+  family?: string;
+  parameterSize?: string;
+  quantization?: string;
+  estimatedToolSupport: 'likely' | 'unlikely' | 'unknown';
+}
+
+interface ToolTestResult {
+  supportsTools: boolean;
+  testResult: 'success' | 'no_tool_call' | 'parse_error' | 'error';
+  details: string;
 }
 
 interface AISettingsProps {
@@ -159,6 +179,15 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
 
   // AI Role
   const [aiRole, setAiRole] = useState<AIRole>('viewer');
+
+  // Model discovery state
+  const [availableModels, setAvailableModels] = useState<OllamaModel[]>([]);
+  const [loadingModels, setLoadingModels] = useState(false);
+  const [modelsError, setModelsError] = useState<string | null>(null);
+
+  // Tool support test state
+  const [toolTestResult, setToolTestResult] = useState<ToolTestResult | null>(null);
+  const [testingTools, setTestingTools] = useState(false);
 
   useEffect(() => {
     fetchConfig();
@@ -343,6 +372,83 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
     }
   };
 
+  const discoverModels = async () => {
+    setLoadingModels(true);
+    setModelsError(null);
+    try {
+      const token = localStorage.getItem('helios_token');
+      const response = await fetch('/api/v1/ai/models', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setAvailableModels(data.data.models);
+        if (data.data.models.length === 0) {
+          setModelsError('No models found. Make sure Ollama is running and has models installed.');
+        }
+      } else {
+        setModelsError(data.message || 'Failed to discover models');
+      }
+    } catch (err: any) {
+      setModelsError(err.message || 'Failed to connect to Ollama');
+    } finally {
+      setLoadingModels(false);
+    }
+  };
+
+  const testToolSupport = async () => {
+    if (!primaryEndpointUrl || !primaryModel) return;
+
+    setTestingTools(true);
+    setToolTestResult(null);
+    try {
+      const token = localStorage.getItem('helios_token');
+      const response = await fetch('/api/v1/ai/test-tools', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          endpoint: primaryEndpointUrl,
+          apiKey: primaryApiKey || undefined,
+          model: primaryModel
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setToolTestResult(data.data);
+      } else {
+        setToolTestResult({
+          supportsTools: false,
+          testResult: 'error',
+          details: data.message || 'Test failed'
+        });
+      }
+    } catch (err: any) {
+      setToolTestResult({
+        supportsTools: false,
+        testResult: 'error',
+        details: err.message || 'Test failed'
+      });
+    } finally {
+      setTestingTools(false);
+    }
+  };
+
+  const getToolSupportBadge = (support: 'likely' | 'unlikely' | 'unknown') => {
+    switch (support) {
+      case 'likely':
+        return <span className="tool-badge likely">Tools: Likely</span>;
+      case 'unlikely':
+        return <span className="tool-badge unlikely">Tools: Unlikely</span>;
+      default:
+        return <span className="tool-badge unknown">Tools: Unknown</span>;
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="ai-settings-loading">
@@ -445,19 +551,70 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
 
         <div className="form-group">
           <label>Model Name</label>
-          <div className="input-with-suggestions">
-            <input
-              type="text"
-              value={primaryModel}
-              onChange={(e) => setPrimaryModel(e.target.value)}
-              placeholder="gpt-4o"
-              list="primary-models"
-            />
-            <datalist id="primary-models">
-              {COMMON_MODELS.map(m => <option key={m} value={m} />)}
-            </datalist>
+          <div className="model-selector-row">
+            <div className="input-with-suggestions model-input">
+              <input
+                type="text"
+                value={primaryModel}
+                onChange={(e) => {
+                  setPrimaryModel(e.target.value);
+                  setToolTestResult(null);
+                }}
+                placeholder="gpt-4o"
+                list="primary-models"
+              />
+              <datalist id="primary-models">
+                {COMMON_MODELS.map(m => <option key={m} value={m} />)}
+                {availableModels.map(m => <option key={m.name} value={m.name} />)}
+              </datalist>
+            </div>
+            <button
+              type="button"
+              onClick={discoverModels}
+              disabled={loadingModels || !primaryEndpointUrl}
+              className="btn-secondary discover-btn"
+              title="Discover available models from Ollama"
+            >
+              {loadingModels ? (
+                <Loader2 className="spin" size={16} />
+              ) : (
+                <RefreshCw size={16} />
+              )}
+              Discover
+            </button>
           </div>
           <span className="form-hint">Model identifier (e.g., gpt-4o, claude-3-opus, llama3.1:70b)</span>
+
+          {/* Show discovered models */}
+          {availableModels.length > 0 && (
+            <div className="discovered-models">
+              <span className="models-label">Available models:</span>
+              <div className="models-list">
+                {availableModels.map(m => (
+                  <button
+                    key={m.name}
+                    type="button"
+                    className={`model-chip ${primaryModel === m.name ? 'selected' : ''}`}
+                    onClick={() => {
+                      setPrimaryModel(m.name);
+                      setToolTestResult(null);
+                    }}
+                  >
+                    <span className="model-name">{m.name}</span>
+                    <span className="model-size">{m.sizeFormatted}</span>
+                    {getToolSupportBadge(m.estimatedToolSupport)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {modelsError && (
+            <div className="models-error">
+              <AlertTriangle size={14} />
+              <span>{modelsError}</span>
+            </div>
+          )}
         </div>
 
         <div className="form-actions-row">
@@ -470,6 +627,19 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
               <><Loader2 className="spin" size={16} /> Testing...</>
             ) : (
               <><TestTube size={16} /> Test Connection</>
+            )}
+          </button>
+
+          <button
+            className="btn-secondary"
+            onClick={testToolSupport}
+            disabled={!primaryEndpointUrl || !primaryModel || testingTools}
+            title="Test if this model supports function/tool calling"
+          >
+            {testingTools ? (
+              <><Loader2 className="spin" size={16} /> Testing...</>
+            ) : (
+              <><Wrench size={16} /> Test Tool Support</>
             )}
           </button>
 
@@ -489,6 +659,28 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
             </div>
           )}
         </div>
+
+        {/* Tool test result */}
+        {toolTestResult && (
+          <div className={`tool-test-result ${toolTestResult.supportsTools ? 'success' : 'warning'}`}>
+            {toolTestResult.supportsTools ? (
+              <>
+                <CheckCircle size={16} />
+                <span>Model supports tool/function calling</span>
+              </>
+            ) : (
+              <>
+                <AlertTriangle size={16} />
+                <div className="tool-test-details">
+                  <span>{toolTestResult.details}</span>
+                  {toolTestResult.testResult === 'no_tool_call' && (
+                    <span className="tool-test-hint">Try using qwen2.5-coder:latest or llama3.1 for tool support.</span>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="ai-settings-section">

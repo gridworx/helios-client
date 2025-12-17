@@ -17,7 +17,7 @@ Fix the AI tool calling system to properly support function calling with compati
 ## TASK-TOOL-001: Add Ollama Model Discovery
 
 **Priority:** P0
-**Status:** PENDING
+**Status:** COMPLETED
 **Files:** `backend/src/routes/ai.routes.ts`, `backend/src/services/llm-gateway.service.ts`
 
 ### Backend Service Method
@@ -105,7 +105,7 @@ router.get('/models', requireAdmin, async (req: Request, res: Response) => {
 ## TASK-TOOL-002: Add Tool Calling Test Endpoint
 
 **Priority:** P0
-**Status:** PENDING
+**Status:** COMPLETED
 **Files:** `backend/src/routes/ai.routes.ts`, `backend/src/services/llm-gateway.service.ts`
 
 ### Test Method
@@ -230,7 +230,7 @@ router.post('/test-tools', requireAdmin, async (req: Request, res: Response) => 
 ## TASK-TOOL-003: Fix JSON Parsing Error Handling
 
 **Priority:** P0
-**Status:** PENDING
+**Status:** COMPLETED
 **Files:** `backend/src/services/llm-gateway.service.ts`
 
 ### Problem
@@ -301,7 +301,7 @@ if (mentionedTools.length > 0 && !response.message.tool_calls?.length) {
 ## TASK-TOOL-004: Update AI Settings UI with Model Selector
 
 **Priority:** P1
-**Status:** PENDING
+**Status:** COMPLETED
 **Files:** `frontend/src/components/settings/AISettings.tsx`, `frontend/src/components/settings/AISettings.css`
 
 ### Features to Add
@@ -428,7 +428,7 @@ const testToolSupport = async () => {
 ## TASK-TOOL-005: End-to-End Testing
 
 **Priority:** P1
-**Status:** PENDING
+**Status:** COMPLETED
 **Files:** `openspec/testing/tests/ai-tool-calling.test.ts`
 
 ### Test Cases
