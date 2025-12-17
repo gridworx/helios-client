@@ -12,9 +12,24 @@ import {
   Server,
   Activity,
   BarChart3,
-  ExternalLink
+  ExternalLink,
+  Wrench,
+  MessageSquare,
+  Users,
+  UsersRound,
+  FileText,
+  Terminal,
+  HelpCircle
 } from 'lucide-react';
 import './AISettings.css';
+
+interface MCPToolsConfig {
+  help: boolean;
+  users: boolean;
+  groups: boolean;
+  reports: boolean;
+  commands: boolean;
+}
 
 interface AIConfig {
   isConfigured: boolean;
@@ -31,6 +46,12 @@ interface AIConfig {
   contextWindowTokens: number;
   requestsPerMinuteLimit: number;
   tokensPerDayLimit: number;
+  // MCP configuration
+  mcpEnabled: boolean;
+  mcpTools: MCPToolsConfig;
+  // Custom prompt configuration
+  useCustomPrompt: boolean;
+  customSystemPrompt: string;
 }
 
 interface TestResult {
@@ -58,15 +79,16 @@ interface AISettingsProps {
 }
 
 const COMMON_ENDPOINTS = [
+  { label: 'Custom URL', value: '' },
   { label: 'OpenAI', value: 'https://api.openai.com/v1' },
   { label: 'Azure OpenAI', value: '' },
-  { label: 'Anthropic (via LiteLLM)', value: 'https://api.anthropic.com/v1' },
-  { label: 'Ollama (local)', value: 'http://localhost:11434/v1' },
-  { label: 'vLLM (local)', value: 'http://localhost:8000/v1' },
+  { label: 'Ollama', value: 'http://localhost:11434/v1' },
+  { label: 'LiteLLM', value: 'http://localhost:4000/v1' },
+  { label: 'vLLM', value: 'http://localhost:8000/v1' },
   { label: 'OpenRouter', value: 'https://openrouter.ai/api/v1' },
   { label: 'Groq', value: 'https://api.groq.com/openai/v1' },
   { label: 'Together AI', value: 'https://api.together.xyz/v1' },
-  { label: 'Custom', value: '' }
+  { label: 'Anthropic (via proxy)', value: '' },
 ];
 
 const COMMON_MODELS = [
@@ -114,6 +136,20 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
   const [requestsPerMinuteLimit, setRequestsPerMinuteLimit] = useState(20);
   const [tokensPerDayLimit, setTokensPerDayLimit] = useState(100000);
 
+  // MCP Server configuration
+  const [enableMcp, setEnableMcp] = useState(false);
+  const [mcpTools, setMcpTools] = useState({
+    help: true,
+    users: true,
+    groups: true,
+    reports: true,
+    commands: true
+  });
+
+  // System prompt configuration
+  const [customSystemPrompt, setCustomSystemPrompt] = useState('');
+  const [useCustomPrompt, setUseCustomPrompt] = useState(false);
+
   useEffect(() => {
     fetchConfig();
     fetchUsage();
@@ -151,6 +187,16 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
         setTemperature(config.temperature);
         setRequestsPerMinuteLimit(config.requestsPerMinuteLimit);
         setTokensPerDayLimit(config.tokensPerDayLimit);
+
+        // Load MCP configuration
+        setEnableMcp(config.mcpEnabled ?? false);
+        if (config.mcpTools) {
+          setMcpTools(config.mcpTools);
+        }
+
+        // Load custom prompt configuration
+        setUseCustomPrompt(config.useCustomPrompt ?? false);
+        setCustomSystemPrompt(config.customSystemPrompt || '');
       }
     } catch (err) {
       console.error('Failed to fetch AI config:', err);
@@ -220,7 +266,13 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
         maxTokensPerRequest,
         temperature,
         requestsPerMinuteLimit,
-        tokensPerDayLimit
+        tokensPerDayLimit,
+        // MCP configuration
+        mcpEnabled: enableMcp,
+        mcpTools: enableMcp ? mcpTools : { help: true, users: true, groups: true, reports: true, commands: true },
+        // Custom prompt configuration
+        useCustomPrompt,
+        customSystemPrompt: useCustomPrompt ? customSystemPrompt : null
       };
 
       // Only include API key if it's been changed
@@ -287,23 +339,22 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
 
   return (
     <div className="ai-settings">
-      <div className="ai-settings-header">
-        <div className="header-icon">
-          <Bot size={24} />
-        </div>
-        <div className="header-text">
-          <h2>AI Assistant</h2>
-          <p>Configure an AI assistant powered by your choice of LLM provider</p>
-        </div>
-        <div className="header-toggle">
-          <label className="toggle-label">
+      <div className="ai-settings-section ai-settings-enable-section">
+        <div className="enable-row">
+          <div className="enable-info">
+            <Bot size={20} className="enable-icon" />
+            <div>
+              <strong>Enable AI Assistant</strong>
+              <p>Allow users to interact with an AI assistant powered by your choice of LLM provider</p>
+            </div>
+          </div>
+          <label className="toggle-switch">
             <input
               type="checkbox"
               checked={isEnabled}
               onChange={(e) => setIsEnabled(e.target.checked)}
             />
-            <span className="toggle-slider"></span>
-            <span className="toggle-text">{isEnabled ? 'Enabled' : 'Disabled'}</span>
+            <span className="toggle-slider-simple"></span>
           </label>
         </div>
       </div>
@@ -331,23 +382,28 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
 
         <div className="form-group">
           <label>Endpoint URL</label>
-          <div className="input-with-select">
-            <select
-              value={COMMON_ENDPOINTS.find(e => e.value === primaryEndpointUrl)?.value || ''}
-              onChange={(e) => setPrimaryEndpointUrl(e.target.value || primaryEndpointUrl)}
-            >
-              {COMMON_ENDPOINTS.map(ep => (
-                <option key={ep.label} value={ep.value}>{ep.label}</option>
-              ))}
-            </select>
-            <input
-              type="text"
-              value={primaryEndpointUrl}
-              onChange={(e) => setPrimaryEndpointUrl(e.target.value)}
-              placeholder="https://api.openai.com/v1"
-            />
+          <input
+            type="text"
+            value={primaryEndpointUrl}
+            onChange={(e) => setPrimaryEndpointUrl(e.target.value)}
+            placeholder="http://your-server:11434/v1"
+          />
+          <span className="form-hint">
+            Any OpenAI-compatible endpoint. Examples: http://ollama-server:11434/v1, http://10.10.10.200:11434/v1, http://litellm:4000/v1
+          </span>
+          <div className="endpoint-presets">
+            <span className="presets-label">Quick fill:</span>
+            {COMMON_ENDPOINTS.filter(ep => ep.value).map(ep => (
+              <button
+                key={ep.label}
+                type="button"
+                className={`preset-btn ${primaryEndpointUrl === ep.value ? 'active' : ''}`}
+                onClick={() => setPrimaryEndpointUrl(ep.value)}
+              >
+                {ep.label}
+              </button>
+            ))}
           </div>
-          <span className="form-hint">OpenAI-compatible endpoint (e.g., OpenAI, Ollama, vLLM, LiteLLM)</span>
         </div>
 
         <div className="form-group">
@@ -553,6 +609,129 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
             <p className="form-hint">
               When tool calls are detected, this model will be used instead of the primary model.
               Recommended: Use a model with strong function calling support like gpt-4o.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* MCP Server Configuration */}
+      <div className="ai-settings-section">
+        <div className="section-title">
+          <Wrench size={18} />
+          <span>MCP Server & Tools</span>
+          <span className="optional-badge">Optional</span>
+        </div>
+        <p className="section-description">
+          Enable the Model Context Protocol (MCP) server to give AI assistants access to Helios data through structured tools.
+        </p>
+
+        <div className="checkbox-group">
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={enableMcp}
+              onChange={(e) => setEnableMcp(e.target.checked)}
+            />
+            <span className="checkbox-text">Enable MCP Server</span>
+          </label>
+        </div>
+
+        {enableMcp && (
+          <div className="mcp-tools-section">
+            <label className="tools-label">Available Tools:</label>
+            <div className="tools-grid">
+              <label className="tool-checkbox">
+                <input
+                  type="checkbox"
+                  checked={mcpTools.help}
+                  onChange={(e) => setMcpTools({ ...mcpTools, help: e.target.checked })}
+                />
+                <HelpCircle size={16} />
+                <span>Help Search</span>
+                <small>Search documentation and guides</small>
+              </label>
+              <label className="tool-checkbox">
+                <input
+                  type="checkbox"
+                  checked={mcpTools.users}
+                  onChange={(e) => setMcpTools({ ...mcpTools, users: e.target.checked })}
+                />
+                <Users size={16} />
+                <span>User Tools</span>
+                <small>List, get, and query users</small>
+              </label>
+              <label className="tool-checkbox">
+                <input
+                  type="checkbox"
+                  checked={mcpTools.groups}
+                  onChange={(e) => setMcpTools({ ...mcpTools, groups: e.target.checked })}
+                />
+                <UsersRound size={16} />
+                <span>Group Tools</span>
+                <small>List, get, and compare groups</small>
+              </label>
+              <label className="tool-checkbox">
+                <input
+                  type="checkbox"
+                  checked={mcpTools.reports}
+                  onChange={(e) => setMcpTools({ ...mcpTools, reports: e.target.checked })}
+                />
+                <FileText size={16} />
+                <span>Report Tools</span>
+                <small>Generate reports and stats</small>
+              </label>
+              <label className="tool-checkbox">
+                <input
+                  type="checkbox"
+                  checked={mcpTools.commands}
+                  onChange={(e) => setMcpTools({ ...mcpTools, commands: e.target.checked })}
+                />
+                <Terminal size={16} />
+                <span>Command Tools</span>
+                <small>Generate API commands and scripts</small>
+              </label>
+            </div>
+            <p className="form-hint">
+              All tools are read-only. The AI cannot modify data, only query it and generate commands for users to execute.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* System Prompt Configuration */}
+      <div className="ai-settings-section">
+        <div className="section-title">
+          <MessageSquare size={18} />
+          <span>System Prompt</span>
+          <span className="optional-badge">Optional</span>
+        </div>
+        <p className="section-description">
+          Customize the system prompt that defines how the AI assistant behaves. Leave empty to use the default Helios prompt.
+        </p>
+
+        <div className="checkbox-group">
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={useCustomPrompt}
+              onChange={(e) => setUseCustomPrompt(e.target.checked)}
+            />
+            <span className="checkbox-text">Use custom system prompt</span>
+          </label>
+        </div>
+
+        {useCustomPrompt && (
+          <div className="form-group">
+            <label>Custom System Prompt</label>
+            <textarea
+              value={customSystemPrompt}
+              onChange={(e) => setCustomSystemPrompt(e.target.value)}
+              placeholder="You are a helpful AI assistant for Helios..."
+              rows={8}
+              className="system-prompt-textarea"
+            />
+            <p className="form-hint">
+              This prompt is sent at the start of every conversation. Include instructions about tone, capabilities, and limitations.
             </p>
           </div>
         )}

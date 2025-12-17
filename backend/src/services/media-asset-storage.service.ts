@@ -526,6 +526,7 @@ export class MediaAssetStorageService {
 
   /**
    * Get storage status
+   * Auto-configures MinIO if it's available and no storage is configured
    */
   async getStatus(organizationId: string): Promise<{
     isConfigured: boolean;
@@ -536,12 +537,35 @@ export class MediaAssetStorageService {
   }> {
     const settings = await this.getSettings(organizationId);
 
+    // Auto-configure MinIO if no storage is set up
     if (!settings || !settings.isConfigured) {
-      return {
-        isConfigured: false,
-        backend: settings?.storageBackend || 'google_drive',
-        canUpload: false,
-      };
+      try {
+        // Check if MinIO is available
+        await s3Service.initialize();
+        await s3Service.listFiles(`${organizationId}/`, true);
+
+        // MinIO is available - auto-configure it
+        logger.info('MinIO detected, auto-configuring as default storage', { organizationId });
+        await this.updateSettings(organizationId, {
+          storageBackend: 'minio',
+          isConfigured: true,
+        });
+
+        return {
+          isConfigured: true,
+          backend: 'minio',
+          canUpload: true,
+        };
+      } catch (error: any) {
+        // MinIO not available, return unconfigured status
+        logger.debug('MinIO not available for auto-config', { organizationId, error: error.message });
+        return {
+          isConfigured: false,
+          backend: 'minio', // Default to MinIO (not Google Drive)
+          canUpload: false,
+          error: 'Storage not configured. MinIO service may not be running.',
+        };
+      }
     }
 
     // Test if we can actually access storage

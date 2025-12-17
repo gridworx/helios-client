@@ -10,10 +10,9 @@ import { ApiKeyWizard } from './integrations/ApiKeyWizard';
 import { ApiKeyShowOnce } from './integrations/ApiKeyShowOnce';
 import { MasterDataSection } from './settings/MasterDataSection';
 import { TrackingSettings } from './settings/TrackingSettings';
-import SecurityEvents from '../pages/SecurityEvents';
-import AuditLogs from '../pages/AuditLogs';
+import { FeatureFlagsSettings } from './settings/FeatureFlagsSettings';
 import { useTabPersistence } from '../hooks/useTabPersistence';
-import { Package, Building2, Shield, Lock, Palette, Settings as SettingsIcon, Key, Search as SearchIcon, RefreshCw, BarChart3, Info, ShieldAlert, Activity, MoreVertical, Power, Database, Bot } from 'lucide-react';
+import { Package, Building2, Shield, Lock, Palette, Settings as SettingsIcon, Key, Search as SearchIcon, RefreshCw, BarChart3, Info, MoreVertical, Power, Database, Bot } from 'lucide-react';
 
 interface SettingsProps {
   organizationName: string;
@@ -34,7 +33,6 @@ interface ModuleStatus {
 
 export function Settings({ organizationName, domain, organizationId, showPasswordModal: externalShowPasswordModal, onPasswordModalChange, currentUser }: SettingsProps) {
   const [activeTab, setActiveTab] = useTabPersistence<'modules' | 'organization' | 'roles' | 'security' | 'customization' | 'integrations' | 'masterdata' | 'ai' | 'advanced'>('helios_settings_tab', 'modules');
-  const [securitySubTab, setSecuritySubTab] = useState<'settings' | 'events' | 'audit'>('settings');
   const [showModuleConfig, setShowModuleConfig] = useState(false);
   const [configuringModule, setConfiguringModule] = useState<string | null>(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -552,132 +550,143 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
           {activeTab === 'security' && (
             <div className="settings-section">
               <div className="section-header">
-                <h2>Security</h2>
-                <p>Manage authentication, monitor events, and review activity logs</p>
+                <h2>Security Policies</h2>
+                <p>Configure organization-wide security settings and policies</p>
               </div>
 
-              {/* Security Sub-Navigation */}
-              <div className="sub-nav-tabs" style={{ display: 'flex', gap: '8px', marginBottom: '24px', borderBottom: '1px solid #e5e7eb', paddingBottom: '0' }}>
-                <button
-                  className={`sub-nav-tab ${securitySubTab === 'settings' ? 'active' : ''}`}
-                  onClick={() => setSecuritySubTab('settings')}
-                  style={{
-                    padding: '12px 16px',
-                    border: 'none',
-                    background: 'none',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: securitySubTab === 'settings' ? '600' : '500',
-                    color: securitySubTab === 'settings' ? 'var(--theme-primary)' : '#6b7280',
-                    borderBottom: securitySubTab === 'settings' ? '2px solid var(--theme-primary)' : '2px solid transparent',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  <Lock size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-                  Security Settings
-                </button>
-                <button
-                  className={`sub-nav-tab ${securitySubTab === 'events' ? 'active' : ''}`}
-                  onClick={() => setSecuritySubTab('events')}
-                  style={{
-                    padding: '12px 16px',
-                    border: 'none',
-                    background: 'none',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: securitySubTab === 'events' ? '600' : '500',
-                    color: securitySubTab === 'events' ? 'var(--theme-primary)' : '#6b7280',
-                    borderBottom: securitySubTab === 'events' ? '2px solid var(--theme-primary)' : '2px solid transparent',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  <ShieldAlert size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-                  Security Events
-                </button>
-                <button
-                  className={`sub-nav-tab ${securitySubTab === 'audit' ? 'active' : ''}`}
-                  onClick={() => setSecuritySubTab('audit')}
-                  style={{
-                    padding: '12px 16px',
-                    border: 'none',
-                    background: 'none',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: securitySubTab === 'audit' ? '600' : '500',
-                    color: securitySubTab === 'audit' ? 'var(--theme-primary)' : '#6b7280',
-                    borderBottom: securitySubTab === 'audit' ? '2px solid var(--theme-primary)' : '2px solid transparent',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  <Activity size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-                  Audit Logs
-                </button>
-              </div>
-
-              {/* Security Settings Content */}
-              {securitySubTab === 'settings' && (
-                <div className="security-section">
-                  <div className="security-card">
-                    <h3><Lock size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />Password Management</h3>
-                    <p>Update your account password and manage password policies</p>
-                    <button
-                      className="btn-primary"
-                      onClick={() => {
-                        setShowPasswordModal(true);
-                      }}
-                    >
-                      Change Password
-                    </button>
-                  </div>
-
-                  <div className="security-card">
-                    <h3><Shield size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />Authentication Methods</h3>
-                    <p>Configure login methods and session settings</p>
-                    <div className="auth-options">
+              <div className="security-section">
+                <div className="security-card">
+                  <h3><Lock size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />Password Policy</h3>
+                  <p>Set password requirements for all users in your organization</p>
+                  <div className="policy-settings">
+                    <div className="policy-row">
+                      <label>Minimum Password Length</label>
+                      <select className="form-select" defaultValue="8">
+                        <option value="8">8 characters</option>
+                        <option value="10">10 characters</option>
+                        <option value="12">12 characters</option>
+                        <option value="14">14 characters</option>
+                        <option value="16">16 characters</option>
+                      </select>
+                    </div>
+                    <div className="policy-row">
                       <label className="checkbox-label">
-                        <input type="checkbox" checked readOnly />
-                        <span>Email/Password Login</span>
+                        <input type="checkbox" defaultChecked />
+                        <span>Require uppercase letter</span>
                       </label>
-                      <label className="checkbox-label" title="Coming in v1.1">
-                        <input type="checkbox" disabled />
-                        <span style={{ color: '#9ca3af' }}>Single Sign-On (SSO) - Coming Soon</span>
+                    </div>
+                    <div className="policy-row">
+                      <label className="checkbox-label">
+                        <input type="checkbox" defaultChecked />
+                        <span>Require lowercase letter</span>
                       </label>
-                      <label className="checkbox-label" title="Coming in v1.1">
+                    </div>
+                    <div className="policy-row">
+                      <label className="checkbox-label">
+                        <input type="checkbox" defaultChecked />
+                        <span>Require number</span>
+                      </label>
+                    </div>
+                    <div className="policy-row">
+                      <label className="checkbox-label">
+                        <input type="checkbox" />
+                        <span>Require special character</span>
+                      </label>
+                    </div>
+                    <div className="policy-row">
+                      <label>Password Expiration</label>
+                      <select className="form-select" defaultValue="0">
+                        <option value="0">Never</option>
+                        <option value="30">Every 30 days</option>
+                        <option value="60">Every 60 days</option>
+                        <option value="90">Every 90 days</option>
+                        <option value="180">Every 180 days</option>
+                        <option value="365">Every year</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="security-card">
+                  <h3><Shield size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />Account Lockout</h3>
+                  <p>Configure account lockout settings after failed login attempts</p>
+                  <div className="policy-settings">
+                    <div className="policy-row">
+                      <label>Max Failed Attempts</label>
+                      <select className="form-select" defaultValue="5">
+                        <option value="3">3 attempts</option>
+                        <option value="5">5 attempts</option>
+                        <option value="10">10 attempts</option>
+                        <option value="0">Unlimited (no lockout)</option>
+                      </select>
+                    </div>
+                    <div className="policy-row">
+                      <label>Lockout Duration</label>
+                      <select className="form-select" defaultValue="15">
+                        <option value="5">5 minutes</option>
+                        <option value="15">15 minutes</option>
+                        <option value="30">30 minutes</option>
+                        <option value="60">1 hour</option>
+                        <option value="0">Until admin unlocks</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="security-card">
+                  <h3><Key size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />Session Settings</h3>
+                  <p>Control session timeout and concurrent login policies</p>
+                  <div className="policy-settings">
+                    <div className="policy-row">
+                      <label>Session Timeout (Idle)</label>
+                      <select className="form-select" defaultValue="60">
+                        <option value="15">15 minutes</option>
+                        <option value="30">30 minutes</option>
+                        <option value="60">1 hour</option>
+                        <option value="120">2 hours</option>
+                        <option value="480">8 hours</option>
+                        <option value="0">Never (not recommended)</option>
+                      </select>
+                    </div>
+                    <div className="policy-row">
+                      <label>Max Concurrent Sessions</label>
+                      <select className="form-select" defaultValue="0">
+                        <option value="1">1 session only</option>
+                        <option value="3">3 sessions</option>
+                        <option value="5">5 sessions</option>
+                        <option value="0">Unlimited</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="security-card">
+                  <h3><Shield size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />Authentication Requirements</h3>
+                  <p>Enforce authentication methods for all users</p>
+                  <div className="policy-settings">
+                    <div className="policy-row">
+                      <label className="checkbox-label">
                         <input type="checkbox" disabled />
-                        <span style={{ color: '#9ca3af' }}>Two-Factor Authentication - Coming Soon</span>
+                        <span style={{ color: '#9ca3af' }}>Require Two-Factor Authentication for all users - Coming Soon</span>
+                      </label>
+                    </div>
+                    <div className="policy-row">
+                      <label className="checkbox-label">
+                        <input type="checkbox" disabled />
+                        <span style={{ color: '#9ca3af' }}>Require SSO for all users - Coming Soon</span>
                       </label>
                     </div>
                   </div>
+                </div>
 
-                  <div className="security-card">
-                    <h3><Key size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />API Keys & Integrations</h3>
-                    <p>Manage organization-wide API keys for external access and integrations</p>
-                    <button
-                      className="btn-secondary"
-                      onClick={() => setActiveTab('integrations')}
-                    >
-                      Go to Integrations →
-                    </button>
-                    <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '8px' }}>
-                      API key management is available in the Integrations tab
-                    </p>
+                <div className="security-card">
+                  <h3><Shield size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />Single Sign-On (SSO)</h3>
+                  <p>Configure SAML or OAuth for your organization</p>
+                  <div style={{ padding: '16px', background: '#f9fafb', borderRadius: '8px', color: '#6b7280', fontSize: '13px' }}>
+                    SSO configuration is coming soon. Contact support if you need early access.
                   </div>
                 </div>
-              )}
-
-              {/* Security Events Content */}
-              {securitySubTab === 'events' && (
-                <div style={{ padding: '0' }}>
-                  <SecurityEvents />
-                </div>
-              )}
-
-              {/* Audit Logs Content */}
-              {securitySubTab === 'audit' && (
-                <div style={{ padding: '0' }}>
-                  <AuditLogs />
-                </div>
-              )}
+              </div>
             </div>
           )}
 
@@ -777,6 +786,11 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                 {/* Email Tracking Settings */}
                 <div style={{ marginTop: '24px' }}>
                   <TrackingSettings />
+                </div>
+
+                {/* Feature Flags Settings */}
+                <div style={{ marginTop: '24px' }}>
+                  <FeatureFlagsSettings />
                 </div>
               </div>
             </div>

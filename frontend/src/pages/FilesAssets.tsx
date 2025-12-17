@@ -710,20 +710,20 @@ export function FilesAssets({ organizationId: _organizationId }: FilesAssetsProp
               <div className="form-group">
                 <label>Storage Backend</label>
                 <div className="storage-options">
-                  <label className="storage-option selected">
-                    <input type="radio" name="backend" value="google_drive" checked readOnly />
-                    <Cloud size={20} />
-                    <div>
-                      <strong>Google Drive</strong>
-                      <span>Store files in a Shared Drive</span>
-                    </div>
-                  </label>
-                  <label className="storage-option disabled">
-                    <input type="radio" name="backend" value="minio" disabled />
+                  <label className={`storage-option ${settings?.storageBackend === 'minio' || !settings?.storageBackend ? 'selected' : ''}`}>
+                    <input type="radio" name="backend" value="minio" checked={settings?.storageBackend === 'minio' || !settings?.storageBackend} readOnly />
                     <HardDrive size={20} />
                     <div>
                       <strong>MinIO / S3</strong>
-                      <span>Self-hosted object storage (coming soon)</span>
+                      <span>Self-hosted object storage (default)</span>
+                    </div>
+                  </label>
+                  <label className={`storage-option ${settings?.storageBackend === 'google_drive' ? 'selected' : ''}`}>
+                    <input type="radio" name="backend" value="google_drive" checked={settings?.storageBackend === 'google_drive'} readOnly />
+                    <Cloud size={20} />
+                    <div>
+                      <strong>Google Drive</strong>
+                      <span>Store files in a Shared Drive (requires GWS)</span>
                     </div>
                   </label>
                 </div>

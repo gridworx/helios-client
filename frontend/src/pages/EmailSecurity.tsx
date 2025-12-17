@@ -112,8 +112,8 @@ export const EmailSecurity: React.FC = () => {
         <div className="page-title-section">
           <Mail size={24} className="page-icon" />
           <div>
-            <h1>Email Security</h1>
-            <p className="page-subtitle">Search and remove malicious emails from all mailboxes</p>
+            <h1>Mail Search</h1>
+            <p className="page-subtitle">Search, audit, and remediate emails across all mailboxes</p>
           </div>
         </div>
       </div>

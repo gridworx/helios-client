@@ -65,6 +65,17 @@ export interface CompletionResponse {
 }
 
 /**
+ * MCP Tools configuration
+ */
+export interface MCPToolsConfig {
+  help: boolean;
+  users: boolean;
+  groups: boolean;
+  reports: boolean;
+  commands: boolean;
+}
+
+/**
  * AI configuration stored in database
  */
 export interface AIConfig {
@@ -83,6 +94,12 @@ export interface AIConfig {
   contextWindowTokens: number;
   requestsPerMinuteLimit: number;
   tokensPerDayLimit: number;
+  // MCP Server configuration
+  mcpEnabled: boolean;
+  mcpTools: MCPToolsConfig;
+  // Custom system prompt
+  useCustomPrompt: boolean;
+  customSystemPrompt?: string;
 }
 
 /**
@@ -138,7 +155,11 @@ class LLMGatewayService {
           temperature,
           context_window_tokens,
           requests_per_minute_limit,
-          tokens_per_day_limit
+          tokens_per_day_limit,
+          mcp_enabled,
+          mcp_tools,
+          use_custom_prompt,
+          custom_system_prompt
         FROM ai_config
         WHERE organization_id = $1`,
         [organizationId]
@@ -149,6 +170,8 @@ class LLMGatewayService {
       }
 
       const row = result.rows[0];
+      const defaultMcpTools: MCPToolsConfig = { help: true, users: true, groups: true, reports: true, commands: true };
+
       return {
         id: row.id,
         organizationId: row.organization_id,
@@ -168,7 +191,11 @@ class LLMGatewayService {
         temperature: parseFloat(row.temperature),
         contextWindowTokens: row.context_window_tokens,
         requestsPerMinuteLimit: row.requests_per_minute_limit,
-        tokensPerDayLimit: row.tokens_per_day_limit
+        tokensPerDayLimit: row.tokens_per_day_limit,
+        mcpEnabled: row.mcp_enabled ?? false,
+        mcpTools: row.mcp_tools ?? defaultMcpTools,
+        useCustomPrompt: row.use_custom_prompt ?? false,
+        customSystemPrompt: row.custom_system_prompt || undefined
       };
     } catch (error) {
       logger.error('Error getting AI config:', error);
@@ -188,6 +215,8 @@ class LLMGatewayService {
         ? encryptionService.encrypt(config.fallbackApiKey)
         : null;
 
+      const defaultMcpTools: MCPToolsConfig = { help: true, users: true, groups: true, reports: true, commands: true };
+
       await db.query(
         `INSERT INTO ai_config (
           organization_id,
@@ -203,8 +232,12 @@ class LLMGatewayService {
           temperature,
           context_window_tokens,
           requests_per_minute_limit,
-          tokens_per_day_limit
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+          tokens_per_day_limit,
+          mcp_enabled,
+          mcp_tools,
+          use_custom_prompt,
+          custom_system_prompt
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
         ON CONFLICT (organization_id) DO UPDATE SET
           primary_endpoint_url = COALESCE(EXCLUDED.primary_endpoint_url, ai_config.primary_endpoint_url),
           primary_api_key_encrypted = CASE
@@ -222,6 +255,10 @@ class LLMGatewayService {
           context_window_tokens = COALESCE(EXCLUDED.context_window_tokens, ai_config.context_window_tokens),
           requests_per_minute_limit = COALESCE(EXCLUDED.requests_per_minute_limit, ai_config.requests_per_minute_limit),
           tokens_per_day_limit = COALESCE(EXCLUDED.tokens_per_day_limit, ai_config.tokens_per_day_limit),
+          mcp_enabled = COALESCE(EXCLUDED.mcp_enabled, ai_config.mcp_enabled),
+          mcp_tools = COALESCE(EXCLUDED.mcp_tools, ai_config.mcp_tools),
+          use_custom_prompt = COALESCE(EXCLUDED.use_custom_prompt, ai_config.use_custom_prompt),
+          custom_system_prompt = EXCLUDED.custom_system_prompt,
           updated_at = NOW()`,
         [
           organizationId,
@@ -237,7 +274,11 @@ class LLMGatewayService {
           config.temperature ?? 0.7,
           config.contextWindowTokens ?? 8000,
           config.requestsPerMinuteLimit ?? 20,
-          config.tokensPerDayLimit ?? 100000
+          config.tokensPerDayLimit ?? 100000,
+          config.mcpEnabled ?? false,
+          JSON.stringify(config.mcpTools ?? defaultMcpTools),
+          config.useCustomPrompt ?? false,
+          config.customSystemPrompt || null
         ]
       );
     } catch (error) {

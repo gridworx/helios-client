@@ -1,5 +1,19 @@
 # S3-Compatible Storage with MinIO
 
+## Storage Strategy
+
+**MinIO is the PRIMARY and ONLY storage backend for Helios Client.**
+
+- All platform assets (photos, signatures, documents) are stored in MinIO
+- Google Drive is NOT an alternative primary storage option
+- Google Drive is ONLY used for encrypted off-site backups (optional)
+
+This decision simplifies the codebase, improves reliability, and provides consistent behavior across all deployments.
+
+For backup strategy details, see: `openspec/changes/storage-backup-strategy/proposal.md`
+
+---
+
 ## Overview
 We've implemented S3-compatible object storage using MinIO for secure file storage with the following benefits:
 - **Secure presigned URLs** for private files

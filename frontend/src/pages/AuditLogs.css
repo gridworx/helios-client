@@ -238,6 +238,7 @@
 }
 
 .logs-table tbody tr {
+  height: 48px;
   border-bottom: 1px solid #f3f4f6;
   transition: background-color 0.15s ease;
 }
@@ -251,41 +252,30 @@
 }
 
 .logs-table td {
-  padding: 16px;
+  padding: 0 16px;
   font-size: 13px;
   color: #374151;
-  vertical-align: top;
+  vertical-align: middle;
+  white-space: nowrap;
 }
 
 .timestamp-cell {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
   color: #6b7280;
   font-size: 12px;
+  font-family: monospace;
 }
 
 .actor-cell {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
+  /* Use inline display for table cell context */
 }
 
-.actor-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.actor-cell .actor-type-badge {
+  margin-right: 8px;
 }
 
 .actor-name {
   font-weight: 500;
   color: #111827;
-}
-
-.actor-email {
-  font-size: 11px;
-  color: #6b7280;
 }
 
 .action-badge {
@@ -375,38 +365,9 @@
   color: #92400e;
 }
 
-/* Source cell styling */
-.source-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 100px;
-}
-
-.vendor-name,
-.api-key-name,
-.service-name {
-  font-size: 11px;
-  color: #6b7280;
-  font-weight: 500;
-}
-
 /* Result cell */
 .result-cell {
   white-space: nowrap;
-}
-
-/* Ticket reference in actor cell */
-.ticket-reference {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 10px;
-  color: #8b5cf6;
-  background-color: #f3e8ff;
-  padding: 2px 6px;
-  border-radius: 4px;
-  margin-top: 2px;
 }
 
 /* Error row highlighting */
@@ -451,52 +412,11 @@
 }
 
 .resource-cell {
-  min-width: 120px;
+  min-width: 100px;
 }
 
-.resource-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.resource-type {
-  font-weight: 500;
-  color: #111827;
+.resource-text {
   font-size: 12px;
-}
-
-.resource-id {
-  font-size: 11px;
-  color: #6b7280;
-  font-family: monospace;
-}
-
-.description-cell {
-  max-width: 400px;
-  line-height: 1.5;
-}
-
-.metadata-details {
-  margin-top: 8px;
-  cursor: pointer;
-}
-
-.metadata-details summary {
-  font-size: 11px;
-  color: var(--theme-primary);
-  font-weight: 500;
-  user-select: none;
-}
-
-.metadata-details pre {
-  margin-top: 6px;
-  padding: 8px;
-  background-color: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  font-size: 10px;
-  overflow-x: auto;
   color: #374151;
 }
 
@@ -550,15 +470,12 @@
 @media (max-width: 1200px) {
   .logs-table {
     font-size: 12px;
+    min-width: 650px;
   }
 
   .logs-table th,
   .logs-table td {
-    padding: 12px;
-  }
-
-  .description-cell {
-    max-width: 300px;
+    padding: 0 12px;
   }
 }
 
@@ -586,20 +503,6 @@
   }
 
   .logs-table {
-    min-width: 1100px;
-  }
-
-  .description-cell {
-    max-width: 250px;
-  }
-}
-
-@media (max-width: 1400px) {
-  .logs-table {
-    min-width: 1000px;
-  }
-
-  .description-cell {
-    max-width: 200px;
+    min-width: 600px;
   }
 }

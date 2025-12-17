@@ -69,12 +69,14 @@ export const auditLogsService = {
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.offset) queryParams.append('offset', params.offset.toString());
 
+    const token = localStorage.getItem('helios_token');
     const response = await fetch(
       apiPath(`/organization/audit-logs?${queryParams.toString()}`),
       {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
       }
     );
@@ -97,10 +99,14 @@ export const auditLogsService = {
     if (params?.vendorName) queryParams.append('vendorName', params.vendorName);
     if (params?.result) queryParams.append('result', params.result);
 
+    const token = localStorage.getItem('helios_token');
     const response = await fetch(
       apiPath(`/organization/audit-logs/export?${queryParams.toString()}`),
       {
         credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
       }
     );
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, User, Clock, Search, Download, Filter, ChevronLeft, ChevronRight, Building2, Ticket, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Activity, Clock, Search, Download, Filter, ChevronLeft, ChevronRight, CheckCircle, XCircle, AlertCircle, User, Building2, Ticket } from 'lucide-react';
 import { auditLogsService } from '../services';
 import type { AuditLog, ActorType, ActionResult, AuditLogFilters } from '../services';
 import './AuditLogs.css';
@@ -342,12 +342,10 @@ const AuditLogs: React.FC = () => {
               <thead>
                 <tr>
                   <th>Timestamp</th>
-                  <th>Source</th>
                   <th>Actor</th>
                   <th>Action</th>
                   <th>Result</th>
                   <th>Resource</th>
-                  <th>Description</th>
                   <th>IP Address</th>
                 </tr>
               </thead>
@@ -357,51 +355,31 @@ const AuditLogs: React.FC = () => {
                   const resultBadge = getResultBadge(log.result);
                   const ResultIcon = resultBadge.icon;
 
+                  // Build actor display and tooltip
+                  const actorName = log.actor_type === 'vendor' && log.vendor_technician_name
+                    ? log.vendor_technician_name
+                    : getActorName(log);
+                  const actorEmail = log.actor_type === 'vendor' && log.vendor_technician_email
+                    ? log.vendor_technician_email
+                    : log.actor_email;
+                  const actorTooltip = [
+                    actorEmail,
+                    log.vendor_name && `Vendor: ${log.vendor_name}`,
+                    log.ticket_reference && `Ticket: ${log.ticket_reference}`,
+                    log.service_name && `Service: ${log.service_name}`,
+                    log.api_key_name && `API Key: ${log.api_key_name}`
+                  ].filter(Boolean).join('\n');
+
                   return (
                     <tr key={log.id} className={log.result === 'failure' || log.result === 'denied' ? 'log-row-error' : ''}>
                       <td className="timestamp-cell">
-                        <Clock size={14} />
                         {formatDate(log.created_at)}
                       </td>
-                      <td className="source-cell">
+                      <td className="actor-cell" title={actorTooltip || undefined}>
                         <span className={`actor-type-badge ${actorTypeBadge.className}`}>
                           {actorTypeBadge.label}
                         </span>
-                        {log.actor_type === 'vendor' && log.vendor_name && (
-                          <span className="vendor-name">{log.vendor_name}</span>
-                        )}
-                        {log.actor_type === 'service' && log.api_key_name && (
-                          <span className="api-key-name">{log.api_key_name}</span>
-                        )}
-                        {log.actor_type === 'service' && log.service_name && (
-                          <span className="service-name">{log.service_name}</span>
-                        )}
-                      </td>
-                      <td className="actor-cell">
-                        <User size={14} />
-                        <div className="actor-info">
-                          {log.actor_type === 'vendor' && log.vendor_technician_name ? (
-                            <>
-                              <span className="actor-name">{log.vendor_technician_name}</span>
-                              {log.vendor_technician_email && (
-                                <span className="actor-email">{log.vendor_technician_email}</span>
-                              )}
-                              {log.ticket_reference && (
-                                <span className="ticket-reference">
-                                  <Ticket size={10} />
-                                  {log.ticket_reference}
-                                </span>
-                              )}
-                            </>
-                          ) : (
-                            <>
-                              <span className="actor-name">{getActorName(log)}</span>
-                              {log.actor_email && (
-                                <span className="actor-email">{log.actor_email}</span>
-                              )}
-                            </>
-                          )}
-                        </div>
+                        <span className="actor-name">{actorName}</span>
                       </td>
                       <td>
                         <span className={`action-badge ${getActionColor(log.action)}`}>
@@ -415,23 +393,11 @@ const AuditLogs: React.FC = () => {
                         </span>
                       </td>
                       <td className="resource-cell">
-                        {log.resource_type && (
-                          <div className="resource-info">
-                            <span className="resource-type">{log.resource_type}</span>
-                            {log.resource_id && (
-                              <span className="resource-id">#{log.resource_id}</span>
-                            )}
-                          </div>
-                        )}
-                      </td>
-                      <td className="description-cell">
-                        {log.description}
-                        {log.metadata && Object.keys(log.metadata).length > 0 && (
-                          <details className="metadata-details">
-                            <summary>View metadata</summary>
-                            <pre>{JSON.stringify(log.metadata, null, 2)}</pre>
-                          </details>
-                        )}
+                        {log.resource_type ? (
+                          <span className="resource-text">
+                            {log.resource_type}{log.resource_id && ` #${log.resource_id}`}
+                          </span>
+                        ) : '-'}
                       </td>
                       <td className="ip-cell">
                         {log.ip_address || '-'}

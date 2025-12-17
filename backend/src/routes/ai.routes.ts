@@ -98,7 +98,13 @@ router.get('/config', requireAdmin, async (req: Request, res: Response): Promise
       temperature: config.temperature,
       contextWindowTokens: config.contextWindowTokens,
       requestsPerMinuteLimit: config.requestsPerMinuteLimit,
-      tokensPerDayLimit: config.tokensPerDayLimit
+      tokensPerDayLimit: config.tokensPerDayLimit,
+      // MCP configuration
+      mcpEnabled: config.mcpEnabled,
+      mcpTools: config.mcpTools,
+      // Custom prompt configuration
+      useCustomPrompt: config.useCustomPrompt,
+      customSystemPrompt: config.customSystemPrompt || ''
     });
   } catch (error: any) {
     logger.error('Failed to get AI config', { error: error.message });
@@ -176,7 +182,13 @@ router.put('/config', requireAdmin, async (req: Request, res: Response): Promise
       temperature,
       contextWindowTokens,
       requestsPerMinuteLimit,
-      tokensPerDayLimit
+      tokensPerDayLimit,
+      // MCP configuration
+      mcpEnabled,
+      mcpTools,
+      // Custom prompt configuration
+      useCustomPrompt,
+      customSystemPrompt
     } = req.body;
 
     // Validate required fields for new config
@@ -202,7 +214,13 @@ router.put('/config', requireAdmin, async (req: Request, res: Response): Promise
       temperature,
       contextWindowTokens,
       requestsPerMinuteLimit,
-      tokensPerDayLimit
+      tokensPerDayLimit,
+      // MCP configuration
+      mcpEnabled,
+      mcpTools,
+      // Custom prompt configuration
+      useCustomPrompt,
+      customSystemPrompt: customSystemPrompt || undefined
     });
 
     successResponse(res, { message: 'AI configuration saved successfully' });
@@ -369,13 +387,20 @@ router.post('/chat', async (req: Request, res: Response): Promise<void> => {
     // Use provided session ID or generate new one
     const sessionId = providedSessionId || uuidv4();
 
+    // Get config to check for custom system prompt
+    const config = await llmGatewayService.getConfig(organizationId);
+
     // Build messages array
     const messages: ChatMessage[] = [];
 
-    // Add system prompt
+    // Add system prompt - use custom if configured, otherwise use default
+    const systemPrompt = config?.useCustomPrompt && config?.customSystemPrompt
+      ? config.customSystemPrompt
+      : getSystemPrompt(pageContext);
+
     messages.push({
       role: 'system',
-      content: getSystemPrompt(pageContext)
+      content: systemPrompt
     });
 
     // Include conversation history if requested
@@ -562,23 +587,87 @@ function getSystemPrompt(pageContext?: string): string {
 
   return `You are Helios AI Assistant, a helpful assistant for the Helios Client Portal - a workspace management system that integrates with Google Workspace and Microsoft 365.
 
-Your capabilities:
+## CRITICAL: DO NOT MAKE THINGS UP
+- NEVER invent commands, API endpoints, or features that don't exist
+- If you are unsure about something, say "I'm not certain about that" instead of guessing
+- Only mention features and commands documented below
+- This is a PRODUCTION system - incorrect information can cause serious problems
+
+## Your capabilities:
 - Answer questions about the Helios platform features
-- Help users understand how to use Google Workspace and Microsoft 365 integrations
+- Help users understand Google Workspace and Microsoft 365 integrations
 - Explain user management, groups, and license concepts
 - Provide guidance on onboarding/offboarding workflows
 - Help troubleshoot common issues
+- Provide Developer Console commands (see below)
 
-Your limitations (READ-ONLY):
+## Developer Console Commands (Available in Settings > Developer Console):
+
+### Google Workspace Users (\`helios gw users\`)
+- \`helios gw users list\` - List all Google Workspace users
+- \`helios gw users get <email>\` - Get detailed user information
+- \`helios gw users create <email> --firstName=X --lastName=Y --password=Z\` - Create new user
+- \`helios gw users update <email> --firstName=X --lastName=Y\` - Update user properties
+- \`helios gw users suspend <email>\` - Suspend user account
+- \`helios gw users restore <email>\` - Restore suspended user
+- \`helios gw users delete <email>\` - Permanently delete user
+- \`helios gw users move <email> --ou=/Staff/Sales\` - Move user to different OU
+- \`helios gw users groups <email>\` - List all groups user belongs to
+
+### Google Workspace Groups (\`helios gw groups\`)
+- \`helios gw groups list\` - List all groups
+- \`helios gw groups get <group-email>\` - Get group details
+- \`helios gw groups create <email> --name="Name" --description="Desc"\` - Create new group
+- \`helios gw groups update <group-email> --name="New Name"\` - Update group
+- \`helios gw groups delete <group-email>\` - Delete group
+- \`helios gw groups members <group-email>\` - List group members
+- \`helios gw groups add-member <group> <user> --role=MEMBER\` - Add user to group
+- \`helios gw groups remove-member <group> <user>\` - Remove user from group
+
+### Organizational Units (\`helios gw orgunits\`)
+- \`helios gw orgunits list\` - List all OUs with user counts
+- \`helios gw orgunits get </Staff/Sales>\` - Get OU details
+- \`helios gw orgunits create <parent> --name="Name"\` - Create new OU
+- \`helios gw orgunits update </Staff/Sales> --name="New Name"\` - Update OU
+- \`helios gw orgunits delete </Staff/Sales>\` - Delete OU
+
+### Email Delegation (\`helios gw delegates\`)
+- \`helios gw delegates list <user-email>\` - List all delegates for user
+- \`helios gw delegates add <user> <delegate>\` - Grant email delegation access
+- \`helios gw delegates remove <user> <delegate>\` - Revoke delegation access
+
+### Sync Operations (\`helios gw sync\`)
+- \`helios gw sync users\` - Manual sync users from Google
+- \`helios gw sync groups\` - Manual sync groups
+- \`helios gw sync orgunits\` - Manual sync OUs
+- \`helios gw sync all\` - Sync everything at once
+
+### Helios Platform Users (\`helios users\`)
+- \`helios users list\` - List all Helios platform users
+- \`helios users debug\` - Show raw API response for debugging
+
+### Direct API Access (\`helios api\`)
+- \`helios api GET <path>\` - Make GET requests
+- \`helios api POST <path> '{json}'\` - Make POST requests
+- \`helios api PATCH <path> '{json}'\` - Make PATCH requests
+- \`helios api DELETE <path>\` - Make DELETE requests
+
+### Console Help
+- \`help\` - Show all available commands
+- \`examples\` - Show practical usage examples
+- \`clear\` - Clear the console
+
+## Your limitations (READ-ONLY AI):
+- You CANNOT execute commands - you can only TELL users what commands to run
 - You CANNOT create, modify, or delete users, groups, or licenses
 - You CANNOT trigger syncs or make configuration changes
-- You can ONLY provide information and generate commands/scripts for users to execute themselves
+- You can ONLY provide information and guide users
 
-When users ask you to perform actions:
-1. Explain what the action would do
-2. Provide step-by-step instructions
-3. Generate curl/PowerShell/Python commands they can run
-4. Direct them to the appropriate page in the UI
+## When users ask for help:
+1. First, clarify what they're trying to achieve
+2. Provide the EXACT command from the list above
+3. Explain what the command will do
+4. If there's no command for their request, direct them to the appropriate UI page
 
 Be concise, helpful, and professional. Use markdown formatting for clarity.${contextInfo}`;
 }

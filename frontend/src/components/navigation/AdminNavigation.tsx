@@ -4,11 +4,9 @@ import {
   Users as UsersIcon,
   UsersRound,
   Package,
-  Shield,
   PenTool,
   AlertCircle,
   Zap,
-  TrendingUp,
   Settings as SettingsIcon,
   Network,
   MessageSquare,
@@ -17,8 +15,8 @@ import {
   UserPlus,
   UserMinus,
   Clock,
-  BarChart2,
   Share2,
+  Search,
 } from 'lucide-react';
 import { useLabels } from '../../contexts/LabelsContext';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
@@ -36,10 +34,10 @@ interface AdminNavigationProps {
  *
  * Shows admin-only features:
  * - Dashboard (admin stats)
- * - Directory (Users, Groups, Devices)
- * - Security (Email Security, Signatures, Security Events)
- * - Automation (Workflows, Templates)
- * - Insights (Reports, Analytics)
+ * - Directory (Users, Groups, Org Chart)
+ * - Automation (Onboarding, Offboarding, Signatures, Scheduled Actions)
+ * - Assets (IT Assets, Media Files)
+ * - Security (Mail Search, Security Events, Audit Logs, External Sharing)
  * - Settings
  */
 export const AdminNavigation: React.FC<AdminNavigationProps> = ({
@@ -49,7 +47,12 @@ export const AdminNavigation: React.FC<AdminNavigationProps> = ({
   labelsLoading,
 }) => {
   const { labels, isEntityAvailable } = useLabels();
-  const { isEnabled } = useFeatureFlags();
+  const { isEnabled, anyEnabled } = useFeatureFlags();
+
+  // Check if any items in a section are enabled
+  const hasAutomationItems = anyEnabled('nav.onboarding', 'nav.offboarding', 'nav.scheduled_actions', 'nav.workflows', 'nav.signatures');
+  const hasAssetItems = anyEnabled('nav.it_assets', 'nav.media_files');
+  const hasSecurityItems = anyEnabled('nav.mail_search', 'nav.security_events', 'nav.audit_logs', 'nav.external_sharing');
 
   return (
     <nav className="nav">
@@ -110,126 +113,136 @@ export const AdminNavigation: React.FC<AdminNavigationProps> = ({
         </button>
       </div>
 
-      <div className="nav-section">
-        <div className="nav-section-title">Assets</div>
-        <button
-          className={`nav-item ${currentPage === 'assets' ? 'active' : ''}`}
-          onClick={() => onNavigate('assets')}
-          data-testid="nav-assets"
-        >
-          <Package size={16} className="nav-icon" />
-          <span>IT Assets</span>
-        </button>
-        <button
-          className={`nav-item ${currentPage === 'files-assets' ? 'active' : ''}`}
-          onClick={() => onNavigate('files-assets')}
-          data-testid="nav-files-assets"
-        >
-          <Image size={16} className="nav-icon" />
-          <span>Media Files</span>
-        </button>
-      </div>
+      {/* Automation Section - Show if section flag enabled AND has any items */}
+      {isEnabled('nav.section.automation') && hasAutomationItems && (
+        <div className="nav-section">
+          <div className="nav-section-title">Automation</div>
+          {isEnabled('nav.onboarding') && (
+            <button
+              className={`nav-item ${currentPage === 'onboarding-templates' ? 'active' : ''}`}
+              onClick={() => onNavigate('onboarding-templates')}
+              data-testid="nav-onboarding-templates"
+            >
+              <UserPlus size={16} className="nav-icon" />
+              <span>Onboarding</span>
+            </button>
+          )}
+          {isEnabled('nav.offboarding') && (
+            <button
+              className={`nav-item ${currentPage === 'offboarding-templates' ? 'active' : ''}`}
+              onClick={() => onNavigate('offboarding-templates')}
+              data-testid="nav-offboarding-templates"
+            >
+              <UserMinus size={16} className="nav-icon" />
+              <span>Offboarding</span>
+            </button>
+          )}
+          {isEnabled('nav.signatures') && (
+            <button
+              className={`nav-item ${currentPage === 'signatures' ? 'active' : ''}`}
+              onClick={() => onNavigate('signatures')}
+              data-testid="nav-signatures"
+            >
+              <PenTool size={16} className="nav-icon" />
+              <span>Signatures</span>
+            </button>
+          )}
+          {isEnabled('nav.scheduled_actions') && (
+            <button
+              className={`nav-item ${currentPage === 'scheduled-actions' ? 'active' : ''}`}
+              onClick={() => onNavigate('scheduled-actions')}
+              data-testid="nav-scheduled-actions"
+            >
+              <Clock size={16} className="nav-icon" />
+              <span>Scheduled Actions</span>
+            </button>
+          )}
+          {isEnabled('nav.workflows') && (
+            <button
+              className={`nav-item ${currentPage === 'workflows' ? 'active' : ''}`}
+              onClick={() => onNavigate('workflows')}
+              data-testid="nav-workflows"
+            >
+              <Zap size={16} className="nav-icon" />
+              <span>Workflows</span>
+            </button>
+          )}
+        </div>
+      )}
 
-      <div className="nav-section">
-        <div className="nav-section-title">Security</div>
-        <button
-          className={`nav-item ${currentPage === 'email-security' ? 'active' : ''}`}
-          onClick={() => onNavigate('email-security')}
-          data-testid="nav-email-security"
-        >
-          <Shield size={16} className="nav-icon" />
-          <span>Email Security</span>
-        </button>
-        <button
-          className={`nav-item ${currentPage === 'signatures' ? 'active' : ''}`}
-          onClick={() => onNavigate('signatures')}
-          data-testid="nav-signatures"
-        >
-          <PenTool size={16} className="nav-icon" />
-          <span>Signatures</span>
-        </button>
-        <button
-          className={`nav-item ${currentPage === 'security-events' ? 'active' : ''}`}
-          onClick={() => onNavigate('security-events')}
-          data-testid="nav-security-events"
-        >
-          <AlertCircle size={16} className="nav-icon" />
-          <span>Security Events</span>
-        </button>
-        <button
-          className={`nav-item ${currentPage === 'audit-logs' ? 'active' : ''}`}
-          onClick={() => onNavigate('audit-logs')}
-          data-testid="nav-audit-logs"
-        >
-          <ClipboardList size={16} className="nav-icon" />
-          <span>Audit Logs</span>
-        </button>
-        <button
-          className={`nav-item ${currentPage === 'external-sharing' ? 'active' : ''}`}
-          onClick={() => onNavigate('external-sharing')}
-          data-testid="nav-external-sharing"
-        >
-          <Share2 size={16} className="nav-icon" />
-          <span>External Sharing</span>
-        </button>
-      </div>
+      {/* Assets Section - Show if section flag enabled AND has any items */}
+      {isEnabled('nav.section.assets') && hasAssetItems && (
+        <div className="nav-section">
+          <div className="nav-section-title">Assets</div>
+          {isEnabled('nav.it_assets') && (
+            <button
+              className={`nav-item ${currentPage === 'assets' ? 'active' : ''}`}
+              onClick={() => onNavigate('assets')}
+              data-testid="nav-assets"
+            >
+              <Package size={16} className="nav-icon" />
+              <span>IT Assets</span>
+            </button>
+          )}
+          {isEnabled('nav.media_files') && (
+            <button
+              className={`nav-item ${currentPage === 'files-assets' ? 'active' : ''}`}
+              onClick={() => onNavigate('files-assets')}
+              data-testid="nav-files-assets"
+            >
+              <Image size={16} className="nav-icon" />
+              <span>Media Files</span>
+            </button>
+          )}
+        </div>
+      )}
 
-      <div className="nav-section">
-        <div className="nav-section-title">Automation</div>
-        <button
-          className={`nav-item ${currentPage === 'onboarding-templates' ? 'active' : ''}`}
-          onClick={() => onNavigate('onboarding-templates')}
-          data-testid="nav-onboarding-templates"
-        >
-          <UserPlus size={16} className="nav-icon" />
-          <span>Onboarding</span>
-        </button>
-        <button
-          className={`nav-item ${currentPage === 'offboarding-templates' ? 'active' : ''}`}
-          onClick={() => onNavigate('offboarding-templates')}
-          data-testid="nav-offboarding-templates"
-        >
-          <UserMinus size={16} className="nav-icon" />
-          <span>Offboarding</span>
-        </button>
-        <button
-          className={`nav-item ${currentPage === 'scheduled-actions' ? 'active' : ''}`}
-          onClick={() => onNavigate('scheduled-actions')}
-          data-testid="nav-scheduled-actions"
-        >
-          <Clock size={16} className="nav-icon" />
-          <span>Scheduled Actions</span>
-        </button>
-        {/* Workflows - Only shown if feature flag enabled */}
-        {isEnabled('nav.workflows') && (
-          <button className="nav-item" data-testid="nav-workflows">
-            <span className="nav-icon"><Zap size={16} /></span>
-            <span>Workflows</span>
-          </button>
-        )}
-      </div>
-
-      <div className="nav-section">
-        <div className="nav-section-title">Insights</div>
-        {/* Team Analytics - Only shown if feature flag enabled */}
-        {isEnabled('insights.team_analytics') && (
-          <button
-            className={`nav-item ${currentPage === 'team-analytics' ? 'active' : ''}`}
-            onClick={() => onNavigate('team-analytics')}
-            data-testid="nav-team-analytics"
-          >
-            <BarChart2 size={16} className="nav-icon" />
-            <span>Team Analytics</span>
-          </button>
-        )}
-        {/* Reports - Only shown if feature flag enabled */}
-        {isEnabled('nav.reports') && (
-          <button className="nav-item" data-testid="nav-reports">
-            <span className="nav-icon"><TrendingUp size={16} /></span>
-            <span>Reports</span>
-          </button>
-        )}
-      </div>
+      {/* Compliance Section - Show if section flag enabled AND has any items */}
+      {isEnabled('nav.section.security') && hasSecurityItems && (
+        <div className="nav-section">
+          <div className="nav-section-title">Compliance</div>
+          {isEnabled('nav.mail_search') && (
+            <button
+              className={`nav-item ${currentPage === 'email-security' ? 'active' : ''}`}
+              onClick={() => onNavigate('email-security')}
+              data-testid="nav-email-security"
+            >
+              <Search size={16} className="nav-icon" />
+              <span>Mail Search</span>
+            </button>
+          )}
+          {isEnabled('nav.security_events') && (
+            <button
+              className={`nav-item ${currentPage === 'security-events' ? 'active' : ''}`}
+              onClick={() => onNavigate('security-events')}
+              data-testid="nav-security-events"
+            >
+              <AlertCircle size={16} className="nav-icon" />
+              <span>Security Events</span>
+            </button>
+          )}
+          {isEnabled('nav.audit_logs') && (
+            <button
+              className={`nav-item ${currentPage === 'audit-logs' ? 'active' : ''}`}
+              onClick={() => onNavigate('audit-logs')}
+              data-testid="nav-audit-logs"
+            >
+              <ClipboardList size={16} className="nav-icon" />
+              <span>Audit Logs</span>
+            </button>
+          )}
+          {isEnabled('nav.external_sharing') && (
+            <button
+              className={`nav-item ${currentPage === 'external-sharing' ? 'active' : ''}`}
+              onClick={() => onNavigate('external-sharing')}
+              data-testid="nav-external-sharing"
+            >
+              <Share2 size={16} className="nav-icon" />
+              <span>External Sharing</span>
+            </button>
+          )}
+        </div>
+      )}
 
       <button
         className={`nav-item ${currentPage === 'settings' ? 'active' : ''}`}

@@ -224,10 +224,10 @@ export function HelpWidget({
           {!aiEnabled ? (
             <div className="help-widget-disabled">
               <Bot size={32} className="disabled-icon" />
-              <p>AI Assistant is not configured</p>
+              <p>AI Assistant is not available</p>
               {onConfigure && (
                 <button className="configure-btn" onClick={onConfigure}>
-                  Configure AI
+                  Go to AI Settings
                 </button>
               )}
             </div>

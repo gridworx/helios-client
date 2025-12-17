@@ -53,8 +53,23 @@ INSERT INTO feature_flags (feature_key, name, description, is_enabled, category)
     ('signatures.campaigns', 'Signature Campaigns', 'Time-limited signature campaigns with tracking', true, 'signatures'),
     ('signatures.tracking', 'Signature Tracking', 'Track signature views with pixels', true, 'signatures'),
 
+    -- Navigation sections (used to hide/show entire sections)
+    ('nav.section.automation', 'Automation Section', 'Show entire Automation section in navigation', true, 'navigation'),
+    ('nav.section.assets', 'Assets Section', 'Show entire Assets section in navigation', true, 'navigation'),
+    ('nav.section.security', 'Security Section', 'Show entire Security section in navigation', true, 'navigation'),
+
     -- Navigation items (used to hide incomplete menu items)
+    ('nav.onboarding', 'Onboarding', 'Show Onboarding in navigation menu', true, 'navigation'),
+    ('nav.offboarding', 'Offboarding', 'Show Offboarding in navigation menu', true, 'navigation'),
+    ('nav.scheduled_actions', 'Scheduled Actions', 'Show Scheduled Actions in navigation menu', true, 'navigation'),
     ('nav.workflows', 'Workflows Navigation', 'Show Workflows in navigation menu', false, 'navigation'),
+    ('nav.signatures', 'Signatures', 'Show Signatures in navigation menu', true, 'navigation'),
+    ('nav.it_assets', 'IT Assets', 'Show IT Assets in navigation menu', true, 'navigation'),
+    ('nav.media_files', 'Media Files', 'Show Media Files in navigation menu', true, 'navigation'),
+    ('nav.mail_search', 'Mail Search', 'Show Mail Search in navigation menu', true, 'navigation'),
+    ('nav.security_events', 'Security Events', 'Show Security Events in navigation menu', true, 'navigation'),
+    ('nav.audit_logs', 'Audit Logs', 'Show Audit Logs in navigation menu', true, 'navigation'),
+    ('nav.external_sharing', 'External Sharing', 'Show External Sharing in navigation menu', true, 'navigation'),
     ('nav.reports', 'Reports Navigation', 'Show Reports in navigation menu', false, 'navigation'),
     ('nav.email_archive', 'Email Archive Navigation', 'Show Email Archive in navigation menu', false, 'navigation')
 ON CONFLICT (feature_key) DO UPDATE SET

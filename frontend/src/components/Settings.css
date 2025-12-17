@@ -448,6 +448,55 @@
   font-size: 0.9375rem;
 }
 
+/* Policy Settings (Security Policies) */
+.policy-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.policy-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.policy-row:last-child {
+  border-bottom: none;
+}
+
+.policy-row > label:first-child {
+  font-size: 14px;
+  color: #374151;
+  font-weight: 500;
+  min-width: 180px;
+}
+
+.policy-row .checkbox-label {
+  flex: 1;
+  justify-content: flex-start;
+  margin: 0;
+}
+
+.policy-row select.form-select {
+  width: 200px;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #374151;
+  background-color: white;
+}
+
+.policy-row select.form-select:focus {
+  outline: none;
+  border-color: var(--theme-primary);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
 .auth-options {
   display: flex;
   flex-direction: column;

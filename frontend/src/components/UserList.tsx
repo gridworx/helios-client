@@ -4,7 +4,7 @@ import './UserList.css';
 import { UserSlideOut } from './UserSlideOut';
 import { MoreVertical, Eye, PauseCircle, PlayCircle, Lock, Copy, Trash2, CheckCircle, Users, RefreshCw, UserPlus, Loader, Mail, Key, UserMinus } from 'lucide-react';
 import { PlatformIcon } from './ui/PlatformIcon';
-import { UserAvatar } from './ui/UserAvatar';
+// UserAvatar removed - showing name only in table for cleaner layout
 
 interface User {
   id: string;
@@ -644,16 +644,7 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
       case 'user':
         return (
           <div className={column.className}>
-            <div className="user-info">
-              <UserAvatar
-                email={user.email}
-                firstName={user.firstName}
-                lastName={user.lastName}
-                size={32}
-                avatarUrl={user.avatarUrl}
-              />
-              <span className="user-name">{user.firstName} {user.lastName}</span>
-            </div>
+            <span className="user-name">{user.firstName} {user.lastName}</span>
           </div>
         );
 
@@ -1060,14 +1051,6 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
               )}
             </div>
           ))}
-          <button className="btn-edit-columns" title="Edit Columns">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="2" y="2" width="5" height="5" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-              <rect x="9" y="2" width="5" height="5" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-              <rect x="2" y="9" width="5" height="5" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-              <rect x="9" y="9" width="5" height="5" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-            </svg>
-          </button>
         </div>
 
         {filteredUsers.length === 0 ? (
@@ -1095,7 +1078,6 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
                 }}
               >
                 {columns.map((column) => renderCell(column, user))}
-                <div className="col-spacer"></div>
               </div>
             ))}
           </div>

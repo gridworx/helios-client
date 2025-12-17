@@ -6,6 +6,7 @@ import {
   User,
   Settings as SettingsIcon,
   Users as UsersIcon,
+  Network,
 } from 'lucide-react';
 
 interface UserNavigationProps {
@@ -72,6 +73,16 @@ export const UserNavigation: React.FC<UserNavigationProps> = ({
         >
           <UsersIcon size={16} className="nav-icon" />
           <span>My Groups</span>
+        </button>
+
+        {/* Org Chart - View organization structure */}
+        <button
+          className={`nav-item ${currentPage === 'orgChart' ? 'active' : ''}`}
+          onClick={() => onNavigate('orgChart')}
+          data-testid="nav-org-chart"
+        >
+          <Network size={16} className="nav-icon" />
+          <span>Org Chart</span>
         </button>
       </div>
 
