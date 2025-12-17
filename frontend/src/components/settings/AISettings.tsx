@@ -19,8 +19,13 @@ import {
   UsersRound,
   FileText,
   Terminal,
-  HelpCircle
+  HelpCircle,
+  Shield,
+  UserCog,
+  UserCheck
 } from 'lucide-react';
+
+type AIRole = 'viewer' | 'operator' | 'admin';
 import './AISettings.css';
 
 interface MCPToolsConfig {
@@ -52,6 +57,8 @@ interface AIConfig {
   // Custom prompt configuration
   useCustomPrompt: boolean;
   customSystemPrompt: string;
+  // AI Role
+  aiRole: AIRole;
 }
 
 interface TestResult {
@@ -150,6 +157,9 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
   const [customSystemPrompt, setCustomSystemPrompt] = useState('');
   const [useCustomPrompt, setUseCustomPrompt] = useState(false);
 
+  // AI Role
+  const [aiRole, setAiRole] = useState<AIRole>('viewer');
+
   useEffect(() => {
     fetchConfig();
     fetchUsage();
@@ -197,6 +207,9 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
         // Load custom prompt configuration
         setUseCustomPrompt(config.useCustomPrompt ?? false);
         setCustomSystemPrompt(config.customSystemPrompt || '');
+
+        // Load AI role
+        setAiRole(config.aiRole || 'viewer');
       }
     } catch (err) {
       console.error('Failed to fetch AI config:', err);
@@ -272,7 +285,9 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
         mcpTools: enableMcp ? mcpTools : { help: true, users: true, groups: true, reports: true, commands: true },
         // Custom prompt configuration
         useCustomPrompt,
-        customSystemPrompt: useCustomPrompt ? customSystemPrompt : null
+        customSystemPrompt: useCustomPrompt ? customSystemPrompt : null,
+        // AI Role
+        aiRole
       };
 
       // Only include API key if it's been changed
@@ -697,6 +712,102 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
           </div>
         )}
       </div>
+
+      {/* AI Role Configuration */}
+      {enableMcp && (
+        <div className="ai-settings-section">
+          <div className="section-title">
+            <Shield size={18} />
+            <span>AI Role & Permissions</span>
+          </div>
+          <p className="section-description">
+            Control what the AI assistant can do. Choose the appropriate permission level for your organization.
+          </p>
+
+          <div className="role-selector">
+            <label
+              className={`role-option ${aiRole === 'viewer' ? 'selected' : ''}`}
+              onClick={() => setAiRole('viewer')}
+            >
+              <input
+                type="radio"
+                name="aiRole"
+                value="viewer"
+                checked={aiRole === 'viewer'}
+                onChange={() => setAiRole('viewer')}
+              />
+              <div className="role-icon viewer">
+                <UserCheck size={20} />
+              </div>
+              <div className="role-info">
+                <strong>Viewer</strong>
+                <span className="role-badge safe">Safest</span>
+                <p>Read-only access. Can query data and provide command syntax, but cannot execute any operations.</p>
+                <ul className="role-permissions">
+                  <li className="can">Query users, groups, sync status</li>
+                  <li className="can">Search documentation and commands</li>
+                  <li className="cannot">Cannot execute any commands</li>
+                  <li className="cannot">Cannot modify any data</li>
+                </ul>
+              </div>
+            </label>
+
+            <label
+              className={`role-option ${aiRole === 'operator' ? 'selected' : ''}`}
+              onClick={() => setAiRole('operator')}
+            >
+              <input
+                type="radio"
+                name="aiRole"
+                value="operator"
+                checked={aiRole === 'operator'}
+                onChange={() => setAiRole('operator')}
+              />
+              <div className="role-icon operator">
+                <UserCog size={20} />
+              </div>
+              <div className="role-info">
+                <strong>Operator</strong>
+                <span className="role-badge moderate">Moderate</span>
+                <p>Can query data and execute safe read operations. Cannot create, modify, or delete records.</p>
+                <ul className="role-permissions">
+                  <li className="can">Query users, groups, sync status</li>
+                  <li className="can">Trigger data synchronization</li>
+                  <li className="can">Execute read-only commands</li>
+                  <li className="cannot">Cannot create/modify/delete data</li>
+                </ul>
+              </div>
+            </label>
+
+            <label
+              className={`role-option ${aiRole === 'admin' ? 'selected' : ''}`}
+              onClick={() => setAiRole('admin')}
+            >
+              <input
+                type="radio"
+                name="aiRole"
+                value="admin"
+                checked={aiRole === 'admin'}
+                onChange={() => setAiRole('admin')}
+              />
+              <div className="role-icon admin">
+                <Shield size={20} />
+              </div>
+              <div className="role-info">
+                <strong>Administrator</strong>
+                <span className="role-badge caution">Use with caution</span>
+                <p>Full access to all operations. Can query data and execute any command on behalf of users.</p>
+                <ul className="role-permissions">
+                  <li className="can">Full read access to all data</li>
+                  <li className="can">Create, modify, delete users</li>
+                  <li className="can">Manage groups and memberships</li>
+                  <li className="warning">Will confirm destructive actions</li>
+                </ul>
+              </div>
+            </label>
+          </div>
+        </div>
+      )}
 
       {/* System Prompt Configuration */}
       <div className="ai-settings-section">

@@ -76,6 +76,14 @@ export interface MCPToolsConfig {
 }
 
 /**
+ * AI Role - determines what the AI can do
+ * - viewer: Read-only, can query data but cannot execute commands (safest)
+ * - operator: Can execute safe operations like sync, list commands
+ * - admin: Full access to all operations including create/delete
+ */
+export type AIRole = 'viewer' | 'operator' | 'admin';
+
+/**
  * AI configuration stored in database
  */
 export interface AIConfig {
@@ -100,6 +108,8 @@ export interface AIConfig {
   // Custom system prompt
   useCustomPrompt: boolean;
   customSystemPrompt?: string;
+  // AI Role (permission level)
+  aiRole: AIRole;
 }
 
 /**
@@ -159,7 +169,8 @@ class LLMGatewayService {
           mcp_enabled,
           mcp_tools,
           use_custom_prompt,
-          custom_system_prompt
+          custom_system_prompt,
+          ai_role
         FROM ai_config
         WHERE organization_id = $1`,
         [organizationId]
@@ -195,7 +206,8 @@ class LLMGatewayService {
         mcpEnabled: row.mcp_enabled ?? false,
         mcpTools: row.mcp_tools ?? defaultMcpTools,
         useCustomPrompt: row.use_custom_prompt ?? false,
-        customSystemPrompt: row.custom_system_prompt || undefined
+        customSystemPrompt: row.custom_system_prompt || undefined,
+        aiRole: row.ai_role || 'viewer'
       };
     } catch (error) {
       logger.error('Error getting AI config:', error);
@@ -236,8 +248,9 @@ class LLMGatewayService {
           mcp_enabled,
           mcp_tools,
           use_custom_prompt,
-          custom_system_prompt
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+          custom_system_prompt,
+          ai_role
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
         ON CONFLICT (organization_id) DO UPDATE SET
           primary_endpoint_url = COALESCE(EXCLUDED.primary_endpoint_url, ai_config.primary_endpoint_url),
           primary_api_key_encrypted = CASE
@@ -259,6 +272,7 @@ class LLMGatewayService {
           mcp_tools = COALESCE(EXCLUDED.mcp_tools, ai_config.mcp_tools),
           use_custom_prompt = COALESCE(EXCLUDED.use_custom_prompt, ai_config.use_custom_prompt),
           custom_system_prompt = EXCLUDED.custom_system_prompt,
+          ai_role = COALESCE(EXCLUDED.ai_role, ai_config.ai_role),
           updated_at = NOW()`,
         [
           organizationId,
@@ -278,7 +292,8 @@ class LLMGatewayService {
           config.mcpEnabled ?? false,
           JSON.stringify(config.mcpTools ?? defaultMcpTools),
           config.useCustomPrompt ?? false,
-          config.customSystemPrompt || null
+          config.customSystemPrompt || null,
+          config.aiRole || 'viewer'
         ]
       );
     } catch (error) {

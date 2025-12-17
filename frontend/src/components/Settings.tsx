@@ -12,7 +12,7 @@ import { MasterDataSection } from './settings/MasterDataSection';
 import { TrackingSettings } from './settings/TrackingSettings';
 import { FeatureFlagsSettings } from './settings/FeatureFlagsSettings';
 import { useTabPersistence } from '../hooks/useTabPersistence';
-import { Package, Building2, Shield, Lock, Palette, Settings as SettingsIcon, Key, Search as SearchIcon, RefreshCw, BarChart3, Info, MoreVertical, Power, Database, Bot } from 'lucide-react';
+import { Package, Building2, Shield, Lock, Palette, Settings as SettingsIcon, Key, Search as SearchIcon, RefreshCw, BarChart3, Info, MoreVertical, Power, Database, Bot, ToggleLeft } from 'lucide-react';
 
 interface SettingsProps {
   organizationName: string;
@@ -32,7 +32,7 @@ interface ModuleStatus {
 }
 
 export function Settings({ organizationName, domain, organizationId, showPasswordModal: externalShowPasswordModal, onPasswordModalChange, currentUser }: SettingsProps) {
-  const [activeTab, setActiveTab] = useTabPersistence<'modules' | 'organization' | 'roles' | 'security' | 'customization' | 'integrations' | 'masterdata' | 'ai' | 'advanced'>('helios_settings_tab', 'modules');
+  const [activeTab, setActiveTab] = useTabPersistence<'modules' | 'organization' | 'roles' | 'security' | 'customization' | 'integrations' | 'masterdata' | 'ai' | 'features' | 'advanced'>('helios_settings_tab', 'modules');
   const [showModuleConfig, setShowModuleConfig] = useState(false);
   const [configuringModule, setConfiguringModule] = useState<string | null>(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -175,6 +175,13 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
             >
               <Bot className="nav-icon" size={16} />
               <span>AI Assistant</span>
+            </button>
+            <button
+              className={`settings-nav-item ${activeTab === 'features' ? 'active' : ''}`}
+              onClick={() => setActiveTab('features')}
+            >
+              <ToggleLeft className="nav-icon" size={16} />
+              <span>Features</span>
             </button>
             <button
               className={`settings-nav-item ${activeTab === 'advanced' ? 'active' : ''}`}
@@ -739,6 +746,16 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
             <AISettings organizationId={organizationId} />
           )}
 
+          {activeTab === 'features' && (
+            <div className="settings-section">
+              <div className="section-header">
+                <h2>Features</h2>
+                <p>Enable or disable features across your organization</p>
+              </div>
+              <FeatureFlagsSettings />
+            </div>
+          )}
+
           {activeTab === 'advanced' && (
             <div className="settings-section">
               <div className="section-header">
@@ -786,11 +803,6 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                 {/* Email Tracking Settings */}
                 <div style={{ marginTop: '24px' }}>
                   <TrackingSettings />
-                </div>
-
-                {/* Feature Flags Settings */}
-                <div style={{ marginTop: '24px' }}>
-                  <FeatureFlagsSettings />
                 </div>
               </div>
             </div>

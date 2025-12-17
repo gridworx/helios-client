@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { authenticateToken, requireAdmin } from '../middleware/auth';
-import { llmGatewayService, ChatMessage, Tool } from '../services/llm-gateway.service';
+import { llmGatewayService, ChatMessage, Tool, ToolCall, AIRole } from '../services/llm-gateway.service';
 import { logger } from '../utils/logger';
 import {
   successResponse,
@@ -9,6 +9,14 @@ import {
 } from '../utils/response';
 import { ErrorCode } from '../types/error-codes';
 import { v4 as uuidv4 } from 'uuid';
+import {
+  searchKnowledgeToolDefinition,
+  getCommandToolDefinition,
+  listCommandsToolDefinition,
+  executeKnowledgeTool,
+  dataQueryTools,
+  executeDataQueryTool
+} from '../knowledge/tools';
 
 const router = Router();
 
@@ -104,7 +112,9 @@ router.get('/config', requireAdmin, async (req: Request, res: Response): Promise
       mcpTools: config.mcpTools,
       // Custom prompt configuration
       useCustomPrompt: config.useCustomPrompt,
-      customSystemPrompt: config.customSystemPrompt || ''
+      customSystemPrompt: config.customSystemPrompt || '',
+      // AI Role
+      aiRole: config.aiRole || 'viewer'
     });
   } catch (error: any) {
     logger.error('Failed to get AI config', { error: error.message });
@@ -188,7 +198,9 @@ router.put('/config', requireAdmin, async (req: Request, res: Response): Promise
       mcpTools,
       // Custom prompt configuration
       useCustomPrompt,
-      customSystemPrompt
+      customSystemPrompt,
+      // AI Role
+      aiRole
     } = req.body;
 
     // Validate required fields for new config
@@ -220,7 +232,9 @@ router.put('/config', requireAdmin, async (req: Request, res: Response): Promise
       mcpTools,
       // Custom prompt configuration
       useCustomPrompt,
-      customSystemPrompt: customSystemPrompt || undefined
+      customSystemPrompt: customSystemPrompt || undefined,
+      // AI Role
+      aiRole: aiRole || undefined
     });
 
     successResponse(res, { message: 'AI configuration saved successfully' });
@@ -387,16 +401,22 @@ router.post('/chat', async (req: Request, res: Response): Promise<void> => {
     // Use provided session ID or generate new one
     const sessionId = providedSessionId || uuidv4();
 
-    // Get config to check for custom system prompt
+    // Get config to check for custom system prompt and MCP settings
     const config = await llmGatewayService.getConfig(organizationId);
 
     // Build messages array
     const messages: ChatMessage[] = [];
 
+    // Get AI role (defaults to viewer for safety)
+    const aiRole: AIRole = config?.aiRole || 'viewer';
+
     // Add system prompt - use custom if configured, otherwise use default
+    // When MCP is enabled, use the tool-aware prompt with role-based permissions
     const systemPrompt = config?.useCustomPrompt && config?.customSystemPrompt
       ? config.customSystemPrompt
-      : getSystemPrompt(pageContext);
+      : config?.mcpEnabled
+        ? getRoleBasedSystemPrompt(aiRole, pageContext)
+        : getSystemPrompt(pageContext);
 
     messages.push({
       role: 'system',
@@ -419,10 +439,44 @@ router.post('/chat', async (req: Request, res: Response): Promise<void> => {
     // Save user message to history
     await llmGatewayService.saveChatMessage(organizationId, userId, sessionId, userMessage, pageContext);
 
-    // Send to LLM
-    const response = await llmGatewayService.complete(organizationId, userId, {
-      messages
+    // Build AI tools if MCP is enabled (knowledge + data query tools)
+    const tools: Tool[] = config?.mcpEnabled ? getAllAITools() : [];
+
+    // Send to LLM with optional tools
+    let response = await llmGatewayService.complete(organizationId, userId, {
+      messages,
+      tools: tools.length > 0 ? tools : undefined
     });
+
+    // Handle tool calls - loop until we get a final response
+    const MAX_TOOL_ITERATIONS = 5;
+    let iterations = 0;
+
+    while (response.message.tool_calls && response.message.tool_calls.length > 0 && iterations < MAX_TOOL_ITERATIONS) {
+      iterations++;
+      logger.debug('Processing tool calls', { iteration: iterations, toolCalls: response.message.tool_calls.map(tc => tc.function.name) });
+
+      // Add assistant's tool call message to history
+      messages.push(response.message);
+
+      // Execute each tool call and add results
+      for (const toolCall of response.message.tool_calls) {
+        const toolResult = await executeToolCall(toolCall, organizationId);
+        const toolMessage: ChatMessage = {
+          role: 'tool',
+          content: toolResult,
+          tool_call_id: toolCall.id,
+          name: toolCall.function.name
+        };
+        messages.push(toolMessage);
+      }
+
+      // Call LLM again with tool results
+      response = await llmGatewayService.complete(organizationId, userId, {
+        messages,
+        tools: tools.length > 0 ? tools : undefined
+      });
+    }
 
     // Save assistant response to history
     await llmGatewayService.saveChatMessage(organizationId, userId, sessionId, response.message, pageContext);
@@ -450,6 +504,59 @@ router.post('/chat', async (req: Request, res: Response): Promise<void> => {
     errorResponse(res, ErrorCode.INTERNAL_ERROR, error.message || 'AI chat failed');
   }
 });
+
+/**
+ * Get all AI tools (knowledge base + data query)
+ */
+function getAllAITools(): Tool[] {
+  // Knowledge tools (documentation search)
+  const knowledgeToolDefs: Tool[] = [
+    {
+      type: 'function',
+      function: searchKnowledgeToolDefinition
+    },
+    {
+      type: 'function',
+      function: getCommandToolDefinition
+    },
+    {
+      type: 'function',
+      function: listCommandsToolDefinition
+    }
+  ];
+
+  // Data query tools (read-only access to actual data)
+  const dataToolDefs: Tool[] = dataQueryTools.map(def => ({
+    type: 'function',
+    function: def
+  }));
+
+  return [...knowledgeToolDefs, ...dataToolDefs];
+}
+
+// List of data query tool names (these need organizationId)
+const DATA_QUERY_TOOLS = ['query_gw_users', 'query_gw_groups', 'query_ms365_users', 'get_sync_status'];
+
+/**
+ * Execute a tool call and return the result
+ */
+async function executeToolCall(toolCall: ToolCall, organizationId: string): Promise<string> {
+  try {
+    const params = JSON.parse(toolCall.function.arguments || '{}');
+    const toolName = toolCall.function.name;
+
+    // Check if this is a data query tool (needs organizationId)
+    if (DATA_QUERY_TOOLS.includes(toolName)) {
+      return await executeDataQueryTool(toolName, organizationId, params);
+    }
+
+    // Otherwise it's a knowledge tool
+    return await executeKnowledgeTool(toolName, params);
+  } catch (error: any) {
+    logger.error('Tool execution failed', { tool: toolCall.function.name, error: error.message });
+    return `Error executing ${toolCall.function.name}: ${error.message}`;
+  }
+}
 
 /**
  * @openapi
@@ -670,6 +777,115 @@ function getSystemPrompt(pageContext?: string): string {
 4. If there's no command for their request, direct them to the appropriate UI page
 
 Be concise, helpful, and professional. Use markdown formatting for clarity.${contextInfo}`;
+}
+
+/**
+ * Generate role-based system prompt
+ * The AI's capabilities are determined by its configured role
+ */
+function getRoleBasedSystemPrompt(role: AIRole, pageContext?: string): string {
+  let contextInfo = '';
+  if (pageContext) {
+    contextInfo = `\n\nThe user is currently on the ${pageContext} page.`;
+  }
+
+  // Role-specific capabilities and limitations
+  const roleConfig = {
+    viewer: {
+      name: 'Viewer',
+      canQuery: true,
+      canExecuteCommands: false,
+      capabilities: [
+        '**Query actual data** from Google Workspace and Microsoft 365',
+        'Answer questions like "how many admins?" or "who is in the Sales group?" with real data',
+        'Answer questions about the Helios platform features',
+        'Help users understand integrations and concepts',
+        'Provide Developer Console command syntax (but cannot execute them)'
+      ],
+      limitations: [
+        'You CAN query and read data (user counts, lists, group memberships, etc.)',
+        'You CANNOT execute any commands - only TELL users what commands to run',
+        'You CANNOT create, modify, or delete users, groups, or licenses',
+        'You CANNOT trigger syncs or make configuration changes'
+      ],
+      instruction: 'For any write operation, provide the command syntax and explain what it does, but the user must run it themselves.'
+    },
+    operator: {
+      name: 'Operator',
+      canQuery: true,
+      canExecuteCommands: true,
+      capabilities: [
+        '**Query actual data** from Google Workspace and Microsoft 365',
+        'Answer questions with real data from your organization',
+        '**Execute safe read operations** and sync commands',
+        'Help users understand integrations and concepts',
+        'Trigger data synchronization when requested'
+      ],
+      limitations: [
+        'You CAN query data and execute safe read/sync operations',
+        'You CANNOT create or delete users, groups, or licenses',
+        'You CANNOT modify user properties or group memberships',
+        'For create/delete/modify operations, tell users what commands to run'
+      ],
+      instruction: 'You can execute read operations and syncs. For create/modify/delete, provide the command but let users run it.'
+    },
+    admin: {
+      name: 'Administrator',
+      canQuery: true,
+      canExecuteCommands: true,
+      capabilities: [
+        '**Full access** to query and execute operations',
+        'Query actual data from Google Workspace and Microsoft 365',
+        'Execute commands on behalf of the user when requested',
+        'Create, modify, and delete users, groups, and settings',
+        'Trigger syncs and configuration changes'
+      ],
+      limitations: [
+        'Always confirm before executing destructive operations (delete, suspend)',
+        'Log all actions for audit purposes',
+        'Respect rate limits and API quotas'
+      ],
+      instruction: 'You have full access. Always confirm destructive actions with the user before executing.'
+    }
+  };
+
+  const config = roleConfig[role];
+
+  return `You are Helios AI Assistant (${config.name} Mode), a helpful assistant for the Helios Client Portal - a workspace management system that integrates with Google Workspace and Microsoft 365.
+
+## YOUR ROLE: ${config.name.toUpperCase()}
+${config.instruction}
+
+## CRITICAL RULES
+
+1. **ALWAYS USE TOOLS FOR INFORMATION**
+   - Before answering questions about commands, use search_knowledge or list_commands
+   - Before answering questions about data, use query_gw_users, query_gw_groups, etc.
+   - NEVER guess or make up information
+
+2. **NEVER INVENT INFORMATION**
+   - Only provide information that comes from tool results
+   - This is a PRODUCTION system - incorrect information causes real problems
+
+3. **TOOL USAGE**
+   - \`search_knowledge\` - Find commands and documentation
+   - \`list_commands\` - See available commands
+   - \`get_command\` - Get detailed command info
+   - \`query_gw_users\` - Query Google Workspace users
+   - \`query_gw_groups\` - Query Google Workspace groups
+   - \`query_ms365_users\` - Query Microsoft 365 users
+   - \`get_sync_status\` - Check synchronization status
+
+## YOUR CAPABILITIES
+${config.capabilities.map(c => `- ${c}`).join('\n')}
+
+## YOUR LIMITATIONS
+${config.limitations.map(l => `- ${l}`).join('\n')}
+
+## COMMAND FORMAT
+Commands do NOT require a "helios" prefix. Use: \`gw users list\` not \`helios gw users list\`
+
+Be concise, helpful, and professional. Use markdown formatting.${contextInfo}`;
 }
 
 export default router;

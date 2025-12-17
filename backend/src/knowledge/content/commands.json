@@ -1,0 +1,750 @@
+{
+  "entries": [
+    {
+      "id": "cmd-gw-users-list",
+      "type": "command",
+      "title": "gw users list",
+      "category": "developer-console",
+      "subcategory": "google-workspace",
+      "summary": "List all users from Google Workspace",
+      "content": "Lists all users synced from your Google Workspace domain. Shows email, name, department, and status.\n\nOptions:\n- `--limit <n>` - Limit results (default: 100)\n- `--filter <query>` - Filter by name or email\n- `--suspended` - Show only suspended users\n- `--active` - Show only active users",
+      "keywords": ["users", "list", "google", "workspace", "directory", "all", "show"],
+      "aliases": ["gw users", "gw user list", "list users", "show users"],
+      "examples": [
+        {
+          "description": "List all users",
+          "code": "gw users list"
+        },
+        {
+          "description": "List first 10 users",
+          "code": "gw users list --limit 10"
+        },
+        {
+          "description": "Filter users by name",
+          "code": "gw users list --filter john"
+        }
+      ],
+      "relatedIds": ["cmd-gw-users-get", "cmd-gw-users-create", "cmd-gw-sync-run"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-gw-users-get",
+      "type": "command",
+      "title": "gw users get <email>",
+      "category": "developer-console",
+      "subcategory": "google-workspace",
+      "summary": "Get details for a specific Google Workspace user",
+      "content": "Retrieves detailed information about a single user by their email address. Shows all available profile data including name, email, department, manager, phone, and custom attributes.",
+      "keywords": ["user", "get", "details", "info", "profile", "google", "email"],
+      "aliases": ["gw user get", "get user", "show user"],
+      "examples": [
+        {
+          "description": "Get user by email",
+          "code": "gw users get john.doe@example.com"
+        }
+      ],
+      "relatedIds": ["cmd-gw-users-list", "cmd-gw-users-update"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-gw-users-create",
+      "type": "command",
+      "title": "gw users create",
+      "category": "developer-console",
+      "subcategory": "google-workspace",
+      "summary": "Create a new user in Google Workspace",
+      "content": "Creates a new user in Google Workspace. Opens an interactive form to enter user details.\n\nRequired fields:\n- Primary email\n- First name\n- Last name\n- Password\n\nOptional fields:\n- Department\n- Job title\n- Manager email\n- Phone number\n- Organizational unit",
+      "keywords": ["user", "create", "new", "add", "google", "provision"],
+      "aliases": ["gw user create", "create user", "add user", "new user"],
+      "examples": [
+        {
+          "description": "Create a new user (opens form)",
+          "code": "gw users create"
+        }
+      ],
+      "relatedIds": ["cmd-gw-users-list", "cmd-gw-users-delete"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-gw-users-update",
+      "type": "command",
+      "title": "gw users update <email>",
+      "category": "developer-console",
+      "subcategory": "google-workspace",
+      "summary": "Update an existing Google Workspace user",
+      "content": "Updates an existing user's profile in Google Workspace. Opens a form pre-filled with current values.\n\nEditable fields:\n- First/last name\n- Department\n- Job title\n- Manager\n- Phone numbers\n- Organizational unit",
+      "keywords": ["user", "update", "edit", "modify", "change", "google"],
+      "aliases": ["gw user update", "update user", "edit user", "modify user"],
+      "examples": [
+        {
+          "description": "Update user profile",
+          "code": "gw users update john.doe@example.com"
+        }
+      ],
+      "relatedIds": ["cmd-gw-users-get", "cmd-gw-users-list"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-gw-users-delete",
+      "type": "command",
+      "title": "gw users delete <email>",
+      "category": "developer-console",
+      "subcategory": "google-workspace",
+      "summary": "Delete a user from Google Workspace",
+      "content": "Permanently deletes a user from Google Workspace. This action cannot be undone.\n\nThe user will:\n- Lose access immediately\n- Have their data deleted after 20 days\n- Be removed from all groups\n\nConsider using `gw users suspend` instead for temporary deactivation.",
+      "keywords": ["user", "delete", "remove", "destroy", "google"],
+      "aliases": ["gw user delete", "delete user", "remove user"],
+      "examples": [
+        {
+          "description": "Delete a user",
+          "code": "gw users delete john.doe@example.com"
+        }
+      ],
+      "relatedIds": ["cmd-gw-users-suspend", "cmd-gw-users-list"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-gw-users-suspend",
+      "type": "command",
+      "title": "gw users suspend <email>",
+      "category": "developer-console",
+      "subcategory": "google-workspace",
+      "summary": "Suspend a Google Workspace user",
+      "content": "Suspends a user's account in Google Workspace. The user will:\n- Be signed out of all sessions\n- Lose access to all Google services\n- Keep their data intact\n- Remain in groups\n\nUse `gw users restore` to reactivate the account.",
+      "keywords": ["user", "suspend", "disable", "deactivate", "block", "google"],
+      "aliases": ["gw user suspend", "suspend user", "disable user", "deactivate user"],
+      "examples": [
+        {
+          "description": "Suspend a user",
+          "code": "gw users suspend john.doe@example.com"
+        }
+      ],
+      "relatedIds": ["cmd-gw-users-restore", "cmd-gw-users-delete"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-gw-users-restore",
+      "type": "command",
+      "title": "gw users restore <email>",
+      "category": "developer-console",
+      "subcategory": "google-workspace",
+      "summary": "Restore a suspended Google Workspace user",
+      "content": "Restores a previously suspended user account. The user will:\n- Regain access to all Google services\n- Keep all their data and settings\n- Remain in their previous groups",
+      "keywords": ["user", "restore", "enable", "activate", "unblock", "unsuspend", "google"],
+      "aliases": ["gw user restore", "restore user", "enable user", "activate user", "unsuspend user"],
+      "examples": [
+        {
+          "description": "Restore a suspended user",
+          "code": "gw users restore john.doe@example.com"
+        }
+      ],
+      "relatedIds": ["cmd-gw-users-suspend", "cmd-gw-users-list"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-gw-groups-list",
+      "type": "command",
+      "title": "gw groups list",
+      "category": "developer-console",
+      "subcategory": "google-workspace",
+      "summary": "List all groups from Google Workspace",
+      "content": "Lists all groups synced from your Google Workspace domain. Shows group email, name, member count, and type.\n\nOptions:\n- `--limit <n>` - Limit results\n- `--filter <query>` - Filter by name or email",
+      "keywords": ["groups", "list", "google", "workspace", "teams", "distribution"],
+      "aliases": ["gw group list", "list groups", "show groups"],
+      "examples": [
+        {
+          "description": "List all groups",
+          "code": "gw groups list"
+        },
+        {
+          "description": "Filter groups",
+          "code": "gw groups list --filter sales"
+        }
+      ],
+      "relatedIds": ["cmd-gw-groups-get", "cmd-gw-groups-create", "cmd-gw-groups-members-list"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-gw-groups-get",
+      "type": "command",
+      "title": "gw groups get <email>",
+      "category": "developer-console",
+      "subcategory": "google-workspace",
+      "summary": "Get details for a specific Google Workspace group",
+      "content": "Retrieves detailed information about a group including name, email, description, member count, and settings.",
+      "keywords": ["group", "get", "details", "info", "google"],
+      "aliases": ["gw group get", "get group", "show group"],
+      "examples": [
+        {
+          "description": "Get group details",
+          "code": "gw groups get sales@example.com"
+        }
+      ],
+      "relatedIds": ["cmd-gw-groups-list", "cmd-gw-groups-members-list"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-gw-groups-create",
+      "type": "command",
+      "title": "gw groups create",
+      "category": "developer-console",
+      "subcategory": "google-workspace",
+      "summary": "Create a new group in Google Workspace",
+      "content": "Creates a new group in Google Workspace. Opens an interactive form.\n\nRequired fields:\n- Group email\n- Group name\n\nOptional fields:\n- Description\n- Who can join\n- Who can post\n- Who can view members",
+      "keywords": ["group", "create", "new", "add", "google"],
+      "aliases": ["gw group create", "create group", "add group", "new group"],
+      "examples": [
+        {
+          "description": "Create a new group",
+          "code": "gw groups create"
+        }
+      ],
+      "relatedIds": ["cmd-gw-groups-list", "cmd-gw-groups-delete"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-gw-groups-update",
+      "type": "command",
+      "title": "gw groups update <email>",
+      "category": "developer-console",
+      "subcategory": "google-workspace",
+      "summary": "Update a Google Workspace group",
+      "content": "Updates an existing group's settings. Opens a form pre-filled with current values.",
+      "keywords": ["group", "update", "edit", "modify", "google"],
+      "aliases": ["gw group update", "update group", "edit group"],
+      "examples": [
+        {
+          "description": "Update group settings",
+          "code": "gw groups update sales@example.com"
+        }
+      ],
+      "relatedIds": ["cmd-gw-groups-get", "cmd-gw-groups-list"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-gw-groups-delete",
+      "type": "command",
+      "title": "gw groups delete <email>",
+      "category": "developer-console",
+      "subcategory": "google-workspace",
+      "summary": "Delete a group from Google Workspace",
+      "content": "Permanently deletes a group from Google Workspace. All members will be removed and the group email will become available again.",
+      "keywords": ["group", "delete", "remove", "google"],
+      "aliases": ["gw group delete", "delete group", "remove group"],
+      "examples": [
+        {
+          "description": "Delete a group",
+          "code": "gw groups delete old-team@example.com"
+        }
+      ],
+      "relatedIds": ["cmd-gw-groups-list", "cmd-gw-groups-create"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-gw-groups-members-list",
+      "type": "command",
+      "title": "gw groups members list <groupEmail>",
+      "category": "developer-console",
+      "subcategory": "google-workspace",
+      "summary": "List members of a Google Workspace group",
+      "content": "Lists all members of a specific group. Shows email, role (OWNER, MANAGER, MEMBER), and type (USER, GROUP).",
+      "keywords": ["group", "members", "list", "google", "membership"],
+      "aliases": ["gw group members list", "list group members", "show group members"],
+      "examples": [
+        {
+          "description": "List group members",
+          "code": "gw groups members list sales@example.com"
+        }
+      ],
+      "relatedIds": ["cmd-gw-groups-members-add", "cmd-gw-groups-members-remove", "cmd-gw-groups-get"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-gw-groups-members-add",
+      "type": "command",
+      "title": "gw groups members add <groupEmail> <userEmail>",
+      "category": "developer-console",
+      "subcategory": "google-workspace",
+      "summary": "Add a member to a Google Workspace group",
+      "content": "Adds a user to a group as a member.\n\nOptions:\n- `--role <role>` - Set role: OWNER, MANAGER, or MEMBER (default: MEMBER)",
+      "keywords": ["group", "members", "add", "join", "google"],
+      "aliases": ["gw group members add", "add to group", "add group member"],
+      "examples": [
+        {
+          "description": "Add user to group",
+          "code": "gw groups members add sales@example.com john@example.com"
+        },
+        {
+          "description": "Add user as manager",
+          "code": "gw groups members add sales@example.com john@example.com --role MANAGER"
+        }
+      ],
+      "relatedIds": ["cmd-gw-groups-members-list", "cmd-gw-groups-members-remove"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-gw-groups-members-remove",
+      "type": "command",
+      "title": "gw groups members remove <groupEmail> <userEmail>",
+      "category": "developer-console",
+      "subcategory": "google-workspace",
+      "summary": "Remove a member from a Google Workspace group",
+      "content": "Removes a user from a group. The user will lose access to group resources immediately.",
+      "keywords": ["group", "members", "remove", "delete", "leave", "google"],
+      "aliases": ["gw group members remove", "remove from group", "remove group member"],
+      "examples": [
+        {
+          "description": "Remove user from group",
+          "code": "gw groups members remove sales@example.com john@example.com"
+        }
+      ],
+      "relatedIds": ["cmd-gw-groups-members-list", "cmd-gw-groups-members-add"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-gw-orgunits-list",
+      "type": "command",
+      "title": "gw orgunits list",
+      "category": "developer-console",
+      "subcategory": "google-workspace",
+      "summary": "List organizational units from Google Workspace",
+      "content": "Lists all organizational units (OUs) in your Google Workspace hierarchy. Shows path, name, and description.",
+      "keywords": ["orgunits", "ou", "organizational", "units", "list", "google", "departments"],
+      "aliases": ["gw ou list", "list orgunits", "list ou", "show orgunits"],
+      "examples": [
+        {
+          "description": "List all organizational units",
+          "code": "gw orgunits list"
+        }
+      ],
+      "relatedIds": ["cmd-gw-orgunits-get", "cmd-gw-orgunits-create"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-gw-orgunits-get",
+      "type": "command",
+      "title": "gw orgunits get <path>",
+      "category": "developer-console",
+      "subcategory": "google-workspace",
+      "summary": "Get details for a specific organizational unit",
+      "content": "Retrieves detailed information about an organizational unit by its path.",
+      "keywords": ["orgunit", "ou", "get", "details", "google"],
+      "aliases": ["gw ou get", "get orgunit", "get ou"],
+      "examples": [
+        {
+          "description": "Get OU details",
+          "code": "gw orgunits get /Sales/West"
+        }
+      ],
+      "relatedIds": ["cmd-gw-orgunits-list"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-gw-orgunits-create",
+      "type": "command",
+      "title": "gw orgunits create",
+      "category": "developer-console",
+      "subcategory": "google-workspace",
+      "summary": "Create a new organizational unit",
+      "content": "Creates a new organizational unit in Google Workspace.\n\nRequired fields:\n- Name\n- Parent path (or root)",
+      "keywords": ["orgunit", "ou", "create", "new", "add", "google"],
+      "aliases": ["gw ou create", "create orgunit", "create ou", "add ou"],
+      "examples": [
+        {
+          "description": "Create organizational unit",
+          "code": "gw orgunits create"
+        }
+      ],
+      "relatedIds": ["cmd-gw-orgunits-list"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-gw-sync-status",
+      "type": "command",
+      "title": "gw sync status",
+      "category": "developer-console",
+      "subcategory": "google-workspace",
+      "summary": "Check Google Workspace sync status",
+      "content": "Shows the current sync status for Google Workspace integration:\n- Last sync time\n- Next scheduled sync\n- Number of users/groups synced\n- Any sync errors",
+      "keywords": ["sync", "status", "google", "refresh", "update"],
+      "aliases": ["gw status", "sync status"],
+      "examples": [
+        {
+          "description": "Check sync status",
+          "code": "gw sync status"
+        }
+      ],
+      "relatedIds": ["cmd-gw-sync-run"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-gw-sync-run",
+      "type": "command",
+      "title": "gw sync run",
+      "category": "developer-console",
+      "subcategory": "google-workspace",
+      "summary": "Manually trigger Google Workspace sync",
+      "content": "Triggers an immediate sync with Google Workspace. This will:\n- Pull latest users from Google\n- Pull latest groups from Google\n- Update local cache\n- Report any conflicts",
+      "keywords": ["sync", "run", "refresh", "update", "pull", "google"],
+      "aliases": ["gw sync", "sync now", "refresh google"],
+      "examples": [
+        {
+          "description": "Run manual sync",
+          "code": "gw sync run"
+        }
+      ],
+      "relatedIds": ["cmd-gw-sync-status"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-gw-domains-list",
+      "type": "command",
+      "title": "gw domains list",
+      "category": "developer-console",
+      "subcategory": "google-workspace",
+      "summary": "List domains in Google Workspace",
+      "content": "Lists all domains configured in your Google Workspace account, including the primary domain and any aliases.",
+      "keywords": ["domains", "list", "google"],
+      "aliases": ["list domains", "show domains"],
+      "examples": [
+        {
+          "description": "List all domains",
+          "code": "gw domains list"
+        }
+      ],
+      "relatedIds": ["cmd-gw-users-list"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-gw-aliases-list",
+      "type": "command",
+      "title": "gw aliases list <email>",
+      "category": "developer-console",
+      "subcategory": "google-workspace",
+      "summary": "List email aliases for a user",
+      "content": "Lists all email aliases configured for a specific user.",
+      "keywords": ["aliases", "list", "email", "google"],
+      "aliases": ["list aliases", "show aliases"],
+      "examples": [
+        {
+          "description": "List user aliases",
+          "code": "gw aliases list john@example.com"
+        }
+      ],
+      "relatedIds": ["cmd-gw-aliases-add", "cmd-gw-aliases-remove"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-gw-aliases-add",
+      "type": "command",
+      "title": "gw aliases add <email> <alias>",
+      "category": "developer-console",
+      "subcategory": "google-workspace",
+      "summary": "Add an email alias to a user",
+      "content": "Adds a new email alias to a user. The alias must use one of your verified domains.",
+      "keywords": ["alias", "add", "email", "google"],
+      "aliases": ["add alias", "create alias"],
+      "examples": [
+        {
+          "description": "Add email alias",
+          "code": "gw aliases add john@example.com j.doe@example.com"
+        }
+      ],
+      "relatedIds": ["cmd-gw-aliases-list", "cmd-gw-aliases-remove"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-gw-aliases-remove",
+      "type": "command",
+      "title": "gw aliases remove <email> <alias>",
+      "category": "developer-console",
+      "subcategory": "google-workspace",
+      "summary": "Remove an email alias from a user",
+      "content": "Removes an email alias from a user. The alias will stop receiving emails immediately.",
+      "keywords": ["alias", "remove", "delete", "email", "google"],
+      "aliases": ["remove alias", "delete alias"],
+      "examples": [
+        {
+          "description": "Remove email alias",
+          "code": "gw aliases remove john@example.com old-alias@example.com"
+        }
+      ],
+      "relatedIds": ["cmd-gw-aliases-list", "cmd-gw-aliases-add"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-gw-delegates-list",
+      "type": "command",
+      "title": "gw delegates list <email>",
+      "category": "developer-console",
+      "subcategory": "google-workspace",
+      "summary": "List email delegates for a user",
+      "content": "Lists all users who have delegate access to a mailbox (can read/send on behalf of).",
+      "keywords": ["delegates", "list", "email", "access", "google"],
+      "aliases": ["list delegates", "show delegates"],
+      "examples": [
+        {
+          "description": "List delegates",
+          "code": "gw delegates list ceo@example.com"
+        }
+      ],
+      "relatedIds": ["cmd-gw-delegates-add", "cmd-gw-delegates-remove"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-gw-delegates-add",
+      "type": "command",
+      "title": "gw delegates add <email> <delegateEmail>",
+      "category": "developer-console",
+      "subcategory": "google-workspace",
+      "summary": "Add a delegate to a user's mailbox",
+      "content": "Grants delegate access to a mailbox. The delegate will be able to read and send emails on behalf of the user.",
+      "keywords": ["delegate", "add", "access", "email", "google"],
+      "aliases": ["add delegate", "grant delegate"],
+      "examples": [
+        {
+          "description": "Add delegate access",
+          "code": "gw delegates add ceo@example.com assistant@example.com"
+        }
+      ],
+      "relatedIds": ["cmd-gw-delegates-list", "cmd-gw-delegates-remove"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-gw-delegates-remove",
+      "type": "command",
+      "title": "gw delegates remove <email> <delegateEmail>",
+      "category": "developer-console",
+      "subcategory": "google-workspace",
+      "summary": "Remove a delegate from a user's mailbox",
+      "content": "Revokes delegate access from a mailbox. The delegate will immediately lose access.",
+      "keywords": ["delegate", "remove", "revoke", "email", "google"],
+      "aliases": ["remove delegate", "revoke delegate"],
+      "examples": [
+        {
+          "description": "Remove delegate",
+          "code": "gw delegates remove ceo@example.com former-assistant@example.com"
+        }
+      ],
+      "relatedIds": ["cmd-gw-delegates-list", "cmd-gw-delegates-add"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-ms-users-list",
+      "type": "command",
+      "title": "ms users list",
+      "category": "developer-console",
+      "subcategory": "microsoft-365",
+      "summary": "List all users from Microsoft 365",
+      "content": "Lists all users synced from your Microsoft 365 / Entra ID tenant. Shows email, display name, department, and status.\n\nOptions:\n- `--limit <n>` - Limit results\n- `--filter <query>` - Filter by name or email",
+      "keywords": ["users", "list", "microsoft", "365", "azure", "entra", "m365"],
+      "aliases": ["ms user list", "m365 users list", "list m365 users"],
+      "examples": [
+        {
+          "description": "List Microsoft 365 users",
+          "code": "ms users list"
+        }
+      ],
+      "relatedIds": ["cmd-ms-users-get", "cmd-ms-sync-run"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-ms-users-get",
+      "type": "command",
+      "title": "ms users get <email>",
+      "category": "developer-console",
+      "subcategory": "microsoft-365",
+      "summary": "Get details for a specific Microsoft 365 user",
+      "content": "Retrieves detailed information about a user from Microsoft 365 / Entra ID.",
+      "keywords": ["user", "get", "microsoft", "365", "details"],
+      "aliases": ["ms user get", "get m365 user"],
+      "examples": [
+        {
+          "description": "Get user details",
+          "code": "ms users get john@contoso.com"
+        }
+      ],
+      "relatedIds": ["cmd-ms-users-list"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-ms-groups-list",
+      "type": "command",
+      "title": "ms groups list",
+      "category": "developer-console",
+      "subcategory": "microsoft-365",
+      "summary": "List all groups from Microsoft 365",
+      "content": "Lists all groups from Microsoft 365 including Microsoft 365 Groups, Security Groups, and Distribution Lists.",
+      "keywords": ["groups", "list", "microsoft", "365", "teams"],
+      "aliases": ["ms group list", "m365 groups list"],
+      "examples": [
+        {
+          "description": "List Microsoft 365 groups",
+          "code": "ms groups list"
+        }
+      ],
+      "relatedIds": ["cmd-ms-groups-get"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-ms-groups-get",
+      "type": "command",
+      "title": "ms groups get <id>",
+      "category": "developer-console",
+      "subcategory": "microsoft-365",
+      "summary": "Get details for a specific Microsoft 365 group",
+      "content": "Retrieves detailed information about a group from Microsoft 365.",
+      "keywords": ["group", "get", "microsoft", "365", "details"],
+      "aliases": ["ms group get", "get m365 group"],
+      "examples": [
+        {
+          "description": "Get group details",
+          "code": "ms groups get <group-id>"
+        }
+      ],
+      "relatedIds": ["cmd-ms-groups-list"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-ms-sync-status",
+      "type": "command",
+      "title": "ms sync status",
+      "category": "developer-console",
+      "subcategory": "microsoft-365",
+      "summary": "Check Microsoft 365 sync status",
+      "content": "Shows the current sync status for Microsoft 365 integration.",
+      "keywords": ["sync", "status", "microsoft", "365"],
+      "aliases": ["ms status"],
+      "examples": [
+        {
+          "description": "Check sync status",
+          "code": "ms sync status"
+        }
+      ],
+      "relatedIds": ["cmd-ms-sync-run"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-ms-sync-run",
+      "type": "command",
+      "title": "ms sync run",
+      "category": "developer-console",
+      "subcategory": "microsoft-365",
+      "summary": "Manually trigger Microsoft 365 sync",
+      "content": "Triggers an immediate sync with Microsoft 365 / Entra ID.",
+      "keywords": ["sync", "run", "microsoft", "365", "refresh"],
+      "aliases": ["ms sync", "sync m365"],
+      "examples": [
+        {
+          "description": "Run manual sync",
+          "code": "ms sync run"
+        }
+      ],
+      "relatedIds": ["cmd-ms-sync-status"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-api-get",
+      "type": "command",
+      "title": "api GET <endpoint>",
+      "category": "developer-console",
+      "subcategory": "api",
+      "summary": "Make a GET request to the Helios API",
+      "content": "Makes a GET request to a Helios API endpoint. Useful for debugging and testing.\n\nCommon endpoints:\n- /users - List local users\n- /users/:id - Get user by ID\n- /groups - List groups\n- /dashboard - Dashboard data\n- /organization - Organization info\n- /settings - Current settings",
+      "keywords": ["api", "get", "request", "endpoint", "http", "rest"],
+      "aliases": ["api get", "GET", "http get"],
+      "examples": [
+        {
+          "description": "Get users",
+          "code": "api GET /users"
+        },
+        {
+          "description": "Get dashboard data",
+          "code": "api GET /dashboard"
+        }
+      ],
+      "relatedIds": ["cmd-api-post"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-api-post",
+      "type": "command",
+      "title": "api POST <endpoint> <json>",
+      "category": "developer-console",
+      "subcategory": "api",
+      "summary": "Make a POST request to the Helios API",
+      "content": "Makes a POST request with JSON body to a Helios API endpoint.",
+      "keywords": ["api", "post", "request", "endpoint", "http", "rest", "create"],
+      "aliases": ["api post", "POST", "http post"],
+      "examples": [
+        {
+          "description": "Create a user",
+          "code": "api POST /users {\"email\":\"new@example.com\",\"name\":\"New User\"}"
+        }
+      ],
+      "relatedIds": ["cmd-api-get"],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-help",
+      "type": "command",
+      "title": "help",
+      "category": "developer-console",
+      "subcategory": "system",
+      "summary": "Show help and available commands",
+      "content": "Displays help information. Use without arguments to see all available commands, or with a command name to get detailed help.\n\nCategories:\n- Google Workspace (gw)\n- Microsoft 365 (ms)\n- API (api)\n- System (help, clear, history)",
+      "keywords": ["help", "commands", "usage", "how", "what"],
+      "aliases": ["?", "commands", "man"],
+      "examples": [
+        {
+          "description": "Show all commands",
+          "code": "help"
+        },
+        {
+          "description": "Get help for specific command",
+          "code": "help gw users list"
+        }
+      ],
+      "relatedIds": [],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-clear",
+      "type": "command",
+      "title": "clear",
+      "category": "developer-console",
+      "subcategory": "system",
+      "summary": "Clear the console output",
+      "content": "Clears all output from the Developer Console screen.",
+      "keywords": ["clear", "cls", "clean", "reset"],
+      "aliases": ["cls"],
+      "examples": [
+        {
+          "description": "Clear console",
+          "code": "clear"
+        }
+      ],
+      "relatedIds": [],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "cmd-history",
+      "type": "command",
+      "title": "history",
+      "category": "developer-console",
+      "subcategory": "system",
+      "summary": "Show command history",
+      "content": "Shows recently executed commands. Use arrow keys to navigate through history while typing.",
+      "keywords": ["history", "recent", "previous", "commands"],
+      "aliases": [],
+      "examples": [
+        {
+          "description": "Show history",
+          "code": "history"
+        }
+      ],
+      "relatedIds": [],
+      "lastUpdated": "2025-01-15T00:00:00Z"
+    }
+  ]
+}

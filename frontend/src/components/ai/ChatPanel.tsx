@@ -3,16 +3,15 @@ import {
   X,
   Send,
   Loader2,
-  Bot,
   User,
   Copy,
   Check,
   Trash2,
-  MessageSquare,
   Minimize2,
   Maximize2,
   AlertCircle
 } from 'lucide-react';
+import HeliosAvatar, { type AvatarState } from '../HeliosAvatar';
 import './ChatPanel.css';
 
 interface ChatMessage {
@@ -52,6 +51,7 @@ export function ChatPanel({
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [avatarState, setAvatarState] = useState<AvatarState>('idle');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -135,6 +135,7 @@ export function ChatPanel({
     setInput('');
     setError(null);
     setIsLoading(true);
+    setAvatarState('thinking');
 
     try {
       const token = localStorage.getItem('helios_token');
@@ -165,11 +166,18 @@ export function ChatPanel({
 
         setMessages(prev => [...prev, assistantMessage]);
         setSessionId(data.data.sessionId);
+        setAvatarState('happy');
+        // Return to idle after showing happy state
+        setTimeout(() => setAvatarState('idle'), 2000);
       } else {
         setError(data.message || 'Failed to get response');
+        setAvatarState('error');
+        setTimeout(() => setAvatarState('idle'), 3000);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to connect to AI assistant');
+      setAvatarState('error');
+      setTimeout(() => setAvatarState('idle'), 3000);
     } finally {
       setIsLoading(false);
     }
@@ -262,8 +270,8 @@ export function ChatPanel({
         {/* Header */}
         <div className="chat-panel-header">
           <div className="chat-panel-title">
-            <MessageSquare size={18} />
-            <span>AI Assistant</span>
+            <HeliosAvatar state={avatarState} size="small" />
+            <span>Helios AI</span>
           </div>
           <div className="chat-panel-actions">
             {messages.length > 0 && (
@@ -296,7 +304,7 @@ export function ChatPanel({
         <div className="chat-panel-messages">
           {!aiEnabled ? (
             <div className="chat-empty-state">
-              <Bot size={48} className="empty-icon" />
+              <HeliosAvatar state="concerned" size="large" />
               <h3>AI Assistant Not Configured</h3>
               <p>Configure the AI Assistant in Settings to start chatting.</p>
               {onConfigure && (
@@ -307,7 +315,7 @@ export function ChatPanel({
             </div>
           ) : messages.length === 0 ? (
             <div className="chat-empty-state">
-              <Bot size={48} className="empty-icon" />
+              <HeliosAvatar state="idle" size="large" />
               <h3>Start a Conversation</h3>
               <p>Ask me about users, groups, licenses, or how to use Helios.</p>
               <div className="suggested-prompts">
@@ -333,7 +341,7 @@ export function ChatPanel({
                     {message.role === 'user' ? (
                       <User size={16} />
                     ) : (
-                      <Bot size={16} />
+                      <HeliosAvatar state="idle" size="small" />
                     )}
                   </div>
                   <div className="message-content">
@@ -383,7 +391,7 @@ export function ChatPanel({
               {isLoading && (
                 <div className="chat-message assistant loading">
                   <div className="message-avatar">
-                    <Bot size={16} />
+                    <HeliosAvatar state="thinking" size="small" />
                   </div>
                   <div className="message-content">
                     <div className="typing-indicator">
