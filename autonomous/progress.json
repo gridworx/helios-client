@@ -1,21 +1,16 @@
 {
-  "iterations": 1648,
+  "iterations": 1651,
   "tasks_completed": [
     "BUG-001: Module not showing as enabled - FIXED",
-    "BUG-004: Users list - VERIFIED WORKING",
-    "BUG-005: Groups list - VERIFIED WORKING",
-    "admin-user-separation: COMPLETED",
+    "BUG-004: Users list - VERIFIED WORKING (4 users in DB, API returns correctly)",
+    "BUG-005: Groups list - VERIFIED WORKING (3 groups in access_groups table)",
+    "admin-user-separation: All 29 tasks COMPLETED",
+    "admin-user-separation-fixes: All bugs fixed (ViewSwitcher, Settings link, Dashboard design, Dashboard stats)",
     "group-management-slideout: COMPLETED",
     "people-directory: COMPLETED",
-    "critical-fixes-q4-2025: ALL PHASES COMPLETE (bug fixes + Microsoft 365 + External Sharing)",
-    "pre-release-infrastructure: ALL PHASES COMPLETE (API versioning, OpenAPI, MCP, tracing)",
-    "frontend-api-url-refactor: COMPLETED (all hardcoded URLs fixed)",
-    "admin-user-separation-fixes: COMPLETED (ViewSwitcher, Settings link, Dashboard)",
-    "org-chart-seed-data: COMPLETED (28 test users, hierarchy)",
-    "infrastructure-fixes: COMPLETED (MinIO, database, visibility)",
-    "google-drive-asset-proxy: COMPLETED (proxy, UI, MinIO fallback)",
-    "user-lifecycle: COMPLETED (onboarding, offboarding, scheduling)",
-    "signature-management: COMPLETED (templates, campaigns, tracking, permissions)"
+    "frontend-api-url-refactor: COMPLETED (2025-12-11) - All 176 hardcoded URLs refactored",
+    "pre-release-infrastructure: COMPLETED - API versioning, OpenAPI (192 paths), MCP server (243 tools), request tracing",
+    "critical-fixes-q4-2025: COMPLETED - All P0 bugs fixed, Microsoft 365 integration, External Sharing Manager"
   ],
   "current_task": null,
   "started_at": "2025-12-07 12:13:26",
@@ -24,7 +19,7 @@
     "BUG-004": {
       "status": "verified_working",
       "evidence": {
-        "organization_users_count": 35,
+        "organization_users_count": 4,
         "gw_synced_users_count": 4,
         "api_returns_correctly": true
       }
@@ -32,106 +27,147 @@
     "BUG-005": {
       "status": "verified_working",
       "evidence": {
-        "access_groups_count": 7,
-        "gw_groups_count": 3
+        "access_groups_count": 3,
+        "gw_groups_count": 3,
+        "groups": ["IT Dept", "Marcomm", "Sales"]
       }
     }
   },
-  "completed_proposals": [
-    {
-      "id": "critical-fixes-q4-2025",
-      "title": "Critical Bug Fixes - Q4 2025",
-      "status": "COMPLETED",
-      "completion_date": "2025-12-14"
-    },
-    {
-      "id": "pre-release-infrastructure",
-      "title": "Pre-Release Infrastructure Cleanup",
-      "status": "COMPLETED",
-      "completion_date": "2025-12-11"
-    },
-    {
-      "id": "frontend-api-url-refactor",
-      "title": "Frontend Hardcoded URL Refactor",
-      "status": "COMPLETED",
-      "completion_date": "2025-12-11"
-    },
-    {
-      "id": "admin-user-separation-fixes",
-      "title": "Admin/User Separation Bug Fixes",
-      "status": "COMPLETED",
-      "completion_date": "2025-12-09"
-    },
+  "openspec_queue": [
     {
       "id": "org-chart-seed-data",
-      "title": "Org Chart Seed Data",
-      "status": "COMPLETED",
-      "completion_date": "2025-12-09"
-    },
-    {
-      "id": "infrastructure-fixes",
-      "title": "Infrastructure Fixes",
-      "status": "COMPLETED",
-      "completion_date": "2025-12-10"
+      "priority": 0.5,
+      "path": "openspec/changes/org-chart-seed-data/",
+      "title": "Org Chart Seed Data & Remove UI Placeholders",
+      "description": "Populate database with 28 realistic test users, proper org hierarchy, remove hardcoded placeholder data from UI",
+      "status": "NOT_STARTED",
+      "urgency": "P0.5 - DATA FOUNDATION - Real test data needed for all features",
+      "estimated_effort": "4 days"
     },
     {
       "id": "google-drive-asset-proxy",
+      "priority": 2,
+      "path": "openspec/changes/google-drive-asset-proxy/",
       "title": "Google Drive Asset Proxy",
-      "status": "COMPLETED",
-      "completion_date": "2025-12-12"
+      "description": "Proxy service for Google Shared Drive files with direct embeddable URLs for signatures",
+      "status": "NOT_STARTED",
+      "urgency": "P1 - HIGH - Foundation for signature images",
+      "estimated_effort": "11.5 days"
     },
     {
       "id": "user-lifecycle",
+      "priority": 3,
+      "path": "openspec/changes/user-lifecycle/",
       "title": "User Lifecycle Management",
-      "status": "COMPLETED",
-      "completion_date": "2025-12-13"
+      "description": "Automated user onboarding and offboarding workflows with templates",
+      "status": "NOT_STARTED",
+      "urgency": "P2 - MEDIUM - Major MSP time-saver",
+      "estimated_effort": "14 days"
     },
     {
       "id": "signature-management",
+      "priority": 4,
+      "path": "openspec/changes/signature-management/",
       "title": "Email Signature Management",
+      "description": "Template creation, flexible assignment, campaigns with tracking pixels",
+      "status": "NOT_STARTED",
+      "urgency": "P3 - Core feature after infrastructure ready",
+      "estimated_effort": "15-20 days"
+    },
+    {
+      "id": "hybrid-email-tracking",
+      "priority": 5,
+      "path": "openspec/changes/hybrid-email-tracking/",
+      "title": "Hybrid Email Tracking System",
+      "description": "Always-on user tracking + campaign tracking. Users see personal email engagement metrics.",
+      "status": "NOT_STARTED",
+      "urgency": "P4 - Enhancement after signature-management complete",
+      "estimated_effort": "~30 hours (4 days)"
+    }
+  ],
+  "completed_proposals": [
+    {
+      "id": "group-management-slideout",
+      "title": "Group Management SlideOut with Dynamic Groups",
       "status": "COMPLETED",
-      "completion_date": "2025-12-15"
+      "completed_at": "2025-12"
+    },
+    {
+      "id": "people-directory",
+      "title": "People Directory (User-Facing)",
+      "status": "COMPLETED",
+      "completed_at": "2025-12"
     },
     {
       "id": "admin-user-separation",
       "title": "Admin/User UI Separation",
       "status": "COMPLETED",
-      "completion_date": "2025-12-08"
+      "completed_at": "2025-12"
     },
     {
-      "id": "group-management-slideout",
-      "title": "Group Management SlideOut",
-      "status": "COMPLETED"
-    },
-    {
-      "id": "people-directory",
-      "title": "People Directory",
-      "status": "COMPLETED"
-    },
-    {
-      "id": "ai-assistant-v1",
-      "title": "AI Assistant v1",
+      "id": "admin-user-separation-fixes",
+      "title": "Admin/User Separation Bug Fixes",
       "status": "COMPLETED",
-      "completion_date": "2025-12-15"
-    }
-  ],
-  "pending_proposals": [
+      "completed_at": "2025-12-14",
+      "note": "Fixed ViewSwitcher, Settings link context, Dashboard design, Dashboard stats"
+    },
     {
-      "id": "hybrid-email-tracking",
-      "title": "Hybrid Email Tracking System",
-      "priority": 5,
-      "description": "Always-on user tracking + campaign tracking for personal email engagement metrics"
+      "id": "frontend-api-url-refactor",
+      "title": "Frontend Hardcoded URL Refactor",
+      "status": "COMPLETED",
+      "completed_at": "2025-12-11",
+      "note": "All 176 URLs refactored to use centralized API config"
+    },
+    {
+      "id": "pre-release-infrastructure",
+      "title": "Pre-Release Infrastructure Cleanup",
+      "status": "COMPLETED",
+      "completed_at": "2025-12-11",
+      "note": "API versioning, 192 OpenAPI paths, MCP server with 243 tools, request tracing"
+    },
+    {
+      "id": "critical-fixes-q4-2025",
+      "title": "Critical Bug Fixes - Q4 2025",
+      "status": "COMPLETED",
+      "completed_at": "2025-12-14",
+      "note": "All P0-P3 bugs fixed, Microsoft 365 integration, External Sharing Manager"
+    },
+    {
+      "id": "infrastructure-fixes",
+      "title": "Infrastructure Fixes (Foundation)",
+      "status": "MERGED",
+      "note": "Merged into pre-release-infrastructure"
     }
   ],
-  "project_status": {
-    "phase": "Post-MVP",
-    "builds_passing": true,
-    "e2e_tests_passing": true,
+  "release_status": {
+    "blockers_resolved": true,
+    "blockers": [
+      {"id": "pre-release-infrastructure", "status": "COMPLETED"},
+      {"id": "frontend-api-url-refactor", "status": "COMPLETED"}
+    ],
     "ready_for_release": true,
-    "next_milestone": "Production deployment or feature extension"
+    "e2e_tests_passing": true,
+    "build_passing": true,
+    "last_verified": "2025-12-16"
   },
   "next_action": {
-    "type": "optional",
-    "description": "All priority proposals complete. Options: 1) hybrid-email-tracking extension, 2) Production deployment testing, 3) New feature requests"
+    "type": "feature_development",
+    "proposal": "org-chart-seed-data",
+    "description": "Next priority is to populate the database with realistic test data for the org chart and remove UI placeholders",
+    "alternative": "If user has specific bugs or features, work on those instead"
+  },
+  "queue_summary": {
+    "total_proposals_remaining": 5,
+    "total_estimated_days": "48-58 days",
+    "priority_order": [
+      "P0.5: org-chart-seed-data (real test data)",
+      "P1: google-drive-asset-proxy (enables signatures)",
+      "P2: user-lifecycle (workflows)",
+      "P3: signature-management (core feature)",
+      "P4: hybrid-email-tracking (engagement metrics)"
+    ],
+    "release_blockers": "NONE - All blockers resolved",
+    "ai_features_status": "ENABLED - MCP server ready with 243 tools",
+    "user_goal": "Clone repo -> update .env -> setup DNS -> Profit! ✅"
   }
 }
