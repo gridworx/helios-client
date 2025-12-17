@@ -357,37 +357,17 @@
       "STAY IN SCOPE - only work on current task"
     ]
   },
-  "next_action": {
+  "next_task": {
+    "type": "openspec",
+    "proposal": "openspec/changes/fix-ai-tool-calling",
+    "approach": "implement",
+    "instructions": "Fix AI tool calling: 1) TASK-TOOL-003 first - fix JSON parsing errors, 2) TASK-TOOL-001 - add model discovery endpoint, 3) TASK-TOOL-002 - add tool support test endpoint, 4) TASK-TOOL-004 - update UI with model selector. User's Ollama has: qwen2.5-coder:latest (recommended), granite4:micro-h, llama3.2:3b. Test with qwen2.5-coder. Ollama endpoint is likely http://localhost:11434/v1/chat/completions"
+  },
+  "previous_action": {
     "type": "critical_bugs",
     "proposal": "critical-fixes-q4-2025",
-    "phase": 1,
-    "phase_name": "Critical Bug Fixes",
-    "first_task": "TASK-FIX-001: Fix nginx SPA routing for page refresh",
-    "instructions": [
-      "1. READ autonomous/AGENT-RULES.md FIRST",
-      "2. Read openspec/changes/critical-fixes-q4-2025/proposal.md",
-      "3. Read openspec/changes/critical-fixes-q4-2025/tasks.md",
-      "4. FIX BUGS FIRST - User is testing on remote access and things are broken",
-      "5. Test each fix on port 80 (nginx) not just localhost:3001",
-      "6. Priority: TASK-FIX-001 to TASK-FIX-006 are P0 (immediate)",
-      "7. After bugs fixed, move to Microsoft 365 integration (TASK-MS-*)",
-      "8. Goal: All core functionality working on remote access"
-    ],
-    "key_bugs_to_fix": [
-      "500 error on page refresh - nginx SPA fallback",
-      "Dashboard infinite spinner - error handling",
-      "Add User broken - form submission",
-      "Template creation broken - verify API",
-      "Widget persistence - database writes",
-      "Quick Actions - click handlers"
-    ],
-    "testing_checklist": [
-      "Access http://your-ip/ from another machine",
-      "Refresh on /admin/users - should NOT 500",
-      "Dashboard loads or shows error (not infinite spin)",
-      "Add User button creates a user",
-      "Create onboarding template works"
-    ]
+    "status": "COMPLETED",
+    "note": "All critical bugs fixed in previous sessions"
   },
   "deferred_actions": [
     {
