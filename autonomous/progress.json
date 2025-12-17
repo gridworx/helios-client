@@ -1,5 +1,5 @@
 {
-  "iterations": 1672,
+  "iterations": 1674,
   "tasks_completed": [
     "BUG-001: Module not showing as enabled - FIXED",
     "BUG-004: Users list - VERIFIED WORKING (4 users in DB, API returns correctly)",
@@ -10,7 +10,7 @@
   ],
   "current_task": "Pre-Release Infrastructure (BLOCKING - API versioning, OpenAPI docs, MCP prep)",
   "started_at": "2025-12-07 12:13:26",
-  "last_session": "2025-12-17 15:58:00",
+  "last_session": "2025-12-17 02:21:24",
   "bugs_resolved": {
     "BUG-004": {
       "status": "verified_working",
@@ -333,9 +333,9 @@
     },
     {
       "id": "fix-ai-tool-calling",
-      "title": "AI Tool Calling Improvements",
+      "title": "Fix AI Tool Calling",
       "status": "COMPLETED",
-      "note": "Model discovery, tool support testing, improved JSON error handling, and UI updates all implemented and verified"
+      "note": "Model discovery, tool support testing, JSON error handling, UI updates. All verified working."
     }
   ],
   "agent_instructions": {
@@ -366,9 +366,9 @@
   "next_task": null,
   "previous_action": {
     "type": "openspec",
-    "proposal": "fix-ai-tool-calling",
+    "proposal": "openspec/changes/fix-ai-tool-calling",
     "status": "COMPLETED",
-    "note": "All AI tool calling tasks verified and working. Model discovery, tool support testing, and improved error handling all functional."
+    "note": "All 5 tasks completed: Model discovery endpoint (TASK-TOOL-001), Tool support test endpoint (TASK-TOOL-002), JSON parsing error handling (TASK-TOOL-003), UI model selector (TASK-TOOL-004), End-to-end testing (TASK-TOOL-005). Verified working with Ollama at http://172.25.10.11:11434"
   },
   "deferred_actions": [
     {
