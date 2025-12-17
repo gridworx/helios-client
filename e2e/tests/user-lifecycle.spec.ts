@@ -381,13 +381,13 @@ test.describe('User Lifecycle Management', () => {
         await page.waitForTimeout(1000);
 
         // Should see template editor form
-        const nameField = page.locator('input[name="name"], input[placeholder*="name"]');
+        const nameField = page.locator('input[name="name"], input[placeholder*="template" i]');
 
         if (await nameField.count() > 0) {
           await expect(nameField.first()).toBeVisible();
 
-          // Fill in template name
-          await nameField.fill('Test Onboarding Template');
+          // Fill in template name (use first() to avoid strict mode violation)
+          await nameField.first().fill('Test Onboarding Template');
 
           // Don't actually save - just verify form works
           const cancelButton = page.locator('button:has-text("Cancel"), button:has-text("Back")');

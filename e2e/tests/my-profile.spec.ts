@@ -444,8 +444,8 @@ test.describe('Error Handling', () => {
   });
 
   test('should show error state on profile load failure', async ({ page }) => {
-    // Intercept API call and simulate error
-    await page.route('**/api/me/profile', route => {
+    // Intercept API call and simulate error (v1 path)
+    await page.route('**/api/v1/me/profile', route => {
       route.fulfill({
         status: 500,
         body: JSON.stringify({ success: false, error: 'Server error' }),

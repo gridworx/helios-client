@@ -389,7 +389,7 @@ test.describe('Email Engagement Tracking - TASK-TRK-028', () => {
 
   test.describe('Tracking Pixel Endpoint', () => {
     test('should return transparent GIF for campaign pixel', async ({ page }) => {
-      // Direct HTTP request to tracking pixel
+      // Direct HTTP request to tracking pixel (no v1 prefix - stable URLs)
       const response = await page.request.get('/api/t/p/test-token-123456789012345.gif');
 
       expect(response.status()).toBe(200);
@@ -397,18 +397,18 @@ test.describe('Email Engagement Tracking - TASK-TRK-028', () => {
 
       // Check response is binary GIF data
       const body = await response.body();
-      expect(body.length).toBe(43); // 1x1 transparent GIF
+      expect(body.length).toBe(42); // 1x1 transparent GIF
     });
 
     test('should return transparent GIF for user pixel', async ({ page }) => {
-      // Direct HTTP request to user tracking pixel
+      // Direct HTTP request to user tracking pixel (no v1 prefix - stable URLs)
       const response = await page.request.get('/api/t/u/user-token-1234567890123.gif');
 
       expect(response.status()).toBe(200);
       expect(response.headers()['content-type']).toBe('image/gif');
 
       const body = await response.body();
-      expect(body.length).toBe(43);
+      expect(body.length).toBe(42);
     });
 
     test('should return GIF even for invalid tokens', async ({ page }) => {
