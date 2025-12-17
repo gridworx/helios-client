@@ -1,7 +1,7 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 
 const baseUrl = 'http://localhost:3000';
-const testEmail = 'jack@gridwrx.io';
+const testEmail = 'jack@gridworx.io';
 const testPassword = 'TestPassword123!';
 
 test.describe('Canonical Data Model - Custom Labels', () => {

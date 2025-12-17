@@ -22,7 +22,7 @@ test('Comprehensive Helios v1.0 Test', async ({ page }) => {
   await page.goto('http://localhost:3000');
   await takeScreenshot('login-page');
 
-  await page.fill('input[type="email"], input[placeholder*="email" i]', 'testproxy@gridwrx.io');
+  await page.fill('input[type="email"], input[placeholder*="email" i]', 'testproxy@gridworx.io');
   await page.fill('input[type="password"], input[placeholder*="password" i]', 'password123');
   await page.click('button:has-text("Sign In")');
   await page.waitForTimeout(3000);

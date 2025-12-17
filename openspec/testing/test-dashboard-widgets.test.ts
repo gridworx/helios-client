@@ -49,8 +49,8 @@ test.describe('Dashboard Widget Loading Test', () => {
 
     if (hasLoginForm) {
       // Step 2: Login
-      console.log('Step 2: Logging in as jack@gridwrx.io...');
-      await page.fill('input[type="email"], input[name="email"]', 'jack@gridwrx.io');
+      console.log('Step 2: Logging in as jack@gridworx.io...');
+      await page.fill('input[type="email"], input[name="email"]', 'jack@gridworx.io');
       await page.fill('input[type="password"], input[name="password"]', 'P@ssw0rd123!');
 
       // Take screenshot before login

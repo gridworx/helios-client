@@ -26,7 +26,7 @@ test('Full Platform Test - Desktop and Tablet', async ({ page }) => {
 
   // Login
   await page.goto('http://localhost:3000');
-  await page.fill('input[type="email"]', 'testproxy@gridwrx.io');
+  await page.fill('input[type="email"]', 'testproxy@gridworx.io');
   await page.fill('input[type="password"]', 'password123');
   await page.click('button:has-text("Sign In")');
   await page.waitForTimeout(3000);

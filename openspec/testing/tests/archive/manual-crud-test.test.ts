@@ -6,7 +6,7 @@ import { test, expect } from '@playwright/test';
  */
 
 const BASE_URL = 'http://localhost:3000';
-const TEST_EMAIL = 'jack@gridwrx.io';
+const TEST_EMAIL = 'jack@gridworx.io';
 const TEST_PASSWORD = 'P@ssw0rd123!';
 
 const TEST_USER_EMAIL = 'playwrighttest@gridworx.io';
@@ -52,7 +52,7 @@ test('Manual CRUD Test - User Operations', async ({ page }) => {
   console.log('\n=== TEST 1: helios users list ===');
   let output = await runCommand(page, 'helios users list');
   expect(output.toUpperCase()).toContain('EMAIL');
-  expect(output).toContain('jack@gridwrx.io');
+  expect(output).toContain('jack@gridworx.io');
   console.log('✅ helios users list - PASSED');
 
   console.log('\n=== TEST 2: helios gw users list ===');

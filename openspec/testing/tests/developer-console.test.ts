@@ -46,7 +46,7 @@ test.describe('Developer Console CLI Tests', () => {
     const isLoginPage = await page.locator('input[type="email"]').isVisible().catch(() => false);
 
     if (isLoginPage) {
-      await page.fill('input[type="email"]', 'jack@gridwrx.io');
+      await page.fill('input[type="email"]', 'jack@gridworx.io');
       await page.fill('input[type="password"]', 'P@ssw0rd123!');
       await page.click('button[type="submit"]');
       await page.waitForLoadState('networkidle');
@@ -170,21 +170,21 @@ test.describe('Developer Console CLI Tests', () => {
     expect(output).toContain('='.repeat(110));
 
     // Should have users or show appropriate message
-    const hasUsers = output.includes('@gridworx.io') || output.includes('@gridwrx.io');
+    const hasUsers = output.includes('@gridworx.io') || output.includes('@gridworx.io');
     const hasErrorMessage = output.includes('No users found');
     expect(hasUsers || hasErrorMessage).toBeTruthy();
   });
 
   test('helios gw users get retrieves specific user', async ({ page }) => {
     await clearConsole(page);
-    await executeCommand(page, 'helios gw users get jack@gridwrx.io');
+    await executeCommand(page, 'helios gw users get jack@gridworx.io');
 
     await page.waitForTimeout(2000);
 
     const output = await getConsoleOutput(page);
 
     // Should have JSON output with user details or error
-    const hasUserData = output.includes('primaryEmail') || output.includes('jack@gridwrx.io');
+    const hasUserData = output.includes('primaryEmail') || output.includes('jack@gridworx.io');
     const hasError = output.includes('error') || output.includes('not found');
     expect(hasUserData || hasError).toBeTruthy();
   });
@@ -343,7 +343,7 @@ test.describe('Developer Console Error Handling', () => {
     const isLoginPage = await page.locator('input[type="email"]').isVisible().catch(() => false);
 
     if (isLoginPage) {
-      await page.fill('input[type="email"]', 'jack@gridwrx.io');
+      await page.fill('input[type="email"]', 'jack@gridworx.io');
       await page.fill('input[type="password"]', 'P@ssw0rd123!');
       await page.click('button[type="submit"]');
       await page.waitForLoadState('networkidle');
@@ -402,7 +402,7 @@ test.describe('Developer Console UI/UX', () => {
     const isLoginPage = await page.locator('input[type="email"]').isVisible().catch(() => false);
 
     if (isLoginPage) {
-      await page.fill('input[type="email"]', 'jack@gridwrx.io');
+      await page.fill('input[type="email"]', 'jack@gridworx.io');
       await page.fill('input[type="password"]', 'P@ssw0rd123!');
       await page.click('button[type="submit"]');
       await page.waitForLoadState('networkidle');

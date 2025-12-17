@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Settings Feature', () => {
   const baseUrl = 'http://localhost:3000';
-  const testEmail = 'jack@gridwrx.io';
+  const testEmail = 'jack@gridworx.io';
   const testPassword = 'TestPassword123!';
 
   // Clean up browser state before each test

@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test('verify user counts and statuses with testproxy login', async ({ page }) => {
   // Login with testproxy (admin user with working password)
   await page.goto('http://localhost:3000/login');
-  await page.fill('input[type="email"]', 'testproxy@gridwrx.io');
+  await page.fill('input[type="email"]', 'testproxy@gridworx.io');
   await page.fill('input[type="password"]', 'password123');
   await page.click('button[type="submit"]');
 

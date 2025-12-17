@@ -18,10 +18,12 @@ export async function login(page: Page) {
   // First, clear any existing auth state
   await page.goto(TEST_CONFIG.baseUrl);
 
-  // Clear localStorage and sessionStorage
+  // Clear localStorage and sessionStorage, but preserve the onboarding completion flag
   await page.evaluate(() => {
     localStorage.clear();
     sessionStorage.clear();
+    // Skip the ViewOnboarding modal in tests
+    localStorage.setItem('helios_view_onboarding_completed', 'true');
   });
 
   // Reload to ensure clean state
@@ -44,6 +46,27 @@ export async function login(page: Page) {
 
   // Wait a bit for React to render
   await page.waitForTimeout(1000);
+
+  // Handle ViewOnboarding modal if it still appears
+  await dismissViewOnboarding(page);
+}
+
+/**
+ * Dismiss ViewOnboarding modal if present
+ * @param page Playwright page object
+ */
+export async function dismissViewOnboarding(page: Page) {
+  const onboardingModal = page.locator('.view-onboarding-overlay');
+  const isVisible = await onboardingModal.isVisible().catch(() => false);
+
+  if (isVisible) {
+    // Click the close button to dismiss
+    const closeButton = page.locator('.view-onboarding-close');
+    if (await closeButton.isVisible()) {
+      await closeButton.click();
+      await page.waitForTimeout(500);
+    }
+  }
 }
 
 /**

@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test('Take dashboard screenshot', async ({ page }) => {
   // Login
   await page.goto('http://localhost:3000');
-  await page.fill('input[type="email"]', 'jack@gridwrx.io');
+  await page.fill('input[type="email"]', 'jack@gridworx.io');
   await page.fill('input[type="password"]', 'P@ssw0rd123!');
   await page.click('button[type="submit"]');
 

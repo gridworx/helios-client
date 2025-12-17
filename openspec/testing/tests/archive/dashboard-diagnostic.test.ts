@@ -10,7 +10,7 @@ test('Dashboard diagnostic - check what is actually rendering', async ({ page })
   await page.screenshot({ path: 'openspec/testing/reports/screenshots/diag-1-login.png', fullPage: true });
 
   // Login
-  await page.fill('input[type="email"]', 'jack@jumpcloud.com');
+  await page.fill('input[type="email"]', 'jack@gridworx.io');
   await page.fill('input[type="password"]', 'Password123!');
   await page.click('button[type="submit"]');
 

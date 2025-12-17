@@ -4,13 +4,26 @@ test.describe('Dashboard with Real API', () => {
   test.beforeEach(async ({ page }) => {
     // Login first
     await page.goto('http://localhost:3000');
-    await page.fill('input[type="email"]', 'jack@jumpcloud.com');
-    await page.fill('input[type="password"]', 'Password123!');
+
+    // Skip ViewOnboarding modal
+    await page.evaluate(() => {
+      localStorage.setItem('helios_view_onboarding_completed', 'true');
+    });
+
+    await page.fill('input[type="email"]', 'jack@gridworx.io');
+    await page.fill('input[type="password"]', 'P@ssw0rd123!');
     await page.click('button[type="submit"]');
 
     // Wait for dashboard to load
     await page.waitForURL('**/');
     await page.waitForTimeout(2000); // Let dashboard data load
+
+    // Dismiss ViewOnboarding modal if it still appears
+    const onboardingModal = page.locator('.view-onboarding-overlay');
+    if (await onboardingModal.isVisible().catch(() => false)) {
+      await page.locator('.view-onboarding-close').click();
+      await page.waitForTimeout(500);
+    }
   });
 
   test('should load real dashboard stats from API', async ({ page }) => {
@@ -75,8 +88,8 @@ test.describe('Dashboard with Real API', () => {
   test('should show Alerts section', async ({ page }) => {
     await page.waitForSelector('.dashboard-widget-grid');
 
-    // Check for Alerts section
-    const alertsSection = await page.getByText('Alerts');
+    // Check for Alerts section - use first() to handle multiple matches
+    const alertsSection = page.getByRole('heading', { name: 'Alerts' });
     await expect(alertsSection).toBeVisible();
   });
 

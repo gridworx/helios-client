@@ -5,7 +5,7 @@ import { test, expect } from '@playwright/test';
  */
 
 const BASE_URL = 'http://localhost:3000';
-const TEST_EMAIL = 'jack@gridwrx.io';
+const TEST_EMAIL = 'jack@gridworx.io';
 const TEST_PASSWORD = 'P@ssw0rd123!';
 
 async function login(page) {

@@ -19,7 +19,7 @@ test('Login and navigate through app', async ({ page }) => {
   await takeScreenshot('login-page');
 
   // Login
-  await page.fill('input[type="email"], input[placeholder*="email" i]', 'testproxy@gridwrx.io');
+  await page.fill('input[type="email"], input[placeholder*="email" i]', 'testproxy@gridworx.io');
   await page.fill('input[type="password"], input[placeholder*="password" i]', 'password123');
   await takeScreenshot('login-filled');
 

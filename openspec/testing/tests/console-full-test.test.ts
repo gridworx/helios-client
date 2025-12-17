@@ -4,11 +4,11 @@ import { test, expect, Page } from '@playwright/test';
  * Comprehensive Developer Console Testing
  * Tests all CLI commands including CRUD operations for users and groups
  *
- * Test User: jack@gridwrx.io / P@ssw0rd123!
+ * Test User: jack@gridworx.io / P@ssw0rd123!
  */
 
 const BASE_URL = 'http://localhost:3000';
-const TEST_EMAIL = 'jack@gridwrx.io';
+const TEST_EMAIL = 'jack@gridworx.io';
 const TEST_PASSWORD = 'P@ssw0rd123!';
 
 // Test user to create and delete
@@ -110,7 +110,7 @@ test.describe('Developer Console - Full CRUD Testing', () => {
     expect(output).toContain('Status');
 
     // Should show Jack's account
-    expect(output).toContain('jack@gridwrx.io');
+    expect(output).toContain('jack@gridworx.io');
     expect(output).toContain('active');
   });
 
