@@ -69,8 +69,6 @@ const OrgChartTree: React.FC<OrgChartTreeProps> = ({
     const margin = isVertical
       ? { top: 80, right: 40, bottom: 40, left: 40 }
       : { top: 40, right: 120, bottom: 40, left: 120 };
-    const width = dimensions.width - margin.left - margin.right;
-    const height = dimensions.height - margin.top - margin.bottom;
 
     // Create zoom behavior
     const zoom = d3.zoom()
@@ -80,6 +78,20 @@ const OrgChartTree: React.FC<OrgChartTreeProps> = ({
       });
 
     svg.call(zoom as any);
+
+    // Add shadow filter definition - stronger shadow for better visibility
+    const defs = svg.append('defs');
+    const filter = defs.append('filter')
+      .attr('id', 'card-shadow')
+      .attr('x', '-20%')
+      .attr('y', '-20%')
+      .attr('width', '140%')
+      .attr('height', '140%');
+    filter.append('feDropShadow')
+      .attr('dx', '0')
+      .attr('dy', '2')
+      .attr('stdDeviation', '3')
+      .attr('flood-opacity', '0.15');
 
     const g = svg.append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
@@ -97,10 +109,17 @@ const OrgChartTree: React.FC<OrgChartTreeProps> = ({
 
     const root = d3.hierarchy(processNode(data));
 
-    // Create tree layout - swap dimensions for vertical orientation
+    // Use nodeSize for better control over spacing between nodes
+    // Node dimensions: 180x64, so we need more than that for spacing
+    const nodeWidth = 180;
+    const nodeHeight = 64;
+    const horizontalSpacing = nodeWidth + 40; // Space between nodes horizontally
+    const verticalSpacing = nodeHeight + 60; // Space between levels
+
+    // Create tree layout with explicit node sizing
     const treeLayout = d3.tree<any>()
-      .size(isVertical ? [width, height] : [height, width])
-      .separation((a, b) => a.parent === b.parent ? 1.5 : 2);
+      .nodeSize(isVertical ? [horizontalSpacing, verticalSpacing] : [verticalSpacing, horizontalSpacing])
+      .separation((a, b) => a.parent === b.parent ? 1.2 : 1.5);
 
     treeLayout(root);
 
@@ -167,16 +186,14 @@ const OrgChartTree: React.FC<OrgChartTreeProps> = ({
 
     node.call(drag as any);
 
-    // Add node rectangles
-    const nodeWidth = 180;
-    const nodeHeight = 64;
-
+    // Add node rectangles (using nodeWidth/nodeHeight defined above)
     node.append('rect')
       .attr('width', nodeWidth)
       .attr('height', nodeHeight)
       .attr('x', -nodeWidth / 2)
       .attr('y', -nodeHeight / 2)
       .attr('rx', 8)
+      .attr('filter', 'url(#card-shadow)')
       .style('fill', (d: any) => {
         if (selectedNode === d.data.userId) return '#ede9fe';
         if (searchTerm && matchesSearch(d.data)) return '#fef3c7';
@@ -185,7 +202,7 @@ const OrgChartTree: React.FC<OrgChartTreeProps> = ({
       .style('stroke', (d: any) => {
         if (selectedNode === d.data.userId) return 'var(--theme-primary)';
         if (searchTerm && matchesSearch(d.data)) return '#f59e0b';
-        return '#e5e7eb';
+        return '#d1d5db';
       })
       .style('stroke-width', (d: any) => {
         if (selectedNode === d.data.userId) return 2;
@@ -289,7 +306,7 @@ const OrgChartTree: React.FC<OrgChartTreeProps> = ({
       .attr('x', -nodeWidth / 2 + 52)
       .attr('y', 8)
       .style('font-size', '12px')
-      .style('fill', '#6b7280')
+      .style('fill', '#4b5563')
       .text((d: any) => truncateText(d.data.title || '', 20));
 
     // Add department
@@ -297,7 +314,7 @@ const OrgChartTree: React.FC<OrgChartTreeProps> = ({
       .attr('x', -nodeWidth / 2 + 52)
       .attr('y', 22)
       .style('font-size', '11px')
-      .style('fill', '#9ca3af')
+      .style('fill', '#6b7280')
       .text((d: any) => truncateText(d.data.department || '', 22));
 
     // Add direct reports count

@@ -78,6 +78,20 @@ export function UserSettings({ organizationId: _organizationId }: UserSettingsPr
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
+  // Apply theme to document
+  const applyTheme = (theme: ThemePreference) => {
+    let effectiveTheme: 'light' | 'dark' = 'light';
+
+    if (theme === 'system') {
+      // Check system preference
+      effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    } else {
+      effectiveTheme = theme;
+    }
+
+    document.documentElement.setAttribute('data-theme', effectiveTheme);
+  };
+
   // Load preferences from localStorage on mount
   useEffect(() => {
     const savedPrefs = localStorage.getItem('helios_user_preferences');
@@ -85,11 +99,16 @@ export function UserSettings({ organizationId: _organizationId }: UserSettingsPr
       try {
         const parsed = JSON.parse(savedPrefs);
         setPreferences((prev) => ({ ...prev, ...parsed }));
+        // Apply saved theme
+        if (parsed.theme) {
+          applyTheme(parsed.theme);
+        }
       } catch (e) {
         console.error('Failed to parse saved preferences');
       }
     }
   }, []);
+
 
   const handlePreferenceChange = <K extends keyof UserPreferences>(
     key: K,
@@ -99,6 +118,12 @@ export function UserSettings({ organizationId: _organizationId }: UserSettingsPr
       const updated = { ...prev, [key]: value };
       // Save to localStorage
       localStorage.setItem('helios_user_preferences', JSON.stringify(updated));
+
+      // Apply theme immediately if theme changed
+      if (key === 'theme') {
+        applyTheme(value as ThemePreference);
+      }
+
       return updated;
     });
     setSaved(false);

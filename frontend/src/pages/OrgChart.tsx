@@ -36,7 +36,7 @@ const OrgChart: React.FC = () => {
   const navigate = useNavigate();
   const [data, setData] = useState<OrgChartData | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('tree');
-  const [treeOrientation, setTreeOrientation] = useState<TreeOrientation>('horizontal');
+  const [treeOrientation, setTreeOrientation] = useState<TreeOrientation>('vertical');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());

@@ -197,10 +197,10 @@ export const AdminNavigation: React.FC<AdminNavigationProps> = ({
         </div>
       )}
 
-      {/* Compliance Section - Show if section flag enabled AND has any items */}
+      {/* Security & Insights Section - Show if section flag enabled AND has any items */}
       {isEnabled('nav.section.security') && hasSecurityItems && (
         <div className="nav-section">
-          <div className="nav-section-title">Compliance</div>
+          <div className="nav-section-title">Security & Insights</div>
           {isEnabled('nav.mail_search') && (
             <button
               className={`nav-item ${currentPage === 'email-security' ? 'active' : ''}`}
