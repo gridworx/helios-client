@@ -67,5 +67,4 @@ e2e/reference-screenshots/
 .secrets/
 backend/.secrets/
 
-# Permission issues / Archives
-openspec/changes/archive/fix-better-auth-integration/
+
