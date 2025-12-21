@@ -118,4 +118,6 @@ See [docs/guides/SETUP.md](docs/guides/SETUP.md) for complete setup instructions
 - **Source Available:** Code is open for inspection and audit
 - **No Commercial Resale:** Cannot offer Helios as a managed service or resell without a commercial license
 
-For commercial licensing inquiries, visit [gridworx.io](https://gridworx.io).
+**MSPs & Service Providers:** We offer a multi-tenant platform (Helios MTP) for managing multiple client organizations. Contact us at [info@gridworx.io](mailto:info@gridworx.io) for commercial licensing and partnership opportunities.
+
+For more information, visit [gridworx.io](https://gridworx.io).
