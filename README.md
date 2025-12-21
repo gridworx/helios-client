@@ -1,80 +1,121 @@
 # Helios Client Portal
 
-> **The Definitive Self-Hosted Google Workspace & Microsoft 365 Management Platform**
+> **Self-Hosted Google Workspace Management with Full API Access & Audit Trail**
 
-![Helios Dashboard](https://gridworx.io/assets/helios-dashboard-preview.png)
+## Overview
 
-## 🚀 Overview
-
-Helios is the **first and only** truly self-hosted, data-sovereign management platform for Google Workspace and Microsoft 365. Designed for security-conscious organizations and MSPs who demand control, Helios bridges the gap between powerful CLI tools (like GAM) and expensive SaaS platforms (like BetterCloud or GAT Labs).
+Helios is a self-hosted management platform for Google Workspace. It provides a modern UI for common admin tasks while giving power users direct API access through an audited proxy console. Every action—whether through the UI or API—is logged for compliance and security.
 
 **Why Helios?**
-*   **Data Sovereignty:** Your data never leaves your infrastructure. No third-party SaaS has access to your user directory or emails.
-*   **Cost Efficiency:** Stop paying $30+/user/year for SaaS. Helios is a fraction of the cost.
-*   **Unified Management:** Manage Users, Groups, Licenses, and Assets from a single pane of glass.
+
+- **Data Sovereignty:** Your data stays on your infrastructure. No third-party SaaS touches your directory or emails.
+- **API Proxy with Audit Trail:** Execute any Google Workspace API call through Helios. Every request is logged with who, what, when, and the full response—even for APIs without UI features yet.
+- **Cost Efficiency:** Alternatives like BetterCloud ($3-5/user/month) or GAT Labs ($2-4/user/month) add up fast. Helios is a fixed infrastructure cost.
+- **Power User Friendly:** Know the Google Admin SDK? Use it directly through the console. Don't know it? Use the UI.
 
 ---
 
-## 🏆 Key Features
+## Key Features
 
-### 1. Advanced User Lifecycle Management
-*Automate onboarding and offboarding like a pro.*
-*   **Workflow Templates:** Define steps for New Hires, Leavers, and Role Changes.
-*   **Scheduled Actions:** Pre-provision users or schedule access revocation.
-*   **Cross-Platform Sync:** Create user in Google Workspace, assign Microsoft 365 license, and add to Slack in one click.
+### 1. Audited API Proxy Console
+*Full Google Workspace API access with complete audit trail.*
 
-### 2. Enterprise Email Signatures (CodeTwo Alternative)
-*Centralized control without the per-user cost.*
-*   **Dynamic Templates:** Use variables (e.g., `{{JobTitle}}`, `{{Department}}`) to standardise signatures.
-*   **Campaign Manager:** Schedule marketing banners ("See us at Booth #4") for specific teams/dates.
-*   **Analytics:** Track click-through rates with built-in 1px tracking pixels.
-*   **No Deployment Agents:** Direct API push to Gmail settings.
+- **Direct API Access:** Call any Google Admin SDK endpoint through Helios
+- **Full Audit Logging:** Every API request logged with actor, timestamp, request, and response
+- **Use Before UI Exists:** Need a feature we haven't built yet? Use the API directly
+- **Compliance Ready:** Demonstrate exactly what changes were made and by whom
 
-### 3. Smart Asset Proxy & Drive Management
-*Securely share assets without public links.*
-*   **Google Drive Proxy:** Share "Public" assets from a private Shared Drive via a branded URL (`assets.yourcompany.com/brochure.pdf`).
-*   **Audit & Security:** Track who accesses files and when.
+### 2. User & Directory Management
+*Comprehensive user lifecycle from a single interface.*
 
-### 4. Admin/User Separation
-*Empower employees without giving away the keys.*
-*   **Self-Service Portal:** Allow users to update their profile, view org charts, and access resources.
-*   **Strict RBAC:** Admins see everything; Users see only what they need.
+- **User Directory:** View, search, and manage all Google Workspace users
+- **Groups Management:** Create and manage groups, membership, and access
+- **Org Chart:** Visualize reporting relationships and organizational structure
+- **Bulk Operations:** Import users via CSV, bulk update attributes
+
+### 3. User Lifecycle Automation
+*Streamline onboarding and offboarding.*
+
+- **Workflow Builder:** Visual drag-and-drop workflow creation
+- **Scheduled Actions:** Pre-provision users or schedule access revocation for future dates
+- **Onboarding Templates:** Define standard setup steps for new hires by role/department
+- **Offboarding Workflows:** Data transfer, access revocation, account suspension
+
+### 4. Email Signature Management
+*Centralized signatures without per-user SaaS fees.*
+
+- **Dynamic Templates:** Variables like `{{Name}}`, `{{JobTitle}}`, `{{Department}}` auto-populate
+- **Campaign Banners:** Schedule promotional banners for specific teams or date ranges
+- **Direct API Deployment:** Push signatures directly to Gmail settings—no agents needed
+- **Analytics:** Optional tracking pixels for engagement metrics
+
+### 5. Asset Proxy & Drive Management
+*Secure file sharing with branded URLs.*
+
+- **Google Drive Proxy:** Share assets from a private Shared Drive via branded URLs
+- **Access Logging:** Track who accesses files and when
+- **No Public Links:** Keep Drive files private while still sharing externally
+
+### 6. Admin/User Separation
+*Self-service for employees, full control for admins.*
+
+- **Self-Service Portal:** Users can view their profile, org chart, and company resources
+- **Role-Based Access:** Admins see everything; users see only what's relevant to them
+- **View Switching:** Admins can preview what users see
 
 ---
 
-## 🆚 Comparison
+## Comparison
 
-| Feature | Helios (Self-Hosted) | BetterCloud / GAT | GAM (CLI) |
+| Feature | Helios | BetterCloud / GAT | GAM (CLI) |
 | :--- | :---: | :---: | :---: |
-| **Data Sovereignty** | 🔒 **100% On-Prem** | ❌ SaaS Cloud | 🔒 Local |
-| **Interface** | ✨ **Modern UI** | ✨ Modern UI | 💻 Terminal |
-| **Connectivity** | ⚡ **Real-time** | 🐢 API Polling | ⚡ Direct |
-| **Cost** | 💰 **Low Fixed Cost** | 💸 High Per-User | 🆓 Free |
-| **Setup** | 🐳 Docker Compose | ☁️ SaaS Signup | ⚙️ Complex Auth |
-| **Licensing** | 🛡️ **BSL Protected** | 🔒 Closed Source | 🔓 Open Source |
+| **Data Location** | Your Infrastructure | SaaS Cloud | Local Machine |
+| **Interface** | Modern Web UI | Modern Web UI | Command Line |
+| **API Access** | Full + Audited | Limited | Full |
+| **Audit Trail** | Every Action Logged | Varies | Manual |
+| **Cost Model** | Fixed Infrastructure | $30-60/user/year | Free |
+| **Setup** | Docker Compose | SaaS Signup | Complex Auth |
 
 ---
 
-## 🛠️ Stack
+## Tech Stack
 
-*   **Frontend:** React, TypeScript, Vite
-*   **Backend:** Node.js, Express, TypeScript
-*   **Database:** PostgreSQL
-*   **Cache:** Redis
-*   **Storage:** MinIO (S3 Compatible)
-*   **Deployment:** Docker Compose / Kubernetes
+- **Frontend:** React, TypeScript, Vite
+- **Backend:** Node.js, Express, TypeScript
+- **Database:** PostgreSQL
+- **Cache:** Redis
+- **Storage:** MinIO (S3 Compatible)
+- **Deployment:** Docker Compose
 
 ---
 
-## 📜 license
+## Quick Start
 
-**Helios is released under the Business Source License (BSL) 1.1.**
+```bash
+# Clone the repository
+git clone https://github.com/gridworx/helios-client.git
+cd helios-client
 
-### What this means:
-*   ✅ **Free for internal use:** You can download, modify, and run Helios for your licensed organization freely.
-*   ✅ **Source Available:** The code is open for inspection and audit.
-*   ❌ **No Commercial Resale:** You **cannot** offer Helios as a managed service (SaaS) to third parties or sell it as a standalone product without a commercial license from GridWorx.
+# Copy environment template
+cp .env.example .env
 
-> *Protection against "copy-paste" MSPs: We built Helios to empower IT teams, not to be resold by unauthorized vendors.*
+# Start services
+docker-compose up -d
 
-For commercial licensing, MSP partnership inquiries, or Enterprise support, visit [gridworx.io](https://gridworx.io).
+# Access the portal
+open http://localhost:3000
+```
+
+See [docs/guides/SETUP.md](docs/guides/SETUP.md) for complete setup instructions including Google Workspace service account configuration.
+
+---
+
+## License
+
+**Business Source License (BSL) 1.1**
+
+- **Free for internal use:** Run Helios for your organization at no cost
+- **Source Available:** Code is open for inspection and audit
+- **No Commercial Resale:** Cannot offer Helios as a managed service or resell without a commercial license
+
+For commercial licensing inquiries, visit [gridworx.io](https://gridworx.io).
