@@ -1,5 +1,5 @@
-import { logger } from '../utils/logger';
-import { db } from '../database/connection';
+import { logger } from '../utils/logger.js';
+import { db } from '../database/connection.js';
 
 interface EmailForwardingConfig {
   enabled: boolean;

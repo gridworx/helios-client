@@ -76,8 +76,8 @@ jest.mock('google-auth-library', () => ({
 }));
 
 // Import after mocks
-import { userOffboardingService } from '../services/user-offboarding.service';
-import { OffboardingConfig, CreateOffboardingTemplateDTO } from '../types/user-lifecycle';
+import { userOffboardingService } from '../services/user-offboarding.service.js';
+import { OffboardingConfig, CreateOffboardingTemplateDTO } from '../types/user-lifecycle.js';
 
 describe('UserOffboardingService', () => {
   const testOrgId = 'test-org-id';

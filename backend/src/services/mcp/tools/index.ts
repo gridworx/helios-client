@@ -11,7 +11,7 @@ export {
   helpSearchToolDefinition,
   searchHelp,
   HelpSearchResult
-} from './help-search.tool';
+} from './help-search.tool.js';
 
 // User Tools
 export {
@@ -26,7 +26,7 @@ export {
   formatActivityForLLM,
   UserQueryResult,
   UserActivityRecord
-} from './user.tools';
+} from './user.tools.js';
 
 // Group Tools
 export {
@@ -42,7 +42,7 @@ export {
   GroupQueryResult,
   GroupMember,
   GroupComparison
-} from './group.tools';
+} from './group.tools.js';
 
 // Report Tools
 export {
@@ -54,7 +54,7 @@ export {
   DashboardStats,
   ReportFormat,
   ReportType
-} from './report.tools';
+} from './report.tools.js';
 
 // Command Generation Tools
 export {
@@ -68,7 +68,7 @@ export {
   CommandAction,
   GeneratedCommand,
   GeneratedScript
-} from './command.tools';
+} from './command.tools.js';
 
 /**
  * All tool definitions for registration with MCP server

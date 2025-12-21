@@ -19,11 +19,11 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { authenticateToken } from '../middleware/auth';
-import { openApiToMcpTools, getToolDefinitions, OpenApiSpec } from '../mcp/openapi-converter';
-import { getToolsSummary } from '../mcp/server';
-import { swaggerSpec } from '../config/swagger';
-import { logger } from '../utils/logger';
+import { authenticateToken } from '../middleware/auth.js';
+import { openApiToMcpTools, getToolDefinitions, OpenApiSpec } from '../mcp/openapi-converter.js';
+import { getToolsSummary } from '../mcp/server.js';
+import { swaggerSpec } from '../config/swagger.js';
+import { logger } from '../utils/logger.js';
 
 const router = Router();
 

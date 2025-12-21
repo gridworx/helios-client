@@ -13,8 +13,8 @@ jest.mock('../database/connection', () => ({
   },
 }));
 
-import { db } from '../database/connection';
-import { userTrackingService, UserTrackingToken } from '../services/user-tracking.service';
+import { db } from '../database/connection.js';
+import { userTrackingService, UserTrackingToken } from '../services/user-tracking.service.js';
 
 const mockQuery = db.query as jest.MockedFunction<typeof db.query>;
 

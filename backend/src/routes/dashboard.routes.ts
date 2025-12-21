@@ -1,15 +1,15 @@
 import { Router, Request, Response } from 'express';
-import { authenticateToken } from '../middleware/auth';
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
-import { cacheService } from '../services/cache.service';
-import { activityTracker } from '../services/activity-tracker.service';
+import { authenticateToken } from '../middleware/auth.js';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
+import { cacheService } from '../services/cache.service.js';
+import { activityTracker } from '../services/activity-tracker.service.js';
 import {
   successResponse,
   errorResponse,
   validationErrorResponse
-} from '../utils/response';
-import { ErrorCode } from '../types/error-codes';
+} from '../utils/response.js';
+import { ErrorCode } from '../types/error-codes.js';
 
 const router = Router();
 router.use(authenticateToken);

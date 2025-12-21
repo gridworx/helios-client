@@ -14,6 +14,7 @@
     "@types/html2canvas": "^0.5.35",
     "@types/socket.io-client": "^1.4.36",
     "axios": "^1.13.1",
+    "better-auth": "^1.4.7",
     "blueimp-md5": "^2.19.0",
     "d3": "^7.9.0",
     "html2canvas": "^1.4.1",

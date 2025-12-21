@@ -8,15 +8,15 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { signatureTemplateService } from '../services/signature-template.service';
-import { authenticateToken } from '../middleware/auth';
-import { logger } from '../utils/logger';
+import { signatureTemplateService } from '../services/signature-template.service.js';
+import { authenticateToken } from '../middleware/auth.js';
+import { logger } from '../utils/logger.js';
 import {
   CreateSignatureTemplateDTO,
   UpdateSignatureTemplateDTO,
   SignatureTemplateStatus,
   MERGE_FIELDS,
-} from '../types/signatures';
+} from '../types/signatures.js';
 
 const router = Router();
 

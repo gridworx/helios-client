@@ -1,6 +1,6 @@
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
-import { cacheService } from './cache.service';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
+import { cacheService } from './cache.service.js';
 
 export type ActivityType =
   | 'user.login'

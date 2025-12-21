@@ -1,35 +1,35 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
+import { TEST_CONFIG } from '../helpers/test-helpers';
 
 test.describe('AI Tool Calling Feature', () => {
-  const baseUrl = 'http://localhost:3000';
-  const testEmail = 'mike@gridworx.io';
-  const testPassword = 'admin123';
 
   // Clean up browser state before each test
   test.beforeEach(async ({ page, context }) => {
     await context.clearCookies();
-    await page.goto(baseUrl);
+    await page.goto(TEST_CONFIG.baseUrl);
     await page.evaluate(() => {
       localStorage.clear();
       sessionStorage.clear();
+      // Skip the ViewOnboarding modal in tests
+      localStorage.setItem('helios_view_onboarding_completed', 'true');
     });
     await page.reload();
     await page.waitForLoadState('networkidle');
   });
 
-  // Helper to login and dismiss onboarding modal if present
-  async function login(page) {
+  // Helper to login and ensure admin view
+  async function login(page: Page) {
     const emailInput = page.locator('input[type="email"]').first();
     await emailInput.waitFor({ state: 'visible', timeout: 15000 });
 
-    await emailInput.fill(testEmail);
-    await page.locator('input[type="password"]').first().fill(testPassword);
+    await emailInput.fill(TEST_CONFIG.testEmail);
+    await page.locator('input[type="password"]').first().fill(TEST_CONFIG.testPassword);
     await page.locator('button[type="submit"]').first().click();
 
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
 
-    // Dismiss onboarding modal if it appears
+    // Dismiss onboarding modal if it still appears
     const onboardingModal = page.locator('.view-onboarding-overlay');
     if (await onboardingModal.isVisible({ timeout: 2000 }).catch(() => false)) {
       const closeBtn = page.locator('.view-onboarding-close, button.view-onboarding-button.primary');
@@ -38,18 +38,47 @@ test.describe('AI Tool Calling Feature', () => {
         await page.waitForTimeout(500);
       }
     }
+
+    // Ensure we're in admin view by clicking view switcher if present
+    await ensureAdminView(page);
+  }
+
+  // Helper to ensure admin view is active
+  async function ensureAdminView(page: Page) {
+    // Check if view switcher trigger is visible - use data-testid
+    const viewSwitcherTrigger = page.locator('[data-testid="view-switcher-trigger"]');
+    if (await viewSwitcherTrigger.isVisible({ timeout: 3000 }).catch(() => false)) {
+      // Check the current label - if it shows "Employee View", we need to switch
+      const triggerText = await viewSwitcherTrigger.textContent();
+      console.log(`   View switcher shows: "${triggerText?.trim()}"`);
+
+      if (triggerText?.includes('Employee') || triggerText?.includes('user')) {
+        // Click to open the dropdown
+        await viewSwitcherTrigger.click();
+        await page.waitForTimeout(300);
+
+        // Click on Admin Console option using data-testid
+        const adminOption = page.locator('[data-testid="view-option-admin"]');
+        if (await adminOption.isVisible({ timeout: 2000 }).catch(() => false)) {
+          await adminOption.click();
+          await page.waitForTimeout(500);
+          console.log('   Switched to Admin view');
+        }
+      }
+    }
   }
 
   // Helper to navigate to AI Settings
-  async function navigateToAISettings(page) {
-    // Navigate to Settings
-    const settingsButton = page.locator('[data-testid="nav-settings"]').first();
+  async function navigateToAISettings(page: Page) {
+    // Navigate to Settings - try multiple selectors
+    const settingsButton = page.locator('[data-testid="nav-settings"], nav button:has-text("Settings")').first();
+    await settingsButton.waitFor({ state: 'visible', timeout: 10000 });
     await settingsButton.click();
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
     // Find and click on AI Assistant tab
-    const aiTab = page.locator('text=/AI Assistant/i').first();
+    const aiTab = page.locator('button:has-text("AI Assistant"), [role="tab"]:has-text("AI Assistant")').first();
     if (await aiTab.isVisible({ timeout: 3000 }).catch(() => false)) {
       await aiTab.click();
       await page.waitForTimeout(500);
@@ -69,9 +98,13 @@ test.describe('AI Tool Calling Feature', () => {
     await navigateToAISettings(page);
     console.log('   ✅ On AI Settings page');
 
+    // Wait for the page to fully load the AI config
+    await page.waitForTimeout(1000);
+
     // Step 3: Click Discover button
     console.log('\n3️⃣  Clicking Discover button...');
-    const discoverBtn = page.locator('button:has-text("Discover")').first();
+    // Use multiple selectors to find the Discover button
+    const discoverBtn = page.locator('.discover-btn, button:has-text("Discover"), button[title*="Discover"]').first();
 
     if (await discoverBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
       await discoverBtn.click();
@@ -124,9 +157,13 @@ test.describe('AI Tool Calling Feature', () => {
     await navigateToAISettings(page);
     console.log('   ✅ On AI Settings page');
 
+    // Wait for the page to fully load the AI config
+    await page.waitForTimeout(1000);
+
     // Step 3: Click Test Tool Support button
     console.log('\n3️⃣  Testing tool support...');
-    const testToolsBtn = page.locator('button:has-text("Test Tool Support")').first();
+    // Use multiple selectors to find the Test Tool Support button
+    const testToolsBtn = page.locator('button:has-text("Test Tool Support"), button[title*="tool calling"]').first();
 
     if (await testToolsBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
       await testToolsBtn.click();
@@ -160,11 +197,14 @@ test.describe('AI Tool Calling Feature', () => {
     }
   });
 
-  test('TASK-TOOL-003: Error Handling - No JSON parse errors on incompatible model', async ({ page }) => {
+  test('TASK-TOOL-003: Error Handling - No JSON parse errors on incompatible model', async ({ page, request }) => {
+    // Extend timeout for this test as chat can take 60+ seconds with LLM
+    test.setTimeout(90000);
+
     console.log('🛡️  Testing Error Handling (TASK-TOOL-003)\n');
 
     // This test verifies the backend doesn't return "Unexpected token" errors
-    // We'll test via the API endpoint directly
+    // We'll test via the API endpoint directly using request context (not page.request which closes with page)
 
     console.log('1️⃣  Logging in...');
     await login(page);
@@ -175,7 +215,7 @@ test.describe('AI Tool Calling Feature', () => {
     console.log(`   Token found: ${!!token}`);
 
     console.log('\n3️⃣  Testing AI status endpoint...');
-    const statusResponse = await page.request.get('http://localhost:3001/api/v1/ai/status', {
+    const statusResponse = await request.get('http://localhost:3001/api/v1/ai/status', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
@@ -186,7 +226,7 @@ test.describe('AI Tool Calling Feature', () => {
       console.log('\n4️⃣  Testing chat endpoint with tool-enabled request...');
 
       try {
-        const chatResponse = await page.request.post('http://localhost:3001/api/v1/ai/chat', {
+        const chatResponse = await request.post('http://localhost:3001/api/v1/ai/chat', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -194,7 +234,8 @@ test.describe('AI Tool Calling Feature', () => {
           data: {
             message: 'How many users are in my organization?',
             includeHistory: false
-          }
+          },
+          timeout: 60000
         });
 
         const chatData = await chatResponse.json();
@@ -246,21 +287,33 @@ test.describe('AI Tool Calling Feature', () => {
     await navigateToAISettings(page);
     console.log('   ✅ On AI Settings page');
 
+    // Wait for the page to fully load the AI config
+    await page.waitForTimeout(2000);
+
+    // Debug: Print out all buttons on the page to understand what's rendered
+    const allButtons = await page.locator('button').all();
+    console.log(`   Debug: Found ${allButtons.length} buttons on page`);
+    for (let i = 0; i < Math.min(allButtons.length, 10); i++) {
+      const text = await allButtons[i].textContent().catch(() => '');
+      const title = await allButtons[i].getAttribute('title').catch(() => '');
+      console.log(`     Button ${i+1}: "${text?.trim()}" (title="${title}")`);
+    }
+
     // Step 3: Check for model selector UI elements
     console.log('\n3️⃣  Checking model selector UI...');
 
-    // Check for Discover button
-    const discoverBtn = page.locator('button:has-text("Discover")').first();
+    // Check for Discover button - use multiple selectors
+    const discoverBtn = page.locator('.discover-btn, button:has-text("Discover"), button[title*="Discover"]').first();
     const hasDiscoverBtn = await discoverBtn.isVisible({ timeout: 5000 }).catch(() => false);
     console.log(`   Discover button: ${hasDiscoverBtn ? '✅' : '❌'}`);
 
-    // Check for Test Tool Support button
-    const testToolsBtn = page.locator('button:has-text("Test Tool Support")').first();
+    // Check for Test Tool Support button - use multiple selectors
+    const testToolsBtn = page.locator('button:has-text("Test Tool Support"), button[title*="tool calling"]').first();
     const hasTestToolsBtn = await testToolsBtn.isVisible({ timeout: 2000 }).catch(() => false);
     console.log(`   Test Tool Support button: ${hasTestToolsBtn ? '✅' : '❌'}`);
 
-    // Check for model input field
-    const modelInput = page.locator('input[list="primary-models"]').first();
+    // Check for model input field - the field may not have a list attribute initially
+    const modelInput = page.locator('input[list="primary-models"], input[placeholder*="gpt"], .model-selector input').first();
     const hasModelInput = await modelInput.isVisible({ timeout: 2000 }).catch(() => false);
     console.log(`   Model input with datalist: ${hasModelInput ? '✅' : '❌'}`);
 

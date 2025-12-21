@@ -1,10 +1,10 @@
 import { google, drive_v3 } from 'googleapis';
 import { JWT } from 'google-auth-library';
 import { Readable } from 'stream';
-import { logger } from '../utils/logger';
-import { db } from '../database/connection';
-import type { ServiceAccountCredentials } from './google-workspace.service';
-import type { StorageUploadResult, StorageFile } from '../types/media-assets';
+import { logger } from '../utils/logger.js';
+import { db } from '../database/connection.js';
+import type { ServiceAccountCredentials } from './google-workspace.service.js';
+import type { StorageUploadResult, StorageFile } from '../types/media-assets.js';
 
 /**
  * Google Drive Service for Asset Management

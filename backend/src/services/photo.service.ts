@@ -2,8 +2,13 @@ import sharp from 'sharp';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs/promises';
 import path from 'path';
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
+import { fileURLToPath } from 'url';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
+
+// ESM equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 interface PhotoUploadOptions {
   userId?: string;

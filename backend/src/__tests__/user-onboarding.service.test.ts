@@ -68,8 +68,8 @@ jest.mock('bcryptjs', () => ({
 }));
 
 // Import after mocks
-import { userOnboardingService } from '../services/user-onboarding.service';
-import { OnboardingConfig, CreateOnboardingTemplateDTO } from '../types/user-lifecycle';
+import { userOnboardingService } from '../services/user-onboarding.service.js';
+import { OnboardingConfig, CreateOnboardingTemplateDTO } from '../types/user-lifecycle.js';
 
 describe('UserOnboardingService', () => {
   const testOrgId = 'test-org-id';

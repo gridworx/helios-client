@@ -24,7 +24,7 @@ jest.mock('../middleware/auth', () => ({
 }));
 
 // Import routes after mocking
-import organizationRoutes from '../routes/organization.routes';
+import organizationRoutes from '../routes/organization.routes.js';
 
 describe('Seed Data Verification', () => {
   let app: Express;

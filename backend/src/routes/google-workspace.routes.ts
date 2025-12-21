@@ -1,9 +1,9 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { body, validationResult } from 'express-validator';
-import { googleWorkspaceService } from '../services/google-workspace.service';
-import { logger } from '../utils/logger';
-import { db } from '../database/connection';
-import { syncScheduler } from '../services/sync-scheduler.service';
+import { googleWorkspaceService } from '../services/google-workspace.service.js';
+import { logger } from '../utils/logger.js';
+import { db } from '../database/connection.js';
+import { syncScheduler } from '../services/sync-scheduler.service.js';
 
 const router = Router();
 

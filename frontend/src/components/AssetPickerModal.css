@@ -135,6 +135,15 @@
   overflow: hidden;
 }
 
+/* No sidebar mode - for profile/avatar selection */
+.asset-picker-content.no-sidebar {
+  /* Grid takes full width when folder sidebar is hidden */
+}
+
+.asset-picker-content.no-sidebar .asset-grid-container {
+  flex: 1;
+}
+
 /* Folder sidebar */
 .folder-sidebar {
   width: 180px;

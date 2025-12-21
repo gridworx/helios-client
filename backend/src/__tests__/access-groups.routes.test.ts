@@ -60,7 +60,7 @@ jest.mock('../middleware/auth', () => ({
 }));
 
 // Import routes after mocking
-import accessGroupsRoutes from '../routes/access-groups.routes';
+import accessGroupsRoutes from '../routes/access-groups.routes.js';
 
 describe('Access Groups Routes', () => {
   let app: Express;

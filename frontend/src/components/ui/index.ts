@@ -18,3 +18,6 @@ export type { UserSelectorProps, User } from './UserSelector';
 
 export { SelectableBlock } from './SelectableBlock';
 export type { SelectableBlockProps } from './SelectableBlock';
+
+export { Toggle } from './Toggle';
+export type { ToggleProps } from './Toggle';

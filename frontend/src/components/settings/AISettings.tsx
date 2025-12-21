@@ -26,6 +26,7 @@ import {
   RefreshCw,
   AlertTriangle
 } from 'lucide-react';
+import { Toggle } from '../ui';
 
 type AIRole = 'viewer' | 'operator' | 'admin';
 import './AISettings.css';
@@ -469,14 +470,11 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
               <p>Allow users to interact with an AI assistant powered by your choice of LLM provider</p>
             </div>
           </div>
-          <label className="toggle-switch">
-            <input
-              type="checkbox"
-              checked={isEnabled}
-              onChange={(e) => setIsEnabled(e.target.checked)}
-            />
-            <span className="toggle-slider-simple"></span>
-          </label>
+          <Toggle
+            checked={isEnabled}
+            onChange={setIsEnabled}
+            size="medium"
+          />
         </div>
       </div>
 
@@ -585,27 +583,41 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
           </div>
           <span className="form-hint">Model identifier (e.g., gpt-4o, claude-3-opus, llama3.1:70b)</span>
 
-          {/* Show discovered models */}
+          {/* Show discovered models as clean dropdown */}
           {availableModels.length > 0 && (
             <div className="discovered-models">
-              <span className="models-label">Available models:</span>
-              <div className="models-list">
-                {availableModels.map(m => (
-                  <button
-                    key={m.name}
-                    type="button"
-                    className={`model-chip ${primaryModel === m.name ? 'selected' : ''}`}
-                    onClick={() => {
-                      setPrimaryModel(m.name);
-                      setToolTestResult(null);
-                    }}
-                  >
-                    <span className="model-name">{m.name}</span>
-                    <span className="model-size">{m.sizeFormatted}</span>
-                    {getToolSupportBadge(m.estimatedToolSupport)}
-                  </button>
-                ))}
+              <div className="models-dropdown-row">
+                <select
+                  className="form-input models-select"
+                  value={primaryModel}
+                  onChange={(e) => {
+                    setPrimaryModel(e.target.value);
+                    setToolTestResult(null);
+                  }}
+                >
+                  <option value="">Select a model...</option>
+                  {availableModels.map(m => (
+                    <option key={m.name} value={m.name}>
+                      {m.name} ({m.sizeFormatted}) {m.estimatedToolSupport === 'likely' ? '- Tools OK' : m.estimatedToolSupport === 'unlikely' ? '- No Tools' : ''}
+                    </option>
+                  ))}
+                </select>
+                <span className="models-count">{availableModels.length} models found</span>
               </div>
+              {primaryModel && availableModels.find(m => m.name === primaryModel) && (
+                <div className="selected-model-info">
+                  {(() => {
+                    const selected = availableModels.find(m => m.name === primaryModel);
+                    if (!selected) return null;
+                    return (
+                      <>
+                        <span className="model-detail"><strong>Size:</strong> {selected.sizeFormatted}</span>
+                        <span className="model-detail"><strong>Tools:</strong> {getToolSupportBadge(selected.estimatedToolSupport)}</span>
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
           )}
 

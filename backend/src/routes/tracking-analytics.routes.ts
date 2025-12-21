@@ -6,11 +6,11 @@
  */
 
 import { Router } from 'express';
-import { authenticateToken, requireAdmin } from '../middleware/auth';
-import { userAnalyticsService } from '../services/user-analytics.service';
-import { adminAnalyticsService } from '../services/admin-analytics.service';
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
+import { authenticateToken, requireAdmin } from '../middleware/auth.js';
+import { userAnalyticsService } from '../services/user-analytics.service.js';
+import { adminAnalyticsService } from '../services/admin-analytics.service.js';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
 
 const router = Router();
 

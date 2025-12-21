@@ -1,8 +1,8 @@
 import { CronJob } from 'cron';
-import { db } from '../database/connection';
+import { db } from '../database/connection.js';
 import { google } from 'googleapis';
 import * as Handlebars from 'handlebars';
-import { logger } from '../utils/logger';
+import { logger } from '../utils/logger.js';
 
 interface SignatureSyncJob {
   organizationId: string;

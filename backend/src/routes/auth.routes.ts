@@ -2,18 +2,18 @@ import { Router, Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
-import { asyncHandler } from '../middleware/errorHandler';
-import { PasswordSetupService } from '../services/password-setup.service';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
+import { asyncHandler } from '../middleware/errorHandler.js';
+import { PasswordSetupService } from '../services/password-setup.service.js';
 import {
   successResponse,
   errorResponse,
   validationErrorResponse,
   unauthorizedResponse,
   notFoundResponse
-} from '../utils/response';
-import { ErrorCode } from '../types/error-codes';
+} from '../utils/response.js';
+import { ErrorCode } from '../types/error-codes.js';
 
 const router = Router();
 

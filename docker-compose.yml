@@ -71,6 +71,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: helios_client_backend
+    user: root
     ports:
       - "3001:3001"
     environment:

@@ -5,14 +5,14 @@
  * Permission levels: admin, designer, campaign_manager, helpdesk, viewer
  */
 
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
 import {
   SignaturePermission,
   CreatePermissionDTO,
   PermissionLevel,
   hasCapability,
-} from '../types/signatures';
+} from '../types/signatures.js';
 
 // Database row type
 interface PermissionRow {

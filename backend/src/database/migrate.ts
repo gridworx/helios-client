@@ -1,7 +1,12 @@
-import { db } from './connection';
-import { logger } from '../utils/logger';
+import { db } from './connection.js';
+import { logger } from '../utils/logger.js';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+// ESM equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Simple database migration runner
@@ -69,8 +74,10 @@ export class MigrationRunner {
   }
 }
 
-// CLI runner
-if (require.main === module) {
+// CLI runner - ESM uses import.meta.url for main module detection
+const isMainModule = import.meta.url === `file://${process.argv[1]}`;
+
+if (isMainModule) {
   (async () => {
     try {
       const runner = new MigrationRunner();

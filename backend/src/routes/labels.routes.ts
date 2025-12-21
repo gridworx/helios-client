@@ -1,16 +1,16 @@
 import { Router, Request, Response } from 'express';
-import { logger } from '../utils/logger';
-import { authenticateToken } from '../middleware/auth';
+import { logger } from '../utils/logger.js';
+import { authenticateToken } from '../middleware/auth.js';
 import {
   getLabels,
   updateLabels,
   resetLabelsToDefaults,
   getLabelsWithAvailability,
-} from '../services/label.service';
+} from '../services/label.service.js';
 import {
   getAvailableEntities,
   getAvailableEntitiesDetailed,
-} from '../services/entity-availability.service';
+} from '../services/entity-availability.service.js';
 
 const router = Router();
 

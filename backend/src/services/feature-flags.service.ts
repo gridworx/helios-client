@@ -1,6 +1,6 @@
-import { db } from '../database/connection';
-import { cacheService } from './cache.service';
-import { logger } from '../utils/logger';
+import { db } from '../database/connection.js';
+import { cacheService } from './cache.service.js';
+import { logger } from '../utils/logger.js';
 
 export interface FeatureFlag {
   id: string;

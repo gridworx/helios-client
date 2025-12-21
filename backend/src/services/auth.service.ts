@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secure_jwt_secret_key_here';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';

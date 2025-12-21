@@ -2,12 +2,16 @@ import { Page } from '@playwright/test';
 
 /**
  * Shared test configuration
+ *
+ * IMPORTANT: Test credentials must match actual database records.
+ * - mike@gridworx.io has password "admin123" (verified 2025-12-19)
+ * - Other users may have different passwords from seed data
  */
 export const TEST_CONFIG = {
   baseUrl: 'http://localhost:3000',
   apiUrl: 'http://localhost:3001',
-  testEmail: 'jack@gridworx.io',
-  testPassword: 'P@ssw0rd123!',
+  testEmail: 'mike@gridworx.io',
+  testPassword: 'admin123',
 };
 
 /**

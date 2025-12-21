@@ -5,7 +5,7 @@
  * Used by UserOnboardingService and UserOffboardingService.
  */
 
-import { db } from '../database/connection';
+import { db } from '../database/connection.js';
 import {
   UserLifecycleLog,
   CreateLifecycleLogDTO,
@@ -14,7 +14,7 @@ import {
   TriggeredBy,
   LifecycleActivityFeedItem,
   ActionSummary,
-} from '../types/user-lifecycle';
+} from '../types/user-lifecycle.js';
 
 class LifecycleLogService {
   /**

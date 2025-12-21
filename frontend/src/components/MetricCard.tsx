@@ -27,7 +27,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   footer,
   state = 'default',
   size = 'small',
-  platformColor,
+  platformColor: _platformColor, // Reserved for future styling
   trend,
   trendValue,
   onClick,
@@ -48,7 +48,6 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       onClick={onClick}
       style={{
         gridColumn: `span ${gridColumn}`,
-        borderLeftColor: platformColor,
         cursor: onClick ? 'pointer' : 'default',
       }}
     >

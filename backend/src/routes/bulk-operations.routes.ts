@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
-import { bulkOperationsService } from '../services/bulk-operations.service';
-import { csvParserService, ValidationRule } from '../services/csv-parser.service';
-import { authenticateToken } from '../middleware/auth';
-import { logger } from '../utils/logger';
+import { bulkOperationsService } from '../services/bulk-operations.service.js';
+import { csvParserService, ValidationRule } from '../services/csv-parser.service.js';
+import { authenticateToken } from '../middleware/auth.js';
+import { logger } from '../utils/logger.js';
 
 const router = Router();
 

@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
-import { dataQualityService } from '../services/data-quality.service';
-import { logger } from '../utils/logger';
-import { authenticateToken } from '../middleware/auth';
+import { dataQualityService } from '../services/data-quality.service.js';
+import { logger } from '../utils/logger.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = Router();
 

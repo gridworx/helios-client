@@ -1,14 +1,14 @@
-import { logger } from '../utils/logger';
-import { db } from '../database/connection';
-import { googleDriveService } from './google-drive.service';
-import { s3Service } from './s3.service';
+import { logger } from '../utils/logger.js';
+import { db } from '../database/connection.js';
+import { googleDriveService } from './google-drive.service.js';
+import { s3Service } from './s3.service.js';
 import crypto from 'crypto';
 import type {
   StorageBackend,
   StorageUploadResult,
   StorageFile,
   MediaAssetSettings,
-} from '../types/media-assets';
+} from '../types/media-assets.js';
 
 /**
  * Media Asset Storage Service

@@ -6,8 +6,8 @@
  * answering questions about how to do something.
  */
 
-import { searchKnowledge, getSuggestions } from '../search';
-import { KnowledgeType } from '../types';
+import { searchKnowledge, getSuggestions } from '../search.js';
+import { KnowledgeType } from '../types.js';
 
 /**
  * Tool definition for MCP/OpenAI function calling

@@ -3,12 +3,12 @@
 ## Jack's Account (Admin User)
 
 **Email:** `jack@gridworx.io`
-**Password:** `P@ssw0rd123!`
+**Password:** `password123`
 **Role:** `admin`
 
 **Database Password Hash:**
 ```
-$2a$12$W5.qZAl8rvz0XgLYUSdigezs6vmIwLyhvg4nl4JirUMxQT.mI6a.a
+$2a$12$nT.ZiUxl2Fz/3Eq0weT1EOXKHZBmkFu8NXhx7MxqtN.HB/CIEPZa2
 ```
 
 ## IMPORTANT: Enable Jack's Account Before Testing
@@ -32,12 +32,12 @@ If you need to reset Jack's password:
 
 ```bash
 # Generate new hash
-docker exec helios_client_backend node -e "const bcrypt = require('bcryptjs'); bcrypt.hash('P@ssw0rd123!', 12).then(hash => console.log(hash));"
+docker exec helios_client_backend node -e "const bcrypt = require('bcryptjs'); bcrypt.hash('password123', 12).then(hash => console.log(hash));"
 
 # Update using heredoc (to preserve $ signs)
 cat <<'EOSQL' | docker exec -i helios_client_postgres psql -U postgres -d helios_client
 UPDATE organization_users
-SET password_hash = '$2a$12$gPcC9quhbEbVTccijeS30.FtSBnod9zUvTfXGxlAvsnZH5WMZ1B0C',
+SET password_hash = '$2a$12$nT.ZiUxl2Fz/3Eq0weT1EOXKHZBmkFu8NXhx7MxqtN.HB/CIEPZa2',
     is_active = true,
     status = 'active'
 WHERE email = 'jack@gridworx.io';

@@ -7,8 +7,8 @@
  */
 
 import crypto from 'crypto';
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
 
 export interface UserTrackingToken {
   id: string;

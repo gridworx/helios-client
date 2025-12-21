@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { body, validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
-import { db } from '../database/connection';
-import { dbInitializer } from '../database/init';
-import { logger } from '../utils/logger';
-import { asyncHandler, createError } from '../middleware/errorHandler';
+import { db } from '../database/connection.js';
+import { dbInitializer } from '../database/init.js';
+import { logger } from '../utils/logger.js';
+import { asyncHandler, createError } from '../middleware/errorHandler.js';
 
 const router = Router();
 

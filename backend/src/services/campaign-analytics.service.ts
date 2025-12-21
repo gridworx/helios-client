@@ -5,7 +5,7 @@
  * including open rates, geographic distribution, and time series data.
  */
 
-import { db } from '../database/connection';
+import { db } from '../database/connection.js';
 
 interface CampaignStats {
   campaignId: string;

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
-import { authenticateToken } from '../middleware/auth';
-import { helpdeskService } from '../services/helpdesk.service';
-import { logger } from '../utils/logger';
+import { authenticateToken } from '../middleware/auth.js';
+import { helpdeskService } from '../services/helpdesk.service.js';
+import { logger } from '../utils/logger.js';
 
 const router = Router();
 

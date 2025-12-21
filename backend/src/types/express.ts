@@ -26,6 +26,8 @@ declare global {
         // Access control flags (added by auth middleware)
         isAdmin: boolean;       // Can access admin UI
         isEmployee: boolean;    // Can access employee/user UI
+        // Authentication method (added by session-auth middleware)
+        authMethod?: 'session' | 'jwt' | 'api-key';
         // API Key context
         keyType?: 'service' | 'vendor';
         apiKeyId?: string;

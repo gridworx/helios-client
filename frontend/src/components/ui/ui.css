@@ -1082,3 +1082,122 @@
   background: var(--primary-200);
   color: var(--gray-700);
 }
+
+/* ========================================
+   TOGGLE COMPONENT - Standardized Switch
+   Use this for all on/off settings
+   ======================================== */
+
+.helios-toggle-container {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-lg);
+}
+
+.helios-toggle-container.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.helios-toggle-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  flex: 1;
+  min-width: 0;
+}
+
+.helios-toggle-label {
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--gray-900);
+  cursor: pointer;
+}
+
+.helios-toggle-description {
+  font-size: var(--text-sm);
+  color: var(--gray-600);
+  line-height: 1.4;
+}
+
+.helios-toggle {
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+}
+
+.helios-toggle:focus-visible .helios-toggle-track {
+  box-shadow: 0 0 0 2px var(--primary-200);
+}
+
+.helios-toggle-track {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: 9999px;
+  background: var(--gray-300);
+  transition: background var(--transition-fast);
+}
+
+.helios-toggle.checked .helios-toggle-track {
+  background: var(--primary-600, #8b5cf6);
+}
+
+.helios-toggle-thumb {
+  position: absolute;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  transition: transform var(--transition-fast);
+}
+
+/* Medium size (default) - 44x24px */
+.helios-toggle-medium .helios-toggle-track {
+  width: 44px;
+  height: 24px;
+}
+
+.helios-toggle-medium .helios-toggle-thumb {
+  width: 20px;
+  height: 20px;
+  left: 2px;
+  top: 2px;
+}
+
+.helios-toggle-medium.checked .helios-toggle-thumb {
+  transform: translateX(20px);
+}
+
+/* Small size - 36x20px */
+.helios-toggle-small .helios-toggle-track {
+  width: 36px;
+  height: 20px;
+}
+
+.helios-toggle-small .helios-toggle-thumb {
+  width: 16px;
+  height: 16px;
+  left: 2px;
+  top: 2px;
+}
+
+.helios-toggle-small.checked .helios-toggle-thumb {
+  transform: translateX(16px);
+}
+
+/* Disabled state */
+.helios-toggle:disabled {
+  cursor: not-allowed;
+}
+
+.helios-toggle:disabled .helios-toggle-track {
+  background: var(--gray-200);
+}
+
+.helios-toggle:disabled.checked .helios-toggle-track {
+  background: var(--primary-300);
+}

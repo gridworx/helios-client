@@ -7,13 +7,18 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { KnowledgeEntry } from './types';
-import { logger } from '../utils/logger';
+import { fileURLToPath } from 'url';
+import { KnowledgeEntry } from './types.js';
+import { logger } from '../utils/logger.js';
+
+// ESM equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Re-export types and search functions
-export * from './types';
-export * from './search';
-export * from './synonyms';
+export * from './types.js';
+export * from './search.js';
+export * from './synonyms.js';
 
 // Cache for loaded knowledge base
 let knowledgeCache: KnowledgeEntry[] | null = null;

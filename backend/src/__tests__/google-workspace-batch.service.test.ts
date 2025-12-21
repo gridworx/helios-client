@@ -2,7 +2,7 @@
  * Unit tests for Google Workspace Batch Service
  */
 
-import { googleWorkspaceBatchService, BulkUserUpdate, BulkGroupMemberOperation } from '../services/google-workspace-batch.service';
+import { googleWorkspaceBatchService, BulkUserUpdate, BulkGroupMemberOperation } from '../services/google-workspace-batch.service.js';
 
 // Mock the database connection
 jest.mock('../database/connection', () => ({
@@ -43,7 +43,7 @@ jest.mock('../utils/logger', () => ({
   },
 }));
 
-import { db } from '../database/connection';
+import { db } from '../database/connection.js';
 import { google } from 'googleapis';
 
 describe('GoogleWorkspaceBatchService', () => {

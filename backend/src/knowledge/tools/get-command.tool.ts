@@ -5,7 +5,7 @@
  * Use when you know the command name and need full syntax/examples.
  */
 
-import { getCommandByName } from '../search';
+import { getCommandByName } from '../search.js';
 
 /**
  * Tool definition for MCP/OpenAI function calling

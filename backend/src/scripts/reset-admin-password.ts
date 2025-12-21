@@ -2,7 +2,7 @@
  * Reset Admin Password Script
  * Sets password for admin@gridworx.io to "admin123"
  */
-import { db } from '../database/connection';
+import { db } from '../database/connection.js';
 import bcrypt from 'bcryptjs';
 
 async function resetAdminPassword() {

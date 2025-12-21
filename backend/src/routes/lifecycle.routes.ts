@@ -9,12 +9,12 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { userOnboardingService } from '../services/user-onboarding.service';
-import { userOffboardingService } from '../services/user-offboarding.service';
-import { scheduledActionService } from '../services/scheduled-action.service';
-import { lifecycleLogService } from '../services/lifecycle-log.service';
-import { authenticateToken } from '../middleware/auth';
-import { logger } from '../utils/logger';
+import { userOnboardingService } from '../services/user-onboarding.service.js';
+import { userOffboardingService } from '../services/user-offboarding.service.js';
+import { scheduledActionService } from '../services/scheduled-action.service.js';
+import { lifecycleLogService } from '../services/lifecycle-log.service.js';
+import { authenticateToken } from '../middleware/auth.js';
+import { logger } from '../utils/logger.js';
 
 const router = Router();
 

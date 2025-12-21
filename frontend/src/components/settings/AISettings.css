@@ -801,59 +801,46 @@
 
 .discovered-models {
   margin-top: 12px;
-  padding: 12px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
 }
 
-.models-label {
-  display: block;
+.models-dropdown-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.models-select {
+  flex: 1;
+  max-width: 400px;
+}
+
+.models-count {
   font-size: 12px;
-  font-weight: 500;
   color: #64748b;
-  margin-bottom: 8px;
+  white-space: nowrap;
 }
 
-.models-list {
+.selected-model-info {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.model-chip {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  padding: 10px 14px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.15s;
-  text-align: left;
-}
-
-.model-chip:hover {
-  border-color: #cbd5e1;
-  background: #f1f5f9;
-}
-
-.model-chip.selected {
-  border-color: #8b5cf6;
-  background: #faf5ff;
-}
-
-.model-chip .model-name {
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-radius: 6px;
   font-size: 13px;
-  font-weight: 500;
-  color: #1e293b;
+  color: #475569;
 }
 
-.model-chip .model-size {
-  font-size: 11px;
+.model-detail {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.model-detail strong {
   color: #64748b;
+  font-weight: 500;
 }
 
 .tool-badge {
@@ -937,7 +924,18 @@
     flex-direction: column;
   }
 
-  .model-chip {
-    width: 100%;
+  .models-dropdown-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .models-select {
+    max-width: none;
+  }
+
+  .selected-model-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
   }
 }

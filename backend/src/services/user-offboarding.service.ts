@@ -7,16 +7,16 @@
 
 import { google } from 'googleapis';
 import { JWT } from 'google-auth-library';
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
-import { lifecycleLogService } from './lifecycle-log.service';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
+import { lifecycleLogService } from './lifecycle-log.service.js';
 import {
   OffboardingTemplate,
   OffboardingConfig,
   CreateOffboardingTemplateDTO,
   UpdateOffboardingTemplateDTO,
   OFFBOARDING_STEPS,
-} from '../types/user-lifecycle';
+} from '../types/user-lifecycle.js';
 
 interface OffboardingResult {
   success: boolean;

@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { db } from '../database/connection';
-import { requireAuth, requirePermission } from '../middleware/auth';
-import { signatureTemplateService } from '../services/signature-template.service';
-import { MERGE_FIELDS } from '../types/signatures';
+import { db } from '../database/connection.js';
+import { requireAuth, requirePermission } from '../middleware/auth.js';
+import { signatureTemplateService } from '../services/signature-template.service.js';
+import { MERGE_FIELDS } from '../types/signatures.js';
 
 const router = Router();
 

@@ -5,8 +5,8 @@
  * Users can see their own email open statistics and trends.
  */
 
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
 
 export interface PeriodStats {
   opens: number;

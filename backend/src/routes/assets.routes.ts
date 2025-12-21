@@ -1,12 +1,12 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import multer from 'multer';
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
-import { authenticateToken } from '../middleware/auth';
-import { mediaAssetStorageService } from '../services/media-asset-storage.service';
-import { mediaAssetCacheService } from '../services/media-asset-cache.service';
-import { googleDriveService } from '../services/google-drive.service';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
+import { authenticateToken } from '../middleware/auth.js';
+import { mediaAssetStorageService } from '../services/media-asset-storage.service.js';
+import { mediaAssetCacheService } from '../services/media-asset-cache.service.js';
+import { googleDriveService } from '../services/google-drive.service.js';
 import type {
   MediaAsset,
   MediaAssetWithUrl,
@@ -21,7 +21,7 @@ import type {
   AssetCategory,
   StorageBackend,
   ALLOWED_MIME_TYPES,
-} from '../types/media-assets';
+} from '../types/media-assets.js';
 
 const router = Router();
 

@@ -5,10 +5,10 @@
  * for finding relevant knowledge entries.
  */
 
-import { KnowledgeEntry, SearchOptions, SearchResult, SearchResponse } from './types';
-import { expandTerms } from './synonyms';
-import { loadKnowledgeBase } from './index';
-import { logger } from '../utils/logger';
+import { KnowledgeEntry, SearchOptions, SearchResult, SearchResponse } from './types.js';
+import { expandTerms } from './synonyms.js';
+import { loadKnowledgeBase } from './index.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Search the knowledge base

@@ -1,9 +1,9 @@
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
-import { queueService, BulkOperationJobData } from './queue.service';
-import { csvParserService, ValidationRule } from './csv-parser.service';
-import { bulkOperationEvents } from '../websocket/bulk-operations.gateway';
-import { googleWorkspaceBatchService, BulkUserUpdate, BulkGroupMemberOperation } from './google-workspace-batch.service';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
+import { queueService, BulkOperationJobData } from './queue.service.js';
+import { csvParserService, ValidationRule } from './csv-parser.service.js';
+import { bulkOperationEvents } from '../websocket/bulk-operations.gateway.js';
+import { googleWorkspaceBatchService, BulkUserUpdate, BulkGroupMemberOperation } from './google-workspace-batch.service.js';
 
 export interface BulkOperation {
   id: string;

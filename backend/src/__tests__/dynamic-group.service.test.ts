@@ -14,7 +14,7 @@ import {
   DynamicGroupRule,
   DynamicGroupField,
   DynamicGroupOperator,
-} from '../services/dynamic-group.service';
+} from '../services/dynamic-group.service.js';
 
 describe('DynamicGroupService', () => {
   const testOrganizationId = '11111111-1111-1111-1111-111111111111';

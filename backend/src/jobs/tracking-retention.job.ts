@@ -11,8 +11,8 @@
  * - Manual trigger support
  */
 
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
 
 interface RetentionJobConfig {
   enabled: boolean;

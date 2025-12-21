@@ -7,12 +7,17 @@
  * - gw_groups
  * - gw_org_units
  *
- * Usage: npx ts-node src/scripts/run-gw-migration.ts
+ * Usage: npx tsx src/scripts/run-gw-migration.ts
  */
 
-import { db } from '../database/connection';
+import { db } from '../database/connection.js';
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+// ESM equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 async function runMigration() {
   try {
@@ -53,9 +58,7 @@ async function runMigration() {
   }
 }
 
-// Run if executed directly
-if (require.main === module) {
-  runMigration();
-}
+// Run the migration directly since ESM modules are always run as main
+runMigration();
 
 export { runMigration };

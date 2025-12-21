@@ -1,7 +1,7 @@
 import { Job } from 'bull';
-import { queueService, BulkOperationJobData } from '../services/queue.service';
-import { bulkOperationsService } from '../services/bulk-operations.service';
-import { logger } from '../utils/logger';
+import { queueService, BulkOperationJobData } from '../services/queue.service.js';
+import { bulkOperationsService } from '../services/bulk-operations.service.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Bulk operation worker

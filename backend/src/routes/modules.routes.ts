@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express';
-import { requireAuth, requirePermission } from '../middleware/auth';
-import { db } from '../database/connection';
-import { googleWorkspaceService } from '../services/google-workspace.service';
-import { googleWorkspaceSyncService } from '../services/google-workspace-sync.service';
-import { logger } from '../utils/logger';
+import { requireAuth, requirePermission } from '../middleware/auth.js';
+import { db } from '../database/connection.js';
+import { googleWorkspaceService } from '../services/google-workspace.service.js';
+import { googleWorkspaceSyncService } from '../services/google-workspace-sync.service.js';
+import { logger } from '../utils/logger.js';
 import crypto from 'crypto';
 
 const router = Router();

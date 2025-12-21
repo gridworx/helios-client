@@ -9,9 +9,9 @@
  * - Change detection and auto-deploy on assignment changes
  */
 
-import { signatureSyncService } from '../services/signature-sync.service';
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
+import { signatureSyncService } from '../services/signature-sync.service.js';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
 
 interface SignatureSyncJobConfig {
   enabled: boolean;

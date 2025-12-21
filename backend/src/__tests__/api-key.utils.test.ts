@@ -15,7 +15,7 @@ import {
   isValidScope,
   hasPermission,
   expandPermissions,
-} from '../utils/apiKey';
+} from '../utils/apiKey.js';
 
 describe('API Key Utilities', () => {
   describe('generateApiKey', () => {

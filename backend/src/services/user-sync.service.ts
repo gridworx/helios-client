@@ -1,6 +1,6 @@
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
-import { googleWorkspaceService } from './google-workspace.service';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
+import { googleWorkspaceService } from './google-workspace.service.js';
 
 export interface UnifiedUser {
   id: string;

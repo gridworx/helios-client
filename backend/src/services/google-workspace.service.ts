@@ -1,7 +1,7 @@
 import { google } from 'googleapis';
 import { JWT } from 'google-auth-library';
-import { logger } from '../utils/logger';
-import { db } from '../database/connection';
+import { logger } from '../utils/logger.js';
+import { db } from '../database/connection.js';
 
 export interface ServiceAccountCredentials {
   type: string;

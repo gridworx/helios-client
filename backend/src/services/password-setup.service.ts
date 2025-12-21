@@ -1,7 +1,7 @@
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
 import crypto from 'crypto';
-import { EmailService } from './email.service';
+import { EmailService } from './email.service.js';
 
 interface PasswordSetupToken {
   id: string;

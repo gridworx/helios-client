@@ -1,8 +1,8 @@
 import { Server, Socket } from 'socket.io';
 import { Server as HTTPServer } from 'http';
-import { logger } from '../utils/logger';
-import { authenticateSocketToken } from '../middleware/socket-auth';
-import { helpdeskService } from '../services/helpdesk.service';
+import { logger } from '../utils/logger.js';
+import { authenticateSocketToken } from '../middleware/socket-auth.js';
+import { helpdeskService } from '../services/helpdesk.service.js';
 
 export class PresenceGateway {
   private io: Server;

@@ -20,9 +20,9 @@ jest.mock('../services/user-analytics.service', () => ({
   },
 }));
 
-import { db } from '../database/connection';
-import { userAnalyticsService } from '../services/user-analytics.service';
-import { adminAnalyticsService, OrgAnalytics } from '../services/admin-analytics.service';
+import { db } from '../database/connection.js';
+import { userAnalyticsService } from '../services/user-analytics.service.js';
+import { adminAnalyticsService, OrgAnalytics } from '../services/admin-analytics.service.js';
 
 const mockQuery = db.query as jest.MockedFunction<typeof db.query>;
 const mockGetMyStats = userAnalyticsService.getMyStats as jest.MockedFunction<typeof userAnalyticsService.getMyStats>;

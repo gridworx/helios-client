@@ -8,7 +8,7 @@ import express, { Express, Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
 // Import the actual middleware (no mocking for these tests)
-import { requireAuth, requireAdmin, requireEmployee } from '../middleware/auth';
+import { requireAuth, requireAdmin, requireEmployee } from '../middleware/auth.js';
 
 // Mock logger to suppress output
 jest.mock('../utils/logger', () => ({

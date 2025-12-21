@@ -1,18 +1,18 @@
 import { Router, Request, Response } from 'express';
-import { logger } from '../utils/logger';
-import { authenticateToken } from '../middleware/auth';
-import { db } from '../database/connection';
-import { googleWorkspaceService } from '../services/google-workspace.service';
-import { activityTracker } from '../services/activity-tracker.service';
-import { dynamicGroupService, DynamicGroupField, DynamicGroupOperator, RuleLogic } from '../services/dynamic-group.service';
+import { logger } from '../utils/logger.js';
+import { authenticateToken } from '../middleware/auth.js';
+import { db } from '../database/connection.js';
+import { googleWorkspaceService } from '../services/google-workspace.service.js';
+import { activityTracker } from '../services/activity-tracker.service.js';
+import { dynamicGroupService, DynamicGroupField, DynamicGroupOperator, RuleLogic } from '../services/dynamic-group.service.js';
 import {
   successResponse,
   createdResponse,
   errorResponse,
   notFoundResponse,
   validationErrorResponse
-} from '../utils/response';
-import { ErrorCode } from '../types/error-codes';
+} from '../utils/response.js';
+import { ErrorCode } from '../types/error-codes.js';
 
 const router = Router();
 

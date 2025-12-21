@@ -5,8 +5,8 @@
  * campaign scheduling, audience resolution, and tracking.
  */
 
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
 
 // ==========================================
 // TYPES

@@ -2,9 +2,9 @@ import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { s3Service } from './s3.service';
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
+import { s3Service } from './s3.service.js';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
 
 interface ThumbnailResult {
   success: boolean;

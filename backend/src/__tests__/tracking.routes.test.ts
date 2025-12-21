@@ -15,8 +15,8 @@ jest.mock('../services/tracking-events.service', () => ({
   },
 }));
 
-import { trackingEventsService } from '../services/tracking-events.service';
-import trackingRoutes from '../routes/tracking.routes';
+import { trackingEventsService } from '../services/tracking-events.service.js';
+import trackingRoutes from '../routes/tracking.routes.js';
 
 const mockRecordEvent = trackingEventsService.recordEvent as jest.MockedFunction<typeof trackingEventsService.recordEvent>;
 const mockRecordUserEvent = trackingEventsService.recordUserEvent as jest.MockedFunction<typeof trackingEventsService.recordUserEvent>;

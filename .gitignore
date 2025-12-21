@@ -62,3 +62,10 @@ playwright-report/
 
 # Reference screenshots (for design discussions)
 e2e/reference-screenshots/
+
+# Secrets
+.secrets/
+backend/.secrets/
+
+# Permission issues / Archives
+openspec/changes/archive/fix-better-auth-integration/

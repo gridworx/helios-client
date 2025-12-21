@@ -7,8 +7,8 @@
  * For multi-tenant needs, use Helios MTP instead.
  */
 
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
 
 interface Organization {
   id: string;

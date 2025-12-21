@@ -6,9 +6,9 @@
  */
 
 import crypto from 'crypto';
-import { db } from '../database/connection';
-import { trackingPixelService } from './tracking-pixel.service';
-import { userTrackingService } from './user-tracking.service';
+import { db } from '../database/connection.js';
+import { trackingPixelService } from './tracking-pixel.service.js';
+import { userTrackingService } from './user-tracking.service.js';
 
 interface TrackingEvent {
   id: string;

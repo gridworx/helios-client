@@ -20,7 +20,7 @@
  */
 
 import { Response } from 'express';
-import { ErrorCode, ErrorStatusMap } from '../types/error-codes';
+import { ErrorCode, ErrorStatusMap } from '../types/error-codes.js';
 
 /**
  * Interface for pagination metadata

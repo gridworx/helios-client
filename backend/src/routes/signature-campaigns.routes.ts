@@ -7,13 +7,13 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { requireAuth, requirePermission } from '../middleware/auth';
+import { requireAuth, requirePermission } from '../middleware/auth.js';
 import {
   signatureCampaignService,
   CreateCampaignDTO,
   UpdateCampaignDTO,
   CampaignStatus,
-} from '../services/signature-campaign.service';
+} from '../services/signature-campaign.service.js';
 
 const router = Router();
 

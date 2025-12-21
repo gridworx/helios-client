@@ -5,18 +5,18 @@
  * Includes queue management, execution, and retry logic.
  */
 
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
-import { lifecycleLogService } from './lifecycle-log.service';
-import { userOnboardingService } from './user-onboarding.service';
-import { userOffboardingService } from './user-offboarding.service';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
+import { lifecycleLogService } from './lifecycle-log.service.js';
+import { userOnboardingService } from './user-onboarding.service.js';
+import { userOffboardingService } from './user-offboarding.service.js';
 import {
   ScheduledUserAction,
   CreateScheduledActionDTO,
   UpdateScheduledActionDTO,
   ActionType,
   ActionStatus,
-} from '../types/user-lifecycle';
+} from '../types/user-lifecycle.js';
 
 interface ProcessResult {
   processed: number;

@@ -1,6 +1,6 @@
 import nodemailer, { Transporter } from 'nodemailer';
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
 import crypto from 'crypto';
 
 const ENCRYPTION_KEY = process.env.EMAIL_ENCRYPTION_KEY || 'your-32-character-encryption-key!!';

@@ -34,7 +34,7 @@ jest.mock('../services/google-drive.service', () => ({
 }));
 
 // Import service after mocking
-import { MediaAssetStorageService } from '../services/media-asset-storage.service';
+import { MediaAssetStorageService } from '../services/media-asset-storage.service.js';
 
 describe('MediaAssetStorageService', () => {
   let service: MediaAssetStorageService;

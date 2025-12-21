@@ -51,6 +51,9 @@ export function AssetPickerModal({
   const [showUpload, setShowUpload] = useState(false);
   const [uploading, setUploading] = useState(false);
 
+  // Hide folder sidebar for user-specific categories (profiles, avatars)
+  const hideFolders = category === 'profiles' || category === 'avatar' || category === 'profile';
+
   // Fetch assets
   const fetchAssets = useCallback(async () => {
     try {
@@ -74,7 +77,13 @@ export function AssetPickerModal({
       }
 
       const data = await response.json();
-      let assetList = data.data || [];
+      // API returns { data: { assets: [...], total, limit, offset } }
+      let assetList = data.data?.assets || data.data || [];
+
+      // Ensure assetList is an array
+      if (!Array.isArray(assetList)) {
+        assetList = [];
+      }
 
       // Filter by accepted types if specified
       if (acceptedTypes && acceptedTypes.length > 0) {
@@ -234,27 +243,29 @@ export function AssetPickerModal({
         )}
 
         {/* Main content */}
-        <div className="asset-picker-content">
-          {/* Folder sidebar */}
-          <div className="folder-sidebar">
-            <div
-              className={`folder-item ${!selectedFolder ? 'active' : ''}`}
-              onClick={() => setSelectedFolder(null)}
-            >
-              <FolderOpen size={16} />
-              <span>All Files</span>
-            </div>
-            {folders.map(folder => (
+        <div className={`asset-picker-content ${hideFolders ? 'no-sidebar' : ''}`}>
+          {/* Folder sidebar - hidden for profile/avatar categories */}
+          {!hideFolders && (
+            <div className="folder-sidebar">
               <div
-                key={folder.id}
-                className={`folder-item ${selectedFolder === folder.id ? 'active' : ''}`}
-                onClick={() => setSelectedFolder(folder.id)}
+                className={`folder-item ${!selectedFolder ? 'active' : ''}`}
+                onClick={() => setSelectedFolder(null)}
               >
                 <FolderOpen size={16} />
-                <span>{folder.name}</span>
+                <span>All Files</span>
               </div>
-            ))}
-          </div>
+              {folders.map(folder => (
+                <div
+                  key={folder.id}
+                  className={`folder-item ${selectedFolder === folder.id ? 'active' : ''}`}
+                  onClick={() => setSelectedFolder(folder.id)}
+                >
+                  <FolderOpen size={16} />
+                  <span>{folder.name}</span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Asset grid */}
           <div className="asset-grid-container">

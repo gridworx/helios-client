@@ -5,8 +5,8 @@
  * merge field parsing, and template rendering.
  */
 
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
 import {
   SignatureTemplate,
   CreateSignatureTemplateDTO,
@@ -16,8 +16,8 @@ import {
   RenderedSignature,
   MERGE_FIELDS,
   getMergeField,
-} from '../types/signatures';
-import { userTrackingService } from './user-tracking.service';
+} from '../types/signatures.js';
+import { userTrackingService } from './user-tracking.service.js';
 
 // Tracking settings interface
 interface TrackingSettings {

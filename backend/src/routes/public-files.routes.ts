@@ -1,11 +1,16 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
 import { v4 as uuidv4 } from 'uuid';
 import sharp from 'sharp';
-import { db } from '../database/connection';
-import { requireAuth, requirePermission } from '../middleware/auth';
+import { db } from '../database/connection.js';
+import { requireAuth, requirePermission } from '../middleware/auth.js';
+
+// ESM equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const router = Router();
 

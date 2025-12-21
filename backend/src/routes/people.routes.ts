@@ -1,8 +1,8 @@
 import express from 'express';
-import { requireAuth, requireEmployee } from '../middleware/auth';
-import { peopleService } from '../services/people.service';
-import { mediaUploadService } from '../services/media-upload.service';
-import { logger } from '../utils/logger';
+import { requireAuth, requireEmployee } from '../middleware/auth.js';
+import { peopleService } from '../services/people.service.js';
+import { mediaUploadService } from '../services/media-upload.service.js';
+import { logger } from '../utils/logger.js';
 
 const router = express.Router();
 

@@ -38,7 +38,7 @@ jest.mock('../middleware/auth', () => ({
 }));
 
 // Import routes after mocking
-import peopleRoutes from '../routes/people.routes';
+import peopleRoutes from '../routes/people.routes.js';
 
 describe('People Routes', () => {
   let app: Express;

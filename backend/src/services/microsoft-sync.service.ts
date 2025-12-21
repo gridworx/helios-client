@@ -1,6 +1,6 @@
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
-import { microsoftGraphService, MicrosoftUser, MicrosoftGroup, MicrosoftLicense } from './microsoft-graph.service';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
+import { microsoftGraphService, MicrosoftUser, MicrosoftGroup, MicrosoftLicense } from './microsoft-graph.service.js';
 import crypto from 'crypto';
 
 /**

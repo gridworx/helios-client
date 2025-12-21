@@ -13,13 +13,14 @@
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
-import { authenticateToken } from './auth';
-import { encryptionService } from '../services/encryption.service';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
+import { authenticateToken } from './auth.js';
+import { encryptionService } from '../services/encryption.service.js';
 import axios from 'axios';
 import { Client } from '@microsoft/microsoft-graph-client';
 import { ClientSecretCredential } from '@azure/identity';
+// @ts-expect-error - ESM subpath import types not fully supported
 import { TokenCredentialAuthenticationProvider } from '@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials';
 
 export const microsoftTransparentProxyRouter = Router();

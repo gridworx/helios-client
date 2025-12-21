@@ -1,13 +1,13 @@
 import { Router, Request, Response } from 'express';
-import { authenticateToken, requireAdmin } from '../middleware/auth';
-import { llmGatewayService, ChatMessage, Tool, ToolCall, AIRole, OllamaModel, ToolTestResult } from '../services/llm-gateway.service';
-import { logger } from '../utils/logger';
+import { authenticateToken, requireAdmin } from '../middleware/auth.js';
+import { llmGatewayService, ChatMessage, Tool, ToolCall, AIRole, OllamaModel, ToolTestResult } from '../services/llm-gateway.service.js';
+import { logger } from '../utils/logger.js';
 import {
   successResponse,
   errorResponse,
   validationErrorResponse,
-} from '../utils/response';
-import { ErrorCode } from '../types/error-codes';
+} from '../utils/response.js';
+import { ErrorCode } from '../types/error-codes.js';
 import { v4 as uuidv4 } from 'uuid';
 import {
   searchKnowledgeToolDefinition,
@@ -16,7 +16,7 @@ import {
   executeKnowledgeTool,
   dataQueryTools,
   executeDataQueryTool
-} from '../knowledge/tools';
+} from '../knowledge/tools/index.js';
 
 const router = Router();
 

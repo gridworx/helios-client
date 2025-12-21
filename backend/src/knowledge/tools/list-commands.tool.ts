@@ -5,7 +5,7 @@
  * Use this to discover what commands exist before using search_knowledge.
  */
 
-import { listCommands } from '../search';
+import { listCommands } from '../search.js';
 
 /**
  * Tool definition for MCP/OpenAI function calling

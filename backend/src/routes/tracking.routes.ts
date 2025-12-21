@@ -7,7 +7,7 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { trackingEventsService } from '../services/tracking-events.service';
+import { trackingEventsService } from '../services/tracking-events.service.js';
 
 const router = Router();
 

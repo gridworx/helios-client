@@ -19,8 +19,8 @@ import {
   ListToolsRequestSchema,
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import { openApiToMcpTools, getToolDefinitions, McpToolDefinition, OpenApiSpec } from './openapi-converter';
-import { logger } from '../utils/logger';
+import { openApiToMcpTools, getToolDefinitions, McpToolDefinition, OpenApiSpec } from './openapi-converter.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * MCP Server configuration

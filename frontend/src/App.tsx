@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom'
 import './App.css'
 import { LoginPage } from './pages/LoginPage'
@@ -46,12 +46,12 @@ import { ChatPanel } from './components/ai/ChatPanel'
 import { HelpWidget } from './components/ai/HelpWidget'
 import { LabelsProvider, useLabels } from './contexts/LabelsContext'
 import { ViewProvider, useView } from './contexts/ViewContext'
-import { FeatureFlagsProvider } from './contexts/FeatureFlagsContext'
+import { FeatureFlagsProvider, useFeatureFlags } from './contexts/FeatureFlagsContext'
 import { AdminNavigation, UserNavigation, ViewSwitcher, ViewOnboarding } from './components/navigation'
 import { EmailEngagementWidget } from './components/widgets/EmailEngagementWidget'
 import { getWidgetData } from './utils/widget-data'
 import { getEnabledWidgets, type WidgetId } from './config/widgets'
-import { UserPlus, Upload, Download, RefreshCw, AlertCircle, Info, Edit3, Bell, Building, HelpCircle, Search, Users as UsersIcon, Loader2, MessageSquare } from 'lucide-react'
+import { UserPlus, Upload, Download, RefreshCw, AlertCircle, Info, Edit3, Bell, Building, Building2, HelpCircle, Search, Users as UsersIcon, Loader2, MessageSquare, User, Network } from 'lucide-react'
 
 // Loading fallback for lazy-loaded components
 const PageLoader = () => (
@@ -151,6 +151,9 @@ function getPageFromPath(pathname: string): string {
   if (pathname.startsWith('/admin/onboarding-templates')) return 'onboarding-templates';
   if (pathname.startsWith('/admin/offboarding-templates')) return 'offboarding-templates';
   if (pathname.startsWith('/admin/scheduled-actions')) return 'scheduled-actions';
+  // User lifecycle routes
+  if (pathname.startsWith('/admin/onboarding/new') || pathname.startsWith('/new-user-onboarding')) return 'new-user-onboarding';
+  if (pathname.startsWith('/admin/offboarding/user') || pathname.startsWith('/user-offboarding')) return 'user-offboarding';
 
   // User routes (at root level)
   if (pathname === '/' || pathname === '/home' || pathname === '/dashboard') return 'dashboard';
@@ -180,6 +183,9 @@ function AppContent() {
 
   // View context for admin/user view switching
   const { currentView, setCapabilities } = useView();
+
+  // Feature flags context for navigation visibility
+  const { refresh: refreshFeatureFlags } = useFeatureFlags();
 
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState<OrganizationConfig | null>(null);
@@ -221,6 +227,10 @@ function AppContent() {
       'onboarding-templates': '/admin/onboarding-templates',
       'offboarding-templates': '/admin/offboarding-templates',
       'scheduled-actions': '/admin/scheduled-actions',
+      // User management routes
+      'add-user': '/add-user',
+      'new-user-onboarding': '/admin/onboarding/new',
+      'user-offboarding': '/admin/offboarding/user',
     };
 
     // User pages at root level
@@ -285,6 +295,35 @@ function AppContent() {
   }, [step, loginOrgName]);
 
   // No need to save currentPage to localStorage - React Router handles URL state
+
+  // Track previous view to detect actual view changes (not initial render)
+  const prevViewRef = useRef<string | null>(null);
+
+  // Navigate when view changes (admin <-> user)
+  // This ensures the user lands on the appropriate default page for their new view
+  useEffect(() => {
+    // Only run when authenticated (dashboard step)
+    if (step !== 'dashboard') return;
+
+    // Skip initial render - only navigate on actual view changes
+    if (prevViewRef.current === null) {
+      prevViewRef.current = currentView;
+      return;
+    }
+
+    // If view actually changed, navigate to appropriate default page
+    if (prevViewRef.current !== currentView) {
+      prevViewRef.current = currentView;
+
+      if (currentView === 'admin') {
+        // Navigate to admin dashboard
+        navigate('/admin');
+      } else if (currentView === 'user') {
+        // Navigate to user dashboard
+        navigate('/');
+      }
+    }
+  }, [currentView, step, navigate]);
 
   // Command Bar keyboard shortcut (Cmd+K / Ctrl+K)
   useEffect(() => {
@@ -611,8 +650,8 @@ function AppContent() {
             });
           }
 
-          // Refresh labels now that we have a token (before showing dashboard!)
-          refreshLabels().then(async () => {
+          // Refresh labels and feature flags now that we have a token (before showing dashboard!)
+          Promise.all([refreshLabels(), refreshFeatureFlags()]).then(async () => {
             setStep('dashboard');
 
             // Fetch organization stats and user preferences after dashboard shown
@@ -820,7 +859,7 @@ function AppContent() {
         </aside>
 
         <main className="client-main">
-          {currentPage === 'dashboard' && (
+          {currentPage === 'dashboard' && currentView === 'admin' && (
             <div className="dashboard-content">
               <div className="dashboard-header">
                 <div className="dashboard-title">
@@ -1034,13 +1073,13 @@ function AppContent() {
                     )}
 
                     {(!stats?.google?.suspendedUsers || stats.google.suspendedUsers === 0) &&
-                     (!stats?.helios?.orphanedUsers || stats.helios.orphanedUsers === 0) &&
-                     stats?.google?.lastSync && (
-                      <div className="empty-state">
-                        <Info size={24} className="empty-icon" />
-                        <p>No alerts at this time</p>
-                      </div>
-                    )}
+                      (!stats?.helios?.orphanedUsers || stats.helios.orphanedUsers === 0) &&
+                      stats?.google?.lastSync && (
+                        <div className="empty-state">
+                          <Info size={24} className="empty-icon" />
+                          <p>No alerts at this time</p>
+                        </div>
+                      )}
                   </div>
                 </div>
               </div>
@@ -1048,6 +1087,96 @@ function AppContent() {
               {/* Email Engagement Widget */}
               <div className="dashboard-engagement-section">
                 <EmailEngagementWidget />
+              </div>
+            </div>
+          )}
+
+          {/* User Dashboard - shown when in user view */}
+          {(currentPage === 'dashboard' || currentPage === 'home') && currentView === 'user' && (
+            <div className="dashboard-content user-dashboard">
+              <div className="dashboard-header">
+                <div className="dashboard-title">
+                  <h1>Welcome Back</h1>
+                  <p className="dashboard-subtitle">
+                    {currentUser?.firstName ? `Hello, ${currentUser.firstName}!` : 'Your personal workspace'}
+                  </p>
+                </div>
+              </div>
+
+              {/* User Quick Actions */}
+              <div className="quick-actions-section">
+                <h2 className="section-title">Quick Actions</h2>
+                <div className="quick-actions-grid">
+                  <button className="quick-action-btn primary" onClick={() => setCurrentPage('my-profile')}>
+                    <User size={20} />
+                    <span>My Profile</span>
+                  </button>
+                  <button className="quick-action-btn secondary" onClick={() => setCurrentPage('people')}>
+                    <UsersIcon size={20} />
+                    <span>People Directory</span>
+                  </button>
+                  <button className="quick-action-btn secondary" onClick={() => setCurrentPage('my-team')}>
+                    <Building2 size={20} />
+                    <span>My Team</span>
+                  </button>
+                  <button className="quick-action-btn secondary" onClick={() => setCurrentPage('my-groups')}>
+                    <UsersIcon size={20} />
+                    <span>My Groups</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* User Info Cards */}
+              <div className="dashboard-two-column">
+                <div className="dashboard-card">
+                  <h2 className="section-title">My Information</h2>
+                  <div className="user-info-summary">
+                    {currentUser ? (
+                      <>
+                        <div className="info-row">
+                          <span className="info-label">Name</span>
+                          <span className="info-value">{currentUser.firstName} {currentUser.lastName}</span>
+                        </div>
+                        <div className="info-row">
+                          <span className="info-label">Email</span>
+                          <span className="info-value">{currentUser.email}</span>
+                        </div>
+                        {currentUser.jobTitle && (
+                          <div className="info-row">
+                            <span className="info-label">Job Title</span>
+                            <span className="info-value">{currentUser.jobTitle}</span>
+                          </div>
+                        )}
+                        {currentUser.department && (
+                          <div className="info-row">
+                            <span className="info-label">Department</span>
+                            <span className="info-value">{currentUser.department}</span>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-muted">Loading user information...</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="dashboard-card">
+                  <h2 className="section-title">Getting Started</h2>
+                  <div className="getting-started-list">
+                    <div className="getting-started-item" onClick={() => setCurrentPage('my-profile')}>
+                      <User size={16} />
+                      <span>Complete your profile</span>
+                    </div>
+                    <div className="getting-started-item" onClick={() => setCurrentPage('people')}>
+                      <UsersIcon size={16} />
+                      <span>Browse the people directory</span>
+                    </div>
+                    <div className="getting-started-item" onClick={() => setCurrentPage('orgChart')}>
+                      <Network size={16} />
+                      <span>View the org chart</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -1287,7 +1416,7 @@ function AppContent() {
       </div>
 
       {/* View Onboarding Modal for Internal Admins */}
-      <ViewOnboarding onComplete={() => {}} />
+      <ViewOnboarding onComplete={() => { }} />
 
       <footer className="client-footer">
         <p>Helios Admin Portal v1.0.0</p>

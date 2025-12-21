@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { db } from '../database/connection';
+import { db } from '../database/connection.js';
 
 export interface SocketUser {
   id: string;

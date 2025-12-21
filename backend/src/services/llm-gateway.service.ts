@@ -1,6 +1,6 @@
-import { db } from '../database/connection';
-import { encryptionService } from './encryption.service';
-import { logger } from '../utils/logger';
+import { db } from '../database/connection.js';
+import { encryptionService } from './encryption.service.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Message format for chat completions (OpenAI-compatible)

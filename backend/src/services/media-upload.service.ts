@@ -1,6 +1,6 @@
-import { s3Service } from './s3.service';
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
+import { s3Service } from './s3.service.js';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
 
 // Supported media types and their constraints
 const MEDIA_CONFIG = {

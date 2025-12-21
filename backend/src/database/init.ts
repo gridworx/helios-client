@@ -1,7 +1,12 @@
 import fs from 'fs';
 import path from 'path';
-import { db } from './connection';
-import { logger } from '../utils/logger';
+import { fileURLToPath } from 'url';
+import { db } from './connection.js';
+import { logger } from '../utils/logger.js';
+
+// ESM equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export class DatabaseInitializer {
   private schemaPath: string;

@@ -5,10 +5,10 @@
  * and Microsoft 365. They are READ-ONLY and cannot modify any data.
  */
 
-import { googleWorkspaceService } from '../../services/google-workspace.service';
-import { microsoftGraphService } from '../../services/microsoft-graph.service';
-import { db } from '../../database/connection';
-import { logger } from '../../utils/logger';
+import { googleWorkspaceService } from '../../services/google-workspace.service.js';
+import { microsoftGraphService } from '../../services/microsoft-graph.service.js';
+import { db } from '../../database/connection.js';
+import { logger } from '../../utils/logger.js';
 
 /**
  * Tool definition for querying Google Workspace users
@@ -166,9 +166,9 @@ export async function executeQueryGwUsers(
     // Build query
     let query = `
       SELECT
-        id, email, first_name, last_name,
+        id, email, given_name, family_name,
         department, is_admin, is_suspended,
-        created_at, last_login_time
+        creation_time, last_login_time
       FROM gw_synced_users
       WHERE organization_id = $1
     `;
@@ -193,8 +193,8 @@ export async function executeQueryGwUsers(
     if (search) {
       query += ` AND (
         LOWER(email) LIKE LOWER($${paramIndex}) OR
-        LOWER(first_name) LIKE LOWER($${paramIndex}) OR
-        LOWER(last_name) LIKE LOWER($${paramIndex})
+        LOWER(given_name) LIKE LOWER($${paramIndex}) OR
+        LOWER(family_name) LIKE LOWER($${paramIndex})
       )`;
       queryParams.push(`%${search}%`);
       paramIndex++;
@@ -249,7 +249,7 @@ export async function executeQueryGwUsers(
     output += `**Showing ${result.rows.length} of ${totalCount} matching users:**\n\n`;
 
     for (const user of result.rows) {
-      const name = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'No name';
+      const name = `${user.given_name || ''} ${user.family_name || ''}`.trim() || 'No name';
       const status = user.is_suspended ? '(Suspended)' : '';
       const admin = user.is_admin ? '[Admin]' : '';
       const dept = user.department ? `| ${user.department}` : '';

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
-import { photoService } from '../services/photo.service';
-import { logger } from '../utils/logger';
+import { photoService } from '../services/photo.service.js';
+import { logger } from '../utils/logger.js';
 
 const router = Router();
 

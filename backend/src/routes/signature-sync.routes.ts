@@ -5,8 +5,8 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { requireAuth, requirePermission } from '../middleware/auth';
-import { signatureSyncService } from '../services/signature-sync.service';
+import { requireAuth, requirePermission } from '../middleware/auth.js';
+import { signatureSyncService } from '../services/signature-sync.service.js';
 
 const router = Router();
 

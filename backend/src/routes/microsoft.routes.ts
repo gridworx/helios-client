@@ -1,15 +1,15 @@
 import { Router, Request, Response } from 'express';
-import { authenticateToken, requireAdmin } from '../middleware/auth';
-import { microsoftGraphService } from '../services/microsoft-graph.service';
-import { microsoftSyncService } from '../services/microsoft-sync.service';
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
+import { authenticateToken, requireAdmin } from '../middleware/auth.js';
+import { microsoftGraphService } from '../services/microsoft-graph.service.js';
+import { microsoftSyncService } from '../services/microsoft-sync.service.js';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
 import {
   successResponse,
   errorResponse,
   validationErrorResponse,
-} from '../utils/response';
-import { ErrorCode } from '../types/error-codes';
+} from '../utils/response.js';
+import { ErrorCode } from '../types/error-codes.js';
 
 const router = Router();
 

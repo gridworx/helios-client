@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express';
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
-import { mediaAssetCacheService } from '../services/media-asset-cache.service';
-import { mediaAssetStorageService } from '../services/media-asset-storage.service';
-import type { MediaAsset, StorageBackend } from '../types/media-assets';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
+import { mediaAssetCacheService } from '../services/media-asset-cache.service.js';
+import { mediaAssetStorageService } from '../services/media-asset-storage.service.js';
+import type { MediaAsset, StorageBackend } from '../types/media-assets.js';
 
 const router = Router();
 

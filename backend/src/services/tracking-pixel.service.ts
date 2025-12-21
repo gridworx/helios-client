@@ -6,7 +6,7 @@
  */
 
 import crypto from 'crypto';
-import { db } from '../database/connection';
+import { db } from '../database/connection.js';
 
 interface TrackingPixel {
   id: string;

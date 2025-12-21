@@ -1,6 +1,6 @@
-import { logger } from '../utils/logger';
-import { db } from '../database/connection';
-import { googleWorkspaceService } from './google-workspace.service';
+import { logger } from '../utils/logger.js';
+import { db } from '../database/connection.js';
+import { googleWorkspaceService } from './google-workspace.service.js';
 
 interface SyncConfig {
   minInterval: number; // Platform minimum in seconds

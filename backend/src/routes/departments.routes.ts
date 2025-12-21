@@ -1,16 +1,16 @@
 import { Router, Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
-import { authenticateToken } from '../middleware/auth';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
+import { authenticateToken } from '../middleware/auth.js';
 import {
   successResponse,
   errorResponse,
   createdResponse,
   notFoundResponse,
   validationErrorResponse
-} from '../utils/response';
-import { ErrorCode } from '../types/error-codes';
+} from '../utils/response.js';
+import { ErrorCode } from '../types/error-codes.js';
 
 const router = Router();
 

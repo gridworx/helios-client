@@ -18,8 +18,8 @@ jest.mock('../utils/logger', () => ({
 }));
 
 // Import after mocking
-import { signatureTemplateService } from '../services/signature-template.service';
-import { SignatureTemplateStatus, MERGE_FIELDS } from '../types/signatures';
+import { signatureTemplateService } from '../services/signature-template.service.js';
+import { SignatureTemplateStatus, MERGE_FIELDS } from '../types/signatures.js';
 
 describe('SignatureTemplateService', () => {
   const testOrganizationId = '11111111-1111-1111-1111-111111111111';

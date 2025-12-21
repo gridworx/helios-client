@@ -50,8 +50,8 @@ jest.mock('../services/user-offboarding.service', () => ({
 }));
 
 // Import after mocks
-import { scheduledActionService } from '../services/scheduled-action.service';
-import { CreateScheduledActionDTO } from '../types/user-lifecycle';
+import { scheduledActionService } from '../services/scheduled-action.service.js';
+import { CreateScheduledActionDTO } from '../types/user-lifecycle.js';
 
 describe('ScheduledActionService', () => {
   const testOrgId = 'test-org-id';

@@ -1,5 +1,5 @@
 import Papa from 'papaparse';
-import { logger } from '../utils/logger';
+import { logger } from '../utils/logger.js';
 
 export interface ParsedCSVResult {
   success: boolean;

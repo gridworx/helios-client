@@ -9,8 +9,8 @@
  *   npx ts-node src/scripts/cleanup-deleted-users.ts <organization-id>
  */
 
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
 
 async function cleanupDeletedUsers(organizationId: string) {
   try {

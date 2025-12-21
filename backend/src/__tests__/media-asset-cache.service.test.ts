@@ -34,7 +34,7 @@ jest.mock('redis', () => ({
 }));
 
 // Import service after mocking
-import { MediaAssetCacheService } from '../services/media-asset-cache.service';
+import { MediaAssetCacheService } from '../services/media-asset-cache.service.js';
 
 describe('MediaAssetCacheService', () => {
   let service: MediaAssetCacheService;

@@ -6,7 +6,7 @@
  * Users copy and run the commands themselves.
  */
 
-import { logger } from '../../../utils/logger';
+import { logger } from '../../../utils/logger.js';
 
 /**
  * Supported output formats for generated commands

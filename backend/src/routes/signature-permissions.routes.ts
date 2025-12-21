@@ -5,11 +5,11 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { requireAuth, requireAdmin } from '../middleware/auth';
-import { requireSignatureAdmin } from '../middleware/signature-auth';
-import { signaturePermissionsService } from '../services/signature-permissions.service';
-import { PermissionLevel, PERMISSION_CAPABILITIES } from '../types/signatures';
-import { logger } from '../utils/logger';
+import { requireAuth, requireAdmin } from '../middleware/auth.js';
+import { requireSignatureAdmin } from '../middleware/signature-auth.js';
+import { signaturePermissionsService } from '../services/signature-permissions.service.js';
+import { PermissionLevel, PERMISSION_CAPABILITIES } from '../types/signatures.js';
+import { logger } from '../utils/logger.js';
 
 const router = Router();
 

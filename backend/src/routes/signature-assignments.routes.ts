@@ -6,9 +6,9 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { requireAuth, requirePermission } from '../middleware/auth';
-import { signatureAssignmentService } from '../services/signature-assignment.service';
-import { AssignmentType } from '../types/signatures';
+import { requireAuth, requirePermission } from '../middleware/auth.js';
+import { signatureAssignmentService } from '../services/signature-assignment.service.js';
+import { AssignmentType } from '../types/signatures.js';
 
 const router = Router();
 

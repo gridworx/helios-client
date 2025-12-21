@@ -1,9 +1,10 @@
 import { Client } from '@microsoft/microsoft-graph-client';
 import { ClientSecretCredential } from '@azure/identity';
+// @ts-expect-error - ESM subpath import types not fully supported
 import { TokenCredentialAuthenticationProvider } from '@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials';
-import { logger } from '../utils/logger';
-import { db } from '../database/connection';
-import { encryptionService } from './encryption.service';
+import { logger } from '../utils/logger.js';
+import { db } from '../database/connection.js';
+import { encryptionService } from './encryption.service.js';
 
 /**
  * Microsoft 365 credentials structure

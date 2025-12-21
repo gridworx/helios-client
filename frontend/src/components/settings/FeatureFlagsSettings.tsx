@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ToggleLeft, ToggleRight, RefreshCw, Loader2, AlertCircle, Check } from 'lucide-react';
+import { RefreshCw, Loader2, AlertCircle, Check } from 'lucide-react';
+import { Toggle } from '../ui';
 import './FeatureFlagsSettings.css';
 
 interface FeatureFlag {
@@ -167,17 +168,11 @@ export function FeatureFlagsSettings() {
                     ) : success === flag.feature_key ? (
                       <Check size={16} className="ff-success" />
                     ) : (
-                      <button
-                        className={`ff-toggle ${flag.is_enabled ? 'enabled' : 'disabled'}`}
-                        onClick={() => toggleFlag(flag.feature_key, flag.is_enabled)}
-                        title={flag.is_enabled ? 'Click to disable' : 'Click to enable'}
-                      >
-                        {flag.is_enabled ? (
-                          <ToggleRight size={28} />
-                        ) : (
-                          <ToggleLeft size={28} />
-                        )}
-                      </button>
+                      <Toggle
+                        checked={flag.is_enabled}
+                        onChange={() => toggleFlag(flag.feature_key, flag.is_enabled)}
+                        size="small"
+                      />
                     )}
                   </div>
                 </div>

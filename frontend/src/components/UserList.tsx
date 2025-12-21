@@ -645,6 +645,9 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
         return (
           <div className={column.className}>
             <span className="user-name">{user.firstName} {user.lastName}</span>
+            {user.jobTitle && (
+              <span className="user-job-title">{user.jobTitle}</span>
+            )}
           </div>
         );
 

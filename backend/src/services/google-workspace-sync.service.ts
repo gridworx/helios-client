@@ -1,7 +1,7 @@
 import { google } from 'googleapis';
 import { JWT } from 'google-auth-library';
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
 
 interface GoogleUser {
   id: string;

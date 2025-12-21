@@ -5,15 +5,15 @@
  * effective template resolution, and affected user preview.
  */
 
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
 import {
   SignatureAssignment,
   CreateSignatureAssignmentDTO,
   UpdateSignatureAssignmentDTO,
   AssignmentType,
   UserEffectiveSignature,
-} from '../types/signatures';
+} from '../types/signatures.js';
 
 // Database row types
 interface AssignmentRow {

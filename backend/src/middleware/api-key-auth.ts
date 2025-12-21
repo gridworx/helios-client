@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { logger } from '../utils/logger';
-import { hashApiKey, validateApiKeyFormat } from '../utils/apiKey';
-import { db } from '../database/connection';
+import { logger } from '../utils/logger.js';
+import { hashApiKey, validateApiKeyFormat } from '../utils/apiKey.js';
+import { db } from '../database/connection.js';
 
 // Extend Express Request type to include API key context
 declare global {

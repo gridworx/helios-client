@@ -8,9 +8,9 @@
 import { google } from 'googleapis';
 import { JWT } from 'google-auth-library';
 import bcrypt from 'bcryptjs';
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
-import { lifecycleLogService } from './lifecycle-log.service';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
+import { lifecycleLogService } from './lifecycle-log.service.js';
 import {
   OnboardingTemplate,
   OnboardingConfig,
@@ -18,7 +18,7 @@ import {
   UpdateOnboardingTemplateDTO,
   ONBOARDING_STEPS,
   OnboardingStep,
-} from '../types/user-lifecycle';
+} from '../types/user-lifecycle.js';
 
 interface OnboardingResult {
   success: boolean;

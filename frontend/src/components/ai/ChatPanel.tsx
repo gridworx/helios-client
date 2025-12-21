@@ -153,7 +153,15 @@ export function ChatPanel({
         })
       });
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (parseError) {
+        // If JSON parsing fails, try to get the raw text to show a better error
+        const rawText = await res.clone().text().catch(() => 'Unable to read response');
+        console.error('Failed to parse AI response:', rawText.substring(0, 500));
+        throw new Error(`Invalid response from server: ${rawText.substring(0, 100)}...`);
+      }
 
       if (data.success) {
         const assistantMessage: ChatMessage = {

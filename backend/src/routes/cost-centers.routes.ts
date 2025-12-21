@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
-import { authenticateToken } from '../middleware/auth';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = Router();
 

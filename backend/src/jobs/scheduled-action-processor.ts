@@ -5,8 +5,8 @@
  * Runs periodically to check for pending actions that are due for execution.
  */
 
-import { scheduledActionService } from '../services/scheduled-action.service';
-import { logger } from '../utils/logger';
+import { scheduledActionService } from '../services/scheduled-action.service.js';
+import { logger } from '../utils/logger.js';
 
 interface ProcessorConfig {
   enabled: boolean;

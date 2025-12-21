@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { UserPlus, ChevronDown, Download, RefreshCw, CheckCircle, PauseCircle, Trash2, FileSpreadsheet, FileJson, Filter } from 'lucide-react';
 import { UserList } from '../components/UserList';
+import { QuickAddUserSlideOut } from '../components/QuickAddUserSlideOut';
 import { useTabPersistence } from '../hooks/useTabPersistence';
 import './Users.css';
 
@@ -38,6 +39,7 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const [showActionsDropdown, setShowActionsDropdown] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [showQuickAddSlideOut, setShowQuickAddSlideOut] = useState(false);
   const addDropdownRef = useRef<HTMLDivElement>(null);
   const exportDropdownRef = useRef<HTMLDivElement>(null);
   const actionsDropdownRef = useRef<HTMLDivElement>(null);
@@ -291,12 +293,12 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
                 className="dropdown-item"
                 onClick={() => {
                   setShowAddDropdown(false);
-                  onNavigate?.('add-user');
+                  setShowQuickAddSlideOut(true);
                 }}
               >
                 <UserPlus size={16} />
                 Quick Add
-                <span className="dropdown-item-desc">Create a basic user account</span>
+                <span className="dropdown-item-desc">Create user in slideout panel</span>
               </button>
               <button
                 className="dropdown-item highlight"
@@ -316,8 +318,8 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
         <div className="actions-right">
           <div className="search-box">
             <svg className="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M7 12C9.76142 12 12 9.76142 12 7C12 4.23858 9.76142 2 7 2C4.23858 2 2 4.23858 2 7C2 9.76142 4.23858 12 7 12Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              <path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <path d="M7 12C9.76142 12 12 9.76142 12 7C12 4.23858 9.76142 2 7 2C4.23858 2 2 4.23858 2 7C2 9.76142 4.23858 12 7 12Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
             <input
               type="text"
@@ -330,13 +332,13 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
 
           <button className="btn-icon">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
           </button>
 
           <button className="btn-icon">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M4 2v12M12 2v12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <path d="M4 2v12M12 2v12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
           </button>
 
@@ -458,6 +460,18 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
           }}
         />
       </div>
+
+      {/* Quick Add User Slideout */}
+      {showQuickAddSlideOut && (
+        <QuickAddUserSlideOut
+          organizationId={organizationId}
+          onClose={() => setShowQuickAddSlideOut(false)}
+          onUserCreated={() => {
+            fetchCounts();
+            setShowQuickAddSlideOut(false);
+          }}
+        />
+      )}
     </div>
   );
 }

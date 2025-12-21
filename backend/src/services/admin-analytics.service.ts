@@ -5,9 +5,9 @@
  * Aggregates data across all users for team performance insights.
  */
 
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
-import { UserAnalytics, userAnalyticsService } from './user-analytics.service';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
+import { UserAnalytics, userAnalyticsService } from './user-analytics.service.js';
 
 export interface TopPerformer {
   userId: string;

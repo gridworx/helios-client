@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express';
-import { requireAuth, requirePermission } from '../middleware/auth';
-import { featureFlagsService, FeatureFlag } from '../services/feature-flags.service';
-import { successResponse, errorResponse, notFoundResponse, validationErrorResponse } from '../utils/response';
-import { ErrorCode } from '../types/error-codes';
-import { logger } from '../utils/logger';
+import { requireAuth, requirePermission } from '../middleware/auth.js';
+import { featureFlagsService, FeatureFlag } from '../services/feature-flags.service.js';
+import { successResponse, errorResponse, notFoundResponse, validationErrorResponse } from '../utils/response.js';
+import { ErrorCode } from '../types/error-codes.js';
+import { logger } from '../utils/logger.js';
 
 const router = Router();
 

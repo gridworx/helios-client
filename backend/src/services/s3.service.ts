@@ -9,7 +9,7 @@ import {
   GetObjectCommandOutput,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { logger } from '../utils/logger';
+import { logger } from '../utils/logger.js';
 import { Readable } from 'stream';
 import crypto from 'crypto';
 

@@ -1,17 +1,16 @@
 {
-  "iterations": 1680,
+  "iterations": 1858,
   "tasks_completed": [
     "BUG-001: Module not showing as enabled - FIXED",
     "BUG-004: Users list - VERIFIED WORKING (4 users in DB, API returns correctly)",
     "BUG-005: Groups list - VERIFIED WORKING (3 groups in access_groups table)",
     "admin-user-separation: All 29 tasks COMPLETED (but with regressions)",
     "group-management-slideout: COMPLETED",
-    "people-directory: COMPLETED",
-    "fix-ai-tool-calling: COMPLETED (all 5 tasks - model discovery, tool support test, error handling, UI selector, E2E tests)"
+    "people-directory: COMPLETED"
   ],
   "current_task": "Pre-Release Infrastructure (BLOCKING - API versioning, OpenAPI docs, MCP prep)",
   "started_at": "2025-12-07 12:13:26",
-  "last_session": "2025-12-17 10:15:00",
+  "last_session": "2025-12-20 19:24:01",
   "bugs_resolved": {
     "BUG-004": {
       "status": "verified_working",
@@ -358,12 +357,17 @@
       "STAY IN SCOPE - only work on current task"
     ]
   },
-  "next_task": null,
+  "next_task": {
+    "type": "openspec",
+    "proposal": "openspec/changes/quick-add-ux-refactor",
+    "approach": "implement",
+    "instructions": "Refactor QuickAddUserSlideOut to match UserSlideOut visuals. Remove floating labels, use standard label+input structure. Read openspec/changes/quick-add-ux-refactor/proposal.md."
+  },
   "previous_action": {
     "type": "openspec",
-    "proposal": "fix-ai-tool-calling",
+    "proposal": "openspec/specs/add-user-ux",
     "status": "COMPLETED",
-    "note": "All 5 tasks completed: model discovery, tool support test, JSON error handling, UI model selector, E2E tests - 6/6 tests pass"
+    "note": "Agent verified 8/8 tests passed. Dropdowns and License API implemented."
   },
   "deferred_actions": [
     {

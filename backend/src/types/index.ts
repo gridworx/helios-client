@@ -1,10 +1,10 @@
 // Shared TypeScript types for Helios Client Portal
 
 // Re-export media asset types
-export * from './media-assets';
+export * from './media-assets.js';
 
 // Re-export user lifecycle types
-export * from './user-lifecycle';
+export * from './user-lifecycle.js';
 
 export interface User {
   id: string;

@@ -43,7 +43,7 @@ jest.mock('../services/media-asset-storage.service', () => ({
 }));
 
 // Import routes after mocking
-import assetProxyRoutes from '../routes/asset-proxy.routes';
+import assetProxyRoutes from '../routes/asset-proxy.routes.js';
 
 describe('Asset Proxy Routes', () => {
   let app: Express;

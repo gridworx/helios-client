@@ -1,15 +1,15 @@
 import { Router } from 'express';
-import { requireAuth, requirePermission } from '../middleware/auth';
-import { userSyncService } from '../services/user-sync.service';
-import { googleWorkspaceService } from '../services/google-workspace.service';
-import { logger } from '../utils/logger';
-import { db } from '../database/connection';
+import { requireAuth, requirePermission } from '../middleware/auth.js';
+import { userSyncService } from '../services/user-sync.service.js';
+import { googleWorkspaceService } from '../services/google-workspace.service.js';
+import { logger } from '../utils/logger.js';
+import { db } from '../database/connection.js';
 import {
   successResponse,
   errorResponse,
   notFoundResponse
-} from '../utils/response';
-import { ErrorCode } from '../types/error-codes';
+} from '../utils/response.js';
+import { ErrorCode } from '../types/error-codes.js';
 
 const router = Router();
 

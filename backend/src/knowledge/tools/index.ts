@@ -5,9 +5,9 @@
  */
 
 // Tool definitions (for OpenAI/MCP function schemas)
-export { searchKnowledgeToolDefinition, executeSearchKnowledge } from './search-knowledge.tool';
-export { getCommandToolDefinition, executeGetCommand } from './get-command.tool';
-export { listCommandsToolDefinition, executeListCommands } from './list-commands.tool';
+export { searchKnowledgeToolDefinition, executeSearchKnowledge } from './search-knowledge.tool.js';
+export { getCommandToolDefinition, executeGetCommand } from './get-command.tool.js';
+export { listCommandsToolDefinition, executeListCommands } from './list-commands.tool.js';
 
 // Data query tools (read-only access to actual data)
 export {
@@ -17,15 +17,20 @@ export {
   getSyncStatusToolDefinition,
   dataQueryTools,
   executeDataQueryTool
-} from './query-data.tool';
+} from './query-data.tool.js';
+
+// Import tool definitions for the array
+import { searchKnowledgeToolDefinition } from './search-knowledge.tool.js';
+import { getCommandToolDefinition } from './get-command.tool.js';
+import { listCommandsToolDefinition } from './list-commands.tool.js';
 
 /**
  * All knowledge tool definitions (documentation search)
  */
 export const knowledgeTools = [
-  require('./search-knowledge.tool').searchKnowledgeToolDefinition,
-  require('./get-command.tool').getCommandToolDefinition,
-  require('./list-commands.tool').listCommandsToolDefinition
+  searchKnowledgeToolDefinition,
+  getCommandToolDefinition,
+  listCommandsToolDefinition
 ];
 
 /**
@@ -37,16 +42,16 @@ export async function executeKnowledgeTool(
 ): Promise<string> {
   switch (toolName) {
     case 'search_knowledge':
-      const { executeSearchKnowledge } = await import('./search-knowledge.tool');
-      return executeSearchKnowledge(params as Parameters<typeof executeSearchKnowledge>[0]);
+      const { executeSearchKnowledge: execSearch } = await import('./search-knowledge.tool.js');
+      return execSearch(params as Parameters<typeof execSearch>[0]);
 
     case 'get_command':
-      const { executeGetCommand } = await import('./get-command.tool');
-      return executeGetCommand(params as { name: string });
+      const { executeGetCommand: execCmd } = await import('./get-command.tool.js');
+      return execCmd(params as { name: string });
 
     case 'list_commands':
-      const { executeListCommands } = await import('./list-commands.tool');
-      return executeListCommands(params as { category?: string });
+      const { executeListCommands: execList } = await import('./list-commands.tool.js');
+      return execList(params as { category?: string });
 
     default:
       return `Unknown tool: ${toolName}. Available tools: search_knowledge, get_command, list_commands`;

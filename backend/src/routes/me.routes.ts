@@ -1,10 +1,10 @@
 import express from 'express';
 import multer from 'multer';
-import { requireAuth, requireEmployee } from '../middleware/auth';
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
-import { mediaUploadService, MediaType } from '../services/media-upload.service';
-import { activityTracker } from '../services/activity-tracker.service';
+import { requireAuth, requireEmployee } from '../middleware/auth.js';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
+import { mediaUploadService, MediaType } from '../services/media-upload.service.js';
+import { activityTracker } from '../services/activity-tracker.service.js';
 
 const router = express.Router();
 

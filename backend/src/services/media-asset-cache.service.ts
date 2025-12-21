@@ -1,6 +1,6 @@
 import { createClient, RedisClientType } from 'redis';
-import { logger } from '../utils/logger';
-import type { IAssetCacheService, CachedAsset } from '../types/media-assets';
+import { logger } from '../utils/logger.js';
+import type { IAssetCacheService, CachedAsset } from '../types/media-assets.js';
 
 /**
  * Media Asset Cache Service

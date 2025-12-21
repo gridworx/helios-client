@@ -24,7 +24,7 @@ jest.mock('../middleware/auth', () => ({
 }));
 
 // Import routes after mocking
-import orgChartRoutes from '../routes/org-chart.routes';
+import orgChartRoutes from '../routes/org-chart.routes.js';
 
 describe('Org Chart Routes', () => {
   let app: Express;

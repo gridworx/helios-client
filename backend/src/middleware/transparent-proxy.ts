@@ -14,9 +14,9 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import { google } from 'googleapis';
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
-import { authenticateToken } from './auth';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
+import { authenticateToken } from './auth.js';
 import axios from 'axios';
 
 // Extend Express Request type for API keys

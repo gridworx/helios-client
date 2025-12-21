@@ -6,9 +6,9 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { signaturePermissionsService } from '../services/signature-permissions.service';
-import { PermissionLevel, hasCapability } from '../types/signatures';
-import { logger } from '../utils/logger';
+import { signaturePermissionsService } from '../services/signature-permissions.service.js';
+import { PermissionLevel, hasCapability } from '../types/signatures.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Middleware to require a minimum signature permission level.

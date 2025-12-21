@@ -11,6 +11,7 @@ import {
   Calendar,
   BarChart2
 } from 'lucide-react';
+import { Toggle } from '../ui';
 import { apiPath } from '../../config/api';
 import './TrackingSettings.css';
 
@@ -189,14 +190,11 @@ export const TrackingSettings: React.FC = () => {
                 Track individual user email engagement with tracking pixels in signatures.
               </p>
             </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={settings.userTrackingEnabled}
-                onChange={(e) => handleChange('userTrackingEnabled', e.target.checked)}
-              />
-              <span className="toggle-slider"></span>
-            </label>
+            <Toggle
+              checked={settings.userTrackingEnabled}
+              onChange={(checked) => handleChange('userTrackingEnabled', checked)}
+              size="medium"
+            />
           </div>
         </div>
 
@@ -212,14 +210,11 @@ export const TrackingSettings: React.FC = () => {
                 Track engagement for signature campaigns and promotional banners.
               </p>
             </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={settings.campaignTrackingEnabled}
-                onChange={(e) => handleChange('campaignTrackingEnabled', e.target.checked)}
-              />
-              <span className="toggle-slider"></span>
-            </label>
+            <Toggle
+              checked={settings.campaignTrackingEnabled}
+              onChange={(checked) => handleChange('campaignTrackingEnabled', checked)}
+              size="medium"
+            />
           </div>
         </div>
 
@@ -235,14 +230,11 @@ export const TrackingSettings: React.FC = () => {
                 Display the email engagement widget on user dashboards.
               </p>
             </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={settings.showUserDashboard}
-                onChange={(e) => handleChange('showUserDashboard', e.target.checked)}
-              />
-              <span className="toggle-slider"></span>
-            </label>
+            <Toggle
+              checked={settings.showUserDashboard}
+              onChange={(checked) => handleChange('showUserDashboard', checked)}
+              size="medium"
+            />
           </div>
         </div>
 
@@ -258,14 +250,11 @@ export const TrackingSettings: React.FC = () => {
                 Filter out automated traffic from email scanners and bots.
               </p>
             </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={settings.excludeBots}
-                onChange={(e) => handleChange('excludeBots', e.target.checked)}
-              />
-              <span className="toggle-slider"></span>
-            </label>
+            <Toggle
+              checked={settings.excludeBots}
+              onChange={(checked) => handleChange('excludeBots', checked)}
+              size="medium"
+            />
           </div>
         </div>
 

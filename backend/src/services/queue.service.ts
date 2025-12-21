@@ -1,5 +1,5 @@
 import Bull, { Queue, Job } from 'bull';
-import { logger } from '../utils/logger';
+import { logger } from '../utils/logger.js';
 
 const REDIS_HOST = process.env.REDIS_HOST || 'localhost';
 const REDIS_PORT = parseInt(process.env.REDIS_PORT || '6379');

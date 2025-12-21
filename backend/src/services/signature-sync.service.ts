@@ -9,11 +9,11 @@
  * - Hash comparison to detect external changes
  */
 
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
-import { googleWorkspaceService } from './google-workspace.service';
-import { signatureTemplateService } from './signature-template.service';
-import { signatureAssignmentService } from './signature-assignment.service';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
+import { googleWorkspaceService } from './google-workspace.service.js';
+import { signatureTemplateService } from './signature-template.service.js';
+import { signatureAssignmentService } from './signature-assignment.service.js';
 import crypto from 'crypto';
 
 type SyncStatus = 'pending' | 'syncing' | 'synced' | 'failed' | 'error' | 'skipped';
