@@ -101,6 +101,102 @@ test.describe('Add User UX Improvements', () => {
 
       console.log('Test passed: Add User dropdown verified');
     });
+
+    test('QuickAddUserSlideOut styling matches design system', async ({ page }) => {
+      console.log('Testing QuickAddUserSlideOut visual styling\n');
+
+      await login(page);
+      console.log('1. Logged in successfully');
+
+      // Navigate to Users page
+      await page.locator('[data-testid="nav-users"]').first().click();
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(1000);
+      console.log('2. Navigated to Users page');
+
+      // Open Quick Add slideout
+      const addDropdownBtn = page.locator('.btn-add-user-primary, button:has-text("Add User")').first();
+      await addDropdownBtn.click();
+      await page.waitForTimeout(500);
+
+      const quickAddOption = page.locator('.dropdown-item:has-text("Quick Add")').first();
+      await quickAddOption.click();
+      await page.waitForTimeout(500);
+      console.log('3. Opened Quick Add slideout');
+
+      // Verify slideout is visible
+      const slideout = page.locator('.quick-add-overlay');
+      const isVisible = await slideout.isVisible({ timeout: 5000 });
+      expect(isVisible).toBe(true);
+      console.log('4. Slideout is visible');
+
+      // Take screenshot of the slideout
+      await page.screenshot({
+        path: 'openspec/testing/reports/screenshots/quick-add-slideout-opened.png',
+        fullPage: false
+      });
+
+      // Verify labels are static (uppercase, not floating)
+      const firstLabel = page.locator('.quick-add-panel .form-group label').first();
+      const labelStyles = await firstLabel.evaluate((el) => {
+        const styles = window.getComputedStyle(el);
+        return {
+          textTransform: styles.textTransform,
+          fontWeight: styles.fontWeight,
+          fontSize: styles.fontSize,
+          color: styles.color,
+          position: styles.position
+        };
+      });
+      console.log('5. Label styles:', JSON.stringify(labelStyles));
+
+      // Labels should be uppercase (text-transform)
+      expect(labelStyles.textTransform).toBe('uppercase');
+      // Labels should be static position (not absolute for floating)
+      expect(labelStyles.position).toBe('static');
+      console.log('6. Labels are static and uppercase - no floating labels');
+
+      // Verify input has proper styling
+      const firstInput = page.locator('.quick-add-panel .form-group input').first();
+      const inputStyles = await firstInput.evaluate((el) => {
+        const styles = window.getComputedStyle(el);
+        return {
+          borderRadius: styles.borderRadius,
+          fontSize: styles.fontSize
+        };
+      });
+      console.log('7. Input styles:', JSON.stringify(inputStyles));
+
+      // Inputs should have rounded corners (6px as per design)
+      expect(inputStyles.borderRadius).toBe('6px');
+      console.log('8. Input styling matches design system');
+
+      // Expand advanced options
+      const advancedToggle = page.locator('.advanced-toggle');
+      if (await advancedToggle.isVisible()) {
+        await advancedToggle.click();
+        await page.waitForTimeout(300);
+        console.log('9. Expanded advanced options');
+
+        // Take screenshot with advanced options visible
+        await page.screenshot({
+          path: 'openspec/testing/reports/screenshots/add-user-slideout-advanced.png',
+          fullPage: false
+        });
+      }
+
+      // Check Job Title field if it exists (from advanced section)
+      const jobTitleField = page.locator('.quick-add-panel .form-group:has(label:has-text("Job Title"))');
+      if (await jobTitleField.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await page.screenshot({
+          path: 'openspec/testing/reports/screenshots/add-user-slideout-job-title.png',
+          fullPage: false
+        });
+        console.log('10. Job Title field visible in advanced section');
+      }
+
+      console.log('Test passed: QuickAddUserSlideOut styling matches design system');
+    });
   });
 
   test.describe('TASK-TEST-001: AddUser Page Tests', () => {
