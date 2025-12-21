@@ -17,8 +17,8 @@
 - [x] **TASK-UX-008**: Add License selection dropdown to `AddUser.tsx`
 
 ## Verification
-- [ ] **TASK-TEST-001**: Write E2E tests for add user forms
-- [ ] **TASK-TEST-002**: Verify API license endpoints
+- [x] **TASK-TEST-001**: Write E2E tests for add user forms
+- [x] **TASK-TEST-002**: Verify API license endpoints
 
 ## Implementation Notes
 
@@ -32,3 +32,14 @@
 - `backend/src/routes/organization.routes.ts` - Added createInGoogle, createInMicrosoft, licenseId to user creation
 - `frontend/src/components/QuickAddUserSlideOut.tsx` - Added dropdowns for job title, department, manager, and license
 - `frontend/src/pages/AddUser.tsx` - Added dropdowns, provider checkboxes, and license selection
+
+### E2E Tests:
+- `openspec/testing/tests/add-user-ux.test.ts` - Comprehensive test suite with 8 tests:
+  - TASK-TEST-001: Users page Add User dropdown works
+  - TASK-TEST-001: Add user page route is accessible
+  - TASK-TEST-002: API GET /api/v1/organization/licenses returns correct structure
+  - TASK-TEST-002: API License objects have required properties
+  - TASK-TEST-002: API Licenses endpoint requires authentication
+  - TASK-TEST-002: API Job Titles endpoint returns array structure
+  - TASK-TEST-002: API Departments endpoint returns dropdown data
+  - TASK-TEST-002: API Users endpoint supports status filter for managers dropdown
