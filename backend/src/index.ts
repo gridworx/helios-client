@@ -1,14 +1,20 @@
 // Import type augmentation for Express Request (must be .ts for ts-node compatibility)
-import './types/express';
+import './types/express.js';
 
 // Load environment variables FIRST before any imports that use them
 import dotenv from 'dotenv';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+// ESM equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // .env is in project root, two levels up from src/
 dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
 
 // Validate environment variables immediately after loading
-import { validateEnv } from './config/env-validation';
+import { validateEnv } from './config/env-validation.js';
 try {
   validateEnv();
   console.log(`✅ Environment validated (${process.env['NODE_ENV'] || 'development'} mode)`);
@@ -24,65 +30,68 @@ import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
-import { logger } from './utils/logger';
-import { db } from './database/connection';
-import { dbInitializer } from './database/init';
-import { errorHandler } from './middleware/errorHandler';
-// import { setupRoutes } from './routes/setup.routes';
-// import { platformRoutes } from './routes/platform.routes';
-import userRoutes from './routes/user.routes';
-import authRoutes from './routes/auth.routes';
-import GoogleWorkspaceRoutes from './routes/google-workspace.routes';
-import microsoftRoutes from './routes/microsoft.routes';
-import modulesRoutes from './routes/modules.routes';
-import organizationRoutes from './routes/organization.routes';
-import apiKeysRoutes from './routes/api-keys.routes';
-import labelsRoutes from './routes/labels.routes';
-import workspacesRoutes from './routes/workspaces.routes';
-import accessGroupsRoutes from './routes/access-groups.routes';
-import securityEventsRoutes from './routes/security-events.routes';
-import auditLogsRoutes from './routes/audit-logs.routes';
-import userPreferencesRoutes from './routes/user-preferences.routes';
-import emailSecurityRoutes from './routes/email-security.routes';
-import orgChartRoutes from './routes/org-chart.routes';
-import signaturesRoutes from './routes/signatures.routes';
-import signatureAssignmentsRoutes from './routes/signature-assignments.routes';
-import signatureSyncRoutes from './routes/signature-sync.routes';
-import signatureCampaignsRoutes from './routes/signature-campaigns.routes';
-import signaturePermissionsRoutes from './routes/signature-permissions.routes';
-import customFieldsRoutes from './routes/custom-fields.routes';
-import dashboardRoutes from './routes/dashboard.routes';
-import departmentsRoutes from './routes/departments.routes';
-import locationsRoutes from './routes/locations.routes';
-import costCentersRoutes from './routes/cost-centers.routes';
-import dataQualityRoutes from './routes/data-quality.routes';
-import meRoutes from './routes/me.routes';
-import peopleRoutes from './routes/people.routes';
-import bulkOperationsRoutes from './routes/bulk-operations.routes';
-import { authenticateApiKey } from './middleware/api-key-auth';
-import { SignatureSchedulerService } from './services/signature-scheduler.service';
-import { cacheService } from './services/cache.service';
-import { activityTracker } from './services/activity-tracker.service';
-import { initializeBulkOperationsGateway } from './websocket/bulk-operations.gateway';
-import { startScheduledActionProcessor, stopScheduledActionProcessor } from './jobs/scheduled-action-processor';
-import { startSignatureSyncJob, stopSignatureSyncJob } from './jobs/signature-sync.job';
-import { startCampaignSchedulerJob, stopCampaignSchedulerJob } from './jobs/campaign-scheduler.job';
-import { startTrackingRetentionJob, stopTrackingRetentionJob } from './jobs/tracking-retention.job';
+import { logger } from './utils/logger.js';
+import { db } from './database/connection.js';
+import { dbInitializer } from './database/init.js';
+import { errorHandler } from './middleware/errorHandler.js';
+// import { setupRoutes } from './routes/setup.routes.js';
+// import { platformRoutes } from './routes/platform.routes.js';
+import userRoutes from './routes/user.routes.js';
+import authRoutes from './routes/auth.routes.js';
+import GoogleWorkspaceRoutes from './routes/google-workspace.routes.js';
+import microsoftRoutes from './routes/microsoft.routes.js';
+import modulesRoutes from './routes/modules.routes.js';
+import organizationRoutes from './routes/organization.routes.js';
+import apiKeysRoutes from './routes/api-keys.routes.js';
+import labelsRoutes from './routes/labels.routes.js';
+import workspacesRoutes from './routes/workspaces.routes.js';
+import accessGroupsRoutes from './routes/access-groups.routes.js';
+import securityEventsRoutes from './routes/security-events.routes.js';
+import auditLogsRoutes from './routes/audit-logs.routes.js';
+import userPreferencesRoutes from './routes/user-preferences.routes.js';
+import emailSecurityRoutes from './routes/email-security.routes.js';
+import orgChartRoutes from './routes/org-chart.routes.js';
+import signaturesRoutes from './routes/signatures.routes.js';
+import signatureAssignmentsRoutes from './routes/signature-assignments.routes.js';
+import signatureSyncRoutes from './routes/signature-sync.routes.js';
+import signatureCampaignsRoutes from './routes/signature-campaigns.routes.js';
+import signaturePermissionsRoutes from './routes/signature-permissions.routes.js';
+import customFieldsRoutes from './routes/custom-fields.routes.js';
+import dashboardRoutes from './routes/dashboard.routes.js';
+import departmentsRoutes from './routes/departments.routes.js';
+import locationsRoutes from './routes/locations.routes.js';
+import costCentersRoutes from './routes/cost-centers.routes.js';
+import jobTitlesRoutes from './routes/job-titles.routes.js';
+import licensesRoutes from './routes/licenses.routes.js';
+import dataQualityRoutes from './routes/data-quality.routes.js';
+import meRoutes from './routes/me.routes.js';
+import peopleRoutes from './routes/people.routes.js';
+import bulkOperationsRoutes from './routes/bulk-operations.routes.js';
+import { authenticateApiKey } from './middleware/api-key-auth.js';
+import { SignatureSchedulerService } from './services/signature-scheduler.service.js';
+import { cacheService } from './services/cache.service.js';
+import { activityTracker } from './services/activity-tracker.service.js';
+import { initializeBulkOperationsGateway } from './websocket/bulk-operations.gateway.js';
+import { startScheduledActionProcessor, stopScheduledActionProcessor } from './jobs/scheduled-action-processor.js';
+import { startSignatureSyncJob, stopSignatureSyncJob } from './jobs/signature-sync.job.js';
+import { startCampaignSchedulerJob, stopCampaignSchedulerJob } from './jobs/campaign-scheduler.job.js';
+import { startTrackingRetentionJob, stopTrackingRetentionJob } from './jobs/tracking-retention.job.js';
 
-import transparentProxyRouter from './middleware/transparent-proxy';
-import microsoftTransparentProxyRouter from './middleware/microsoft-transparent-proxy';
+import transparentProxyRouter from './middleware/transparent-proxy.js';
+import microsoftTransparentProxyRouter from './middleware/microsoft-transparent-proxy.js';
 import swaggerUi from 'swagger-ui-express';
-import { swaggerSpec } from './config/swagger';
-import assetProxyRoutes from './routes/asset-proxy.routes';
-import assetsRoutes from './routes/assets.routes';
-import lifecycleRoutes from './routes/lifecycle.routes';
-import trackingRoutes from './routes/tracking.routes';
-import trackingAnalyticsRoutes from './routes/tracking-analytics.routes';
-import mcpRoutes from './routes/mcp.routes';
-import featureFlagsRoutes from './routes/feature-flags.routes';
-import aiRoutes from './routes/ai.routes';
-import externalSharingRoutes from './routes/external-sharing.routes';
-import { requestIdMiddleware, REQUEST_ID_HEADER } from './middleware/request-id';
+import { swaggerSpec } from './config/swagger.js';
+import assetProxyRoutes from './routes/asset-proxy.routes.js';
+import assetsRoutes from './routes/assets.routes.js';
+import lifecycleRoutes from './routes/lifecycle.routes.js';
+import trackingRoutes from './routes/tracking.routes.js';
+import trackingAnalyticsRoutes from './routes/tracking-analytics.routes.js';
+import mcpRoutes from './routes/mcp.routes.js';
+import featureFlagsRoutes from './routes/feature-flags.routes.js';
+import aiRoutes from './routes/ai.routes.js';
+import externalSharingRoutes from './routes/external-sharing.routes.js';
+import { requestIdMiddleware, REQUEST_ID_HEADER } from './middleware/request-id.js';
+import { authHandler } from './lib/auth-handler.js';
 const app = express();
 const httpServer = createServer(app);
 const PORT = process.env['PORT'] || 3001;
@@ -523,6 +532,23 @@ app.use('/api', setupCheckMiddleware);
 // All routes are registered under both /api/v1/ (recommended) and /api/ (deprecated)
 // Order matters! More specific routes first
 
+// =============================================================================
+// Better Auth Handler - DISABLED (Decision: 2025-12-19)
+// =============================================================================
+// Better-auth integration was planned for SSO support, but has been DEFERRED.
+//
+// REASON: Better-auth requires passwords in the auth_accounts table with
+// providerId="credential", but Helios stores passwords in organization_users.password_hash.
+// Migration would require moving 36+ user password hashes with risk of breaking auth.
+//
+// CURRENT SYSTEM: JWT-based auth works perfectly via auth.routes.ts.
+// FUTURE: If SSO is needed, revisit better-auth or use Auth0/Clerk.
+//
+// SEE: openspec/changes/fix-better-auth-integration/decision.md
+//
+// app.all('/api/v1/auth/*', authHandler);
+// app.all('/api/auth/*', authHandler);
+
 // Helper to register routes on both versioned and unversioned paths
 const registerRoute = (path: string, router: express.Router) => {
   app.use(`/api/v1${path}`, router);  // Primary: /api/v1/*
@@ -543,6 +569,8 @@ registerRoute('/organization/custom-fields', customFieldsRoutes);
 registerRoute('/organization/departments', departmentsRoutes);
 registerRoute('/organization/locations', locationsRoutes);
 registerRoute('/organization/cost-centers', costCentersRoutes);
+registerRoute('/organization/job-titles', jobTitlesRoutes);
+registerRoute('/organization/licenses', licensesRoutes);
 registerRoute('/organization/data-quality', dataQualityRoutes);
 registerRoute('/organization', orgChartRoutes);
 registerRoute('/organization', organizationRoutes);

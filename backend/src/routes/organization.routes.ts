@@ -1,13 +1,13 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import { db } from '../database/connection';
-import { logger } from '../utils/logger';
-import { authService } from '../services/auth.service';
-import { authenticateToken } from '../middleware/auth';
-import { PasswordSetupService } from '../services/password-setup.service';
-import { syncScheduler } from '../services/sync-scheduler.service';
-import { googleWorkspaceService } from '../services/google-workspace.service';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
+import { authService } from '../services/auth.service.js';
+import { authenticateToken } from '../middleware/auth.js';
+import { PasswordSetupService } from '../services/password-setup.service.js';
+import { syncScheduler } from '../services/sync-scheduler.service.js';
+import { googleWorkspaceService } from '../services/google-workspace.service.js';
 import {
   successResponse,
   errorResponse,
@@ -16,8 +16,8 @@ import {
   validationErrorResponse,
   forbiddenResponse,
   paginatedResponse
-} from '../utils/response';
-import { ErrorCode } from '../types/error-codes';
+} from '../utils/response.js';
+import { ErrorCode } from '../types/error-codes.js';
 
 const router = Router();
 
@@ -991,7 +991,12 @@ router.post('/users', authenticateToken, async (req: Request, res: Response) => 
       // Avatar
       avatarUrl,
       // Admin type - for creating external admins (MSPs, consultants)
-      isExternalAdmin
+      isExternalAdmin,
+      // Provider creation options
+      createInGoogle,
+      createInMicrosoft,
+      // License assignment
+      licenseId
     } = req.body;
 
     // Validate required fields
@@ -1181,8 +1186,18 @@ router.post('/users', authenticateToken, async (req: Request, res: Response) => 
       isExternalAdmin: newUser.is_external_admin,
       createdBy: req.user?.userId,
       passwordSetupMethod: method,
-      emailSent: method === 'email_link' ? emailSent : null
+      emailSent: method === 'email_link' ? emailSent : null,
+      providerOptions: {
+        createInGoogle: createInGoogle || false,
+        createInMicrosoft: createInMicrosoft || false,
+        licenseId: licenseId || null
+      }
     });
+
+    // TODO: Future implementation - create user in external providers
+    // if (createInGoogle) { /* Create user in Google Workspace */ }
+    // if (createInMicrosoft) { /* Create user in Microsoft 365 */ }
+    // if (licenseId) { /* Assign license to user */ }
 
     res.status(201).json({
       success: true,
@@ -1536,7 +1551,7 @@ router.delete('/users/:userId', authenticateToken, async (req: Request, res: Res
 
       if (googleAction === 'delete') {
         // Permanently delete from Google Workspace (frees license)
-        const { googleWorkspaceService } = await import('../services/google-workspace.service');
+        const { googleWorkspaceService } = await import('../services/google-workspace.service.js');
         const deleteResult = await googleWorkspaceService.deleteUser(organizationId, googleWorkspaceId);
         if (deleteResult.success) {
           googleSyncMessage = ' and permanently deleted from Google Workspace';
@@ -1547,7 +1562,7 @@ router.delete('/users/:userId', authenticateToken, async (req: Request, res: Res
         }
       } else if (googleAction === 'suspend') {
         // Suspend in Google Workspace (STILL BILLED!)
-        const { googleWorkspaceService } = await import('../services/google-workspace.service');
+        const { googleWorkspaceService } = await import('../services/google-workspace.service.js');
         const suspendResult = await googleWorkspaceService.suspendUser(organizationId, googleWorkspaceId);
         if (suspendResult.success) {
           googleSyncMessage = ' and suspended in Google Workspace (note: you are still billed for this license)';
@@ -2308,7 +2323,7 @@ router.post('/users/:userId/block', authenticateToken, async (req: Request, res:
     // 6. Set up email forwarding if requested
     if (emailForwarding?.enabled && emailForwarding?.forwardTo) {
       // Call hidden forwarding group function
-      const { createHiddenForwardingGroup } = await import('../services/email-forwarding.service');
+      const { createHiddenForwardingGroup } = await import('../services/email-forwarding.service.js');
       const forwardingResult = await createHiddenForwardingGroup(
         user,
         emailForwarding,
@@ -2321,7 +2336,7 @@ router.post('/users/:userId/block', authenticateToken, async (req: Request, res:
 
     // 7. Transfer data if requested
     if (dataTransfer?.enabled && dataTransfer?.transferTo && dataTransfer?.items) {
-      const { initiateDataTransfer } = await import('../services/data-transfer.service');
+      const { initiateDataTransfer } = await import('../services/data-transfer.service.js');
       const transferResult = await initiateDataTransfer(
         user,
         dataTransfer,
@@ -2333,7 +2348,7 @@ router.post('/users/:userId/block', authenticateToken, async (req: Request, res:
 
     // 7.5. Remove user from all groups in Google Workspace
     try {
-      const { googleWorkspaceService } = await import('../services/google-workspace.service');
+      const { googleWorkspaceService } = await import('../services/google-workspace.service.js');
 
       // Get all groups the user belongs to
       const userGroupsResult = await googleWorkspaceService.getUserGroups(
@@ -2719,7 +2734,7 @@ router.post('/users/:userId/transfer', authenticateToken, async (req: Request, r
     }
 
     // Initiate transfer via Google Admin API
-    const { initiateDataTransfer } = await import('../services/data-transfer.service');
+    const { initiateDataTransfer } = await import('../services/data-transfer.service.js');
     const transferResult = await initiateDataTransfer(
       sourceUser,
       {
@@ -3020,7 +3035,7 @@ router.get('/users/:userId/email-settings', authenticateToken, async (req: Reque
     const user = userResult.rows[0];
 
     // Get email settings from Google Workspace
-    const googleWorkspaceService = await import('../services/google-workspace.service');
+    const googleWorkspaceService = await import('../services/google-workspace.service.js');
     const gwService = new googleWorkspaceService.GoogleWorkspaceService();
 
     const settingsResult = await gwService.getEmailSettings(organizationId, user.email);
@@ -3136,7 +3151,7 @@ router.post('/users/:userId/email-settings', authenticateToken, async (req: Requ
 
     const user = userResult.rows[0];
 
-    const googleWorkspaceService = await import('../services/google-workspace.service');
+    const googleWorkspaceService = await import('../services/google-workspace.service.js');
     const gwService = new googleWorkspaceService.GoogleWorkspaceService();
 
     const results: {

@@ -29,6 +29,20 @@ export function AddUser() {
   const [editUserId, setEditUserId] = useState<string | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(false);
 
+  // Dropdown data for form fields
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [jobTitles, setJobTitles] = useState<any[]>([]);
+  const [managers, setManagers] = useState<any[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
+  const [licenses, setLicenses] = useState<any[]>([]);
+  const [selectedLicenseId, setSelectedLicenseId] = useState('');
+
+  // Provider integration status
+  const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [microsoftEnabled, setMicrosoftEnabled] = useState(false);
+  const [createInGoogle, setCreateInGoogle] = useState(true);
+  const [createInMicrosoft, setCreateInMicrosoft] = useState(false);
+
   // Check authentication and edit mode on mount
   useEffect(() => {
     const token = localStorage.getItem('helios_token');
@@ -38,6 +52,9 @@ export function AddUser() {
       return;
     }
 
+    // Fetch dropdown data
+    fetchDropdownData();
+
     // Check if we're in edit mode
     const editId = searchParams.get('edit');
     if (editId) {
@@ -46,6 +63,91 @@ export function AddUser() {
       fetchUserForEdit(editId);
     }
   }, [navigate, searchParams]);
+
+  const fetchDropdownData = async () => {
+    const token = localStorage.getItem('helios_token');
+
+    // Fetch departments
+    try {
+      const deptResponse = await fetch('/api/v1/organization/departments', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (deptResponse.ok) {
+        const data = await deptResponse.json();
+        if (data.success) setDepartments(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+    }
+
+    // Fetch job titles
+    try {
+      const jtResponse = await fetch('/api/v1/organization/job-titles', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (jtResponse.ok) {
+        const data = await jtResponse.json();
+        if (data.success) setJobTitles(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching job titles:', error);
+    }
+
+    // Fetch managers (active users)
+    try {
+      const managersResponse = await fetch('/api/v1/organization/users?status=active&limit=100', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (managersResponse.ok) {
+        const data = await managersResponse.json();
+        setManagers(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching managers:', error);
+    }
+
+    // Fetch locations
+    try {
+      const locResponse = await fetch('/api/v1/organization/locations', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (locResponse.ok) {
+        const data = await locResponse.json();
+        if (data.success) setLocations(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching locations:', error);
+    }
+
+    // Fetch licenses
+    try {
+      const licenseResponse = await fetch('/api/v1/organization/licenses', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (licenseResponse.ok) {
+        const data = await licenseResponse.json();
+        if (data.success) setLicenses(data.data?.licenses || []);
+      }
+    } catch (error) {
+      console.error('Error fetching licenses:', error);
+    }
+
+    // Check integration status
+    try {
+      const statsResponse = await fetch('/api/v1/dashboard/stats', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (statsResponse.ok) {
+        const data = await statsResponse.json();
+        if (data.success) {
+          setGoogleEnabled(data.data?.google?.connected || false);
+          setMicrosoftEnabled(data.data?.microsoft?.connected || false);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching integration status:', error);
+    }
+  };
 
   const fetchUserForEdit = async (userId: string) => {
     try {
@@ -516,6 +618,15 @@ export function AddUser() {
           requestBody.alternateEmail = formData.alternateEmail;
           requestBody.expiryHours = parseInt(formData.expiryHours);
         }
+
+        // Provider options
+        requestBody.createInGoogle = createInGoogle && googleEnabled;
+        requestBody.createInMicrosoft = createInMicrosoft && microsoftEnabled;
+
+        // License assignment
+        if (selectedLicenseId) {
+          requestBody.licenseId = selectedLicenseId;
+        }
       }
 
       const url = isEditMode
@@ -607,6 +718,71 @@ export function AddUser() {
         </div>
       </div>
 
+      {/* Provider Selection - only show for new users */}
+      {!isEditMode && (googleEnabled || microsoftEnabled) && (
+        <div className="form-section">
+          <h3 className="section-title">Create User In</h3>
+          <div className="provider-options" style={{ display: 'flex', gap: '1.5rem' }}>
+            {googleEnabled && (
+              <label className="provider-checkbox" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={createInGoogle}
+                  onChange={(e) => setCreateInGoogle(e.target.checked)}
+                  disabled={isSubmitting}
+                />
+                <span className="provider-icon google" style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  width: '24px', height: '24px', borderRadius: '4px',
+                  background: '#4285f4', color: 'white', fontWeight: 'bold', fontSize: '14px'
+                }}>G</span>
+                <span>Google Workspace</span>
+              </label>
+            )}
+            {microsoftEnabled && (
+              <label className="provider-checkbox" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={createInMicrosoft}
+                  onChange={(e) => setCreateInMicrosoft(e.target.checked)}
+                  disabled={isSubmitting}
+                />
+                <span className="provider-icon microsoft" style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  width: '24px', height: '24px', borderRadius: '4px',
+                  background: '#00a4ef', color: 'white', fontWeight: 'bold', fontSize: '14px'
+                }}>M</span>
+                <span>Microsoft 365</span>
+              </label>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* License Assignment - only show when licenses are available and for new users */}
+      {!isEditMode && licenses.length > 0 && (
+        <div className="form-section">
+          <h3 className="section-title">License Assignment</h3>
+          <div className="form-group">
+            <label>License</label>
+            <select
+              value={selectedLicenseId}
+              onChange={(e) => setSelectedLicenseId(e.target.value)}
+              disabled={isSubmitting}
+            >
+              <option value="">Select license...</option>
+              {licenses.map((lic: any) => (
+                <option key={lic.id} value={lic.id}>
+                  {lic.displayName} ({lic.provider})
+                  {lic.availableUnits >= 0 && ` - ${lic.availableUnits} available`}
+                </option>
+              ))}
+            </select>
+            <p className="field-hint">Assign a license to this user for Google Workspace or Microsoft 365</p>
+          </div>
+        </div>
+      )}
+
       {/* Password Setup Method - only show for new users */}
       {!isEditMode && (
       <div className="form-section">
@@ -690,66 +866,110 @@ export function AddUser() {
       <div className="form-section">
         <h3 className="section-title">Profile Information</h3>
 
-        <div className="form-group">
-          <label>Job Title</label>
-          <input
-            type="text"
-            value={formData.jobTitle}
-            onChange={(e) => handleInputChange('jobTitle', e.target.value)}
-            placeholder="e.g., Program Manager"
-            disabled={isSubmitting}
-          />
+        <div className="form-row">
+          <div className="form-group">
+            <label>Job Title</label>
+            {jobTitles.length > 0 ? (
+              <select
+                value={formData.jobTitle}
+                onChange={(e) => handleInputChange('jobTitle', e.target.value)}
+                disabled={isSubmitting}
+              >
+                <option value="">Select job title...</option>
+                {jobTitles.filter((jt: any) => jt.isActive !== false).map((jt: any) => (
+                  <option key={jt.id} value={jt.name}>{jt.name}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                value={formData.jobTitle}
+                onChange={(e) => handleInputChange('jobTitle', e.target.value)}
+                placeholder="e.g., Program Manager"
+                disabled={isSubmitting}
+              />
+            )}
+          </div>
+          <div className="form-group">
+            <label>Department</label>
+            {departments.length > 0 ? (
+              <select
+                value={formData.department}
+                onChange={(e) => handleInputChange('department', e.target.value)}
+                disabled={isSubmitting}
+              >
+                <option value="">Select department...</option>
+                {departments.filter((dept: any) => dept.isActive !== false).map((dept: any) => (
+                  <option key={dept.id} value={dept.name}>{dept.name}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                value={formData.department}
+                onChange={(e) => handleInputChange('department', e.target.value)}
+                placeholder="e.g., Engineering"
+                disabled={isSubmitting}
+              />
+            )}
+          </div>
         </div>
 
         <div className="form-row">
           <div className="form-group">
-            <label>Department</label>
-            <input
-              type="text"
-              value={formData.department}
-              onChange={(e) => handleInputChange('department', e.target.value)}
-              placeholder="e.g., Engineering"
-              disabled={isSubmitting}
-            />
-            <p className="field-hint">Start typing to see suggestions</p>
+            <label>Location</label>
+            {locations.length > 0 ? (
+              <select
+                value={formData.location}
+                onChange={(e) => handleInputChange('location', e.target.value)}
+                disabled={isSubmitting}
+              >
+                <option value="">Select location...</option>
+                {locations.filter((loc: any) => loc.isActive !== false).map((loc: any) => (
+                  <option key={loc.id} value={loc.name}>{loc.name}{loc.city ? ` (${loc.city})` : ''}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                value={formData.location}
+                onChange={(e) => handleInputChange('location', e.target.value)}
+                placeholder="e.g., Calgary"
+                disabled={isSubmitting}
+              />
+            )}
           </div>
           <div className="form-group">
-            <label>Location</label>
-            <input
-              type="text"
-              value={formData.location}
-              onChange={(e) => handleInputChange('location', e.target.value)}
-              placeholder="e.g., Calgary"
+            <label>Organizational Unit</label>
+            <select
+              value={formData.organizationalUnit}
+              onChange={(e) => handleInputChange('organizationalUnit', e.target.value)}
               disabled={isSubmitting}
-            />
+            >
+              <option value="">Select OU...</option>
+              <option value="/Engineering">Engineering</option>
+              <option value="/Sales">Sales</option>
+              <option value="/Marketing">Marketing</option>
+              <option value="/HR">HR</option>
+            </select>
+            <p className="field-hint">Where in your organization structure</p>
           </div>
-        </div>
-
-        <div className="form-group">
-          <label>Organizational Unit</label>
-          <select
-            value={formData.organizationalUnit}
-            onChange={(e) => handleInputChange('organizationalUnit', e.target.value)}
-            disabled={isSubmitting}
-          >
-            <option value="">Select OU...</option>
-            <option value="/Engineering">Engineering</option>
-            <option value="/Sales">Sales</option>
-            <option value="/Marketing">Marketing</option>
-            <option value="/HR">HR</option>
-          </select>
-          <p className="field-hint">Where in your organization structure</p>
         </div>
 
         <div className="form-group">
           <label>Reporting Manager</label>
-          <input
-            type="text"
+          <select
             value={formData.reportingManager}
             onChange={(e) => handleInputChange('reportingManager', e.target.value)}
-            placeholder="Start typing manager's name..."
             disabled={isSubmitting}
-          />
+          >
+            <option value="">Select manager...</option>
+            {managers.filter((mgr: any) => mgr.status === 'active').map((mgr: any) => (
+              <option key={mgr.id} value={mgr.id}>
+                {mgr.first_name || mgr.firstName} {mgr.last_name || mgr.lastName} ({mgr.email})
+              </option>
+            ))}
+          </select>
           <p className="field-hint">Direct supervisor for this user</p>
         </div>
       </div>
