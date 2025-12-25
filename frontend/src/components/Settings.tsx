@@ -37,6 +37,12 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
   const [showModuleConfig, setShowModuleConfig] = useState(false);
   const [configuringModule, setConfiguringModule] = useState<string | null>(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+
+  // Organization editing state
+  const [isEditingOrg, setIsEditingOrg] = useState(false);
+  const [editedOrgName, setEditedOrgName] = useState(organizationName);
+  const [editedDomain, setEditedDomain] = useState(domain);
+  const [savingOrg, setSavingOrg] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -108,6 +114,36 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
       console.error('Failed to fetch module status:', error);
     } finally {
       setIsLoadingStatus(false);
+    }
+  };
+
+  const saveOrganization = async () => {
+    try {
+      setSavingOrg(true);
+      const token = localStorage.getItem('helios_token');
+      const response = await fetch('/api/v1/organization/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: editedOrgName,
+          domain: editedDomain
+        })
+      });
+
+      if (response.ok) {
+        setIsEditingOrg(false);
+        // Optionally trigger a page refresh to update the header
+        window.location.reload();
+      } else {
+        console.error('Failed to save organization settings');
+      }
+    } catch (error) {
+      console.error('Failed to save organization settings:', error);
+    } finally {
+      setSavingOrg(false);
     }
   };
 
@@ -511,9 +547,37 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
 
           {activeTab === 'organization' && (
             <div className="settings-section">
-              <div className="section-header">
-                <h2>Organization Settings</h2>
-                <p>Configure your organization details and branding</p>
+              <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <h2>Organization Settings</h2>
+                  <p>Configure your organization details and branding</p>
+                </div>
+                {!isEditingOrg ? (
+                  <button className="btn-secondary" onClick={() => setIsEditingOrg(true)}>
+                    Edit
+                  </button>
+                ) : (
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      className="btn-secondary"
+                      onClick={() => {
+                        setIsEditingOrg(false);
+                        setEditedOrgName(organizationName);
+                        setEditedDomain(domain);
+                      }}
+                      disabled={savingOrg}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="btn-primary"
+                      onClick={saveOrganization}
+                      disabled={savingOrg}
+                    >
+                      {savingOrg ? 'Saving...' : 'Save'}
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="settings-form">
@@ -521,19 +585,21 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                   <label>Organization Name</label>
                   <input
                     type="text"
-                    value={organizationName}
-                    readOnly
+                    value={isEditingOrg ? editedOrgName : organizationName}
+                    onChange={(e) => setEditedOrgName(e.target.value)}
+                    readOnly={!isEditingOrg}
                     className="form-input"
                   />
-                  <div className="form-hint">Contact support to change organization name</div>
+                  {!isEditingOrg && <div className="form-hint">Click Edit to change organization name</div>}
                 </div>
 
                 <div className="form-group">
                   <label>Primary Domain</label>
                   <input
                     type="text"
-                    value={domain}
-                    readOnly
+                    value={isEditingOrg ? editedDomain : domain}
+                    onChange={(e) => setEditedDomain(e.target.value)}
+                    readOnly={!isEditingOrg}
                     className="form-input"
                   />
                   <div className="form-hint">Used for SaaS integrations and user authentication</div>

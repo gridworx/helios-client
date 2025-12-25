@@ -1,4 +1,5 @@
 import React from 'react';
+import './ui.css';
 
 export interface ToggleProps {
   /** Whether the toggle is on */

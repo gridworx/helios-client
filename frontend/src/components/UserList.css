@@ -325,6 +325,7 @@
 }
 
 .user-name {
+  display: block;
   font-weight: 500;
   color: #1a1a1a;
   font-size: 13px;
@@ -335,12 +336,13 @@
 }
 
 .user-job-title {
-  font-size: 12px;
-  color: #6b7280;
+  display: block;
+  font-size: 11px;
+  color: #9ca3af;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.3;
+  line-height: 1.2;
 }
 
 /* Email Column */

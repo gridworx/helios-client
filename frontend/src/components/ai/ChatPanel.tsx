@@ -153,12 +153,14 @@ export function ChatPanel({
         })
       });
 
+      // Clone response before reading so we can get raw text if JSON parsing fails
+      const resClone = res.clone();
       let data;
       try {
         data = await res.json();
       } catch (parseError) {
         // If JSON parsing fails, try to get the raw text to show a better error
-        const rawText = await res.clone().text().catch(() => 'Unable to read response');
+        const rawText = await resClone.text().catch(() => 'Unable to read response');
         console.error('Failed to parse AI response:', rawText.substring(0, 500));
         throw new Error(`Invalid response from server: ${rawText.substring(0, 100)}...`);
       }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom'
+import { BrowserRouter, useNavigate, useLocation } from 'react-router-dom'
 import './App.css'
 import { LoginPage } from './pages/LoginPage'
 import { ClientUserMenu } from './components/ClientUserMenu'
@@ -12,7 +12,6 @@ import { DashboardCustomizer } from './components/DashboardCustomizer'
 import { Administrators } from './components/Administrators'
 import { Users } from './pages/Users'
 import { Groups } from './pages/Groups'
-import { GroupDetail } from './pages/GroupDetail'
 // OrgUnits - available for future use
 // import { OrgUnits } from './pages/OrgUnits'
 import OrgChart from './pages/OrgChart'
@@ -112,24 +111,6 @@ interface OrganizationStats {
   google: GoogleWorkspaceStats;
   microsoft: Microsoft365Stats;
   helios: HeliosStats;
-}
-
-// Wrapper component for GroupDetail to extract URL params
-function GroupDetailWrapper({ organizationId }: { organizationId: string }) {
-  const { groupId } = useParams<{ groupId: string }>();
-  const navigate = useNavigate();
-
-  if (!groupId) {
-    return <Navigate to="/admin/groups" replace />;
-  }
-
-  return (
-    <GroupDetail
-      organizationId={organizationId}
-      groupId={groupId}
-      onBack={() => navigate('/admin/groups')}
-    />
-  );
 }
 
 // Helper to map URL paths to page identifiers for active nav highlighting
@@ -273,9 +254,6 @@ function AppContent() {
   const [showChatPanel, setShowChatPanel] = useState(false);
   const [chatInitialMessage, setChatInitialMessage] = useState<string | undefined>(undefined);
   const [aiEnabled, setAiEnabled] = useState(false);
-
-  // Helper to navigate to group detail (admin route)
-  const navigateToGroup = (groupId: string) => navigate(`/admin/groups/${groupId}`);
 
   useEffect(() => {
     checkConfiguration();
@@ -1211,30 +1189,9 @@ function AppContent() {
           )}
 
           {currentPage === 'groups' && (
-            <Routes>
-              <Route
-                path="/admin/groups/:groupId"
-                element={<GroupDetailWrapper organizationId={config?.organizationId || ''} />}
-              />
-              <Route
-                path="/admin/groups"
-                element={
-                  <Groups
-                    organizationId={config?.organizationId || ''}
-                    onSelectGroup={navigateToGroup}
-                  />
-                }
-              />
-              {/* Legacy route redirect */}
-              <Route
-                path="/groups/:groupId"
-                element={<Navigate to={`/admin/groups/${location.pathname.split('/').pop()}`} replace />}
-              />
-              <Route
-                path="/groups"
-                element={<Navigate to="/admin/groups" replace />}
-              />
-            </Routes>
+            <Groups
+              organizationId={config?.organizationId || ''}
+            />
           )}
 
           {currentPage === 'workspaces' && (

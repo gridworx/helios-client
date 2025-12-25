@@ -311,6 +311,50 @@ router.get('/current', async (req: Request, res: Response) => {
   }
 });
 
+// Update organization settings
+router.put('/settings', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { name, domain } = req.body;
+
+    // Validate input
+    if (!name && !domain) {
+      return validationErrorResponse(res, 'At least one field (name or domain) is required');
+    }
+
+    // Build update query dynamically
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    if (name) {
+      updates.push(`name = $${paramIndex++}`);
+      values.push(name);
+    }
+    if (domain) {
+      updates.push(`domain = $${paramIndex++}`);
+      values.push(domain);
+    }
+
+    const result = await db.query(
+      `UPDATE organizations
+       SET ${updates.join(', ')}, updated_at = NOW()
+       WHERE id = (SELECT id FROM organizations LIMIT 1)
+       RETURNING id, name, domain, updated_at`,
+      values
+    );
+
+    if (result.rows.length === 0) {
+      return notFoundResponse(res, 'Organization');
+    }
+
+    logger.info('Organization settings updated', { name, domain });
+    successResponse(res, result.rows[0]);
+  } catch (error) {
+    logger.error('Failed to update organization settings', error);
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to update organization settings');
+  }
+});
+
 // Get all users for the organization
 router.get('/users', authenticateToken, async (req: Request, res: Response) => {
   try {
