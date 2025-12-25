@@ -4,6 +4,7 @@ import { googleWorkspaceService } from '../services/google-workspace.service.js'
 import { logger } from '../utils/logger.js';
 import { db } from '../database/connection.js';
 import { syncScheduler } from '../services/sync-scheduler.service.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -770,6 +771,151 @@ router.post('/disable/:organizationId', async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       error: 'Failed to disable Google Workspace module'
+    });
+  }
+});
+
+/**
+ * @openapi
+ * /api/v1/google-workspace/users:
+ *   post:
+ *     summary: Create a user in Google Workspace
+ *     description: |
+ *       Creates a user in Google Workspace from an existing Helios user,
+ *       or creates both a new Helios user and Google Workspace user.
+ *     tags: [Google Workspace]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, firstName, lastName]
+ *             properties:
+ *               heliosUserId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID of existing Helios user to link
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               jobTitle:
+ *                 type: string
+ *               department:
+ *                 type: string
+ *               orgUnitPath:
+ *                 type: string
+ *                 default: /
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *       400:
+ *         description: Invalid request
+ *       500:
+ *         description: Server error
+ */
+router.post('/users', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const organizationId = (req as any).user?.organizationId;
+    if (!organizationId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Organization ID not found'
+      });
+    }
+
+    const {
+      heliosUserId,
+      email,
+      firstName,
+      lastName,
+      jobTitle,
+      department,
+      orgUnitPath,
+      mobilePhone
+    } = req.body;
+
+    // Validate required fields
+    if (!email || !firstName || !lastName) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email, first name, and last name are required'
+      });
+    }
+
+    // Check if Google Workspace is enabled
+    const gwEnabled = await googleWorkspaceService.isEnabled(organizationId);
+    if (!gwEnabled) {
+      return res.status(400).json({
+        success: false,
+        error: 'Google Workspace integration is not enabled'
+      });
+    }
+
+    // Generate a temporary password
+    const crypto = await import('crypto');
+    const tempPassword = crypto.randomBytes(16).toString('base64').slice(0, 16) + 'Aa1!';
+
+    // Create the user in Google Workspace
+    const gwResult = await googleWorkspaceService.createUser(organizationId, {
+      email: email.toLowerCase(),
+      firstName,
+      lastName,
+      password: tempPassword,
+      orgUnitPath: orgUnitPath || '/',
+      jobTitle: jobTitle || undefined,
+      department: department || undefined,
+      changePasswordAtNextLogin: true,
+      phones: mobilePhone ? [{ type: 'mobile', value: mobilePhone }] : undefined
+    });
+
+    if (!gwResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: gwResult.error || 'Failed to create user in Google Workspace'
+      });
+    }
+
+    // If a Helios user ID was provided, link the Google Workspace user
+    if (heliosUserId && gwResult.userId) {
+      await db.query(
+        `UPDATE organization_users
+         SET google_workspace_id = $1,
+             google_workspace_sync_status = 'synced',
+             google_workspace_last_sync = NOW()
+         WHERE id = $2 AND organization_id = $3`,
+        [gwResult.userId, heliosUserId, organizationId]
+      );
+
+      logger.info('Linked existing Helios user to Google Workspace', {
+        heliosUserId,
+        googleWorkspaceId: gwResult.userId,
+        email
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'User created in Google Workspace successfully',
+      data: {
+        googleWorkspaceId: gwResult.userId,
+        email,
+        firstName,
+        lastName,
+        linkedToHeliosUser: !!heliosUserId
+      }
+    });
+  } catch (error: any) {
+    logger.error('Failed to create Google Workspace user', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create user in Google Workspace'
     });
   }
 });

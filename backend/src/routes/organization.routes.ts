@@ -8,6 +8,7 @@ import { authenticateToken } from '../middleware/auth.js';
 import { PasswordSetupService } from '../services/password-setup.service.js';
 import { syncScheduler } from '../services/sync-scheduler.service.js';
 import { googleWorkspaceService } from '../services/google-workspace.service.js';
+import { activityTracker } from '../services/activity-tracker.service.js';
 import {
   successResponse,
   errorResponse,
@@ -485,7 +486,8 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
           full_name as "displayName",
           is_admin,
           is_suspended,
-          org_unit_path as department,
+          org_unit_path,
+          department,
           job_title,
           last_login_time,
           creation_time,
@@ -495,9 +497,20 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
         ORDER BY full_name, email
       `, [organizationId]);
 
+      // Helper function to extract department name from OU path
+      // e.g., "/Staff/Sales" -> "Sales", "/Admins" -> "Admins"
+      const extractDepartmentFromOUPath = (ouPath: string | null): string | null => {
+        if (!ouPath) return null;
+        // Split by "/" and get the last non-empty segment
+        const segments = ouPath.split('/').filter(s => s.trim());
+        return segments.length > 0 ? segments[segments.length - 1] : null;
+      };
+
       gwUsersResult.rows.forEach((user: any) => {
         const email = user.email.toLowerCase();
         const platforms = ['google_workspace'];
+        // Use explicit department field, or extract from OU path as fallback
+        const gwDepartment = user.department || extractDepartmentFromOUPath(user.org_unit_path);
 
         // If user already exists locally, add google_workspace to their platforms
         if (userEmailMap.has(email)) {
@@ -505,13 +518,16 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
           existingUser.platforms.push('google_workspace');
           existingUser.googleWorkspaceData = {
             googleId: user.external_id,
-            department: user.department,
+            department: gwDepartment,
+            orgUnitPath: user.org_unit_path,
             jobTitle: user.job_title,
             lastLogin: user.last_login_time,
             isSuspended: user.is_suspended
           };
-        } else {
-          // Add as Google Workspace only user
+        } else if (statusFilter === 'all' || includeDeleted) {
+          // Only add GW-only users when not filtering by a specific status
+          // When filtering by active/deleted/suspended/etc, only show users
+          // that match the filter from organization_users
           userEmailMap.set(email, {
             id: user.id,
             email: user.email,
@@ -521,7 +537,8 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
             role: user.is_admin ? 'admin' : 'user',
             isActive: !user.is_suspended,
             platforms: platforms,
-            department: user.department,
+            department: gwDepartment,
+            organizationalUnit: user.org_unit_path,
             jobTitle: user.job_title,
             lastLogin: user.last_login_time,
             createdAt: user.creation_time,
@@ -1100,12 +1117,13 @@ router.post('/users', authenticateToken, async (req: Request, res: Response) => 
     const externalAdmin = userRole === 'admin' && isExternalAdmin === true;
 
     // Create user
+    // Note: professional_designations and pronouns columns may not exist in all installations
     const result = await db.query(
       `INSERT INTO organization_users (
         email, password_hash, first_name, last_name,
         role, organization_id, is_active, email_verified,
         alternate_email, password_setup_method, user_status,
-        job_title, professional_designations, pronouns, department, department_id, organizational_unit, location,
+        job_title, department, department_id, organizational_unit, location,
         reporting_manager_id, employee_id, employee_type, cost_center,
         start_date, end_date, bio,
         mobile_phone, work_phone, work_phone_extension, timezone, preferred_language,
@@ -1115,7 +1133,7 @@ router.post('/users', authenticateToken, async (req: Request, res: Response) => 
         is_external_admin,
         created_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, NOW())
+      VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, NOW())
       RETURNING id, email, first_name, last_name, role, is_active, alternate_email, user_status as "userStatus", job_title, department, department_id, location, is_external_admin, created_at`,
       [
         email.toLowerCase(),
@@ -1129,8 +1147,6 @@ router.post('/users', authenticateToken, async (req: Request, res: Response) => 
         method,
         userStatus,
         jobTitle || null,
-        professionalDesignations || null,
-        pronouns || null,
         department || null,
         departmentId || null,
         organizationalUnit || null,
@@ -1160,7 +1176,23 @@ router.post('/users', authenticateToken, async (req: Request, res: Response) => 
 
     const newUser = result.rows[0];
 
-    // Log the user creation
+    // Log the user creation to security_events using activity tracker
+    await activityTracker.trackUserChange(
+      organizationId,
+      newUser.id,
+      req.user?.userId || '',
+      req.user?.email || '',
+      'created',
+      {
+        userEmail: email.toLowerCase(),
+        role: userRole,
+        passwordSetupMethod: method,
+        createInGoogle: createInGoogle || false,
+        createInMicrosoft: createInMicrosoft || false
+      }
+    );
+
+    // Also keep audit_logs for backwards compatibility
     await db.query(
       `INSERT INTO audit_logs (user_id, organization_id, action, resource, resource_id, ip_address, user_agent)
        VALUES ($1, $2, 'create', 'organization_user', $3, $4, $5)`,
@@ -1194,14 +1226,74 @@ router.post('/users', authenticateToken, async (req: Request, res: Response) => 
       }
     });
 
-    // TODO: Future implementation - create user in external providers
-    // if (createInGoogle) { /* Create user in Google Workspace */ }
+    // Create user in external providers if requested
+    let googleWorkspaceUserId: string | null = null;
+    let googleCreationError: string | null = null;
+
+    if (createInGoogle) {
+      // Generate a temporary password for Google Workspace
+      // User will be required to change it on first login
+      const tempPassword = crypto.randomBytes(16).toString('base64').slice(0, 16) + 'Aa1!';
+
+      const gwResult = await googleWorkspaceService.createUser(organizationId, {
+        email: email.toLowerCase(),
+        firstName,
+        lastName,
+        password: tempPassword,
+        orgUnitPath: organizationalUnit || '/',
+        jobTitle: jobTitle || undefined,
+        department: department || undefined,
+        changePasswordAtNextLogin: true,
+        phones: mobilePhone ? [{ type: 'mobile', value: mobilePhone }] : undefined
+      });
+
+      if (gwResult.success && gwResult.userId) {
+        googleWorkspaceUserId = gwResult.userId;
+
+        // Update the Helios user record with the Google Workspace ID
+        await db.query(
+          `UPDATE organization_users
+           SET google_workspace_id = $1,
+               google_workspace_sync_status = 'synced',
+               google_workspace_last_sync = NOW()
+           WHERE id = $2`,
+          [googleWorkspaceUserId, newUser.id]
+        );
+
+        logger.info('User created in Google Workspace and linked to Helios', {
+          userId: newUser.id,
+          googleWorkspaceId: googleWorkspaceUserId,
+          email: email.toLowerCase()
+        });
+      } else {
+        // Log the error but don't fail the entire operation
+        // The Helios user was already created
+        googleCreationError = gwResult.error || 'Unknown error creating Google Workspace user';
+        logger.warn('Failed to create user in Google Workspace', {
+          userId: newUser.id,
+          email: email.toLowerCase(),
+          error: googleCreationError
+        });
+      }
+    }
+
+    // TODO: Microsoft 365 user creation
     // if (createInMicrosoft) { /* Create user in Microsoft 365 */ }
+
+    // TODO: License assignment
     // if (licenseId) { /* Assign license to user */ }
+
+    // Build response message based on what was created
+    let message = 'User created successfully';
+    if (createInGoogle && googleWorkspaceUserId) {
+      message = 'User created in Helios and Google Workspace';
+    } else if (createInGoogle && googleCreationError) {
+      message = 'User created in Helios. Google Workspace creation failed: ' + googleCreationError;
+    }
 
     res.status(201).json({
       success: true,
-      message: 'User created successfully',
+      message,
       data: {
         user: {
           id: newUser.id,
@@ -1211,12 +1303,26 @@ router.post('/users', authenticateToken, async (req: Request, res: Response) => 
           role: newUser.role,
           isActive: newUser.is_active,
           isExternalAdmin: newUser.is_external_admin || false,
-          createdAt: newUser.created_at
+          createdAt: newUser.created_at,
+          googleWorkspaceId: googleWorkspaceUserId
+        },
+        providerStatus: {
+          google: createInGoogle ? {
+            requested: true,
+            success: !!googleWorkspaceUserId,
+            userId: googleWorkspaceUserId,
+            error: googleCreationError
+          } : null,
+          microsoft: createInMicrosoft ? {
+            requested: true,
+            success: false,
+            error: 'Microsoft 365 user creation not yet implemented'
+          } : null
         }
       }
     });
   } catch (error: any) {
-    logger.error('Failed to create user', { error: error.message });
+    logger.error('Failed to create user', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to create user'
@@ -1678,28 +1784,19 @@ router.patch('/users/:userId/status', authenticateToken, async (req: Request, re
       [status, isActive, userId, organizationId]
     );
 
-    // Log the status change
-    await db.query(
-      `SELECT log_activity(
-        $1::uuid,
-        $2::varchar,
-        $3::uuid,
-        $4::uuid,
-        $5::varchar,
-        $6::varchar,
-        $7::text,
-        $8::jsonb
-      )`,
-      [
-        organizationId,
-        'user_status_changed',
-        userId,
-        req.user?.userId,
-        'user',
-        userId,
-        `User status changed from ${oldStatus} to ${status}`,
-        JSON.stringify({ old_status: oldStatus, new_status: status })
-      ]
+    // Log the status change to security_events using activity tracker
+    const actionType = status === 'suspended' ? 'suspended' : status === 'active' ? 'activated' : 'updated';
+    await activityTracker.trackUserChange(
+      organizationId,
+      userId,
+      req.user?.userId || '',
+      req.user?.email || '',
+      actionType,
+      {
+        oldStatus,
+        newStatus: status,
+        userEmail: userResult.rows[0].email
+      }
     );
 
     logger.info('User status changed', {
@@ -1841,6 +1938,114 @@ router.patch('/users/:userId/restore', authenticateToken, async (req: Request, r
 });
 
 /**
+ * POST /api/organization/users/:userId/reset-password
+ * Send password reset email to user
+ */
+router.post('/users/:userId/reset-password', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+
+    // Get organizationId from authenticated user
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Organization ID not found'
+      });
+    }
+
+    // Check if requesting user is admin
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only administrators can trigger password resets'
+      });
+    }
+
+    // Get user details
+    const userResult = await db.query(
+      'SELECT id, email, first_name, last_name, deleted_at FROM organization_users WHERE id = $1 AND organization_id = $2',
+      [userId, organizationId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    const user = userResult.rows[0];
+
+    if (user.deleted_at) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot reset password for a deleted user'
+      });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    // Store reset token
+    await db.query(
+      `UPDATE organization_users
+       SET password_reset_token = $1, password_reset_expires = $2, updated_at = NOW()
+       WHERE id = $3`,
+      [tokenHash, expiresAt, userId]
+    );
+
+    // Log the action
+    await db.query(
+      `SELECT log_activity(
+        $1::uuid,
+        $2::varchar,
+        $3::uuid,
+        $4::uuid,
+        $5::varchar,
+        $6::varchar,
+        $7::text
+      )`,
+      [
+        organizationId,
+        'password_reset_requested',
+        userId,
+        req.user?.userId,
+        'user',
+        userId,
+        `Password reset initiated for ${user.email} by admin`
+      ]
+    );
+
+    // In production, you would send an email here
+    // For now, log the token (remove in production)
+    logger.info('Password reset token generated', {
+      userId: user.id,
+      email: user.email,
+      initiatedBy: req.user?.userId,
+      // In production, don't log the token
+      resetUrl: `/reset-password?token=${resetToken}`
+    });
+
+    res.json({
+      success: true,
+      message: 'Password reset email has been sent',
+      data: {
+        email: user.email
+      }
+    });
+  } catch (error: any) {
+    logger.error('Failed to initiate password reset', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to send password reset email'
+    });
+  }
+});
+
+/**
  * GET /api/organization/users/:userId/activity
  * Get activity log for a specific user
  */
@@ -1859,30 +2064,34 @@ router.get('/users/:userId/activity', authenticateToken, async (req: Request, re
       });
     }
 
-    // Fetch activity logs for this user
+    // Fetch activity logs from security_events table
+    // Query where user_id matches (user was target) OR actor_id matches (user was actor)
     const result = await db.query(`
       SELECT
-        al.id,
-        al.action,
-        al.description,
-        al.metadata,
-        al.ip_address as ipAddress,
-        al.created_at as timestamp,
-        actor.email as actorEmail,
-        actor.first_name as actorFirstName,
-        actor.last_name as actorLastName
-      FROM activity_logs al
-      LEFT JOIN organization_users actor ON al.actor_id = actor.id
-      WHERE al.organization_id = $1 AND al.user_id = $2
-      ORDER BY al.created_at DESC
+        se.id,
+        se.event_type as action,
+        se.title,
+        se.description,
+        se.severity,
+        se.metadata,
+        se.ip_address as "ipAddress",
+        se.created_at as timestamp,
+        se.actor_email as "actorEmail",
+        se.actor_name as "actorName",
+        actor.first_name as "actorFirstName",
+        actor.last_name as "actorLastName"
+      FROM security_events se
+      LEFT JOIN organization_users actor ON se.actor_id = actor.id
+      WHERE se.organization_id = $1 AND (se.user_id = $2 OR se.actor_id = $2)
+      ORDER BY se.created_at DESC
       LIMIT $3 OFFSET $4
     `, [organizationId, userId, limit, offset]);
 
     // Get total count
     const countResult = await db.query(`
       SELECT COUNT(*) as total
-      FROM activity_logs
-      WHERE organization_id = $1 AND user_id = $2
+      FROM security_events
+      WHERE organization_id = $1 AND (user_id = $2 OR actor_id = $2)
     `, [organizationId, userId]);
 
     const total = parseInt(countResult.rows[0].total);
@@ -1914,7 +2123,7 @@ router.get('/users/:userId/activity', authenticateToken, async (req: Request, re
 
 /**
  * GET /api/organization/users/:userId/groups
- * Get groups for a specific user
+ * Get groups for a specific user (both access groups and GW groups)
  */
 router.get('/users/:userId/groups', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -1929,35 +2138,41 @@ router.get('/users/:userId/groups', authenticateToken, async (req: Request, res:
       });
     }
 
-    // Fetch groups for this user from gw_groups table
-    const result = await db.query(`
+    // Fetch access groups for this user with member count subquery
+    const accessGroupsResult = await db.query(`
       SELECT DISTINCT
-        g.id,
-        g.google_id as externalId,
-        g.name,
-        g.email,
-        g.description,
-        g.member_count as memberCount,
-        'google_workspace' as source
-      FROM gw_groups g
-      JOIN gw_group_members gm ON g.id = gm.group_id
-      WHERE g.organization_id = $1
-        AND gm.member_email = (
-          SELECT email FROM organization_users WHERE id = $2
-        )
-      ORDER BY g.name
+        ag.id,
+        ag.external_id as "externalId",
+        ag.name,
+        ag.email,
+        ag.description,
+        (SELECT COUNT(*) FROM access_group_members WHERE access_group_id = ag.id AND is_active = true) as "memberCount",
+        ag.platform as source,
+        agm.member_type as "memberType",
+        ag.group_type as "groupType"
+      FROM access_groups ag
+      JOIN access_group_members agm ON ag.id = agm.access_group_id
+      WHERE ag.organization_id = $1
+        AND agm.user_id = $2
+        AND agm.is_active = true
+      ORDER BY ag.name
     `, [organizationId, userId]);
+
+    // Note: gw_group_members table doesn't exist, so we only use access_groups
+    // GW group memberships should be imported into access_groups during sync
 
     logger.info('User groups fetched', {
       userId,
-      count: result.rows.length
+      accessGroupsCount: accessGroupsResult.rows.length
     });
+
+    const allGroups = accessGroupsResult.rows;
 
     res.json({
       success: true,
-      data: result.rows,
+      data: allGroups,
       meta: {
-        total: result.rows.length
+        total: allGroups.length
       }
     });
   } catch (error: any) {

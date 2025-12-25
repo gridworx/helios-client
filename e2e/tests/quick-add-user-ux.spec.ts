@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { login, dismissViewOnboarding } from './utils/test-helpers';
+import { navigateToAdminUsers } from './utils/test-helpers';
 
 /**
  * E2E Tests for QuickAddUserSlideOut UX Alignment
@@ -12,11 +12,7 @@ import { login, dismissViewOnboarding } from './utils/test-helpers';
 
 // Helper to navigate to Users page and open Quick Add slideout
 async function openQuickAddSlideout(page: Page): Promise<void> {
-  await login(page);
-
-  // Navigate to Users page via sidebar click
-  await page.click('button:has-text("Users")');
-  await page.waitForSelector('.users-page', { timeout: 15000 });
+  await navigateToAdminUsers(page);
 
   // Click "Add User" dropdown button
   const addUserButton = page.locator('.btn-add-user-primary');
@@ -75,8 +71,8 @@ test.describe('Quick Add User UX Alignment', () => {
     test('should not have floating label behavior on focus', async ({ page }) => {
       await openQuickAddSlideout(page);
 
-      // Get the Email label's initial position (use first() to get primary email field)
-      const emailLabel = page.locator('.quick-add-panel .form-group label').filter({ hasText: /^Email/ }).first();
+      // Get the Work Email label's initial position (use first() to get primary email field)
+      const emailLabel = page.locator('.quick-add-panel .form-group label').filter({ hasText: /Work Email/ }).first();
       const emailInput = page.locator('.quick-add-panel input[type="email"]').first();
 
       await expect(emailLabel).toBeVisible();
@@ -418,7 +414,7 @@ test.describe('Quick Add User UX Alignment', () => {
       const header = page.locator('.quick-add-header');
       await expect(header).toBeVisible();
 
-      const title = header.locator('h2:has-text("Quick Add User")');
+      const title = header.locator('h2:has-text("Add New User")');
       await expect(title).toBeVisible();
     });
 

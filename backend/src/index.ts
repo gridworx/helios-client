@@ -90,6 +90,7 @@ import mcpRoutes from './routes/mcp.routes.js';
 import featureFlagsRoutes from './routes/feature-flags.routes.js';
 import aiRoutes from './routes/ai.routes.js';
 import externalSharingRoutes from './routes/external-sharing.routes.js';
+import workflowsRoutes from './routes/workflows.routes.js';
 import { requestIdMiddleware, REQUEST_ID_HEADER } from './middleware/request-id.js';
 import { authHandler } from './lib/auth-handler.js';
 const app = express();
@@ -484,13 +485,13 @@ const setupCheckMiddleware = async (req: express.Request, res: express.Response,
 
     // Skip setup check for health, organization setup, auth, and other setup endpoints
     if (normalizedPath.startsWith('/health') ||
-        normalizedPath.startsWith('/organization/setup') ||
-        normalizedPath.startsWith('/auth') ||
-        normalizedPath.startsWith('/setup') ||
-        normalizedPath.startsWith('/google-workspace') ||
-        normalizedPath.startsWith('/modules') ||
-        normalizedPath.startsWith('/docs') ||
-        normalizedPath.startsWith('/openapi')) {
+      normalizedPath.startsWith('/organization/setup') ||
+      normalizedPath.startsWith('/auth') ||
+      normalizedPath.startsWith('/setup') ||
+      normalizedPath.startsWith('/google-workspace') ||
+      normalizedPath.startsWith('/modules') ||
+      normalizedPath.startsWith('/docs') ||
+      normalizedPath.startsWith('/openapi')) {
       return next();
     }
 
@@ -617,6 +618,9 @@ registerRoute('/ai', aiRoutes);
 
 // External Sharing Audit (Google Drive)
 registerRoute('/external-sharing', externalSharingRoutes);
+
+// Workflows
+registerRoute('/workflows', workflowsRoutes);
 
 // Feature Flags
 registerRoute('/organization/feature-flags', featureFlagsRoutes);

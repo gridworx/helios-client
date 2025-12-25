@@ -1,0 +1,163 @@
+{
+  "entries": [
+    {
+      "id": "setting-google-workspace-module",
+      "type": "setting",
+      "title": "Google Workspace Module Settings",
+      "category": "modules",
+      "subcategory": "google-workspace",
+      "summary": "Configuration options for the Google Workspace integration",
+      "content": "Configure Google Workspace integration in Settings > Modules > Google Workspace.\n\n**Required Settings**:\n- **Service Account JSON**: Upload your Google Cloud service account key file\n- **Admin Email**: Super admin email for domain-wide delegation (e.g., admin@yourdomain.com)\n- **Domain**: Your Google Workspace domain (e.g., yourdomain.com)\n\n**Optional Settings**:\n- **Auto-sync Enabled**: Enable automatic synchronization (default: true)\n- **Sync Interval**: How often to sync (5 min, 15 min, 30 min, 1 hour, daily)\n- **Sync Users**: Enable user synchronization (default: true)\n- **Sync Groups**: Enable group synchronization (default: true)\n- **Sync OrgUnits**: Enable organizational unit synchronization (default: true)\n\n**Status Indicators**:\n- Connected: Green checkmark when successfully connected\n- Last Sync: Timestamp of most recent sync\n- Sync Status: Success, Failed, or In Progress",
+      "keywords": ["google", "workspace", "module", "settings", "configuration", "service account", "admin email"],
+      "aliases": ["gw settings", "google config", "workspace config"],
+      "examples": [],
+      "relatedIds": ["setting-sync-settings", "guide-google-workspace-setup"],
+      "lastUpdated": "2025-12-21T00:00:00Z"
+    },
+    {
+      "id": "setting-microsoft-365-module",
+      "type": "setting",
+      "title": "Microsoft 365 Module Settings",
+      "category": "modules",
+      "subcategory": "microsoft-365",
+      "summary": "Configuration options for the Microsoft 365 integration",
+      "content": "Configure Microsoft 365 integration in Settings > Modules > Microsoft 365.\n\n**Required Settings**:\n- **Tenant ID**: Your Azure AD tenant/directory ID\n- **Client ID**: Application (client) ID from Azure app registration\n- **Client Secret**: Secret value from Azure app registration (shown only once when created)\n\n**Optional Settings**:\n- **Auto-sync Enabled**: Enable automatic synchronization (default: true)\n- **Sync Interval**: How often to sync (5 min, 15 min, 30 min, 1 hour, daily)\n- **Sync Users**: Enable user synchronization (default: true)\n- **Sync Groups**: Enable group synchronization (default: true)\n- **Sync Licenses**: Enable license synchronization (default: true)\n\n**Status Indicators**:\n- Connected: Green checkmark when successfully connected\n- Last Sync: Timestamp of most recent sync\n- Sync Status: Success, Failed, or In Progress",
+      "keywords": ["microsoft", "365", "m365", "azure", "module", "settings", "tenant", "client"],
+      "aliases": ["m365 settings", "microsoft config", "azure config"],
+      "examples": [],
+      "relatedIds": ["setting-sync-settings", "guide-microsoft-365-setup"],
+      "lastUpdated": "2025-12-21T00:00:00Z"
+    },
+    {
+      "id": "setting-sync-settings",
+      "type": "setting",
+      "title": "Sync Settings",
+      "category": "advanced",
+      "subcategory": "sync",
+      "summary": "Global synchronization settings for all connected platforms",
+      "content": "Configure sync behavior in Settings > Advanced > Sync Settings.\n\n**Sync Interval Options**:\n- 5 minutes: Near real-time (highest API usage)\n- 15 minutes: Default, good balance\n- 30 minutes: Reduced API usage\n- 1 hour: Low API usage\n- Daily: Minimum API usage\n\n**Conflict Resolution**:\n- **Platform Wins**: Helios data takes precedence on conflicts\n- **Source Wins**: Google/Microsoft data takes precedence (default)\n\n**Advanced Options**:\n- **Delta Sync**: Only sync changes since last sync (faster, recommended)\n- **Full Sync**: Sync all data every time (slower, use for troubleshooting)\n\n**Manual Sync**:\nTrigger immediate sync from the Dashboard or Settings > Advanced.",
+      "keywords": ["sync", "interval", "conflict", "resolution", "delta", "full", "schedule"],
+      "aliases": ["sync config", "sync options", "sync schedule"],
+      "examples": [],
+      "relatedIds": ["setting-google-workspace-module", "setting-microsoft-365-module"],
+      "lastUpdated": "2025-12-21T00:00:00Z"
+    },
+    {
+      "id": "setting-ai-assistant",
+      "type": "setting",
+      "title": "AI Assistant Settings",
+      "category": "modules",
+      "subcategory": "ai",
+      "summary": "Configuration options for the AI Assistant feature",
+      "content": "Configure AI Assistant in Settings > Modules > AI Assistant.\n\n**General Settings**:\n- **Enable AI Assistant**: Toggle to enable/disable the AI chat feature\n- **Custom System Prompt**: Override the default AI behavior with custom instructions\n\n**MCP Tools**:\nEnable specific tool categories for AI access:\n- **Help & Documentation**: Search help articles and guides\n- **Commands**: Look up Developer Console commands\n- **Reports**: Generate user and group reports\n- **User Data**: Query live user data (read-only)\n- **Group Data**: Query live group data (read-only)\n\n**LLM Provider**:\nConfigure your AI provider credentials:\n- **Provider**: Anthropic (Claude) or OpenAI (GPT)\n- **API Key**: Your provider API key\n- **Model**: Specific model version to use\n\n**Usage Limits**:\n- **Max Messages/Day**: Limit AI usage per user (0 = unlimited)\n- **Max Tokens/Request**: Maximum response length",
+      "keywords": ["ai", "assistant", "mcp", "tools", "llm", "claude", "openai", "chat"],
+      "aliases": ["ai config", "assistant settings", "mcp settings"],
+      "examples": [],
+      "relatedIds": ["feature-ai-assistant", "feature-developer-console"],
+      "lastUpdated": "2025-12-21T00:00:00Z"
+    },
+    {
+      "id": "setting-organization",
+      "type": "setting",
+      "title": "Organization Settings",
+      "category": "organization",
+      "subcategory": "general",
+      "summary": "Basic organization configuration settings",
+      "content": "Configure your organization in Settings > Organization.\n\n**General Settings**:\n- **Organization Name**: Display name for your organization\n- **Primary Domain**: Main domain for your organization\n- **Logo**: Upload organization logo for branding\n- **Time Zone**: Default time zone for the organization\n\n**Branding**:\n- **Primary Color**: Main accent color for the UI\n- **Logo (Light)**: Logo for light theme\n- **Logo (Dark)**: Logo for dark theme\n\n**Contact Information**:\n- **Admin Email**: Primary admin contact email\n- **Support Email**: Support contact email (if different)",
+      "keywords": ["organization", "name", "domain", "logo", "branding", "timezone"],
+      "aliases": ["org settings", "company settings", "branding settings"],
+      "examples": [],
+      "relatedIds": ["setting-security-settings"],
+      "lastUpdated": "2025-12-21T00:00:00Z"
+    },
+    {
+      "id": "setting-security-settings",
+      "type": "setting",
+      "title": "Security Settings",
+      "category": "security",
+      "subcategory": "authentication",
+      "summary": "Security and authentication configuration",
+      "content": "Configure security settings in Settings > Security.\n\n**Password Policy**:\n- **Minimum Length**: Minimum password characters (default: 8)\n- **Require Uppercase**: Require at least one uppercase letter\n- **Require Number**: Require at least one number\n- **Require Special Character**: Require at least one special character\n- **Expiration Days**: Password expiration period (0 = never expires)\n\n**Session Settings**:\n- **Access Token Expiry**: JWT token lifetime (default: 8 hours)\n- **Refresh Token Expiry**: Refresh token lifetime (default: 7 days)\n- **Max Sessions**: Maximum concurrent sessions per user (0 = unlimited)\n\n**Account Lockout**:\n- **Max Failed Attempts**: Failed logins before lockout (default: 5)\n- **Lockout Duration**: How long account remains locked (default: 15 minutes)\n\n**Two-Factor Authentication** (Coming Soon):\n- Enable/require 2FA for users\n- Supported methods: TOTP, SMS",
+      "keywords": ["security", "password", "policy", "session", "lockout", "2fa", "authentication"],
+      "aliases": ["auth settings", "password settings", "login settings"],
+      "examples": [],
+      "relatedIds": ["setting-organization", "guide-authentication"],
+      "lastUpdated": "2025-12-21T00:00:00Z"
+    },
+    {
+      "id": "setting-audit-log-settings",
+      "type": "setting",
+      "title": "Audit Log Settings",
+      "category": "security",
+      "subcategory": "compliance",
+      "summary": "Configure audit log retention and export settings",
+      "content": "Configure audit logging in Settings > Security > Audit Logs.\n\n**Retention Settings**:\n- **Retention Period**: How long to keep logs (default: 90 days)\n- **Extended Retention**: Enterprise plans support 1 year+\n\n**Log Level**:\n- **Standard**: User logins, admin actions, configuration changes\n- **Detailed**: All standard events plus API requests, sync events\n- **Debug**: All detailed events plus system internals (not recommended for production)\n\n**Export Settings**:\n- **Format**: CSV or JSON\n- **Include PII**: Whether to include personally identifiable information\n- **Compression**: Enable ZIP compression for large exports\n\n**Notifications**:\n- **Email Alerts**: Send email on security events\n- **Alert Recipients**: Email addresses to notify",
+      "keywords": ["audit", "logs", "retention", "export", "compliance", "alerts"],
+      "aliases": ["log settings", "audit config", "compliance settings"],
+      "examples": [],
+      "relatedIds": ["feature-audit-logs", "setting-security-settings"],
+      "lastUpdated": "2025-12-21T00:00:00Z"
+    },
+    {
+      "id": "setting-api-key-settings",
+      "type": "setting",
+      "title": "API Key Settings",
+      "category": "integrations",
+      "subcategory": "api",
+      "summary": "Configure API key behavior and limits",
+      "content": "Configure API keys in Settings > Integrations.\n\n**Key Types**:\n- **Service Key**: Full API access for backend integrations\n- **Vendor Key**: Limited access for third-party tools\n\n**Key Settings**:\n- **Default Expiration**: Default expiry for new keys (30, 60, 90 days, 1 year, never)\n- **Max Keys Per User**: Maximum API keys per admin user\n- **Require Description**: Require description when creating keys\n\n**Rate Limits**:\n- **Requests Per Minute**: Default rate limit (100/min)\n- **Requests Per Day**: Daily limit (0 = unlimited)\n\n**Security**:\n- **Require IP Whitelist**: Restrict key usage to specific IPs\n- **Log All Requests**: Log every API request (increases audit log size)",
+      "keywords": ["api", "key", "rate limit", "expiration", "security", "integration"],
+      "aliases": ["api settings", "key config", "rate limiting"],
+      "examples": [],
+      "relatedIds": ["feature-api-keys", "guide-api-keys"],
+      "lastUpdated": "2025-12-21T00:00:00Z"
+    },
+    {
+      "id": "setting-user-preferences",
+      "type": "setting",
+      "title": "User Preferences",
+      "category": "users",
+      "subcategory": "preferences",
+      "summary": "Personal user settings and preferences",
+      "content": "Configure personal preferences in your User Settings (click avatar > Settings).\n\n**Appearance**:\n- **Theme**: Light, Dark, or System (follows OS preference)\n- **Compact Mode**: Reduce spacing for more content\n- **Sidebar Collapsed**: Start with collapsed sidebar\n\n**Notifications**:\n- **Email Notifications**: Receive email for important events\n- **Desktop Notifications**: Browser push notifications\n- **Digest Emails**: Daily or weekly summary emails\n\n**Regional Settings**:\n- **Time Zone**: Your local time zone\n- **Date Format**: MM/DD/YYYY, DD/MM/YYYY, or YYYY-MM-DD\n- **Language**: Interface language (English currently)\n\n**Dashboard**:\n- **Default View**: Admin or User view on login\n- **Widget Layout**: Customize dashboard widgets",
+      "keywords": ["preferences", "theme", "notifications", "timezone", "language", "personal"],
+      "aliases": ["my settings", "personal settings", "user config"],
+      "examples": [],
+      "relatedIds": ["feature-dashboard"],
+      "lastUpdated": "2025-12-21T00:00:00Z"
+    },
+    {
+      "id": "setting-email-signatures",
+      "type": "setting",
+      "title": "Email Signature Settings",
+      "category": "signatures",
+      "subcategory": "management",
+      "summary": "Configure email signature templates and deployment",
+      "content": "Configure email signatures in Settings > Signatures.\n\n**Template Settings**:\n- **Default Template**: Template applied to new users\n- **Template Lock**: Prevent users from modifying signatures\n\n**Deployment Settings**:\n- **Auto-Deploy**: Automatically deploy signatures on sync\n- **Deploy Schedule**: When to push signature updates\n\n**Tracking Settings**:\n- **Enable Tracking**: Add tracking pixels to signatures\n- **Track Opens**: Monitor when emails are opened\n- **Tracking Domain**: Custom domain for tracking pixels\n\n**Campaign Settings**:\n- **Campaign Mode**: Enable promotional campaigns in signatures\n- **Campaign Rotation**: How to select active campaigns",
+      "keywords": ["signatures", "email", "templates", "tracking", "campaigns", "deployment"],
+      "aliases": ["signature config", "email settings", "template settings"],
+      "examples": [],
+      "relatedIds": [],
+      "lastUpdated": "2025-12-21T00:00:00Z"
+    },
+    {
+      "id": "setting-environment-variables",
+      "type": "setting",
+      "title": "Environment Variables",
+      "category": "deployment",
+      "subcategory": "configuration",
+      "summary": "Server-side environment configuration variables",
+      "content": "Environment variables are configured in the `.env` file or server environment.\n\n**Required Variables**:\n- `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`: Database connection\n- `JWT_SECRET`: Secret for JWT token signing (min 32 characters)\n- `ENCRYPTION_KEY`: Key for encrypting sensitive data (min 32 characters)\n\n**Optional Variables**:\n- `PUBLIC_URL`: Public URL for the application (e.g., https://helios.yourdomain.com)\n- `FRONTEND_URL`: Frontend URL if different from PUBLIC_URL\n- `PORT`: Backend API port (default: 3001)\n- `NODE_ENV`: Environment mode (development, production, test)\n\n**Redis Settings**:\n- `REDIS_HOST`: Redis server host (default: localhost)\n- `REDIS_PORT`: Redis server port (default: 6379)\n\n**S3/MinIO Settings**:\n- `S3_ENDPOINT`: S3-compatible storage endpoint\n- `S3_ACCESS_KEY`: Storage access key\n- `S3_SECRET_KEY`: Storage secret key\n- `S3_BUCKET`: Default bucket name",
+      "keywords": ["environment", "variables", "config", "env", "deployment", "server"],
+      "aliases": ["env vars", "server config", "deployment settings"],
+      "examples": [
+        {
+          "description": "Example .env configuration",
+          "code": "DB_HOST=localhost\nDB_PORT=5432\nDB_NAME=helios\nJWT_SECRET=your-secret-key-min-32-chars\nPUBLIC_URL=https://helios.example.com"
+        }
+      ],
+      "relatedIds": [],
+      "lastUpdated": "2025-12-21T00:00:00Z"
+    }
+  ]
+}
