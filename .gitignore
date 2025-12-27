@@ -67,4 +67,7 @@ e2e/reference-screenshots/
 .secrets/
 backend/.secrets/
 
+# Separate projects (have their own repos)
+projects/
+
 

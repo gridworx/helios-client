@@ -101,6 +101,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_sync_is_guest ON PLACEHOLDER;
 CREATE TRIGGER trigger_sync_is_guest
     BEFORE INSERT OR UPDATE OF user_type ON organization_users
     FOR EACH ROW

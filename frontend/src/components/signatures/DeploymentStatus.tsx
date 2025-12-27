@@ -20,6 +20,7 @@ import {
   Loader2,
   RotateCcw
 } from 'lucide-react';
+import { authFetch } from '../../config/api';
 import './DeploymentStatus.css';
 
 interface SyncSummary {
@@ -59,11 +60,7 @@ const DeploymentStatus: React.FC<DeploymentStatusProps> = ({
 
   const fetchSummary = useCallback(async () => {
     try {
-      const response = await fetch('/api/signatures/sync/status', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
-        },
-      });
+      const response = await authFetch('/api/signatures/sync/status');
       const data = await response.json();
 
       if (data.success) {
@@ -92,11 +89,8 @@ const DeploymentStatus: React.FC<DeploymentStatusProps> = ({
     setLastDeployResult(null);
 
     try {
-      const response = await fetch('/api/signatures/sync/deploy', {
+      const response = await authFetch('/api/signatures/sync/deploy', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
-        },
       });
       const data = await response.json();
 
@@ -129,11 +123,8 @@ const DeploymentStatus: React.FC<DeploymentStatusProps> = ({
     setLastDeployResult(null);
 
     try {
-      const response = await fetch('/api/signatures/sync/deploy/all', {
+      const response = await authFetch('/api/signatures/sync/deploy/all', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
-        },
       });
       const data = await response.json();
 
@@ -161,11 +152,8 @@ const DeploymentStatus: React.FC<DeploymentStatusProps> = ({
     setError(null);
 
     try {
-      const response = await fetch('/api/signatures/sync/retry', {
+      const response = await authFetch('/api/signatures/sync/retry', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
-        },
       });
       const data = await response.json();
 

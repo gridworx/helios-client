@@ -1,6 +1,6 @@
 // Profile API service for My Profile page
 
-import { apiPath } from '../config/api';
+import { apiPath, authFetch } from '../config/api';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -102,12 +102,10 @@ export interface UserGroup {
   memberCount: number;
 }
 
-// Helper to get auth headers
-function getAuthHeaders(): Record<string, string> {
-  const token = localStorage.getItem('helios_token');
+// Helper to get content-type headers (auth is handled by authFetch via cookies)
+function getJsonHeaders(): Record<string, string> {
   return {
     'Content-Type': 'application/json',
-    Authorization: `Bearer ${token}`,
   };
 }
 
@@ -116,9 +114,7 @@ export const profileService = {
   // Get current user's profile
   async getProfile(): Promise<ProfileData | null> {
     try {
-      const response = await fetch(apiPath('/me/profile'), {
-        headers: getAuthHeaders(),
-      });
+      const response = await authFetch(apiPath('/me/profile'));
       const data: ApiResponse<ProfileData> = await response.json();
       return data.success ? data.data! : null;
     } catch (error) {
@@ -130,9 +126,9 @@ export const profileService = {
   // Update profile
   async updateProfile(updates: Partial<Profile>): Promise<boolean> {
     try {
-      const response = await fetch(apiPath('/me/profile'), {
+      const response = await authFetch(apiPath('/me/profile'), {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers: getJsonHeaders(),
         body: JSON.stringify(updates),
       });
       const data: ApiResponse<void> = await response.json();
@@ -146,9 +142,9 @@ export const profileService = {
   // Fun Facts
   async addFunFact(emoji: string | null, content: string): Promise<FunFact | null> {
     try {
-      const response = await fetch(apiPath('/me/fun-facts'), {
+      const response = await authFetch(apiPath('/me/fun-facts'), {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: getJsonHeaders(),
         body: JSON.stringify({ emoji, content }),
       });
       const data: ApiResponse<FunFact> = await response.json();
@@ -161,9 +157,9 @@ export const profileService = {
 
   async updateFunFact(id: string, emoji: string | null, content: string): Promise<boolean> {
     try {
-      const response = await fetch(apiPath(`/me/fun-facts/${id}`), {
+      const response = await authFetch(apiPath(`/me/fun-facts/${id}`), {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers: getJsonHeaders(),
         body: JSON.stringify({ emoji, content }),
       });
       const data: ApiResponse<void> = await response.json();
@@ -176,9 +172,8 @@ export const profileService = {
 
   async deleteFunFact(id: string): Promise<boolean> {
     try {
-      const response = await fetch(apiPath(`/me/fun-facts/${id}`), {
+      const response = await authFetch(apiPath(`/me/fun-facts/${id}`), {
         method: 'DELETE',
-        headers: getAuthHeaders(),
       });
       const data: ApiResponse<void> = await response.json();
       return data.success;
@@ -191,9 +186,9 @@ export const profileService = {
   // Interests
   async addInterest(interest: string, category?: string): Promise<Interest | null> {
     try {
-      const response = await fetch(apiPath('/me/interests'), {
+      const response = await authFetch(apiPath('/me/interests'), {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: getJsonHeaders(),
         body: JSON.stringify({ interest, category }),
       });
       const data: ApiResponse<Interest> = await response.json();
@@ -206,9 +201,8 @@ export const profileService = {
 
   async deleteInterest(id: string): Promise<boolean> {
     try {
-      const response = await fetch(apiPath(`/me/interests/${id}`), {
+      const response = await authFetch(apiPath(`/me/interests/${id}`), {
         method: 'DELETE',
-        headers: getAuthHeaders(),
       });
       const data: ApiResponse<void> = await response.json();
       return data.success;
@@ -221,9 +215,9 @@ export const profileService = {
   // Expertise Topics
   async addExpertise(topic: string, skillLevel?: string): Promise<ExpertiseTopic | null> {
     try {
-      const response = await fetch(apiPath('/me/expertise'), {
+      const response = await authFetch(apiPath('/me/expertise'), {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: getJsonHeaders(),
         body: JSON.stringify({ topic, skillLevel }),
       });
       const data: ApiResponse<ExpertiseTopic> = await response.json();
@@ -236,9 +230,8 @@ export const profileService = {
 
   async deleteExpertise(id: string): Promise<boolean> {
     try {
-      const response = await fetch(apiPath(`/me/expertise/${id}`), {
+      const response = await authFetch(apiPath(`/me/expertise/${id}`), {
         method: 'DELETE',
-        headers: getAuthHeaders(),
       });
       const data: ApiResponse<void> = await response.json();
       return data.success;
@@ -251,9 +244,7 @@ export const profileService = {
   // Privacy Settings
   async getPrivacySettings(): Promise<Record<string, string>> {
     try {
-      const response = await fetch(apiPath('/me/privacy'), {
-        headers: getAuthHeaders(),
-      });
+      const response = await authFetch(apiPath('/me/privacy'));
       const data: ApiResponse<Record<string, string>> = await response.json();
       return data.success ? data.data! : {};
     } catch (error) {
@@ -264,9 +255,9 @@ export const profileService = {
 
   async updatePrivacySettings(settings: Record<string, string>): Promise<boolean> {
     try {
-      const response = await fetch(apiPath('/me/privacy'), {
+      const response = await authFetch(apiPath('/me/privacy'), {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers: getJsonHeaders(),
         body: JSON.stringify({ settings }),
       });
       const data: ApiResponse<void> = await response.json();
@@ -280,9 +271,7 @@ export const profileService = {
   // Media
   async getMediaConstraints(): Promise<MediaConstraints | null> {
     try {
-      const response = await fetch(apiPath('/me/media/constraints'), {
-        headers: getAuthHeaders(),
-      });
+      const response = await authFetch(apiPath('/me/media/constraints'));
       const data: ApiResponse<MediaConstraints> = await response.json();
       return data.success ? data.data! : null;
     } catch (error) {
@@ -297,18 +286,15 @@ export const profileService = {
     duration?: number
   ): Promise<{ mediaId: string; presignedUrl: string } | null> {
     try {
-      const token = localStorage.getItem('helios_token');
       const formData = new FormData();
       formData.append('file', file, `${mediaType}.webm`);
       if (duration !== undefined) {
         formData.append('duration', duration.toString());
       }
 
-      const response = await fetch(apiPath(`/me/media/${mediaType}`), {
+      // Note: Don't set Content-Type for FormData - browser sets it with boundary
+      const response = await authFetch(apiPath(`/me/media/${mediaType}`), {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
         body: formData,
       });
       const data: ApiResponse<{ mediaId: string; presignedUrl: string }> = await response.json();
@@ -321,9 +307,8 @@ export const profileService = {
 
   async deleteMedia(mediaType: 'voice_intro' | 'video_intro' | 'name_pronunciation'): Promise<boolean> {
     try {
-      const response = await fetch(apiPath(`/me/media/${mediaType}`), {
+      const response = await authFetch(apiPath(`/me/media/${mediaType}`), {
         method: 'DELETE',
-        headers: getAuthHeaders(),
       });
       const data: ApiResponse<void> = await response.json();
       return data.success;
@@ -336,9 +321,7 @@ export const profileService = {
   // Team
   async getTeam(): Promise<TeamData | null> {
     try {
-      const response = await fetch(apiPath('/me/team'), {
-        headers: getAuthHeaders(),
-      });
+      const response = await authFetch(apiPath('/me/team'));
       const data: ApiResponse<TeamData> = await response.json();
       return data.success ? data.data! : null;
     } catch (error) {
@@ -350,9 +333,7 @@ export const profileService = {
   // Groups
   async getMyGroups(): Promise<UserGroup[]> {
     try {
-      const response = await fetch(apiPath('/me/groups'), {
-        headers: getAuthHeaders(),
-      });
+      const response = await authFetch(apiPath('/me/groups'));
       const data: ApiResponse<UserGroup[]> = await response.json();
       return data.success ? data.data! : [];
     } catch (error) {

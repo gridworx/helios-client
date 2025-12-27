@@ -64,6 +64,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trigger_locations_updated_at ON locations;
+DROP TRIGGER IF EXISTS trigger_locations_updated_at ON PLACEHOLDER;
 CREATE TRIGGER trigger_locations_updated_at
     BEFORE UPDATE ON locations
     FOR EACH ROW
@@ -124,6 +125,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trigger_cost_centers_updated_at ON cost_centers;
+DROP TRIGGER IF EXISTS trigger_cost_centers_updated_at ON PLACEHOLDER;
 CREATE TRIGGER trigger_cost_centers_updated_at
     BEFORE UPDATE ON cost_centers
     FOR EACH ROW
@@ -187,6 +189,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trigger_master_data_settings_updated_at ON master_data_settings;
+DROP TRIGGER IF EXISTS trigger_master_data_settings_updated_at ON PLACEHOLDER;
 CREATE TRIGGER trigger_master_data_settings_updated_at
     BEFORE UPDATE ON master_data_settings
     FOR EACH ROW

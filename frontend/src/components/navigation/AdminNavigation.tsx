@@ -66,15 +66,6 @@ export const AdminNavigation: React.FC<AdminNavigationProps> = ({
         <span>Dashboard</span>
       </button>
 
-      <button
-        className={`nav-item ${currentPage === 'requests' ? 'active' : ''}`}
-        onClick={() => onNavigate('requests')}
-        data-testid="nav-requests"
-      >
-        <FileText size={16} className="nav-icon" />
-        <span>Requests</span>
-      </button>
-
       <div className="nav-section" data-labels-loaded={labelsLoading ? 'false' : 'true'}>
         <div className="nav-section-title">Directory</div>
 
@@ -177,6 +168,14 @@ export const AdminNavigation: React.FC<AdminNavigationProps> = ({
               <span>Workflows</span>
             </button>
           )}
+          <button
+            className={`nav-item ${currentPage === 'requests' ? 'active' : ''}`}
+            onClick={() => onNavigate('requests')}
+            data-testid="nav-requests"
+          >
+            <FileText size={16} className="nav-icon" />
+            <span>Requests</span>
+          </button>
         </div>
       )}
 

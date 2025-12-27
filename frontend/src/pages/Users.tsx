@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
-import { UserPlus, ChevronDown, Download, RefreshCw, CheckCircle, PauseCircle, Trash2, FileSpreadsheet, FileJson, Filter, Columns3 } from 'lucide-react';
-import { UserList } from '../components/UserList';
+import { useSearchParams } from 'react-router-dom';
+import { UserPlus, ChevronDown, Download, RefreshCw, CheckCircle, PauseCircle, Trash2, FileSpreadsheet, FileJson, Filter } from 'lucide-react';
+import { UserTable } from '../components/UserTable';
 import { QuickAddUserSlideOut } from '../components/QuickAddUserSlideOut';
 import { FilterPanel } from '../components/FilterPanel';
 import type { FilterOptions } from '../components/FilterPanel';
-import { ColumnSelector } from '../components/ColumnSelector';
-import type { ColumnConfig } from '../components/ColumnSelector';
 import { useTabPersistence } from '../hooks/useTabPersistence';
 import { useEntityLabels } from '../contexts/LabelsContext';
 import { ENTITIES } from '../config/entities';
+import { authFetch } from '../config/api';
 import './Users.css';
 
 interface UsersProps {
@@ -25,11 +25,21 @@ type PlatformFilter = 'all' | 'local' | 'google_workspace' | 'microsoft_365';
 export function Users({ organizationId, onNavigate }: UsersProps) {
   // Get dynamic labels from context (allows customization like "People" instead of "Users")
   const userLabels = useEntityLabels(ENTITIES.USER);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useTabPersistence<UserType>('helios_users_tab', 'staff');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [platformFilter, setPlatformFilter] = useState<PlatformFilter>('all');
   const [showPlatformDropdown, setShowPlatformDropdown] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  // Initialize search from URL parameter
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+
+  // Clear URL search param when searchQuery changes
+  useEffect(() => {
+    if (searchParams.has('search') && !searchQuery) {
+      searchParams.delete('search');
+      setSearchParams(searchParams);
+    }
+  }, [searchQuery, searchParams, setSearchParams]);
   const [counts, setCounts] = useState({
     staff: 0,
     guests: 0,
@@ -49,24 +59,13 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [showQuickAddSlideOut, setShowQuickAddSlideOut] = useState(false);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
-  const [showColumnSelector, setShowColumnSelector] = useState(false);
   const [advancedFilters, setAdvancedFilters] = useState<FilterOptions>({});
   const [departments, setDepartments] = useState<string[]>([]);
-  const [columnConfigs, setColumnConfigs] = useState<ColumnConfig[]>([
-    { key: 'user', label: 'User', visible: true, required: true },
-    { key: 'email', label: 'Email', visible: true, required: true },
-    { key: 'department', label: 'Department', visible: true },
-    { key: 'role', label: 'Role', visible: true },
-    { key: 'platforms', label: 'Integrations', visible: true },
-    { key: 'status', label: 'Status', visible: true },
-    { key: 'lastLogin', label: 'Last Login', visible: true }
-  ]);
   const addDropdownRef = useRef<HTMLDivElement>(null);
   const exportDropdownRef = useRef<HTMLDivElement>(null);
   const actionsDropdownRef = useRef<HTMLDivElement>(null);
   const platformDropdownRef = useRef<HTMLDivElement>(null);
   const filterPanelRef = useRef<HTMLDivElement>(null);
-  const columnSelectorRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -95,27 +94,32 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
 
   const fetchCounts = async () => {
     try {
-      const token = localStorage.getItem('helios_token');
-
       // Fetch counts for each user type
-      const staffResponse = await fetch(
-        `/api/v1/organization/users/count?userType=staff`,
-        { headers: { 'Authorization': `Bearer ${token}` } }
-      );
+      const [staffResponse, guestsResponse, contactsResponse] = await Promise.all([
+        authFetch(`/api/v1/organization/users/count?userType=staff`),
+        authFetch(`/api/v1/organization/users/count?userType=guest`),
+        authFetch(`/api/v1/organization/users/count?userType=contact`)
+      ]);
 
-      const guestsResponse = await fetch(
-        `/api/v1/organization/users/count?userType=guest`,
-        { headers: { 'Authorization': `Bearer ${token}` } }
-      );
+      // Helper to safely parse JSON response
+      const safeParseJson = async (response: Response) => {
+        if (!response.ok) {
+          console.warn(`API returned ${response.status} for user count`);
+          return { success: false, data: { count: 0 } };
+        }
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          console.warn('Response is not JSON');
+          return { success: false, data: { count: 0 } };
+        }
+        return response.json();
+      };
 
-      const contactsResponse = await fetch(
-        `/api/v1/organization/users/count?userType=contact`,
-        { headers: { 'Authorization': `Bearer ${token}` } }
-      );
-
-      const staffData = await staffResponse.json();
-      const guestsData = await guestsResponse.json();
-      const contactsData = await contactsResponse.json();
+      const [staffData, guestsData, contactsData] = await Promise.all([
+        safeParseJson(staffResponse),
+        safeParseJson(guestsResponse),
+        safeParseJson(contactsResponse)
+      ]);
 
       setCounts({
         staff: staffData.success ? staffData.data.count : 0,
@@ -124,6 +128,8 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
       });
     } catch (error) {
       console.error('Error fetching user counts:', error);
+      // Set default counts on error
+      setCounts({ staff: 0, guests: 0, contacts: 0 });
     }
   };
 
@@ -157,12 +163,10 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
       setIsExporting(true);
       setShowExportDropdown(false);
 
-      const token = localStorage.getItem('helios_token');
       const apiUserType = activeTab === 'guests' ? 'guest' : activeTab === 'contacts' ? 'contact' : 'staff';
 
-      const response = await fetch(
-        `/api/v1/organization/users/export?userType=${apiUserType}&format=${format}${statusFilter !== 'all' ? `&status=${statusFilter}` : ''}`,
-        { headers: { 'Authorization': `Bearer ${token}` } }
+      const response = await authFetch(
+        `/api/v1/organization/users/export?userType=${apiUserType}&format=${format}${statusFilter !== 'all' ? `&status=${statusFilter}` : ''}`
       );
 
       if (!response.ok) {
@@ -359,7 +363,6 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
               className={`btn-icon ${showFilterPanel || Object.keys(advancedFilters).length > 0 ? 'active' : ''}`}
               onClick={() => {
                 setShowFilterPanel(!showFilterPanel);
-                setShowColumnSelector(false);
               }}
               title="Advanced Filters"
             >
@@ -374,27 +377,6 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
               currentFilters={advancedFilters}
               departments={departments}
               roles={['admin', 'manager', 'user']}
-            />
-          </div>
-
-          {/* Column Selector Button */}
-          <div className="dropdown-wrapper" ref={columnSelectorRef}>
-            <button
-              className={`btn-icon ${showColumnSelector ? 'active' : ''}`}
-              onClick={() => {
-                setShowColumnSelector(!showColumnSelector);
-                setShowFilterPanel(false);
-              }}
-              title="Edit Columns"
-            >
-              <Columns3 size={16} />
-            </button>
-            <ColumnSelector
-              isOpen={showColumnSelector}
-              onClose={() => setShowColumnSelector(false)}
-              columns={columnConfigs}
-              onColumnsChange={setColumnConfigs}
-              storageKey="helios_users_columns"
             />
           </div>
 
@@ -498,16 +480,13 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
       {/* Content Card */}
       <div className="users-content-card">
 
-        {/* User List */}
-        <UserList
+        {/* User Table - TanStack Table based */}
+        <UserTable
           organizationId={organizationId}
           userType={activeTab}
-          onCountChange={fetchCounts}
           searchQuery={searchQuery}
           statusFilter={statusFilter}
           platformFilter={platformFilter}
-          advancedFilters={advancedFilters}
-          columnConfigs={columnConfigs}
           onStatusCountsChange={setStatusCounts}
           onDepartmentsChange={setDepartments}
           onNavigate={(page, params) => {

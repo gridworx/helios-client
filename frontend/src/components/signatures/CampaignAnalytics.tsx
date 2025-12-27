@@ -27,6 +27,7 @@ import {
   AlertCircle,
   Mail,
 } from 'lucide-react';
+import { authFetch } from '../../config/api';
 import './CampaignAnalytics.css';
 
 interface CampaignStats {
@@ -102,18 +103,12 @@ const CampaignAnalytics: React.FC<CampaignAnalyticsProps> = ({
     setError(null);
 
     try {
-      const token = localStorage.getItem('helios_token');
-      const headers = {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      };
-
       // Fetch campaign details and analytics in parallel
       const [campaignRes, statsRes, opensRes, geoRes] = await Promise.all([
-        fetch(`/api/signatures/campaigns/${campaignId}?include_details=true`, { headers }),
-        fetch(`/api/signatures/campaigns/${campaignId}/stats`, { headers }),
-        fetch(`/api/signatures/campaigns/${campaignId}/opens-by-day${getDateRangeParams()}`, { headers }),
-        fetch(`/api/signatures/campaigns/${campaignId}/geo-distribution`, { headers }),
+        authFetch(`/api/signatures/campaigns/${campaignId}?include_details=true`),
+        authFetch(`/api/signatures/campaigns/${campaignId}/stats`),
+        authFetch(`/api/signatures/campaigns/${campaignId}/opens-by-day${getDateRangeParams()}`),
+        authFetch(`/api/signatures/campaigns/${campaignId}/geo-distribution`),
       ]);
 
       const [campaignData, statsData, opensData, geoData] = await Promise.all([
@@ -185,15 +180,7 @@ const CampaignAnalytics: React.FC<CampaignAnalyticsProps> = ({
 
   const handleExport = async () => {
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
-        `/api/signatures/campaigns/${campaignId}/stats`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await authFetch(`/api/signatures/campaigns/${campaignId}/stats`);
 
       const data = await response.json();
       if (data.success) {

@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { BrowserRouter, useNavigate, useLocation } from 'react-router-dom'
+import { QueryProvider } from './providers/QueryProvider'
+import { authFetch } from './config/api'
+import { signOut, getSession } from './lib/auth-client'
 import './App.css'
 import { LoginPage } from './pages/LoginPage'
 import { ClientUserMenu } from './components/ClientUserMenu'
@@ -50,10 +53,11 @@ import { ViewProvider, useView } from './contexts/ViewContext'
 import { FeatureFlagsProvider, useFeatureFlags } from './contexts/FeatureFlagsContext'
 import { ToastProvider } from './contexts/ToastContext'
 import { AdminNavigation, UserNavigation, ViewSwitcher, ViewOnboarding } from './components/navigation'
+import { Button } from '@/components/ui/button'
 import { EmailEngagementWidget } from './components/widgets/EmailEngagementWidget'
 import { getWidgetData } from './utils/widget-data'
 import { getEnabledWidgets, type WidgetId } from './config/widgets'
-import { UserPlus, Upload, Download, RefreshCw, AlertCircle, Info, Edit3, Bell, Building, Building2, HelpCircle, Search, Users as UsersIcon, Loader2, MessageSquare, User, Network } from 'lucide-react'
+import { UserPlus, Upload, Download, RefreshCw, AlertCircle, Info, Edit3, Bell, Building, Building2, HelpCircle, Search, Users as UsersIcon, Loader2, MessageSquare, User, Network, Settings as SettingsIcon } from 'lucide-react'
 
 // Loading fallback for lazy-loaded components
 const PageLoader = () => (
@@ -247,13 +251,104 @@ function AppContent() {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [loginOrgName, setLoginOrgName] = useState<string>('');
   const [showCustomizer, setShowCustomizer] = useState(false);
+  const [universalSearch, setUniversalSearch] = useState('');
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [searchResults, setSearchResults] = useState<{
+    users: Array<{ id: string; name: string; email: string }>;
+    groups: Array<{ id: string; name: string; email: string }>;
+    settings: Array<{ id: string; label: string; path: string }>;
+  }>({ users: [], groups: [], settings: [] });
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [visibleWidgets, setVisibleWidgets] = useState<WidgetId[]>([]);
   const [widgetsLoading, setWidgetsLoading] = useState(true);
   const [widgetsError, setWidgetsError] = useState<string | null>(null);
   const [showCommandBar, setShowCommandBar] = useState(false);
   const [showChatPanel, setShowChatPanel] = useState(false);
+  const [showHelpWidget, setShowHelpWidget] = useState(false);
   const [chatInitialMessage, setChatInitialMessage] = useState<string | undefined>(undefined);
   const [aiEnabled, setAiEnabled] = useState(false);
+
+  // Settings pages for universal search
+  const settingsPages = [
+    { id: 'modules', label: 'Modules - Google Workspace, Microsoft 365', path: '/admin/settings' },
+    { id: 'organization', label: 'Organization Settings', path: '/admin/settings' },
+    { id: 'security', label: 'Security Settings', path: '/admin/settings' },
+    { id: 'advanced', label: 'Advanced - Sync & Data Settings', path: '/admin/settings' },
+    { id: 'feature-flags', label: 'Feature Flags', path: '/admin/settings' },
+    { id: 'users-page', label: 'Users Management', path: '/admin/users' },
+    { id: 'groups-page', label: 'Groups Management', path: '/admin/groups' },
+    { id: 'org-chart', label: 'Org Chart', path: '/admin/org-chart' },
+    { id: 'audit-logs', label: 'Audit Logs', path: '/admin/audit-logs' },
+    { id: 'signatures', label: 'Email Signatures', path: '/admin/signatures' },
+  ];
+
+  // Universal search effect
+  useEffect(() => {
+    if (!universalSearch.trim()) {
+      setSearchResults({ users: [], groups: [], settings: [] });
+      setShowSearchDropdown(false);
+      return;
+    }
+
+    const query = universalSearch.toLowerCase();
+
+    // Filter settings pages
+    const matchedSettings = settingsPages.filter(s =>
+      s.label.toLowerCase().includes(query)
+    ).slice(0, 3);
+
+    setSearchResults(prev => ({ ...prev, settings: matchedSettings }));
+    setShowSearchDropdown(true);
+
+    // Debounce API calls
+    const timeoutId = setTimeout(async () => {
+      if (!config?.organizationId) return;
+
+      setSearchLoading(true);
+      try {
+        // Search users
+        const usersRes = await authFetch(`/api/v1/organization/users?organizationId=${config.organizationId}&search=${encodeURIComponent(query)}&limit=5`);
+        const usersData = await usersRes.json();
+        const users = (usersData.data || []).slice(0, 5).map((u: any) => ({
+          id: u.id,
+          name: `${u.firstName} ${u.lastName}`,
+          email: u.email
+        }));
+
+        // Search groups
+        const groupsRes = await authFetch(`/api/v1/google-workspace/groups?organizationId=${config.organizationId}`);
+        const groupsData = await groupsRes.json();
+        const groups = (groupsData.data || [])
+          .filter((g: any) => g.name?.toLowerCase().includes(query) || g.email?.toLowerCase().includes(query))
+          .slice(0, 5)
+          .map((g: any) => ({
+            id: g.id,
+            name: g.name,
+            email: g.email
+          }));
+
+        setSearchResults(prev => ({ ...prev, users, groups }));
+      } catch (err) {
+        console.error('Search error:', err);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [universalSearch, config?.organizationId]);
+
+  // Close search dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchInputRef.current && !searchInputRef.current.closest('.search-container')?.contains(e.target as Node)) {
+        setShowSearchDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     checkConfiguration();
@@ -327,11 +422,7 @@ function AppContent() {
     const checkAiStatus = async () => {
       if (step !== 'dashboard') return;
       try {
-        const token = localStorage.getItem('helios_token');
-        if (!token) return;
-        const response = await fetch('/api/v1/ai/status', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const response = await authFetch('/api/v1/ai/status');
         const data = await response.json();
         if (data.success) {
           setAiEnabled(data.data.available);
@@ -347,53 +438,41 @@ function AppContent() {
     try {
       setLoading(true);
 
-      // Check if user is authenticated
-      const token = localStorage.getItem('helios_token');
+      // Check if user has an active session (session-based auth)
       const storedOrg = localStorage.getItem('helios_organization');
+      const storedUser = localStorage.getItem('helios_user');
 
-      if (token && storedOrg) {
-        // Also load user data
-        const storedUser = localStorage.getItem('helios_user');
+      // Try to get the current session from better-auth
+      try {
+        const session = await getSession();
 
-        // Verify token is still valid
-        try {
-          const response = await fetch('/api/v1/auth/verify', {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
+        if (session?.session && storedOrg) {
+          // User has an active session, set up dashboard
+          const orgData = JSON.parse(storedOrg);
+          setConfig({
+            organizationId: orgData.organizationId,
+            domain: orgData.domain,
+            organizationName: orgData.organizationName,
+            dwdConfigured: false
           });
 
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success) {
-              // User is authenticated, set up dashboard
-              const orgData = JSON.parse(storedOrg);
-              setConfig({
-                organizationId: orgData.organizationId,
-                domain: orgData.domain,
-                organizationName: orgData.organizationName,
-                dwdConfigured: false
-              });
-
-              // Load user data
-              if (storedUser) {
-                setCurrentUser(JSON.parse(storedUser));
-              }
-
-              setStep('dashboard');
-              fetchOrganizationStats(orgData.organizationId);
-              loadUserPreferences();
-              return;
-            }
+          // Load user data
+          if (storedUser) {
+            setCurrentUser(JSON.parse(storedUser));
           }
-        } catch (err) {
-          console.warn('Token verification failed:', err);
-        }
 
-        // Token invalid, clear it
-        localStorage.removeItem('helios_token');
-        localStorage.removeItem('helios_organization');
+          setStep('dashboard');
+          fetchOrganizationStats(orgData.organizationId);
+          loadUserPreferences();
+          return;
+        }
+      } catch (err) {
+        console.warn('Session check failed:', err);
       }
+
+      // No valid session, clear stored data
+      localStorage.removeItem('helios_organization');
+      localStorage.removeItem('helios_user');
 
       // Check if organization is set up (determines setup vs login)
       const checkResponse = await fetch('/api/v1/organization/setup/status');
@@ -427,10 +506,7 @@ function AppContent() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-      const response = await fetch('/api/v1/dashboard/stats', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
-        },
+      const response = await authFetch('/api/v1/dashboard/stats', {
         signal: controller.signal
       });
       clearTimeout(timeoutId);
@@ -471,10 +547,7 @@ function AppContent() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-      const response = await fetch('/api/v1/dashboard/widgets', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
-        },
+      const response = await authFetch('/api/v1/dashboard/widgets', {
         signal: controller.signal
       });
       clearTimeout(timeoutId);
@@ -527,11 +600,10 @@ function AppContent() {
         config: {}
       }));
 
-      const response = await fetch('/api/v1/dashboard/widgets', {
+      const response = await authFetch('/api/v1/dashboard/widgets', {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ widgets: widgetData })
       });
@@ -737,11 +809,90 @@ function AppContent() {
         <div className="header-center">
           <div className="search-container">
             <input
+              ref={searchInputRef}
               type="text"
               placeholder="Search users, groups, settings..."
               className="universal-search"
+              value={universalSearch}
+              onChange={(e) => setUniversalSearch(e.target.value)}
+              onFocus={() => universalSearch.trim() && setShowSearchDropdown(true)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && universalSearch.trim()) {
+                  navigate(`/admin/users?search=${encodeURIComponent(universalSearch.trim())}`);
+                  setUniversalSearch('');
+                  setShowSearchDropdown(false);
+                }
+                if (e.key === 'Escape') {
+                  setShowSearchDropdown(false);
+                }
+              }}
             />
-            <span className="search-icon"><Search size={16} /></span>
+            <span className="search-icon">
+              {searchLoading ? <Loader2 size={16} className="spin" /> : <Search size={16} />}
+            </span>
+            {showSearchDropdown && (searchResults.users.length > 0 || searchResults.groups.length > 0 || searchResults.settings.length > 0) && (
+              <div className="search-dropdown">
+                {searchResults.settings.length > 0 && (
+                  <div className="search-section">
+                    <div className="search-section-title">Pages</div>
+                    {searchResults.settings.map(s => (
+                      <button
+                        key={s.id}
+                        className="search-result-item"
+                        onClick={() => {
+                          navigate(s.path);
+                          setUniversalSearch('');
+                          setShowSearchDropdown(false);
+                        }}
+                      >
+                        <SettingsIcon size={14} />
+                        <span>{s.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {searchResults.users.length > 0 && (
+                  <div className="search-section">
+                    <div className="search-section-title">Users</div>
+                    {searchResults.users.map(u => (
+                      <button
+                        key={u.id}
+                        className="search-result-item"
+                        onClick={() => {
+                          navigate(`/admin/users?search=${encodeURIComponent(u.email)}`);
+                          setUniversalSearch('');
+                          setShowSearchDropdown(false);
+                        }}
+                      >
+                        <User size={14} />
+                        <span className="result-name">{u.name}</span>
+                        <span className="result-email">{u.email}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {searchResults.groups.length > 0 && (
+                  <div className="search-section">
+                    <div className="search-section-title">Groups</div>
+                    {searchResults.groups.map(g => (
+                      <button
+                        key={g.id}
+                        className="search-result-item"
+                        onClick={() => {
+                          navigate('/admin/groups');
+                          setUniversalSearch('');
+                          setShowSearchDropdown(false);
+                        }}
+                      >
+                        <UsersIcon size={14} />
+                        <span className="result-name">{g.name}</span>
+                        <span className="result-email">{g.email}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
         <div className="header-right">
@@ -758,7 +909,7 @@ function AppContent() {
               <MessageSquare size={18} />
             </button>
           )}
-          <button className="icon-btn" title="Help" onClick={() => setCurrentPage('settings')}><HelpCircle size={18} /></button>
+          <button className="icon-btn" title="Help" onClick={() => setShowHelpWidget(!showHelpWidget)}><HelpCircle size={18} /></button>
           <button className="icon-btn" title="Notifications"><Bell size={18} /></button>
           <ClientUserMenu
             userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'User'}
@@ -785,24 +936,21 @@ function AppContent() {
             }}
             onLogout={async () => {
               try {
-                await fetch('/api/v1/auth/logout', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ userId: currentUser?.id })
-                });
+                // Sign out via better-auth (clears httpOnly session cookie)
+                await signOut();
               } catch (err) {
-                console.warn('Logout API call failed:', err);
+                console.warn('Logout failed:', err);
               }
 
-              // Clear all stored data
-              localStorage.removeItem('helios_token');
-              localStorage.removeItem('helios_refresh_token');
+              // Clear all stored data (non-sensitive metadata only)
               localStorage.removeItem('helios_organization');
+              localStorage.removeItem('helios_user');
               localStorage.removeItem('helios_client_config');
 
               // Reset to check configuration again
               setConfig(null);
               setStats(null);
+              setCurrentUser(null);
               checkConfiguration();
             }}
           />
@@ -934,19 +1082,19 @@ function AppContent() {
               {/* Quick Actions Section */}
               <div className="quick-actions-section">
                 <h2 className="section-title">Quick Actions</h2>
-                <div className="quick-actions-grid">
-                  <button className="quick-action-btn primary" onClick={() => navigate('/add-user')}>
-                    <UserPlus size={20} />
-                    <span>Add User</span>
-                  </button>
-                  <button className="quick-action-btn secondary" onClick={() => setCurrentPage('users')}>
-                    <Upload size={20} />
-                    <span>Import CSV</span>
-                  </button>
-                  <button className="quick-action-btn secondary" onClick={() => setCurrentPage('users')}>
-                    <Download size={20} />
-                    <span>Export Report</span>
-                  </button>
+                <div className="flex gap-3">
+                  <Button onClick={() => navigate('/add-user')} className="flex-1">
+                    <UserPlus size={18} />
+                    Add User
+                  </Button>
+                  <Button variant="outline" onClick={() => setCurrentPage('users')} className="flex-1">
+                    <Upload size={18} />
+                    Import CSV
+                  </Button>
+                  <Button variant="outline" onClick={() => setCurrentPage('users')} className="flex-1">
+                    <Download size={18} />
+                    Export Report
+                  </Button>
                 </div>
               </div>
 
@@ -1091,23 +1239,23 @@ function AppContent() {
               {/* User Quick Actions */}
               <div className="quick-actions-section">
                 <h2 className="section-title">Quick Actions</h2>
-                <div className="quick-actions-grid">
-                  <button className="quick-action-btn primary" onClick={() => setCurrentPage('my-profile')}>
-                    <User size={20} />
-                    <span>My Profile</span>
-                  </button>
-                  <button className="quick-action-btn secondary" onClick={() => setCurrentPage('people')}>
-                    <UsersIcon size={20} />
-                    <span>People Directory</span>
-                  </button>
-                  <button className="quick-action-btn secondary" onClick={() => setCurrentPage('my-team')}>
-                    <Building2 size={20} />
-                    <span>My Team</span>
-                  </button>
-                  <button className="quick-action-btn secondary" onClick={() => setCurrentPage('my-groups')}>
-                    <UsersIcon size={20} />
-                    <span>My Groups</span>
-                  </button>
+                <div className="flex gap-3 flex-wrap">
+                  <Button onClick={() => setCurrentPage('my-profile')} className="flex-1 min-w-[140px]">
+                    <User size={18} />
+                    My Profile
+                  </Button>
+                  <Button variant="outline" onClick={() => setCurrentPage('people')} className="flex-1 min-w-[140px]">
+                    <UsersIcon size={18} />
+                    People Directory
+                  </Button>
+                  <Button variant="outline" onClick={() => setCurrentPage('my-team')} className="flex-1 min-w-[140px]">
+                    <Building2 size={18} />
+                    My Team
+                  </Button>
+                  <Button variant="outline" onClick={() => setCurrentPage('my-groups')} className="flex-1 min-w-[140px]">
+                    <UsersIcon size={18} />
+                    My Groups
+                  </Button>
                 </div>
               </div>
 
@@ -1432,35 +1580,44 @@ function AppContent() {
         initialMessage={chatInitialMessage}
       />
 
-      {/* Contextual Help Widget */}
+      {/* Contextual Help Widget - triggered by ? icon in header */}
       {!showChatPanel && (
         <HelpWidget
           currentPage={currentPage}
           aiEnabled={aiEnabled}
+          externalOpen={showHelpWidget}
+          onExternalClose={() => setShowHelpWidget(false)}
+          hideFloatingButton={true}
           onOpenChat={(message) => {
             if (message) setChatInitialMessage(message);
+            setShowHelpWidget(false);
             setShowChatPanel(true);
           }}
-          onConfigure={() => navigate('/admin/settings')}
+          onConfigure={() => {
+            setShowHelpWidget(false);
+            navigate('/admin/settings');
+          }}
         />
       )}
     </div>
   );
 }
 
-// Main App wrapper with BrowserRouter, LabelsProvider, ViewProvider, FeatureFlagsProvider, and ToastProvider
+// Main App wrapper with providers
 function App() {
   return (
     <BrowserRouter>
-      <ToastProvider>
-        <LabelsProvider>
-          <FeatureFlagsProvider>
-            <ViewProvider>
-              <AppContent />
-            </ViewProvider>
-          </FeatureFlagsProvider>
-        </LabelsProvider>
-      </ToastProvider>
+      <QueryProvider>
+        <ToastProvider>
+          <LabelsProvider>
+            <FeatureFlagsProvider>
+              <ViewProvider>
+                <AppContent />
+              </ViewProvider>
+            </FeatureFlagsProvider>
+          </LabelsProvider>
+        </ToastProvider>
+      </QueryProvider>
     </BrowserRouter>
   );
 }

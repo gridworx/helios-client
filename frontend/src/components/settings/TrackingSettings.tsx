@@ -11,8 +11,8 @@ import {
   Calendar,
   BarChart2
 } from 'lucide-react';
-import { Toggle } from '../ui';
-import { apiPath } from '../../config/api';
+import { ToggleSwitch } from '@/components/ui';
+import { apiPath, authFetch } from '../../config/api';
 import './TrackingSettings.css';
 
 interface TrackingSettingsData {
@@ -43,15 +43,7 @@ export const TrackingSettings: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const token = localStorage.getItem('helios_token');
-      if (!token) {
-        setError('Not authenticated');
-        return;
-      }
-
-      const res = await fetch(apiPath('/settings/tracking'), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await authFetch(apiPath('/settings/tracking'));
 
       if (!res.ok) {
         throw new Error('Failed to fetch tracking settings');
@@ -87,17 +79,10 @@ export const TrackingSettings: React.FC = () => {
       setError(null);
       setSuccess(null);
 
-      const token = localStorage.getItem('helios_token');
-      if (!token) {
-        setError('Not authenticated');
-        return;
-      }
-
-      const res = await fetch(apiPath('/settings/tracking'), {
+      const res = await authFetch(apiPath('/settings/tracking'), {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(settings),
       });
@@ -190,10 +175,9 @@ export const TrackingSettings: React.FC = () => {
                 Track individual user email engagement with tracking pixels in signatures.
               </p>
             </div>
-            <Toggle
+            <ToggleSwitch
               checked={settings.userTrackingEnabled}
               onChange={(checked) => handleChange('userTrackingEnabled', checked)}
-              size="medium"
             />
           </div>
         </div>
@@ -210,10 +194,9 @@ export const TrackingSettings: React.FC = () => {
                 Track engagement for signature campaigns and promotional banners.
               </p>
             </div>
-            <Toggle
+            <ToggleSwitch
               checked={settings.campaignTrackingEnabled}
               onChange={(checked) => handleChange('campaignTrackingEnabled', checked)}
-              size="medium"
             />
           </div>
         </div>
@@ -230,10 +213,9 @@ export const TrackingSettings: React.FC = () => {
                 Display the email engagement widget on user dashboards.
               </p>
             </div>
-            <Toggle
+            <ToggleSwitch
               checked={settings.showUserDashboard}
               onChange={(checked) => handleChange('showUserDashboard', checked)}
-              size="medium"
             />
           </div>
         </div>
@@ -250,10 +232,9 @@ export const TrackingSettings: React.FC = () => {
                 Filter out automated traffic from email scanners and bots.
               </p>
             </div>
-            <Toggle
+            <ToggleSwitch
               checked={settings.excludeBots}
               onChange={(checked) => handleChange('excludeBots', checked)}
-              size="medium"
             />
           </div>
         </div>

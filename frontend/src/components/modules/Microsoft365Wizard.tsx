@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Check, CheckCircle, AlertTriangle, ExternalLink, Eye, EyeOff } from 'lucide-react';
+import { authFetch } from '../../config/api';
 import './GoogleWorkspaceWizard.css'; // Reuse the same styles
 
 interface Microsoft365WizardProps {
@@ -27,11 +28,7 @@ const Microsoft365Wizard: React.FC<Microsoft365WizardProps> = ({
   useEffect(() => {
     const checkExistingConfig = async () => {
       try {
-        const response = await fetch('/api/v1/microsoft/status', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
-          }
-        });
+        const response = await authFetch('/api/v1/microsoft/status');
         const result = await response.json();
 
         if (result.success && result.data.isConfigured) {
@@ -58,11 +55,10 @@ const Microsoft365Wizard: React.FC<Microsoft365WizardProps> = ({
     setTestDetails(null);
 
     try {
-      const response = await fetch('/api/v1/microsoft/test', {
+      const response = await authFetch('/api/v1/microsoft/test', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
         },
         body: JSON.stringify({
           tenantId,
@@ -98,11 +94,10 @@ const Microsoft365Wizard: React.FC<Microsoft365WizardProps> = ({
     setShowOverwriteDialog(false);
 
     try {
-      const response = await fetch('/api/v1/microsoft/connect', {
+      const response = await authFetch('/api/v1/microsoft/connect', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
         },
         body: JSON.stringify({
           tenantId,

@@ -3,7 +3,7 @@
  * Handles all API key-related operations
  */
 
-import { apiPath } from '../config/api';
+import { apiPath, authFetch } from '../config/api';
 
 export interface ApiKey {
   id: string;
@@ -82,11 +82,9 @@ export interface ApiKeyUsageLog {
 }
 
 class ApiKeysService {
-  private getAuthHeaders(): HeadersInit {
-    const token = localStorage.getItem('helios_token');
+  private getJsonHeaders(): HeadersInit {
     return {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
+      'Content-Type': 'application/json'
     };
   }
 
@@ -94,9 +92,9 @@ class ApiKeysService {
    * Create a new API key
    */
   async createApiKey(data: CreateApiKeyRequest): Promise<CreateApiKeyResponse> {
-    const response = await fetch(apiPath('/organization/api-keys'), {
+    const response = await authFetch(apiPath('/organization/api-keys'), {
       method: 'POST',
-      headers: this.getAuthHeaders(),
+      headers: this.getJsonHeaders(),
       body: JSON.stringify(data)
     });
 
@@ -119,9 +117,7 @@ class ApiKeysService {
 
     const url = apiPath(`/organization/api-keys${params.toString() ? '?' + params.toString() : ''}`);
 
-    const response = await fetch(url, {
-      headers: this.getAuthHeaders()
-    });
+    const response = await authFetch(url);
 
     const result = await response.json();
 
@@ -136,9 +132,7 @@ class ApiKeysService {
    * Get details of a specific API key
    */
   async getApiKey(id: string): Promise<ApiKey> {
-    const response = await fetch(apiPath(`/organization/api-keys/${id}`), {
-      headers: this.getAuthHeaders()
-    });
+    const response = await authFetch(apiPath(`/organization/api-keys/${id}`));
 
     const result = await response.json();
 
@@ -153,9 +147,9 @@ class ApiKeysService {
    * Update API key settings
    */
   async updateApiKey(id: string, updates: Partial<Pick<ApiKey, 'permissions'>>): Promise<void> {
-    const response = await fetch(apiPath(`/organization/api-keys/${id}`), {
+    const response = await authFetch(apiPath(`/organization/api-keys/${id}`), {
       method: 'PATCH',
-      headers: this.getAuthHeaders(),
+      headers: this.getJsonHeaders(),
       body: JSON.stringify(updates)
     });
 
@@ -170,9 +164,8 @@ class ApiKeysService {
    * Revoke an API key
    */
   async revokeApiKey(id: string): Promise<void> {
-    const response = await fetch(apiPath(`/organization/api-keys/${id}`), {
-      method: 'DELETE',
-      headers: this.getAuthHeaders()
+    const response = await authFetch(apiPath(`/organization/api-keys/${id}`), {
+      method: 'DELETE'
     });
 
     const result = await response.json();
@@ -186,9 +179,9 @@ class ApiKeysService {
    * Renew an expired API key (generates new key)
    */
   async renewApiKey(id: string, expiresInDays?: number): Promise<CreateApiKeyResponse> {
-    const response = await fetch(apiPath(`/organization/api-keys/${id}/renew`), {
+    const response = await authFetch(apiPath(`/organization/api-keys/${id}/renew`), {
       method: 'POST',
-      headers: this.getAuthHeaders(),
+      headers: this.getJsonHeaders(),
       body: JSON.stringify({ expiresInDays })
     });
 
@@ -210,9 +203,8 @@ class ApiKeysService {
       offset: offset.toString()
     });
 
-    const response = await fetch(
-      apiPath(`/organization/api-keys/${id}/usage?${params.toString()}`),
-      { headers: this.getAuthHeaders() }
+    const response = await authFetch(
+      apiPath(`/organization/api-keys/${id}/usage?${params.toString()}`)
     );
 
     const result = await response.json();

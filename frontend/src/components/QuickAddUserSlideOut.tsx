@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, UserPlus, Loader2, CheckCircle, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import { authFetch } from '../config/api';
 import './QuickAddUserSlideOut.css';
 
 interface QuickAddUserSlideOutProps {
@@ -82,16 +83,14 @@ export function QuickAddUserSlideOut({ organizationId: _organizationId, onClose,
     }, []);
 
     const fetchDropdownData = async () => {
-        const token = localStorage.getItem('helios_token');
-
         // Fetch all dropdown data in parallel
         const [deptRes, jtRes, mgrRes, licRes, statsRes, orgRes] = await Promise.allSettled([
-            fetch('/api/v1/organization/departments', { headers: { 'Authorization': `Bearer ${token}` } }),
-            fetch('/api/v1/organization/job-titles', { headers: { 'Authorization': `Bearer ${token}` } }),
-            fetch('/api/v1/organization/users?status=active&limit=100', { headers: { 'Authorization': `Bearer ${token}` } }),
-            fetch('/api/v1/organization/licenses', { headers: { 'Authorization': `Bearer ${token}` } }),
-            fetch('/api/v1/dashboard/stats', { headers: { 'Authorization': `Bearer ${token}` } }),
-            fetch('/api/v1/organization/current', { headers: { 'Authorization': `Bearer ${token}` } })
+            authFetch('/api/v1/organization/departments'),
+            authFetch('/api/v1/organization/job-titles'),
+            authFetch('/api/v1/organization/users?status=active&limit=100'),
+            authFetch('/api/v1/organization/licenses'),
+            authFetch('/api/v1/dashboard/stats'),
+            authFetch('/api/v1/organization/current')
         ]);
 
         // Process departments
@@ -186,8 +185,6 @@ export function QuickAddUserSlideOut({ organizationId: _organizationId, onClose,
         setSubmitResult(null);
 
         try {
-            const token = localStorage.getItem('helios_token');
-
             const payload: any = {
                 email: formData.email,
                 firstName: formData.firstName,
@@ -221,10 +218,9 @@ export function QuickAddUserSlideOut({ organizationId: _organizationId, onClose,
             // License assignment
             if (formData.licenseId) payload.licenseId = formData.licenseId;
 
-            const response = await fetch('/api/v1/organization/users', {
+            const response = await authFetch('/api/v1/organization/users', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(payload)

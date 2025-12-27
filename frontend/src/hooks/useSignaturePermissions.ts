@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { authFetch } from '../config/api';
 
 export type PermissionLevel = 'admin' | 'designer' | 'campaign_manager' | 'helpdesk' | 'viewer';
 
@@ -65,10 +66,7 @@ export function useSignaturePermissions(): UseSignaturePermissionsResult {
     setState(s => ({ ...s, loading: true, error: null }));
 
     try {
-      const token = localStorage.getItem('helios_token');
-      const res = await fetch('/api/signatures/permissions/me', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await authFetch('/api/signatures/permissions/me');
 
       if (!res.ok) {
         throw new Error('Failed to fetch permissions');

@@ -16,6 +16,7 @@ import {
   FileText,
   AlertCircle
 } from 'lucide-react';
+import { authFetch } from '../../config/api';
 import './ExternalSharingManager.css';
 
 // Types
@@ -67,18 +68,11 @@ export const ExternalSharingManager: React.FC = () => {
     fetchSummary();
   }, []);
 
-  const getAuthHeaders = () => ({
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
-  });
-
   const fetchSummary = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/v1/external-sharing/summary', {
-        headers: getAuthHeaders()
-      });
+      const response = await authFetch('/api/v1/external-sharing/summary');
       const data = await response.json();
       if (data.success) {
         setSummary(data.summary);
@@ -96,9 +90,9 @@ export const ExternalSharingManager: React.FC = () => {
     setScanning(true);
     setError(null);
     try {
-      const response = await fetch('/api/v1/external-sharing/scan', {
+      const response = await authFetch('/api/v1/external-sharing/scan', {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ maxFiles: 1000 })
       });
       const data = await response.json();
@@ -132,9 +126,9 @@ export const ExternalSharingManager: React.FC = () => {
       .map(s => ({ fileId: s.fileId, permissionId: s.permissionId }));
 
     try {
-      const response = await fetch('/api/v1/external-sharing/bulk-revoke', {
+      const response = await authFetch('/api/v1/external-sharing/bulk-revoke', {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ shares: sharesToRevoke })
       });
       const data = await response.json();
@@ -166,9 +160,9 @@ export const ExternalSharingManager: React.FC = () => {
   const exportReport = async () => {
     setExporting(true);
     try {
-      const response = await fetch('/api/v1/external-sharing/export', {
+      const response = await authFetch('/api/v1/external-sharing/export', {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ riskLevel: riskFilter === 'all' ? undefined : riskFilter })
       });
 
@@ -501,9 +495,9 @@ export const ExternalSharingManager: React.FC = () => {
                           if (!confirmed) return;
 
                           try {
-                            const response = await fetch('/api/v1/external-sharing/revoke', {
+                            const response = await authFetch('/api/v1/external-sharing/revoke', {
                               method: 'POST',
-                              headers: getAuthHeaders(),
+                              headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({
                                 fileId: share.fileId,
                                 permissionId: share.permissionId

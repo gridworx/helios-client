@@ -40,6 +40,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS security_events_updated_at ON security_events;
+DROP TRIGGER IF EXISTS security_events_updated_at ON PLACEHOLDER;
 CREATE TRIGGER security_events_updated_at
     BEFORE UPDATE ON security_events
     FOR EACH ROW

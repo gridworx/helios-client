@@ -1,4 +1,4 @@
-import { apiPath } from '../config/api';
+import { apiPath, authFetch } from '../config/api';
 
 export type ActorType = 'internal' | 'service' | 'vendor';
 export type ActionResult = 'success' | 'failure' | 'denied';
@@ -69,16 +69,8 @@ export const auditLogsService = {
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.offset) queryParams.append('offset', params.offset.toString());
 
-    const token = localStorage.getItem('helios_token');
-    const response = await fetch(
-      apiPath(`/organization/audit-logs?${queryParams.toString()}`),
-      {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-      }
+    const response = await authFetch(
+      apiPath(`/organization/audit-logs?${queryParams.toString()}`)
     );
 
     if (!response.ok) {
@@ -99,15 +91,8 @@ export const auditLogsService = {
     if (params?.vendorName) queryParams.append('vendorName', params.vendorName);
     if (params?.result) queryParams.append('result', params.result);
 
-    const token = localStorage.getItem('helios_token');
-    const response = await fetch(
-      apiPath(`/organization/audit-logs/export?${queryParams.toString()}`),
-      {
-        credentials: 'include',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      }
+    const response = await authFetch(
+      apiPath(`/organization/audit-logs/export?${queryParams.toString()}`)
     );
 
     if (!response.ok) {

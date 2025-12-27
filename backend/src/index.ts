@@ -1,3 +1,10 @@
+// Polyfill global crypto for better-auth in Node.js 18
+// better-auth expects global crypto which is only auto-exposed in Node.js 19+
+import { webcrypto } from 'crypto';
+if (!globalThis.crypto) {
+  (globalThis as any).crypto = webcrypto;
+}
+
 // Import type augmentation for Express Request (must be .ts for ts-node compatibility)
 import './types/express.js';
 
@@ -76,6 +83,7 @@ import { startScheduledActionProcessor, stopScheduledActionProcessor } from './j
 import { startSignatureSyncJob, stopSignatureSyncJob } from './jobs/signature-sync.job.js';
 import { startCampaignSchedulerJob, stopCampaignSchedulerJob } from './jobs/campaign-scheduler.job.js';
 import { startTrackingRetentionJob, stopTrackingRetentionJob } from './jobs/tracking-retention.job.js';
+import { syncScheduler } from './services/sync-scheduler.service.js';
 
 import transparentProxyRouter from './middleware/transparent-proxy.js';
 import microsoftTransparentProxyRouter from './middleware/microsoft-transparent-proxy.js';
@@ -534,21 +542,38 @@ app.use('/api', setupCheckMiddleware);
 // Order matters! More specific routes first
 
 // =============================================================================
-// Better Auth Handler - DISABLED (Decision: 2025-12-19)
+// Better Auth Handler - ENABLED (2025-12-26)
 // =============================================================================
-// Better-auth integration was planned for SSO support, but has been DEFERRED.
+// Better-auth provides session-based authentication with httpOnly cookies.
+// Passwords were migrated to auth_accounts table (migration 062).
 //
-// REASON: Better-auth requires passwords in the auth_accounts table with
-// providerId="credential", but Helios stores passwords in organization_users.password_hash.
-// Migration would require moving 36+ user password hashes with risk of breaking auth.
+// Better-auth routes (new session-based auth):
+// - POST /api/auth/sign-in/email - Session-based sign in
+// - POST /api/auth/sign-out - Session-based sign out
+// - GET /api/auth/get-session - Get current session
 //
-// CURRENT SYSTEM: JWT-based auth works perfectly via auth.routes.ts.
-// FUTURE: If SSO is needed, revisit better-auth or use Auth0/Clerk.
+// Legacy JWT routes (auth.routes.ts) still available at:
+// - POST /api/v1/auth/login - JWT-based login
+// - POST /api/v1/auth/logout - JWT-based logout
+// - GET /api/v1/auth/verify - Verify JWT token
 //
-// SEE: openspec/changes/fix-better-auth-integration/decision.md
-//
-// app.all('/api/v1/auth/*', authHandler);
-// app.all('/api/auth/*', authHandler);
+// NOTE: Only handle better-auth specific paths, let JWT routes pass through
+const betterAuthPaths = ['/sign-in', '/sign-out', '/sign-up', '/get-session', '/session', '/error', '/callback'];
+app.all('/api/v1/auth/*', (req, res, next) => {
+  // Check if this is a better-auth path
+  const path = req.path.replace('/api/v1/auth', '');
+  const isBetterAuthPath = betterAuthPaths.some(p => path.startsWith(p));
+
+  if (isBetterAuthPath) {
+    // Rewrite URL from /api/v1/auth/* to /api/auth/* for better-auth
+    req.url = req.url.replace('/api/v1/auth/', '/api/auth/');
+    authHandler(req, res);
+  } else {
+    // Let it pass through to JWT routes
+    next();
+  }
+});
+app.all('/api/auth/*', (req, res) => authHandler(req, res));
 
 // Helper to register routes on both versioned and unversioned paths
 const registerRoute = (path: string, router: express.Router) => {
@@ -788,6 +813,30 @@ async function startServer(): Promise<void> {
       logger.info('🗑️ Tracking retention job disabled');
     }
 
+    // Start Google Workspace sync scheduler for configured organizations
+    try {
+      const orgsWithGW = await db.query(`
+        SELECT o.id, o.name
+        FROM organizations o
+        INNER JOIN gw_credentials gc ON o.id = gc.organization_id
+        WHERE gc.service_account_key IS NOT NULL
+      `);
+
+      if (orgsWithGW.rows.length > 0) {
+        for (const org of orgsWithGW.rows) {
+          logger.info(`🔄 Starting auto-sync for organization: ${org.name}`);
+          syncScheduler.startOrganizationSync(org.id).catch(err => {
+            logger.error(`Failed to start sync for ${org.name}`, err);
+          });
+        }
+        logger.info(`🔄 Auto-sync enabled for ${orgsWithGW.rows.length} organization(s)`);
+      } else {
+        logger.info('🔄 No organizations with Google Workspace configured - auto-sync disabled');
+      }
+    } catch (err) {
+      logger.error('Failed to initialize sync scheduler', err);
+    }
+
     // Start server (use httpServer instead of app.listen for WebSocket support)
     httpServer.listen(PORT, () => {
       logger.info(`🚀 Helios Platform Backend running on port ${PORT}`);
@@ -810,6 +859,7 @@ process.on('SIGTERM', async () => {
   stopSignatureSyncJob();
   stopCampaignSchedulerJob();
   stopTrackingRetentionJob();
+  syncScheduler.stopAll();
   await db.close();
   process.exit(0);
 });
@@ -820,6 +870,7 @@ process.on('SIGINT', async () => {
   stopSignatureSyncJob();
   stopCampaignSchedulerJob();
   stopTrackingRetentionJob();
+  syncScheduler.stopAll();
   await db.close();
   process.exit(0);
 });

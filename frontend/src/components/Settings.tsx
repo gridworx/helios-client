@@ -14,6 +14,7 @@ import { FeatureFlagsSettings } from './settings/FeatureFlagsSettings';
 import { EntityLabelSettings } from './settings/EntityLabelSettings';
 import { useTabPersistence } from '../hooks/useTabPersistence';
 import { Package, Building2, Shield, Lock, Palette, Settings as SettingsIcon, Key, Search as SearchIcon, RefreshCw, BarChart3, Info, MoreVertical, Power, Database, Bot, ToggleLeft } from 'lucide-react';
+import { authFetch } from '../config/api';
 
 interface SettingsProps {
   organizationName: string;
@@ -43,6 +44,23 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
   const [editedOrgName, setEditedOrgName] = useState(organizationName);
   const [editedDomain, setEditedDomain] = useState(domain);
   const [savingOrg, setSavingOrg] = useState(false);
+
+  // Sync settings state
+  const [syncSettings, setSyncSettings] = useState({
+    syncInterval: '900',
+    autoSyncEnabled: true,
+    deletionPolicy: 'delete',
+    syncDirection: 'google-to-helios'
+  });
+  const [originalSyncSettings, setOriginalSyncSettings] = useState({
+    syncInterval: '900',
+    autoSyncEnabled: true,
+    deletionPolicy: 'delete',
+    syncDirection: 'google-to-helios'
+  });
+  const [savingSyncSettings, setSavingSyncSettings] = useState(false);
+  const syncSettingsChanged = JSON.stringify(syncSettings) !== JSON.stringify(originalSyncSettings);
+
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -91,14 +109,11 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
   const fetchModuleStatus = async () => {
     try {
       setIsLoadingStatus(true);
-      const token = localStorage.getItem('helios_token');
 
       // Fetch both Google and Microsoft status in parallel
       const [gwResponse, msResponse] = await Promise.all([
-        fetch(`/api/v1/google-workspace/module-status/${organizationId}`),
-        fetch('/api/v1/microsoft/status', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
+        authFetch(`/api/v1/google-workspace/module-status/${organizationId}`),
+        authFetch('/api/v1/microsoft/status')
       ]);
 
       const gwData = await gwResponse.json();
@@ -120,12 +135,10 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
   const saveOrganization = async () => {
     try {
       setSavingOrg(true);
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch('/api/v1/organization/settings', {
+      const response = await authFetch('/api/v1/organization/settings', {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           name: editedOrgName,
@@ -144,6 +157,31 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
       console.error('Failed to save organization settings:', error);
     } finally {
       setSavingOrg(false);
+    }
+  };
+
+  const saveSyncSettings = async () => {
+    try {
+      setSavingSyncSettings(true);
+      const response = await authFetch('/api/v1/organization/sync-settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(syncSettings)
+      });
+
+      if (response.ok) {
+        setOriginalSyncSettings({ ...syncSettings });
+        alert('Sync settings saved successfully');
+      } else {
+        alert('Failed to save sync settings');
+      }
+    } catch (error) {
+      console.error('Failed to save sync settings:', error);
+      alert('Failed to save sync settings');
+    } finally {
+      setSavingSyncSettings(false);
     }
   };
 
@@ -294,12 +332,10 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                                 className="btn btn-info"
                                 onClick={async () => {
                                   try {
-                                    const token = localStorage.getItem('helios_token');
-                                    const response = await fetch('/api/v1/google-workspace/sync-now', {
+                                    const response = await authFetch('/api/v1/google-workspace/sync-now', {
                                       method: 'POST',
                                       headers: {
-                                        'Content-Type': 'application/json',
-                                        'Authorization': `Bearer ${token}`
+                                        'Content-Type': 'application/json'
                                       },
                                       body: JSON.stringify({ organizationId })
                                     });
@@ -322,12 +358,10 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                                 className="btn btn-success"
                                 onClick={async () => {
                                   try {
-                                    const token = localStorage.getItem('helios_token');
-                                    const response = await fetch('/api/v1/google-workspace/test-connection', {
+                                    const response = await authFetch('/api/v1/google-workspace/test-connection', {
                                       method: 'POST',
                                       headers: {
-                                        'Content-Type': 'application/json',
-                                        'Authorization': `Bearer ${token}`
+                                        'Content-Type': 'application/json'
                                       },
                                       body: JSON.stringify({ organizationId, domain })
                                     });
@@ -369,12 +403,8 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                                         setShowModuleMenu(false);
                                         if (confirm('Are you sure you want to disable Google Workspace? This will stop all synchronization.')) {
                                           try {
-                                            const token = localStorage.getItem('helios_token');
-                                            const response = await fetch(`/api/v1/google-workspace/disable/${organizationId}`, {
-                                              method: 'POST',
-                                              headers: {
-                                                'Authorization': `Bearer ${token}`
-                                              }
+                                            const response = await authFetch(`/api/v1/google-workspace/disable/${organizationId}`, {
+                                              method: 'POST'
                                             });
 
                                             const data = await response.json();
@@ -488,12 +518,8 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                                 className="btn btn-info"
                                 onClick={async () => {
                                   try {
-                                    const token = localStorage.getItem('helios_token');
-                                    const response = await fetch('/api/v1/microsoft/sync', {
-                                      method: 'POST',
-                                      headers: {
-                                        'Authorization': `Bearer ${token}`
-                                      }
+                                    const response = await authFetch('/api/v1/microsoft/sync', {
+                                      method: 'POST'
                                     });
 
                                     const data = await response.json();
@@ -844,7 +870,11 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                     <div className="sync-setting-group">
                       <div className="sync-options">
                         <label>Automatic Sync Interval:</label>
-                        <select className="form-select" defaultValue="900">
+                        <select
+                          className="form-select"
+                          value={syncSettings.syncInterval}
+                          onChange={(e) => setSyncSettings(prev => ({ ...prev, syncInterval: e.target.value }))}
+                        >
                           <option value="300">Every 5 minutes</option>
                           <option value="900">Every 15 minutes (Recommended)</option>
                           <option value="1800">Every 30 minutes</option>
@@ -859,11 +889,76 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
 
                       <div className="sync-options" style={{ marginTop: '16px' }}>
                         <label className="checkbox-label">
-                          <input type="checkbox" defaultChecked />
+                          <input
+                            type="checkbox"
+                            checked={syncSettings.autoSyncEnabled}
+                            onChange={(e) => setSyncSettings(prev => ({ ...prev, autoSyncEnabled: e.target.checked }))}
+                          />
                           <span>Enable automatic synchronization</span>
                         </label>
                       </div>
                     </div>
+                  </div>
+
+                  <div className="sync-setting-group" style={{ marginTop: '24px' }}>
+                    <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 600 }}>User Deletion Policy</h4>
+                    <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: '#6b7280' }}>
+                      Choose what happens in Google Workspace when a user is deleted in Helios
+                    </p>
+                    <div className="sync-options">
+                      <label>Default Action:</label>
+                      <select
+                        className="form-select"
+                        value={syncSettings.deletionPolicy}
+                        onChange={(e) => setSyncSettings(prev => ({ ...prev, deletionPolicy: e.target.value }))}
+                      >
+                        <option value="keep">Keep active in Google (no changes)</option>
+                        <option value="suspend">Suspend in Google (still billed)</option>
+                        <option value="delete">Delete from Google (frees license)</option>
+                      </select>
+                      <div className="form-hint">
+                        This setting determines the default action when deleting users. You can still choose a different action for individual deletions.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="sync-setting-group" style={{ marginTop: '24px' }}>
+                    <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 600 }}>Sync Direction</h4>
+                    <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: '#6b7280' }}>
+                      Choose how user data flows between Helios and Google Workspace
+                    </p>
+                    <div className="sync-options">
+                      <label>Direction:</label>
+                      <select
+                        className="form-select"
+                        value={syncSettings.syncDirection}
+                        onChange={(e) => setSyncSettings(prev => ({ ...prev, syncDirection: e.target.value }))}
+                      >
+                        <option value="google-to-helios">Google → Helios (Google is source of truth)</option>
+                        <option value="helios-to-google">Helios → Google (Helios is source of truth)</option>
+                        <option value="bidirectional">Bidirectional (merge changes from both)</option>
+                      </select>
+                      <div className="form-hint">
+                        Recommended: Google → Helios for organizations where users are primarily managed in Google Admin.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: '24px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                    <button
+                      className="btn-secondary"
+                      disabled={!syncSettingsChanged}
+                      onClick={() => setSyncSettings({ ...originalSyncSettings })}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="btn-primary"
+                      disabled={!syncSettingsChanged || savingSyncSettings}
+                      onClick={saveSyncSettings}
+                    >
+                      {savingSyncSettings ? 'Saving...' : 'Save Settings'}
+                    </button>
                   </div>
 
                   <div className="info-box" style={{ marginTop: '16px' }}>
@@ -974,15 +1069,13 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                   }
 
                   try {
-                    const token = localStorage.getItem('helios_token');
                     const user = localStorage.getItem('helios_user');
                     const userData = user ? JSON.parse(user) : null;
 
-                    const response = await fetch('/api/v1/user/change-password', {
+                    const response = await authFetch('/api/v1/user/change-password', {
                       method: 'POST',
                       headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                       },
                       body: JSON.stringify({
                         userId: userData?.id,

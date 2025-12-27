@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { X, Loader2, Image, Upload, Copy, Check, Search, FolderOpen, File } from 'lucide-react';
+import { authFetch } from '../config/api';
 import './AssetPickerModal.css';
 
 interface Asset {
@@ -60,17 +61,12 @@ export function AssetPickerModal({
       setLoading(true);
       setError(null);
 
-      const token = localStorage.getItem('helios_token');
       const params = new URLSearchParams();
       if (selectedFolder) params.append('folderId', selectedFolder);
       if (category) params.append('category', category);
       if (searchQuery) params.append('search', searchQuery);
 
-      const response = await fetch(`${API_BASE}/assets?${params}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await authFetch(`${API_BASE}/assets?${params}`);
 
       if (!response.ok) {
         throw new Error('Failed to fetch assets');
@@ -104,12 +100,7 @@ export function AssetPickerModal({
   // Fetch folders
   const fetchFolders = useCallback(async () => {
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(`${API_BASE}/assets/folders`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await authFetch(`${API_BASE}/assets/folders`);
 
       if (response.ok) {
         const data = await response.json();
@@ -133,7 +124,6 @@ export function AssetPickerModal({
 
     setUploading(true);
     try {
-      const token = localStorage.getItem('helios_token');
       const formData = new FormData();
       formData.append('file', files[0]);
       if (selectedFolder) {
@@ -143,11 +133,8 @@ export function AssetPickerModal({
         formData.append('category', category);
       }
 
-      const response = await fetch(`${API_BASE}/assets/upload`, {
+      const response = await authFetch(`${API_BASE}/assets/upload`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
         body: formData,
       });
 

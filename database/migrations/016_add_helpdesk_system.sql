@@ -163,16 +163,19 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger to auto-update timestamps
+DROP TRIGGER IF EXISTS update_helpdesk_tickets_timestamp ON PLACEHOLDER;
 CREATE TRIGGER update_helpdesk_tickets_timestamp
   BEFORE UPDATE ON helpdesk_tickets
   FOR EACH ROW
   EXECUTE FUNCTION update_ticket_timestamp();
 
+DROP TRIGGER IF EXISTS update_helpdesk_templates_timestamp ON PLACEHOLDER;
 CREATE TRIGGER update_helpdesk_templates_timestamp
   BEFORE UPDATE ON helpdesk_templates
   FOR EACH ROW
   EXECUTE FUNCTION update_ticket_timestamp();
 
+DROP TRIGGER IF EXISTS update_helpdesk_sla_rules_timestamp ON PLACEHOLDER;
 CREATE TRIGGER update_helpdesk_sla_rules_timestamp
   BEFORE UPDATE ON helpdesk_sla_rules
   FOR EACH ROW

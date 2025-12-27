@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react';
+import './MetricCard.css';
 
 export type MetricCardSize = 'small' | 'medium' | 'large';
 export type MetricState = 'default' | 'success' | 'warning' | 'error';
@@ -16,7 +17,7 @@ interface MetricCardProps {
   trend?: 'up' | 'down' | null;
   trendValue?: string;
   onClick?: () => void;
-  gridColumn?: number; // For 12-column grid positioning
+  gridColumn?: number;
 }
 
 export const MetricCard: React.FC<MetricCardProps> = ({
@@ -26,41 +27,38 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   label,
   footer,
   state = 'default',
-  size = 'small',
-  platformColor: _platformColor, // Reserved for future styling
+  size = 'medium',
+  platformColor: _platformColor,
   trend,
   trendValue,
   onClick,
-  gridColumn = 3, // Default to 3 columns (25% width)
+  gridColumn = 3,
 }) => {
-  const stateColors = {
-    default: '#111827',
-    success: '#059669',
-    warning: '#d97706',
-    error: '#dc2626',
-  };
-
-  const valueColor = stateColors[state];
+  const classNames = [
+    'metric-card',
+    `size-${size}`,
+    state !== 'default' ? `state-${state}` : '',
+    onClick ? 'clickable' : '',
+  ].filter(Boolean).join(' ');
 
   return (
     <div
-      className={`metric-card metric-card-${size} metric-card-${state}`}
+      className={classNames}
       onClick={onClick}
-      style={{
-        gridColumn: `span ${gridColumn}`,
-        cursor: onClick ? 'pointer' : 'default',
-      }}
+      style={{ gridColumn: `span ${gridColumn}` }}
     >
       {/* Header */}
       <div className="metric-card-header">
-        <div className="metric-card-icon">{icon}</div>
+        <div className="metric-card-icon">
+          {icon}
+        </div>
         <span className="metric-card-title">{title}</span>
       </div>
 
       {/* Main Value */}
-      <div className="metric-card-body">
-        <div className="metric-card-value" style={{ color: valueColor }}>
-          {state === 'warning' && <AlertTriangle size={16} className="metric-warning-icon" />}
+      <div className="metric-card-content">
+        <div className="metric-card-value">
+          {state === 'warning' && <AlertTriangle size={16} />}
           {value}
         </div>
         <div className="metric-card-label">{label}</div>
@@ -70,12 +68,12 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       {(footer || trend) && (
         <div className="metric-card-footer">
           {trend && (
-            <div className={`metric-trend metric-trend-${trend}`}>
+            <div className={`metric-card-trend ${trend}`}>
               {trend === 'up' ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
               {trendValue && <span>{trendValue}</span>}
             </div>
           )}
-          {footer && <span className="metric-footer-text">{footer}</span>}
+          {footer && <span className="metric-card-timestamp">{footer}</span>}
         </div>
       )}
     </div>

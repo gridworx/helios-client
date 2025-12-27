@@ -1,68 +1,66 @@
-import React, { useState, useEffect } from 'react';
-import { Activity, Clock, Search, Download, Filter, ChevronLeft, ChevronRight, CheckCircle, XCircle, AlertCircle, User, Building2, Ticket } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Activity, Clock, Search, Download, Filter, ChevronLeft, ChevronRight, CheckCircle, XCircle, AlertCircle, User, Building2, Ticket, Loader2 } from 'lucide-react';
+import { DataTable, createColumnHelper } from '../components/ui/DataTable';
+import { useAuditLogs, useAuditLogActions } from '../hooks/queries/useAuditLogs';
 import { auditLogsService } from '../services';
 import type { AuditLog, ActorType, ActionResult, AuditLogFilters } from '../services';
 import './AuditLogs.css';
 
+const columnHelper = createColumnHelper<AuditLog>();
+
 const AuditLogs: React.FC = () => {
-  const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [actionFilter, setActionFilter] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   // New filters for actor attribution
   const [actorTypeFilter, setActorTypeFilter] = useState<ActorType | ''>('');
   const [vendorNameFilter, setVendorNameFilter] = useState('');
   const [technicianFilter, setTechnicianFilter] = useState('');
   const [ticketReferenceFilter, setTicketReferenceFilter] = useState('');
   const [resultFilter, setResultFilter] = useState<ActionResult | ''>('');
+  const [pendingSearch, setPendingSearch] = useState('');
   const itemsPerPage = 50;
 
-  useEffect(() => {
-    loadLogs();
-  }, [actionFilter, startDate, endDate, currentPage, actorTypeFilter, vendorNameFilter, technicianFilter, ticketReferenceFilter, resultFilter]);
+  // Build filter params
+  const filterParams: AuditLogFilters = useMemo(() => {
+    const params: AuditLogFilters = {};
+    if (actionFilter) params.action = actionFilter;
+    if (startDate) params.startDate = startDate;
+    if (endDate) params.endDate = endDate;
+    if (searchTerm) params.search = searchTerm;
+    if (actorTypeFilter) params.actorType = actorTypeFilter;
+    if (vendorNameFilter) params.vendorName = vendorNameFilter;
+    if (technicianFilter) params.technician = technicianFilter;
+    if (ticketReferenceFilter) params.ticketReference = ticketReferenceFilter;
+    if (resultFilter) params.result = resultFilter;
+    return params;
+  }, [actionFilter, startDate, endDate, searchTerm, actorTypeFilter, vendorNameFilter, technicianFilter, ticketReferenceFilter, resultFilter]);
 
-  const loadLogs = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  // TanStack Query hooks
+  const { data, isLoading, error } = useAuditLogs({
+    page: currentPage,
+    pageSize: itemsPerPage,
+    ...filterParams,
+  });
 
-      const params: AuditLogFilters = {
-        limit: itemsPerPage,
-        offset: (currentPage - 1) * itemsPerPage,
-      };
+  const { data: actionOptions = [] } = useAuditLogActions();
 
-      if (actionFilter) params.action = actionFilter;
-      if (startDate) params.startDate = startDate;
-      if (endDate) params.endDate = endDate;
-      if (searchTerm) params.search = searchTerm;
-      if (actorTypeFilter) params.actorType = actorTypeFilter;
-      if (vendorNameFilter) params.vendorName = vendorNameFilter;
-      if (technicianFilter) params.technician = technicianFilter;
-      if (ticketReferenceFilter) params.ticketReference = ticketReferenceFilter;
-      if (resultFilter) params.result = resultFilter;
-
-      const response = await auditLogsService.getAuditLogs(params);
-      setLogs(response.data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load audit logs');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const logs = data?.data ?? [];
+  const hasMore = data?.hasMore ?? false;
 
   const handleSearch = () => {
+    setSearchTerm(pendingSearch);
     setCurrentPage(1);
-    loadLogs();
   };
 
   const handleExport = async () => {
     try {
       setExporting(true);
+      setExportError(null);
       const params: Omit<AuditLogFilters, 'limit' | 'offset'> = {};
       if (actionFilter) params.action = actionFilter;
       if (startDate) params.startDate = startDate;
@@ -73,7 +71,7 @@ const AuditLogs: React.FC = () => {
 
       await auditLogsService.exportAuditLogs(params);
     } catch (err: any) {
-      setError(err.message || 'Failed to export audit logs');
+      setExportError(err.message || 'Failed to export audit logs');
     } finally {
       setExporting(false);
     }
@@ -129,7 +127,91 @@ const AuditLogs: React.FC = () => {
     }
   };
 
-  const uniqueActions = Array.from(new Set(logs.map(log => log.action))).sort();
+  // Define columns using TanStack Table
+  const columns = useMemo(() => [
+    columnHelper.accessor('created_at', {
+      header: 'Timestamp',
+      cell: ({ getValue }) => (
+        <span className="timestamp-cell">{formatDate(getValue())}</span>
+      ),
+      size: 160,
+    }),
+    columnHelper.display({
+      id: 'actor',
+      header: 'Actor',
+      cell: ({ row }) => {
+        const log = row.original;
+        const actorTypeBadge = getActorTypeBadge(log.actor_type);
+        const actorName = log.actor_type === 'vendor' && log.vendor_technician_name
+          ? log.vendor_technician_name
+          : getActorName(log);
+        const actorEmail = log.actor_type === 'vendor' && log.vendor_technician_email
+          ? log.vendor_technician_email
+          : log.actor_email;
+        const actorTooltip = [
+          actorEmail,
+          log.vendor_name && `Vendor: ${log.vendor_name}`,
+          log.ticket_reference && `Ticket: ${log.ticket_reference}`,
+          log.service_name && `Service: ${log.service_name}`,
+          log.api_key_name && `API Key: ${log.api_key_name}`
+        ].filter(Boolean).join('\n');
+
+        return (
+          <div className="actor-cell" title={actorTooltip || undefined}>
+            <span className={`actor-type-badge ${actorTypeBadge.className}`}>
+              {actorTypeBadge.label}
+            </span>
+            <span className="actor-name">{actorName}</span>
+          </div>
+        );
+      },
+      size: 200,
+    }),
+    columnHelper.accessor('action', {
+      header: 'Action',
+      cell: ({ getValue }) => {
+        const action = getValue();
+        return (
+          <span className={`action-badge ${getActionColor(action)}`}>
+            {action}
+          </span>
+        );
+      },
+      size: 150,
+    }),
+    columnHelper.accessor('result', {
+      header: 'Result',
+      cell: ({ getValue }) => {
+        const resultBadge = getResultBadge(getValue());
+        const ResultIcon = resultBadge.icon;
+        return (
+          <span className={`result-badge ${resultBadge.className}`}>
+            <ResultIcon size={12} />
+            {resultBadge.label}
+          </span>
+        );
+      },
+      size: 100,
+    }),
+    columnHelper.display({
+      id: 'resource',
+      header: 'Resource',
+      cell: ({ row }) => {
+        const log = row.original;
+        return log.resource_type ? (
+          <span className="resource-text">
+            {log.resource_type}{log.resource_id && ` #${log.resource_id}`}
+          </span>
+        ) : '-';
+      },
+      size: 150,
+    }),
+    columnHelper.accessor('ip_address', {
+      header: 'IP Address',
+      cell: ({ getValue }) => getValue() || '-',
+      size: 120,
+    }),
+  ], []);
 
   return (
     <div className="audit-logs-page">
@@ -140,7 +222,7 @@ const AuditLogs: React.FC = () => {
         </div>
         <button
           onClick={handleExport}
-          disabled={exporting || loading}
+          disabled={exporting || isLoading}
           className="export-button"
         >
           <Download size={16} />
@@ -154,8 +236,8 @@ const AuditLogs: React.FC = () => {
           <input
             type="text"
             placeholder="Search descriptions or metadata..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={pendingSearch}
+            onChange={(e) => setPendingSearch(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
             className="search-input"
           />
@@ -179,7 +261,7 @@ const AuditLogs: React.FC = () => {
               className="filter-select"
             >
               <option value="">All Actions</option>
-              {uniqueActions.map((action) => (
+              {actionOptions.map((action) => (
                 <option key={action} value={action}>
                   {action}
                 </option>
@@ -317,16 +399,16 @@ const AuditLogs: React.FC = () => {
         )}
       </div>
 
-      {error && (
+      {(error || exportError) && (
         <div className="error-banner">
           <Activity size={16} />
-          {error}
+          {(error as Error)?.message || exportError}
         </div>
       )}
 
-      {loading ? (
+      {isLoading ? (
         <div className="loading-state">
-          <div className="loading-spinner" />
+          <Loader2 className="loading-spinner spin" size={32} />
           <p>Loading audit logs...</p>
         </div>
       ) : logs.length === 0 ? (
@@ -337,77 +419,16 @@ const AuditLogs: React.FC = () => {
         </div>
       ) : (
         <>
-          <div className="logs-table-container">
-            <table className="logs-table">
-              <thead>
-                <tr>
-                  <th>Timestamp</th>
-                  <th>Actor</th>
-                  <th>Action</th>
-                  <th>Result</th>
-                  <th>Resource</th>
-                  <th>IP Address</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map((log) => {
-                  const actorTypeBadge = getActorTypeBadge(log.actor_type);
-                  const resultBadge = getResultBadge(log.result);
-                  const ResultIcon = resultBadge.icon;
-
-                  // Build actor display and tooltip
-                  const actorName = log.actor_type === 'vendor' && log.vendor_technician_name
-                    ? log.vendor_technician_name
-                    : getActorName(log);
-                  const actorEmail = log.actor_type === 'vendor' && log.vendor_technician_email
-                    ? log.vendor_technician_email
-                    : log.actor_email;
-                  const actorTooltip = [
-                    actorEmail,
-                    log.vendor_name && `Vendor: ${log.vendor_name}`,
-                    log.ticket_reference && `Ticket: ${log.ticket_reference}`,
-                    log.service_name && `Service: ${log.service_name}`,
-                    log.api_key_name && `API Key: ${log.api_key_name}`
-                  ].filter(Boolean).join('\n');
-
-                  return (
-                    <tr key={log.id} className={log.result === 'failure' || log.result === 'denied' ? 'log-row-error' : ''}>
-                      <td className="timestamp-cell">
-                        {formatDate(log.created_at)}
-                      </td>
-                      <td className="actor-cell" title={actorTooltip || undefined}>
-                        <span className={`actor-type-badge ${actorTypeBadge.className}`}>
-                          {actorTypeBadge.label}
-                        </span>
-                        <span className="actor-name">{actorName}</span>
-                      </td>
-                      <td>
-                        <span className={`action-badge ${getActionColor(log.action)}`}>
-                          {log.action}
-                        </span>
-                      </td>
-                      <td className="result-cell">
-                        <span className={`result-badge ${resultBadge.className}`}>
-                          <ResultIcon size={12} />
-                          {resultBadge.label}
-                        </span>
-                      </td>
-                      <td className="resource-cell">
-                        {log.resource_type ? (
-                          <span className="resource-text">
-                            {log.resource_type}{log.resource_id && ` #${log.resource_id}`}
-                          </span>
-                        ) : '-'}
-                      </td>
-                      <td className="ip-cell">
-                        {log.ip_address || '-'}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            data={logs}
+            columns={columns}
+            enableSorting={true}
+            enableFiltering={false}
+            enablePagination={false}
+            rowHeight={48}
+            emptyMessage="No audit logs found"
+            getRowId={(row) => String(row.id)}
+          />
 
           <div className="pagination">
             <button
@@ -423,7 +444,7 @@ const AuditLogs: React.FC = () => {
             </span>
             <button
               onClick={() => setCurrentPage(p => p + 1)}
-              disabled={logs.length < itemsPerPage}
+              disabled={!hasMore}
               className="pagination-button"
             >
               Next

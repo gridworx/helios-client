@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Key, Plus, Trash2, RefreshCw, Clock, AlertCircle, CheckCircle } from 'lucide-react';
+import { authFetch } from '../../config/api';
 import './ApiKeyList.css';
 
 interface ApiKey {
@@ -35,18 +36,12 @@ export function ApiKeyList({ organizationId, onCreateKey }: ApiKeyListProps) {
   const fetchKeys = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('helios_token');
       const params = new URLSearchParams();
       if (filter !== 'all') params.append('status', filter);
       if (typeFilter !== 'all') params.append('type', typeFilter);
 
-      const response = await fetch(
-        `/api/v1/organization/api-keys?${params.toString()}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        }
+      const response = await authFetch(
+        `/api/v1/organization/api-keys?${params.toString()}`
       );
 
       const data = await response.json();
@@ -66,14 +61,10 @@ export function ApiKeyList({ organizationId, onCreateKey }: ApiKeyListProps) {
     }
 
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
+      const response = await authFetch(
         `/api/v1/organization/api-keys/${keyId}`,
         {
           method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
         }
       );
 

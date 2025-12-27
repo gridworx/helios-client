@@ -4,6 +4,7 @@ import { Users, Search, Download, Grid3x3, List, Network, Loader, AlertCircle, C
 import OrgChartTree from '../components/OrgChartTree';
 import OrgChartList from '../components/OrgChartList';
 import OrgChartCard from '../components/OrgChartCard';
+import { authFetch } from '../config/api';
 import './OrgChart.css';
 
 interface OrgNode {
@@ -20,13 +21,15 @@ interface OrgNode {
 }
 
 interface OrgChartData {
-  root: OrgNode;
+  root: OrgNode | null;
   orphans: OrgNode[];
   stats: {
     totalUsers: number;
     maxDepth: number;
     avgSpan: number;
   };
+  isEmpty?: boolean;
+  message?: string;
 }
 
 type ViewMode = 'tree' | 'list' | 'card';
@@ -52,12 +55,7 @@ const OrgChart: React.FC = () => {
       setIsLoading(true);
       setError(null);
 
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch('/api/v1/organization/org-chart', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await authFetch('/api/v1/organization/org-chart');
 
       if (!response.ok) {
         const contentType = response.headers.get('content-type');
@@ -296,14 +294,37 @@ const OrgChart: React.FC = () => {
     );
   }
 
-  if (error || !data) {
+  if (error) {
     return (
       <div className="org-chart-error">
         <AlertCircle size={48} />
         <h2>Unable to Load Organization Chart</h2>
-        <p>{error || 'No data available'}</p>
+        <p>{error}</p>
         <button onClick={fetchOrgChart} className="retry-button">
           Try Again
+        </button>
+      </div>
+    );
+  }
+
+  // Handle empty state - no data or isEmpty flag
+  if (!data || data.isEmpty || !data.root) {
+    return (
+      <div className="org-chart-empty">
+        <Network size={64} strokeWidth={1} />
+        <h2>Organization Chart</h2>
+        <p className="empty-message">
+          {data?.message || 'No organization structure found yet.'}
+        </p>
+        <div className="empty-hints">
+          <p>To build your org chart:</p>
+          <ul>
+            <li>Sync users from Google Workspace in Settings</li>
+            <li>Add users manually and set their reporting managers</li>
+          </ul>
+        </div>
+        <button onClick={fetchOrgChart} className="retry-button">
+          Refresh
         </button>
       </div>
     );

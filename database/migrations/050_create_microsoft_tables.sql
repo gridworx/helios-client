@@ -203,24 +203,28 @@ $$ language 'plpgsql';
 
 -- Apply triggers
 DROP TRIGGER IF EXISTS update_ms_credentials_updated_at ON ms_credentials;
+DROP TRIGGER IF EXISTS update_ms_credentials_updated_at ON PLACEHOLDER;
 CREATE TRIGGER update_ms_credentials_updated_at
     BEFORE UPDATE ON ms_credentials
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
 DROP TRIGGER IF EXISTS update_ms_synced_users_updated_at ON ms_synced_users;
+DROP TRIGGER IF EXISTS update_ms_synced_users_updated_at ON PLACEHOLDER;
 CREATE TRIGGER update_ms_synced_users_updated_at
     BEFORE UPDATE ON ms_synced_users
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
 DROP TRIGGER IF EXISTS update_ms_synced_groups_updated_at ON ms_synced_groups;
+DROP TRIGGER IF EXISTS update_ms_synced_groups_updated_at ON PLACEHOLDER;
 CREATE TRIGGER update_ms_synced_groups_updated_at
     BEFORE UPDATE ON ms_synced_groups
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
 DROP TRIGGER IF EXISTS update_ms_licenses_updated_at ON ms_licenses;
+DROP TRIGGER IF EXISTS update_ms_licenses_updated_at ON PLACEHOLDER;
 CREATE TRIGGER update_ms_licenses_updated_at
     BEFORE UPDATE ON ms_licenses
     FOR EACH ROW

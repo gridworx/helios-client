@@ -3,6 +3,7 @@ import { useEntityLabels } from '../contexts/LabelsContext';
 import { ENTITIES } from '../config/entities';
 import { Users, MessageSquare } from 'lucide-react';
 import './Pages.css';
+import { authFetch } from '../config/api';
 
 interface Workspace {
   id: string;
@@ -28,10 +29,7 @@ export function Workspaces({ organizationId }: WorkspacesProps) {
   const fetchWorkspaces = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(`/api/v1/organization/workspaces`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await authFetch(`/api/v1/organization/workspaces`);
       const data = await response.json();
       if (data.success) {
         setWorkspaces(data.data || []);

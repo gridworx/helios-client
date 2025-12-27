@@ -18,6 +18,7 @@ import {
   ChevronUp,
   Info,
 } from 'lucide-react';
+import { authFetch } from '../../config/api';
 import './OnboardingTemplateEditor.css';
 
 interface GoogleServices {
@@ -152,15 +153,8 @@ const OnboardingTemplateEditor: React.FC<OnboardingTemplateEditorProps> = ({
 
   const fetchTemplate = async () => {
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
-        `/api/v1/lifecycle/onboarding-templates/${templateId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
+      const response = await authFetch(
+        `/api/v1/lifecycle/onboarding-templates/${templateId}`
       );
 
       if (!response.ok) {
@@ -184,13 +178,7 @@ const OnboardingTemplateEditor: React.FC<OnboardingTemplateEditorProps> = ({
 
   const fetchDepartments = async () => {
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch('/api/v1/departments', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await authFetch('/api/v1/departments');
 
       if (response.ok) {
         const data = await response.json();
@@ -205,13 +193,7 @@ const OnboardingTemplateEditor: React.FC<OnboardingTemplateEditorProps> = ({
 
   const fetchGroups = async () => {
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch('/api/v1/groups', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await authFetch('/api/v1/groups');
 
       if (response.ok) {
         const data = await response.json();
@@ -234,15 +216,13 @@ const OnboardingTemplateEditor: React.FC<OnboardingTemplateEditorProps> = ({
     setError(null);
 
     try {
-      const token = localStorage.getItem('helios_token');
       const url = isEditing
         ? `/api/v1/lifecycle/onboarding-templates/${templateId}`
         : '/api/v1/lifecycle/onboarding-templates';
 
-      const response = await fetch(url, {
+      const response = await authFetch(url, {
         method: isEditing ? 'PUT' : 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(template),

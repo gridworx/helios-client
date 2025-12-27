@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Mail, TrendingUp, TrendingDown, Minus, RefreshCw, Clock, AlertCircle } from 'lucide-react';
-import { apiPath } from '../../config/api';
+import { apiPath, authFetch } from '../../config/api';
 import './EmailEngagementWidget.css';
 
 interface DailyStats {
@@ -33,20 +33,10 @@ export const EmailEngagementWidget: React.FC<EmailEngagementWidgetProps> = ({ cl
       setLoading(true);
       setError(null);
 
-      const token = localStorage.getItem('helios_token');
-      if (!token) {
-        setError('Not authenticated');
-        return;
-      }
-
       // Fetch both stats and daily data in parallel
       const [statsRes, dailyRes] = await Promise.all([
-        fetch(apiPath('/tracking/my-stats'), {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(apiPath('/tracking/my-stats/daily?days=7'), {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+        authFetch(apiPath('/tracking/my-stats')),
+        authFetch(apiPath('/tracking/my-stats/daily?days=7')),
       ]);
 
       if (!statsRes.ok || !dailyRes.ok) {

@@ -48,6 +48,7 @@ $$ LANGUAGE plpgsql;
 
 -- Create trigger for circular reference check
 DROP TRIGGER IF EXISTS check_manager_hierarchy_trigger ON organization_users;
+DROP TRIGGER IF EXISTS check_manager_hierarchy_trigger ON PLACEHOLDER;
 CREATE TRIGGER check_manager_hierarchy_trigger
     BEFORE INSERT OR UPDATE OF reporting_manager_id ON organization_users
     FOR EACH ROW

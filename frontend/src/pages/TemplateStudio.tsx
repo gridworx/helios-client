@@ -3,6 +3,7 @@ import { useTabPersistence } from '../hooks/useTabPersistence';
 import { PenLine, Mail, Globe, Puzzle, Plus, FileText, Calendar, Target, Search, RefreshCw, Star, Palette, Eye, Pencil, Copy, Trash2, Tag, X, Loader, Check, Image } from 'lucide-react';
 import './TemplateStudio.css';
 import { AssetPickerModal } from '../components/AssetPickerModal';
+import { authFetch } from '../config/api';
 
 interface Template {
   id: string;
@@ -189,12 +190,7 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch('/api/v1/organization/users', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await authFetch('/api/v1/organization/users');
 
       if (response.ok) {
         const data = await response.json();
@@ -212,12 +208,7 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
 
   const fetchOrganization = async () => {
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch('/api/v1/organization/settings', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await authFetch('/api/v1/organization/settings');
 
       if (response.ok) {
         const data = await response.json();
@@ -235,12 +226,7 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
       setIsLoading(true);
       setError(null);
 
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch('/api/v1/signatures/templates', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await authFetch('/api/v1/signatures/templates');
 
       if (response.ok) {
         const data = await response.json();
@@ -262,12 +248,7 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
 
   const fetchCampaigns = async () => {
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch('/api/v1/signatures/campaigns', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await authFetch('/api/v1/signatures/campaigns');
 
       if (response.ok) {
         const data = await response.json();
@@ -313,12 +294,10 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
         }
       }
 
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch('/api/v1/signatures/templates', {
+      const response = await authFetch('/api/v1/signatures/templates', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           name: newTemplateName,
@@ -394,12 +373,10 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
         }
       }
 
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(`/api/v1/signatures/templates/${editingTemplate.id}`, {
+      const response = await authFetch(`/api/v1/signatures/templates/${editingTemplate.id}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           name: newTemplateName,
@@ -445,12 +422,8 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
     }
 
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(`/api/v1/signatures/templates/${template.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const response = await authFetch(`/api/v1/signatures/templates/${template.id}`, {
+        method: 'DELETE'
       });
 
       const data = await response.json();

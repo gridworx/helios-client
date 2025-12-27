@@ -14,6 +14,7 @@ import {
   ArrowRight,
   Command
 } from 'lucide-react';
+import { authFetch } from '../../config/api';
 import './CommandBar.css';
 
 interface QuickAction {
@@ -126,12 +127,10 @@ export function CommandBar({ isOpen, onClose, onNavigate, aiEnabled = false }: C
     setResponse(null);
 
     try {
-      const token = localStorage.getItem('helios_token');
-      const res = await fetch('/api/v1/ai/chat', {
+      const res = await authFetch('/api/v1/ai/chat', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           message: query,

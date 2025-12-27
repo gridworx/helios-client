@@ -71,6 +71,18 @@ export class SyncSchedulerService {
   }
 
   /**
+   * Stop all syncs (for graceful shutdown)
+   */
+  stopAll(): void {
+    for (const [organizationId, interval] of this.syncIntervals) {
+      clearInterval(interval);
+      logger.info('Stopped sync for organization', { organizationId });
+    }
+    this.syncIntervals.clear();
+    logger.info('All sync schedulers stopped');
+  }
+
+  /**
    * Sync data for a specific organization
    */
   async syncOrganizationData(organizationId: string): Promise<void> {

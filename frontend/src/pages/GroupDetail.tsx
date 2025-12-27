@@ -3,6 +3,7 @@ import { useTabPersistence } from '../hooks/useTabPersistence';
 import { UsersRound, Search, Plus, Trash2, Loader, Save, BarChart3, User, Pencil } from 'lucide-react';
 import { PlatformBadge } from '../components/ui/PlatformBadge';
 import './Pages.css';
+import { authFetch } from '../config/api';
 
 type GroupDetailTab = 'members' | 'settings' | 'activity';
 
@@ -51,13 +52,8 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
   const fetchGroupDetails = async () => {
     try {
       // First get group info from the groups list
-      const response = await fetch(
-        `/api/v1/google-workspace/groups/${organizationId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
-          }
-        }
+      const response = await authFetch(
+        `/api/v1/google-workspace/groups/${organizationId}`
       );
 
       const result = await response.json();
@@ -77,13 +73,8 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(
-        `/api/v1/google-workspace/groups/${groupId}/members?organizationId=${organizationId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
-          }
-        }
+      const response = await authFetch(
+        `/api/v1/google-workspace/groups/${groupId}/members?organizationId=${organizationId}`
       );
 
       const result = await response.json();
@@ -110,13 +101,12 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
       setIsAddingMember(true);
       setError(null);
 
-      const response = await fetch(
+      const response = await authFetch(
         `/api/v1/google-workspace/groups/${groupId}/members`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
           },
           body: JSON.stringify({
             organizationId,
@@ -152,13 +142,10 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
       setRemovingMember(memberEmail);
       setError(null);
 
-      const response = await fetch(
+      const response = await authFetch(
         `/api/v1/google-workspace/groups/${groupId}/members/${encodeURIComponent(memberEmail)}?organizationId=${organizationId}`,
         {
           method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
-          }
         }
       );
 
@@ -181,13 +168,12 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
       setIsSavingSettings(true);
       setError(null);
 
-      const response = await fetch(
+      const response = await authFetch(
         `/api/v1/google-workspace/groups/${groupId}`,
         {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
           },
           body: JSON.stringify({
             organizationId,

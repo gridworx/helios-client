@@ -74,6 +74,9 @@ export class GoogleWorkspaceSyncService {
         // Sync users
         const userResult = await this.syncUsers(admin, organizationId, domain);
 
+        // Sync user statuses from gw_synced_users to organization_users
+        await this.syncStatusesToOrganizationUsers(organizationId);
+
         // Sync groups
         const groupResult = await this.syncGroups(admin, organizationId, domain);
 
@@ -491,6 +494,68 @@ export class GoogleWorkspaceSyncService {
         error: error.message
       });
       throw error;
+    }
+  }
+
+  /**
+   * Sync user statuses from gw_synced_users to organization_users
+   * This ensures that suspended/active status from Google is reflected in the main users table
+   */
+  private async syncStatusesToOrganizationUsers(organizationId: string): Promise<{ updated: number }> {
+    let updated = 0;
+
+    try {
+      // Update organization_users where Google shows user as suspended
+      const suspendResult = await db.query(`
+        UPDATE organization_users ou
+        SET
+          user_status = 'suspended',
+          is_active = false,
+          updated_at = NOW()
+        FROM gw_synced_users gw
+        WHERE ou.google_workspace_id = gw.google_id
+          AND ou.organization_id = $1
+          AND gw.organization_id = $1
+          AND gw.is_suspended = true
+          AND ou.user_status != 'suspended'
+          AND ou.deleted_at IS NULL
+      `, [organizationId]);
+
+      updated += suspendResult.rowCount || 0;
+
+      // Update organization_users where Google shows user as active (unsuspended)
+      const activateResult = await db.query(`
+        UPDATE organization_users ou
+        SET
+          user_status = 'active',
+          is_active = true,
+          updated_at = NOW()
+        FROM gw_synced_users gw
+        WHERE ou.google_workspace_id = gw.google_id
+          AND ou.organization_id = $1
+          AND gw.organization_id = $1
+          AND gw.is_suspended = false
+          AND ou.user_status = 'suspended'
+          AND ou.deleted_at IS NULL
+      `, [organizationId]);
+
+      updated += activateResult.rowCount || 0;
+
+      if (updated > 0) {
+        logger.info('Synced user statuses from Google Workspace to organization_users', {
+          organizationId,
+          updated
+        });
+      }
+
+      return { updated };
+    } catch (error: any) {
+      logger.error('Failed to sync user statuses to organization_users', {
+        organizationId,
+        error: error.message
+      });
+      // Don't throw - this is a secondary sync step
+      return { updated: 0 };
     }
   }
 }

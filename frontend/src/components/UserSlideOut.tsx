@@ -4,6 +4,7 @@ import { useTabPersistence } from '../hooks/useTabPersistence';
 import { ClipboardList, Users, BarChart3, Settings, Trash2, CheckCircle, AlertTriangle, FileText, PenTool, Link2, Lock } from 'lucide-react';
 import { UserSignatureStatus } from './signatures';
 import { useToast } from '../contexts/ToastContext';
+import { authFetch } from '../config/api';
 import './UserSlideOut.css';
 
 interface User {
@@ -90,14 +91,9 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
   }, [isEditing]);
 
   const fetchDropdownData = async () => {
-    const token = localStorage.getItem('helios_token');
-
     // Fetch available managers (all active users)
     try {
-      const managersResponse = await fetch(
-        `/api/v1/organization/users?status=active`,
-        { headers: { 'Authorization': `Bearer ${token}` } }
-      );
+      const managersResponse = await authFetch(`/api/v1/organization/users?status=active`);
       if (managersResponse.ok) {
         const managersData = await managersResponse.json();
         setAvailableManagers(managersData.data || []);
@@ -110,10 +106,7 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
 
     // Fetch organizational units from Google Workspace
     try {
-      const orgUnitsResponse = await fetch(
-        `/api/v1/google-workspace/org-units/${organizationId}`,
-        { headers: { 'Authorization': `Bearer ${token}` } }
-      );
+      const orgUnitsResponse = await authFetch(`/api/v1/google-workspace/org-units/${organizationId}`);
       if (orgUnitsResponse.ok) {
         const orgUnitsData = await orgUnitsResponse.json();
         if (orgUnitsData.success && orgUnitsData.data) {
@@ -126,10 +119,7 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
 
     // Fetch available departments
     try {
-      const deptResponse = await fetch(
-        `/api/v1/departments`,
-        { headers: { 'Authorization': `Bearer ${token}` } }
-      );
+      const deptResponse = await authFetch(`/api/v1/departments`);
       if (deptResponse.ok) {
         const deptData = await deptResponse.json();
         if (deptData.success && deptData.data) {
@@ -144,13 +134,7 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
   const fetchUserGroups = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
-        `/api/v1/organization/users/${user.id}/groups`,
-        {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }
-      );
+      const response = await authFetch(`/api/v1/organization/users/${user.id}/groups`);
       if (response.ok) {
         const data = await response.json();
         setGroups(data.data || []);
@@ -165,13 +149,7 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
   const fetchActivityLog = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
-        `/api/v1/organization/users/${user.id}/activity`,
-        {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }
-      );
+      const response = await authFetch(`/api/v1/organization/users/${user.id}/activity`);
       if (response.ok) {
         const data = await response.json();
         setActivityLog(data.data || []);
@@ -186,13 +164,11 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
   const handleSaveUser = async () => {
     setIsSaving(true);
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
+      const response = await authFetch(
         `/api/v1/organization/users/${user.id}`,
         {
           method: 'PUT',
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -234,13 +210,11 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
     if (!confirm(`Are you sure you want to change user status to ${newStatus}?`)) return;
 
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
+      const response = await authFetch(
         `/api/v1/organization/users/${user.id}/status`,
         {
           method: 'PATCH',
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({ status: newStatus })
@@ -262,12 +236,10 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
   const handleResetPassword = async () => {
     setResetLoading(true);
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
+      const response = await authFetch(
         `/api/v1/organization/users/${user.id}/reset-password`,
         {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` }
+          method: 'POST'
         }
       );
 
@@ -295,13 +267,11 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
 
     setIsCreatingInGoogle(true);
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
+      const response = await authFetch(
         `/api/v1/google-workspace/users`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -333,13 +303,11 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
 
   const confirmDelete = async () => {
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
+      const response = await authFetch(
         `/api/v1/organization/users/${user.id}`,
         {
           method: 'DELETE',
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -367,12 +335,10 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
     if (!confirm(`Are you sure you want to restore ${user.firstName} ${user.lastName}?`)) return;
 
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
+      const response = await authFetch(
         `/api/v1/organization/users/${user.id}/restore`,
         {
-          method: 'PATCH',
-          headers: { 'Authorization': `Bearer ${token}` }
+          method: 'PATCH'
         }
       );
 
@@ -396,19 +362,17 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
     }
 
     try {
-      const token = localStorage.getItem('helios_token');
       const errors: string[] = [];
       let successCount = 0;
 
       // Add user to each selected group
       for (const groupId of selectedNewGroupIds) {
         try {
-          const response = await fetch(
+          const response = await authFetch(
             `/api/v1/organization/access-groups/${groupId}/members`,
             {
               method: 'POST',
               headers: {
-                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
               },
               body: JSON.stringify({
@@ -458,12 +422,10 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
     if (!confirm('Are you sure you want to remove this user from the group?')) return;
 
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
+      const response = await authFetch(
         `/api/v1/organization/access-groups/${groupId}/members/${user.id}`,
         {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
+          method: 'DELETE'
         }
       );
 
@@ -603,7 +565,6 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
                       type="text"
                       value={editedUser.firstName}
                       onChange={(e) => setEditedUser({ ...editedUser, firstName: e.target.value })}
-                      style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
                     />
                   ) : (
                     <div>{user.firstName}</div>
@@ -616,13 +577,12 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
                       type="text"
                       value={editedUser.lastName}
                       onChange={(e) => setEditedUser({ ...editedUser, lastName: e.target.value })}
-                      style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
                     />
                   ) : (
                     <div>{user.lastName}</div>
                   )}
                 </div>
-                <div className="info-item">
+                <div className="info-item full-width">
                   <label>Email</label>
                   <div>{user.email}</div>
                 </div>
@@ -632,7 +592,6 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
                     <select
                       value={editedUser.role}
                       onChange={(e) => setEditedUser({ ...editedUser, role: e.target.value })}
-                      style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
                     >
                       <option value="admin">Admin</option>
                       <option value="manager">Manager</option>
@@ -671,7 +630,6 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
                           type="text"
                           value={editedUser.jobTitle || ''}
                           onChange={(e) => setEditedUser({ ...editedUser, jobTitle: e.target.value })}
-                          style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
                         />
                       ) : (
                         <div>{user.jobTitle || '-'}</div>
@@ -684,7 +642,6 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
                           <select
                             value={editedUser.department || ''}
                             onChange={(e) => setEditedUser({ ...editedUser, department: e.target.value })}
-                            style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
                           >
                             <option value="">Select Department...</option>
                             {availableDepartments.map(dept => (
@@ -698,7 +655,6 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
                             type="text"
                             value={editedUser.department || ''}
                             onChange={(e) => setEditedUser({ ...editedUser, department: e.target.value })}
-                            style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
                             placeholder="Enter department name"
                           />
                         )
@@ -712,7 +668,6 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
                         <select
                           value={editedUser.managerId || ''}
                           onChange={(e) => setEditedUser({ ...editedUser, managerId: e.target.value })}
-                          style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
                         >
                           <option value="">No Manager</option>
                           {availableManagers
@@ -734,19 +689,17 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
                           type="text"
                           value={editedUser.location || ''}
                           onChange={(e) => setEditedUser({ ...editedUser, location: e.target.value })}
-                          style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
                         />
                       ) : (
                         <div>{user.location || '-'}</div>
                       )}
                     </div>
-                    <div className="info-item">
+                    <div className="info-item full-width">
                       <label>Organizational Unit</label>
                       {isEditing ? (
                         <select
                           value={editedUser.organizationalUnit || ''}
                           onChange={(e) => setEditedUser({ ...editedUser, organizationalUnit: e.target.value })}
-                          style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
                         >
                           <option value="">Select Org Unit...</option>
                           {availableOrgUnits.map(ou => (
@@ -771,10 +724,9 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
                       <label>Mobile Phone</label>
                       {isEditing ? (
                         <input
-                          type="text"
+                          type="tel"
                           value={editedUser.mobilePhone || ''}
                           onChange={(e) => setEditedUser({ ...editedUser, mobilePhone: e.target.value })}
-                          style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
                         />
                       ) : (
                         <div>{user.mobilePhone || '-'}</div>
@@ -784,10 +736,9 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
                       <label>Work Phone</label>
                       {isEditing ? (
                         <input
-                          type="text"
+                          type="tel"
                           value={editedUser.workPhone || ''}
                           onChange={(e) => setEditedUser({ ...editedUser, workPhone: e.target.value })}
-                          style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
                         />
                       ) : (
                         <div>{user.workPhone || '-'}</div>
@@ -808,12 +759,11 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
                   onClick={() => {
                     // Fetch available groups if not already loaded
                     if (availableGroups.length === 0) {
-                      const token = localStorage.getItem('helios_token');
-                      fetch(`/api/v1/organization/access-groups`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                      }).then(res => res.json()).then(data => {
-                        if (data.success) setAvailableGroups(data.data || []);
-                      });
+                      authFetch(`/api/v1/organization/access-groups`)
+                        .then(res => res.json())
+                        .then(data => {
+                          if (data.success) setAvailableGroups(data.data || []);
+                        });
                     }
                     setShowAddGroupModal(true);
                   }}

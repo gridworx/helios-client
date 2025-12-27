@@ -1,6 +1,6 @@
 // People Directory API service
 
-import { apiPath } from '../config/api';
+import { apiPath, authFetch } from '../config/api';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -103,14 +103,6 @@ export interface ListPeopleParams {
 }
 
 class PeopleService {
-  private getAuthHeader(): HeadersInit {
-    const token = localStorage.getItem('helios_token');
-    return {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    };
-  }
-
   /**
    * List people in the directory
    */
@@ -130,9 +122,7 @@ class PeopleService {
       if (params.newJoinersOnly) queryParams.set('newJoinersOnly', 'true');
       if (params.hasMedia) queryParams.set('hasMedia', 'true');
 
-      const response = await fetch(apiPath(`/people?${queryParams}`), {
-        headers: this.getAuthHeader(),
-      });
+      const response = await authFetch(apiPath(`/people?${queryParams}`));
 
       if (!response.ok) {
         console.error('Failed to list people:', response.status);
@@ -166,9 +156,7 @@ class PeopleService {
       if (options.limit) queryParams.set('limit', options.limit.toString());
       if (options.fields) queryParams.set('fields', options.fields.join(','));
 
-      const response = await fetch(apiPath(`/people/search?${queryParams}`), {
-        headers: this.getAuthHeader(),
-      });
+      const response = await authFetch(apiPath(`/people/search?${queryParams}`));
 
       if (!response.ok) {
         console.error('Failed to search people:', response.status);
@@ -188,9 +176,7 @@ class PeopleService {
    */
   async getNewJoiners(limit = 10): Promise<PersonCard[]> {
     try {
-      const response = await fetch(apiPath(`/people/new?limit=${limit}`), {
-        headers: this.getAuthHeader(),
-      });
+      const response = await authFetch(apiPath(`/people/new?limit=${limit}`));
 
       if (!response.ok) {
         console.error('Failed to get new joiners:', response.status);
@@ -210,9 +196,7 @@ class PeopleService {
    */
   async getFilterOptions(): Promise<FilterOptions | null> {
     try {
-      const response = await fetch(apiPath('/people/filters'), {
-        headers: this.getAuthHeader(),
-      });
+      const response = await authFetch(apiPath('/people/filters'));
 
       if (!response.ok) {
         console.error('Failed to get filter options:', response.status);
@@ -232,9 +216,7 @@ class PeopleService {
    */
   async getPersonProfile(personId: string): Promise<PersonProfile | null> {
     try {
-      const response = await fetch(apiPath(`/people/${personId}`), {
-        headers: this.getAuthHeader(),
-      });
+      const response = await authFetch(apiPath(`/people/${personId}`));
 
       if (!response.ok) {
         console.error('Failed to get person profile:', response.status);
@@ -254,9 +236,8 @@ class PeopleService {
    */
   async findByExpertise(topic: string, limit = 10): Promise<PersonCard[]> {
     try {
-      const response = await fetch(
-        apiPath(`/people/by-skill/${encodeURIComponent(topic)}?limit=${limit}`),
-        { headers: this.getAuthHeader() }
+      const response = await authFetch(
+        apiPath(`/people/by-skill/${encodeURIComponent(topic)}?limit=${limit}`)
       );
 
       if (!response.ok) {
@@ -280,9 +261,7 @@ class PeopleService {
     mediaType: 'voice_intro' | 'video_intro' | 'name_pronunciation'
   ): Promise<{ presignedUrl: string } | null> {
     try {
-      const response = await fetch(apiPath(`/people/${personId}/media/${mediaType}`), {
-        headers: this.getAuthHeader(),
-      });
+      const response = await authFetch(apiPath(`/people/${personId}/media/${mediaType}`));
 
       if (!response.ok) {
         console.error('Failed to get person media:', response.status);

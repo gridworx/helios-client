@@ -4,6 +4,7 @@ import './UserList.css';
 import { UserSlideOut } from './UserSlideOut';
 import { MoreVertical, Eye, PauseCircle, PlayCircle, Lock, Copy, Trash2, CheckCircle, Users, RefreshCw, UserPlus, Loader, Mail, Key, UserMinus } from 'lucide-react';
 import { PlatformIcon } from './ui/PlatformIcon';
+import { authFetch } from '../config/api';
 // UserAvatar removed - showing name only in table for cleaner layout
 
 interface User {
@@ -144,8 +145,6 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
 
       // Fetch from database with user type filter
       try {
-        const token = localStorage.getItem('helios_token');
-
         // Convert plural userType to singular for API
         // UI uses: staff, guests, contacts
         // API expects: staff, guest, contact
@@ -157,11 +156,7 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
           includeDeleted: 'true'  // Include deleted users for accurate counts
         });
 
-        const allUsersResponse = await fetch(`/api/v1/organization/users?${allUsersParams}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const allUsersResponse = await authFetch(`/api/v1/organization/users?${allUsersParams}`);
 
         let allUsersForCounts = [];
         if (allUsersResponse.ok) {
@@ -211,11 +206,7 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
           queryParams.append('platform', platformFilter);
         }
 
-        const response = await fetch(`/api/v1/organization/users?${queryParams}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const response = await authFetch(`/api/v1/organization/users?${queryParams}`);
 
         if (response.ok) {
           const data = await response.json();
@@ -318,12 +309,10 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
 
     try {
       setIsDeleting(true);
-      const token = localStorage.getItem('helios_token');
 
-      const response = await fetch(`/api/v1/organization/users/${userToDelete.id}`, {
+      const response = await authFetch(`/api/v1/organization/users/${userToDelete.id}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -376,8 +365,6 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
         }
       }
 
-      const token = localStorage.getItem('helios_token');
-
       const requestBody: any = {
         email: newUserEmail,
         firstName: newUserFirstName,
@@ -393,11 +380,10 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
         requestBody.expiryHours = parseInt(expiryHours);
       }
 
-      const response = await fetch('/api/v1/organization/users', {
+      const response = await authFetch('/api/v1/organization/users', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(requestBody)
       });
@@ -454,13 +440,11 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
 
     try {
       setIsBulkOperating(true);
-      const token = localStorage.getItem('helios_token');
 
       const promises = Array.from(selectedUserIds).map(userId =>
-        fetch(`/api/v1/organization/users/${userId}/status`, {
+        authFetch(`/api/v1/organization/users/${userId}/status`, {
           method: 'PATCH',
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({ status: 'active' })
@@ -488,13 +472,11 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
 
     try {
       setIsBulkOperating(true);
-      const token = localStorage.getItem('helios_token');
 
       const promises = Array.from(selectedUserIds).map(userId =>
-        fetch(`/api/v1/organization/users/${userId}/status`, {
+        authFetch(`/api/v1/organization/users/${userId}/status`, {
           method: 'PATCH',
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({ status: 'suspended' })
@@ -522,14 +504,10 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
 
     try {
       setIsBulkOperating(true);
-      const token = localStorage.getItem('helios_token');
 
       const promises = Array.from(selectedUserIds).map(userId =>
-        fetch(`/api/v1/organization/users/${userId}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        authFetch(`/api/v1/organization/users/${userId}`, {
+          method: 'DELETE'
         })
       );
 
@@ -546,11 +524,10 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
   };
 
   const handleQuickSuspend = async (user: User) => {
-    const token = localStorage.getItem('helios_token');
     try {
-      await fetch(`/api/v1/organization/users/${user.id}/status`, {
+      await authFetch(`/api/v1/organization/users/${user.id}/status`, {
         method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'suspended' })
       });
       await fetchUsers();
@@ -561,11 +538,10 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
   };
 
   const handleQuickRestore = async (user: User) => {
-    const token = localStorage.getItem('helios_token');
     try {
-      await fetch(`/api/v1/organization/users/${user.id}/status`, {
+      await authFetch(`/api/v1/organization/users/${user.id}/status`, {
         method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'active' })
       });
       await fetchUsers();
@@ -618,19 +594,30 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
     if (userType === 'staff') {
       return [
         { key: 'checkbox', label: '', className: 'col-checkbox' },
-        { key: 'user', label: 'User', className: 'col-user' },
+        { key: 'firstName', label: 'First Name', className: 'col-first-name' },
+        { key: 'lastName', label: 'Last Name', className: 'col-last-name' },
         { key: 'email', label: 'Email', className: 'col-email' },
+        { key: 'jobTitle', label: 'Job Title', className: 'col-job-title' },
         { key: 'department', label: 'Department', className: 'col-department' },
+        { key: 'location', label: 'Location', className: 'col-location' },
         { key: 'role', label: 'Role', className: 'col-role' },
         { key: 'platforms', label: 'Integrations', className: 'col-platforms' },
         { key: 'status', label: 'Status', className: 'col-status' },
+        { key: 'phone', label: 'Phone', className: 'col-phone' },
+        { key: 'employeeId', label: 'Employee ID', className: 'col-employee-id' },
+        { key: 'employeeType', label: 'Employee Type', className: 'col-employee-type' },
+        { key: 'costCenter', label: 'Cost Center', className: 'col-cost-center' },
+        { key: 'startDate', label: 'Start Date', className: 'col-start-date' },
         { key: 'lastLogin', label: 'Last Login', className: 'col-last-login' },
+        { key: 'createdAt', label: 'Created', className: 'col-created-at' },
+        { key: 'source', label: 'Source', className: 'col-source' },
         { key: 'actions', label: '', className: 'col-actions' }
       ];
     } else if (userType === 'guests') {
       return [
         { key: 'checkbox', label: '', className: 'col-checkbox' },
-        { key: 'user', label: 'User', className: 'col-user' },
+        { key: 'firstName', label: 'First Name', className: 'col-first-name' },
+        { key: 'lastName', label: 'Last Name', className: 'col-last-name' },
         { key: 'email', label: 'Email', className: 'col-email' },
         { key: 'company', label: 'Company', className: 'col-company' },
         { key: 'role', label: 'Access Level', className: 'col-role' },
@@ -642,11 +629,12 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
     } else { // contacts
       return [
         { key: 'checkbox', label: '', className: 'col-checkbox' },
-        { key: 'user', label: 'User', className: 'col-user' },
+        { key: 'firstName', label: 'First Name', className: 'col-first-name' },
+        { key: 'lastName', label: 'Last Name', className: 'col-last-name' },
         { key: 'email', label: 'Email', className: 'col-email' },
         { key: 'company', label: 'Company', className: 'col-company' },
         { key: 'phone', label: 'Phone', className: 'col-phone' },
-        { key: 'title', label: 'Title', className: 'col-title' },
+        { key: 'jobTitle', label: 'Title', className: 'col-job-title' },
         { key: 'addedDate', label: 'Added Date', className: 'col-added-date' },
         { key: 'actions', label: '', className: 'col-actions' }
       ];
@@ -683,6 +671,20 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
           </div>
         );
 
+      case 'firstName':
+        return (
+          <div key={cellKey} className={column.className}>
+            <span className="user-name">{user.firstName}</span>
+          </div>
+        );
+
+      case 'lastName':
+        return (
+          <div key={cellKey} className={column.className}>
+            <span className="user-name">{user.lastName}</span>
+          </div>
+        );
+
       case 'user':
         return (
           <div key={cellKey} className={column.className}>
@@ -692,6 +694,42 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
             )}
           </div>
         );
+
+      case 'jobTitle':
+        return <div key={cellKey} className={column.className}>{user.jobTitle || '-'}</div>;
+
+      case 'location':
+        return <div key={cellKey} className={column.className}>{user.location || '-'}</div>;
+
+      case 'employeeId':
+        return <div key={cellKey} className={column.className}>{user.employeeId || '-'}</div>;
+
+      case 'employeeType':
+        return <div key={cellKey} className={column.className}>{user.employeeType || '-'}</div>;
+
+      case 'costCenter':
+        return <div key={cellKey} className={column.className}>{user.costCenter || '-'}</div>;
+
+      case 'startDate':
+        return (
+          <div key={cellKey} className={column.className}>
+            {user.startDate ? new Date(user.startDate).toLocaleDateString() : '-'}
+          </div>
+        );
+
+      case 'createdAt':
+        return (
+          <div key={cellKey} className={column.className}>
+            {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}
+          </div>
+        );
+
+      case 'source':
+        const sourceLabel = user.source === 'google_workspace' ? 'Google' :
+                           user.source === 'microsoft_365' ? 'Microsoft' :
+                           user.source === 'manual' ? 'Manual' :
+                           user.source || 'Local';
+        return <div key={cellKey} className={column.className}>{sourceLabel}</div>;
 
       case 'email':
         return <div key={cellKey} className={column.className}>{user.email}</div>;
@@ -1101,9 +1139,10 @@ export function UserList({ organizationId, userType, onCountChange, searchQuery 
   }
 
   if (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return (
       <div className="user-list-container">
-        <div className="error-message">Error loading users: {error}</div>
+        <div className="error-message">Error loading users: {errorMessage}</div>
       </div>
     );
   }

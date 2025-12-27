@@ -129,6 +129,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS offboarding_templates_updated_at ON offboarding_templates;
+DROP TRIGGER IF EXISTS offboarding_templates_updated_at ON PLACEHOLDER;
 CREATE TRIGGER offboarding_templates_updated_at
   BEFORE UPDATE ON offboarding_templates
   FOR EACH ROW
@@ -151,6 +152,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS ensure_single_default_offboarding ON offboarding_templates;
+DROP TRIGGER IF EXISTS ensure_single_default_offboarding ON PLACEHOLDER;
 CREATE TRIGGER ensure_single_default_offboarding
   BEFORE INSERT OR UPDATE ON offboarding_templates
   FOR EACH ROW

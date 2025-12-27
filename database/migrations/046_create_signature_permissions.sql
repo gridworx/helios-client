@@ -80,6 +80,7 @@ CREATE INDEX IF NOT EXISTS idx_signature_permission_audit_user
 
 -- Auto-update updated_at
 DROP TRIGGER IF EXISTS trg_signature_permissions_updated_at ON signature_permissions;
+DROP TRIGGER IF EXISTS trg_signature_permissions_updated_at ON PLACEHOLDER;
 CREATE TRIGGER trg_signature_permissions_updated_at
     BEFORE UPDATE ON signature_permissions
     FOR EACH ROW
@@ -124,6 +125,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trg_audit_signature_permissions ON signature_permissions;
+DROP TRIGGER IF EXISTS trg_audit_signature_permissions ON PLACEHOLDER;
 CREATE TRIGGER trg_audit_signature_permissions
     AFTER INSERT OR UPDATE OR DELETE ON signature_permissions
     FOR EACH ROW

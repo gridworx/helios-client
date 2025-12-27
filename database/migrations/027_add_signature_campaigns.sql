@@ -267,11 +267,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS signature_templates_updated_at ON PLACEHOLDER;
 CREATE TRIGGER signature_templates_updated_at
     BEFORE UPDATE ON signature_templates
     FOR EACH ROW
     EXECUTE FUNCTION update_signature_updated_at();
 
+DROP TRIGGER IF EXISTS signature_campaigns_updated_at ON PLACEHOLDER;
 CREATE TRIGGER signature_campaigns_updated_at
     BEFORE UPDATE ON signature_campaigns
     FOR EACH ROW

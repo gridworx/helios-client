@@ -24,6 +24,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import './OnboardingTemplates.css';
+import { authFetch } from '../config/api';
 
 interface OnboardingTemplate {
   id: string;
@@ -69,13 +70,7 @@ const OnboardingTemplates: React.FC<OnboardingTemplatesProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch('/api/v1/lifecycle/onboarding-templates', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await authFetch('/api/v1/lifecycle/onboarding-templates');
 
       if (!response.ok) {
         throw new Error('Failed to fetch templates');
@@ -98,13 +93,7 @@ const OnboardingTemplates: React.FC<OnboardingTemplatesProps> = ({
   // Fetch departments
   const fetchDepartments = async () => {
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch('/api/v1/departments', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await authFetch('/api/v1/departments');
 
       if (response.ok) {
         const data = await response.json();
@@ -126,13 +115,8 @@ const OnboardingTemplates: React.FC<OnboardingTemplatesProps> = ({
   const handleDelete = async (templateId: string) => {
     setDeleteLoading(true);
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(`/api/v1/lifecycle/onboarding-templates/${templateId}`, {
+      const response = await authFetch(`/api/v1/lifecycle/onboarding-templates/${templateId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
       });
 
       if (!response.ok) {
@@ -152,11 +136,9 @@ const OnboardingTemplates: React.FC<OnboardingTemplatesProps> = ({
   // Duplicate template
   const handleDuplicate = async (template: OnboardingTemplate) => {
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch('/api/v1/lifecycle/onboarding-templates', {
+      const response = await authFetch('/api/v1/lifecycle/onboarding-templates', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -186,11 +168,9 @@ const OnboardingTemplates: React.FC<OnboardingTemplatesProps> = ({
   // Set default template
   const handleSetDefault = async (templateId: string) => {
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(`/api/v1/lifecycle/onboarding-templates/${templateId}`, {
+      const response = await authFetch(`/api/v1/lifecycle/onboarding-templates/${templateId}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ isDefault: true }),
@@ -211,11 +191,9 @@ const OnboardingTemplates: React.FC<OnboardingTemplatesProps> = ({
   // Toggle active status
   const handleToggleActive = async (templateId: string, isActive: boolean) => {
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(`/api/v1/lifecycle/onboarding-templates/${templateId}`, {
+      const response = await authFetch(`/api/v1/lifecycle/onboarding-templates/${templateId}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ isActive: !isActive }),

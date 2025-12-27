@@ -195,6 +195,13 @@ router.post('/setup', async (req: Request, res: Response) => {
       );
       const admin = userResult.rows[0];
 
+      // Create auth_accounts entry for better-auth login
+      await db.query(
+        `INSERT INTO auth_accounts (id, user_id, account_id, provider_id, password, created_at, updated_at)
+         VALUES (gen_random_uuid()::text, $1, $2, 'credential', $3, NOW(), NOW())`,
+        [admin.id, adminEmail, passwordHash]
+      );
+
       // Create default organization settings
       await db.query(
         `INSERT INTO organization_settings (organization_id, key, value)
@@ -352,6 +359,53 @@ router.put('/settings', authenticateToken, async (req: Request, res: Response) =
   } catch (error) {
     logger.error('Failed to update organization settings', error);
     errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to update organization settings');
+  }
+});
+
+/**
+ * PUT /api/organization/sync-settings
+ * Update sync settings (interval, auto sync, deletion policy, sync direction)
+ */
+router.put('/sync-settings', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { syncInterval, autoSyncEnabled, deletionPolicy, syncDirection } = req.body;
+
+    // Get the organization
+    const orgResult = await db.query('SELECT id FROM organizations LIMIT 1');
+    if (orgResult.rows.length === 0) {
+      return notFoundResponse(res, 'Organization');
+    }
+    const organizationId = orgResult.rows[0].id;
+
+    // Update or insert sync settings in organization_settings
+    const settingsResult = await db.query(
+      `INSERT INTO organization_settings (organization_id, settings, updated_at)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT (organization_id)
+       DO UPDATE SET
+         settings = organization_settings.settings || $2,
+         updated_at = NOW()
+       RETURNING *`,
+      [organizationId, JSON.stringify({
+        sync: {
+          interval: parseInt(syncInterval) || 900,
+          autoSyncEnabled: autoSyncEnabled !== false,
+          deletionPolicy: deletionPolicy || 'delete',
+          syncDirection: syncDirection || 'google-to-helios'
+        }
+      })]
+    );
+
+    logger.info('Sync settings updated', { syncInterval, autoSyncEnabled, deletionPolicy, syncDirection });
+    successResponse(res, {
+      syncInterval,
+      autoSyncEnabled,
+      deletionPolicy,
+      syncDirection
+    });
+  } catch (error) {
+    logger.error('Failed to update sync settings', error);
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to update sync settings');
   }
 });
 

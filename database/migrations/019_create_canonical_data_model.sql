@@ -380,6 +380,7 @@ $$ LANGUAGE plpgsql;
 
 -- Trigger to auto-seed labels on organization creation
 DROP TRIGGER IF EXISTS trigger_seed_labels_on_org_creation ON organizations;
+DROP TRIGGER IF EXISTS trigger_seed_labels_on_org_creation ON PLACEHOLDER;
 CREATE TRIGGER trigger_seed_labels_on_org_creation
   AFTER INSERT ON organizations
   FOR EACH ROW

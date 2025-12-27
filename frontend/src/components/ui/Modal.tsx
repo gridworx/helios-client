@@ -1,6 +1,11 @@
-import React, { useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
-import './ui.css';
+import React from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 
 export interface ModalProps {
   isOpen: boolean;
@@ -11,10 +16,16 @@ export interface ModalProps {
   children: React.ReactNode;
 }
 
+const sizeClasses = {
+  small: 'sm:max-w-sm',
+  medium: 'sm:max-w-lg',
+  large: 'sm:max-w-3xl',
+};
+
 /**
  * Modal Base Component
  *
- * Reusable modal dialog following Helios design system.
+ * Reusable modal dialog built on shadcn Dialog (Radix UI).
  *
  * @example
  * ```tsx
@@ -23,7 +34,6 @@ export interface ModalProps {
  *   onClose={() => setShowModal(false)}
  *   title="Edit User"
  *   size="medium"
- *   closeOnBackdrop={true}
  * >
  *   <div>Modal content here</div>
  * </Modal>
@@ -37,68 +47,29 @@ export const Modal: React.FC<ModalProps> = ({
   closeOnBackdrop = true,
   children
 }) => {
-  const modalRef = useRef<HTMLDivElement>(null);
-
-  // Handle escape key
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      // Prevent body scroll when modal is open
-      document.body.style.overflow = 'hidden';
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen, onClose]);
-
-  // Handle backdrop click
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (closeOnBackdrop && e.target === e.currentTarget) {
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
       onClose();
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      className="helios-modal-overlay"
-      onClick={handleBackdropClick}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={title ? 'modal-title' : undefined}
-    >
-      <div
-        ref={modalRef}
-        className={`helios-modal-content size-${size}`}
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogContent
+        className={cn(sizeClasses[size])}
+        onInteractOutside={(e) => {
+          if (!closeOnBackdrop) {
+            e.preventDefault();
+          }
+        }}
       >
         {title && (
-          <div className="helios-modal-header">
-            <h2 id="modal-title" className="helios-modal-title">
-              {title}
-            </h2>
-            <button
-              className="helios-modal-close"
-              onClick={onClose}
-              aria-label="Close modal"
-            >
-              <X size={16} />
-            </button>
-          </div>
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+          </DialogHeader>
         )}
-
-        <div className="helios-modal-body">
-          {children}
-        </div>
-      </div>
-    </div>
+        {children}
+      </DialogContent>
+    </Dialog>
   );
 };

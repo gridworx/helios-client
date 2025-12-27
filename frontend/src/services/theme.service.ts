@@ -85,9 +85,9 @@ class ThemeService {
     return ['default', 'helios-purple', 'google-blue', 'modern-teal', 'corporate-blue', 'sophisticated-purple', 'helios-dark'].includes(theme);
   }
 
-  public setTheme(theme: ThemeName): void {
-    // Security check - only admins can change themes
-    if (typeof localStorage !== 'undefined') {
+  public setTheme(theme: ThemeName, skipAuthCheck: boolean = false): void {
+    // Security check - only admins can change themes (unless during setup)
+    if (!skipAuthCheck && typeof localStorage !== 'undefined') {
       const userStr = localStorage.getItem('helios_user');
       if (userStr) {
         try {
@@ -115,6 +115,13 @@ class ThemeService {
     }
 
     this.applyTheme(theme);
+  }
+
+  /**
+   * Set theme during initial setup (bypasses auth check)
+   */
+  public setInitialTheme(theme: ThemeName): void {
+    this.setTheme(theme, true);
   }
 
   private applyTheme(theme: ThemeName): void {

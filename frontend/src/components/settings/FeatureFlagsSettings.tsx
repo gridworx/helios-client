@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, Loader2, AlertCircle, Check } from 'lucide-react';
-import { Toggle } from '../ui';
+import { RefreshCw, Loader2, AlertCircle } from 'lucide-react';
+import { ToggleSwitch } from '@/components/ui';
+import { authFetch } from '../../config/api';
 import './FeatureFlagsSettings.css';
 
 interface FeatureFlag {
@@ -34,18 +35,12 @@ export function FeatureFlagsSettings() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   const fetchFlags = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch('/api/v1/organization/feature-flags/details', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      const response = await authFetch('/api/v1/organization/feature-flags/details');
 
       if (!response.ok) {
         throw new Error('Failed to fetch feature flags');
@@ -70,12 +65,10 @@ export function FeatureFlagsSettings() {
     try {
       setUpdating(featureKey);
       setError(null);
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(`/api/v1/organization/feature-flags/${featureKey}`, {
+      const response = await authFetch(`/api/v1/organization/feature-flags/${featureKey}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ is_enabled: !currentValue }),
       });
@@ -88,9 +81,6 @@ export function FeatureFlagsSettings() {
       setFlags(prev => prev.map(f =>
         f.feature_key === featureKey ? { ...f, is_enabled: !currentValue } : f
       ));
-
-      setSuccess(featureKey);
-      setTimeout(() => setSuccess(null), 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update feature flag');
     } finally {
@@ -163,16 +153,14 @@ export function FeatureFlagsSettings() {
                     <span className="ff-item-key">{flag.feature_key}</span>
                   </div>
                   <div className="ff-item-toggle">
-                    {updating === flag.feature_key ? (
-                      <Loader2 className="spin" size={16} />
-                    ) : success === flag.feature_key ? (
-                      <Check size={16} className="ff-success" />
-                    ) : (
-                      <Toggle
-                        checked={flag.is_enabled}
-                        onChange={() => toggleFlag(flag.feature_key, flag.is_enabled)}
-                        size="small"
-                      />
+                    <ToggleSwitch
+                      checked={flag.is_enabled}
+                      onChange={() => toggleFlag(flag.feature_key, flag.is_enabled)}
+                      size="medium"
+                      disabled={updating === flag.feature_key}
+                    />
+                    {updating === flag.feature_key && (
+                      <Loader2 className="spin ff-updating" size={14} />
                     )}
                   </div>
                 </div>

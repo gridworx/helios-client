@@ -25,6 +25,7 @@ import {
   Check,
 } from 'lucide-react';
 import './NewUserOnboarding.css';
+import { authFetch } from '../config/api';
 
 interface OnboardingTemplate {
   id: string;
@@ -139,17 +140,11 @@ const NewUserOnboarding: React.FC<NewUserOnboardingProps> = ({
     setError(null);
 
     try {
-      const token = localStorage.getItem('helios_token');
-      const headers = {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      };
-
       const [templatesRes, departmentsRes, groupsRes, managersRes] = await Promise.all([
-        fetch('/api/v1/lifecycle/onboarding-templates', { headers }),
-        fetch('/api/v1/departments', { headers }),
-        fetch('/api/v1/groups', { headers }),
-        fetch('/api/v1/users?role=manager,admin', { headers }),
+        authFetch('/api/v1/lifecycle/onboarding-templates'),
+        authFetch('/api/v1/departments'),
+        authFetch('/api/v1/groups'),
+        authFetch('/api/v1/users?role=manager,admin'),
       ]);
 
       if (templatesRes.ok) {
@@ -227,8 +222,6 @@ const NewUserOnboarding: React.FC<NewUserOnboardingProps> = ({
     setError(null);
 
     try {
-      const token = localStorage.getItem('helios_token');
-
       // Determine schedule time
       let scheduledFor: string | undefined;
       if (customizations.scheduleFor === 'start_date' && userData.startDate) {
@@ -261,10 +254,9 @@ const NewUserOnboarding: React.FC<NewUserOnboardingProps> = ({
         actionType: 'onboard',
       };
 
-      const response = await fetch('/api/v1/lifecycle/onboard', {
+      const response = await authFetch('/api/v1/lifecycle/onboard', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),

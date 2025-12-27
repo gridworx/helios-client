@@ -21,6 +21,7 @@ import {
   Check,
   X
 } from 'lucide-react';
+import { authFetch } from '../../config/api';
 import './AssignmentManager.css';
 
 type AssignmentType = 'user' | 'group' | 'dynamic_group' | 'department' | 'ou' | 'organization';
@@ -139,11 +140,7 @@ const AssignmentManager: React.FC<AssignmentManagerProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/signatures/v2/assignments?template_id=${templateId}&include_details=true`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
-        },
-      });
+      const response = await authFetch(`/api/signatures/v2/assignments?template_id=${templateId}&include_details=true`);
       const data = await response.json();
       if (data.success) {
         setAssignments(data.data || []);
@@ -166,11 +163,7 @@ const AssignmentManager: React.FC<AssignmentManagerProps> = ({
     setLoadingTargets(true);
     setAvailableTargets([]);
     try {
-      const response = await fetch(`/api/signatures/v2/assignments/targets/${type}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
-        },
-      });
+      const response = await authFetch(`/api/signatures/v2/assignments/targets/${type}`);
       const data = await response.json();
       if (data.success) {
         setAvailableTargets(data.data || []);
@@ -201,10 +194,9 @@ const AssignmentManager: React.FC<AssignmentManagerProps> = ({
     setLoadingPreview(true);
     setShowPreview(true);
     try {
-      const response = await fetch('/api/signatures/v2/assignments/preview', {
+      const response = await authFetch('/api/signatures/v2/assignments/preview', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -251,10 +243,9 @@ const AssignmentManager: React.FC<AssignmentManagerProps> = ({
     }
 
     try {
-      const response = await fetch('/api/signatures/v2/assignments', {
+      const response = await authFetch('/api/signatures/v2/assignments', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(assignmentData),
@@ -282,11 +273,8 @@ const AssignmentManager: React.FC<AssignmentManagerProps> = ({
     if (!confirm('Are you sure you want to remove this assignment?')) return;
 
     try {
-      const response = await fetch(`/api/signatures/v2/assignments/${assignmentId}`, {
+      const response = await authFetch(`/api/signatures/v2/assignments/${assignmentId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
-        },
       });
       const data = await response.json();
       if (data.success) {
@@ -303,10 +291,9 @@ const AssignmentManager: React.FC<AssignmentManagerProps> = ({
 
   const handleToggleActive = async (assignment: Assignment) => {
     try {
-      const response = await fetch(`/api/signatures/v2/assignments/${assignment.id}`, {
+      const response = await authFetch(`/api/signatures/v2/assignments/${assignment.id}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ is_active: !assignment.isActive }),

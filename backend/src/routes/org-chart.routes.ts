@@ -57,17 +57,129 @@ router.get('/org-chart', requireAuth, async (req: Request, res: Response) => {
       });
     }
 
-    // Get the hierarchy using the PostgreSQL function
-    const hierarchyQuery = `
-      SELECT * FROM get_org_hierarchy(NULL)
-      WHERE user_id IN (
-        SELECT id FROM organization_users
-        WHERE organization_id = $1
-      )
-      ORDER BY level, last_name, first_name
-    `;
+    // First, check if we have any users and if the function exists
+    const userCountResult = await db.query(
+      'SELECT COUNT(*) as count FROM organization_users WHERE organization_id = $1 AND is_active = true',
+      [organizationId]
+    );
+    const userCount = parseInt(userCountResult.rows[0]?.count || '0');
 
-    const hierarchyResult = await db.query(hierarchyQuery, [organizationId]);
+    // If no users or just 1 user (admin), return empty state
+    if (userCount <= 1) {
+      const singleUserQuery = `
+        SELECT id, email, first_name, last_name, job_title, department, photo_data
+        FROM organization_users
+        WHERE organization_id = $1 AND is_active = true
+        LIMIT 1
+      `;
+      const singleUserResult = await db.query(singleUserQuery, [organizationId]);
+      const user = singleUserResult.rows[0];
+
+      if (!user) {
+        return res.json({
+          success: true,
+          data: {
+            root: null,
+            orphans: [],
+            stats: { totalUsers: 0, maxDepth: 0, avgSpan: 0 },
+            isEmpty: true,
+            message: 'No users found. Sync with Google Workspace or add users to see the org chart.'
+          }
+        });
+      }
+
+      // Return single user as root
+      return res.json({
+        success: true,
+        data: {
+          root: {
+            userId: user.id,
+            name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email,
+            email: user.email,
+            title: user.job_title || '',
+            department: user.department || '',
+            photoUrl: user.photo_data,
+            managerId: null,
+            level: 0,
+            directReports: [],
+            totalReports: 0
+          },
+          orphans: [],
+          stats: { totalUsers: 1, maxDepth: 0, avgSpan: 0 },
+          isEmpty: false,
+          message: userCount === 1 ? 'Only one user exists. Add more users or sync with Google Workspace to build your org chart.' : null
+        }
+      });
+    }
+
+    // Check if the get_org_hierarchy function exists
+    const functionExistsQuery = `
+      SELECT EXISTS (
+        SELECT 1 FROM pg_proc p
+        JOIN pg_namespace n ON p.pronamespace = n.oid
+        WHERE n.nspname = 'public' AND p.proname = 'get_org_hierarchy'
+      ) as exists
+    `;
+    const functionResult = await db.query(functionExistsQuery);
+    const functionExists = functionResult.rows[0]?.exists;
+
+    let hierarchyResult;
+
+    if (functionExists) {
+      // Get the hierarchy using the PostgreSQL function
+      const hierarchyQuery = `
+        SELECT * FROM get_org_hierarchy(NULL)
+        WHERE user_id IN (
+          SELECT id FROM organization_users
+          WHERE organization_id = $1
+        )
+        ORDER BY level, last_name, first_name
+      `;
+      hierarchyResult = await db.query(hierarchyQuery, [organizationId]);
+    } else {
+      // Fallback: use simple query without the function
+      const fallbackQuery = `
+        WITH RECURSIVE org_tree AS (
+          SELECT
+            id AS user_id,
+            email,
+            first_name,
+            last_name,
+            job_title,
+            department,
+            photo_data,
+            reporting_manager_id,
+            0 AS level,
+            ARRAY[id] AS path
+          FROM organization_users
+          WHERE organization_id = $1
+            AND is_active = true
+            AND reporting_manager_id IS NULL
+
+          UNION ALL
+
+          SELECT
+            ou.id AS user_id,
+            ou.email,
+            ou.first_name,
+            ou.last_name,
+            ou.job_title,
+            ou.department,
+            ou.photo_data,
+            ou.reporting_manager_id,
+            ot.level + 1 AS level,
+            ot.path || ou.id AS path
+          FROM organization_users ou
+          INNER JOIN org_tree ot ON ou.reporting_manager_id = ot.user_id
+          WHERE ou.organization_id = $1
+            AND ou.is_active = true
+            AND NOT (ou.id = ANY(ot.path))
+        )
+        SELECT * FROM org_tree
+        ORDER BY level, last_name, first_name
+      `;
+      hierarchyResult = await db.query(fallbackQuery, [organizationId]);
+    }
 
     // Get orphaned users (those with invalid manager references)
     const orphansQuery = `

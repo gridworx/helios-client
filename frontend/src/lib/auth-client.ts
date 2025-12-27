@@ -1,22 +1,18 @@
 /**
- * Better Auth Client - UNUSED/DEFERRED
+ * Better Auth Client - ACTIVE
  *
- * STATUS: This client is NOT USED. The frontend uses JWT-based auth with
- * localStorage tokens via LoginPage.tsx and App.tsx.
+ * This file provides the better-auth client for session-based authentication.
+ * Uses httpOnly cookies for XSS-resistant session management.
  *
- * REASON: Better-auth migration deferred due to password storage incompatibility.
- * Backend uses organization_users.password_hash, but better-auth requires
- * passwords in the auth_accounts table.
- *
- * SEE: openspec/changes/fix-better-auth-integration/decision.md
- *
- * ORIGINAL PURPOSE:
- * This file configures the better-auth client for the frontend.
- * It provides:
- * - Session-based authentication via httpOnly cookies
- * - Email/password sign-in/sign-up
- * - Session management (get session, sign out)
+ * Features:
+ * - Email/password sign-in via signInWithEmail()
+ * - Session management with automatic cookie handling
+ * - Sign out via signOutUser()
  * - Future: SSO providers (Azure AD, Google, Okta)
+ *
+ * Migration (2025-12-26):
+ * Passwords migrated from organization_users to auth_accounts table.
+ * better-auth now handles authentication with httpOnly session cookies.
  */
 
 import { createAuthClient } from 'better-auth/react';

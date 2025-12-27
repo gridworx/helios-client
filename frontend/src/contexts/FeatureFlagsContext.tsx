@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode, ReactElement } from 'react';
-
-const API_BASE = '/api/v1';
+import { authFetch, apiPath } from '../config/api';
 
 /**
  * Feature flags map - key is the feature_key, value is enabled status
@@ -44,17 +43,7 @@ const FeatureFlagsContext = createContext<FeatureFlagsContextValue>(defaultValue
  * Fetch feature flags from the API
  */
 async function fetchFeatureFlags(): Promise<FeatureFlags> {
-  const token = localStorage.getItem('helios_token');
-  if (!token) {
-    console.warn('No token available, skipping feature flags fetch');
-    return {};
-  }
-
-  const response = await fetch(`${API_BASE}/organization/feature-flags`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
+  const response = await authFetch(apiPath('/organization/feature-flags'));
 
   if (!response.ok) {
     throw new Error(`Failed to fetch feature flags: ${response.status}`);
@@ -96,13 +85,6 @@ export function FeatureFlagsProvider({ children }: FeatureFlagsProviderProps): R
   const [error, setError] = useState<string | null>(null);
 
   const loadFlags = useCallback(async () => {
-    // Only load if we have a token
-    const token = localStorage.getItem('helios_token');
-    if (!token) {
-      setIsLoading(false);
-      return;
-    }
-
     try {
       setError(null);
       const loadedFlags = await fetchFeatureFlags();
@@ -122,9 +104,10 @@ export function FeatureFlagsProvider({ children }: FeatureFlagsProviderProps): R
   }, [loadFlags]);
 
   // Listen for auth changes (login/logout)
+  // Note: With session auth, we rely on parent components to reload on auth changes
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'helios_token') {
+      if (e.key === 'helios_user') {
         if (e.newValue) {
           // User logged in - reload flags
           loadFlags();

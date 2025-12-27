@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, ChevronDown, ChevronRight, Hash, User, Briefcase, Phone, Building2, Share2 } from 'lucide-react';
+import { authFetch } from '../../config/api';
 import './MergeFieldPicker.css';
 
 export interface MergeField {
@@ -36,11 +37,7 @@ const MergeFieldPicker: React.FC<MergeFieldPickerProps> = ({ onSelect, className
 
   const fetchMergeFields = async () => {
     try {
-      const response = await fetch('/api/signatures/merge-fields/list', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
-        },
-      });
+      const response = await authFetch('/api/signatures/merge-fields/list');
       const data = await response.json();
       if (data.success) {
         setMergeFields(data.data);

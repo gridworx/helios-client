@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { signInWithEmail, getSession } from '../lib/auth-client';
 import './LoginPage.css';
 
 interface LoginPageProps {
@@ -21,51 +22,65 @@ export function LoginPage({ onLoginSuccess, organizationDomain: _organizationDom
     setError(null);
 
     try {
-      const response = await fetch('/api/v1/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      // Sign in with better-auth (sets httpOnly session cookies)
+      // No JWT tokens stored in browser - session cookies are more secure
+      const authResult = await signInWithEmail(formData.email, formData.password);
+
+      if (!authResult.success) {
+        throw new Error(authResult.error || 'Sign in failed');
+      }
+
+      // Get the session to access user data
+      const session = await getSession();
+      if (!session) {
+        throw new Error('Failed to get session after login');
+      }
+
+      const user = session.user;
+
+      // Store user info for UI display (not for auth - that's handled by httpOnly cookies)
+      localStorage.setItem('helios_user', JSON.stringify({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        organizationId: user.organizationId,
+        isExternalAdmin: user.isExternalAdmin,
+        defaultView: user.defaultView,
+        isActive: user.isActive,
+        department: user.department,
+      }));
+
+      // Store organization info for UI display
+      if (user.organizationId) {
+        // Extract domain from email for display
+        const emailDomain = user.email.split('@')[1] || '';
+        localStorage.setItem('helios_organization', JSON.stringify({
+          organizationId: user.organizationId,
+          organizationName: organizationName || 'Organization',
+          domain: emailDomain,
+        }));
+      }
+
+      // Notify parent of successful login
+      onLoginSuccess({
+        success: true,
+        data: {
+          user: {
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role,
+            organizationId: user.organizationId,
+          },
+          organization: { id: user.organizationId },
         },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password
-        }),
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        // Handle standardized error response format: { error: { code, message } }
-        const errorMessage = typeof data.error === 'object' && data.error?.message
-          ? data.error.message
-          : (typeof data.error === 'string' ? data.error : 'Login failed');
-        throw new Error(errorMessage);
-      }
-
-      if (data.success) {
-        // Store organization auth data
-        localStorage.setItem('helios_token', data.data.tokens.accessToken);
-        localStorage.setItem('helios_refresh_token', data.data.tokens.refreshToken);
-        localStorage.setItem('helios_user', JSON.stringify(data.data.user));
-
-        // Store organization info
-        if (data.data.organization) {
-          localStorage.setItem('helios_organization', JSON.stringify({
-            organizationId: data.data.organization.id,
-            organizationName: data.data.organization.name,
-            domain: data.data.organization.domain
-          }));
-        }
-
-        onLoginSuccess(data);
-      } else {
-        // Handle standardized error response format
-        const errorMessage = typeof data.error === 'object' && data.error?.message
-          ? data.error.message
-          : (typeof data.error === 'string' ? data.error : 'Login failed');
-        setError(errorMessage);
-      }
     } catch (err: any) {
+      console.error('Login error:', err);
       setError(err.message || 'Failed to login. Please check your credentials.');
     } finally {
       setLoading(false);
@@ -76,7 +91,7 @@ export function LoginPage({ onLoginSuccess, organizationDomain: _organizationDom
     <div className="login-page">
       <div className="login-form-section">
         <div className="login-header">
-          <h1>🚀 Helios Admin Portal</h1>
+          <h1>Helios Admin Portal</h1>
           <h2>{organizationName || 'Your Organization'}</h2>
           <p>Administrative Dashboard</p>
         </div>
@@ -84,7 +99,7 @@ export function LoginPage({ onLoginSuccess, organizationDomain: _organizationDom
         <form className="login-form" onSubmit={handleSubmit}>
           {error && (
             <div className="login-error">
-              ⚠️ {error}
+              {error}
             </div>
           )}
 
@@ -125,7 +140,7 @@ export function LoginPage({ onLoginSuccess, organizationDomain: _organizationDom
 
           <div className="login-footer">
             <div className="security-note">
-              🔒 Own your API keys, delegate admin access securely
+              Self-hosted. Fully audited. Complete control.
             </div>
           </div>
         </form>
@@ -133,24 +148,24 @@ export function LoginPage({ onLoginSuccess, organizationDomain: _organizationDom
 
       <div className="login-info-section">
         <div className="feature-card">
-          <h3>🔐 You Own Your Data</h3>
+          <h3>Delegate with Confidence</h3>
           <p>
-            Keep your API keys and service accounts in your infrastructure.
-            Helios provides secure administrative access without vendor lock-in.
+            Grant vendors and team members admin access without sharing
+            credentials. Full visibility into every action taken.
           </p>
         </div>
         <div className="feature-card">
-          <h3>👥 Centralized Administration</h3>
+          <h3>Complete Audit Trail</h3>
           <p>
-            Manage users, groups, and organizational units from Google Workspace
-            with a powerful administrative dashboard.
+            Every API call logged and traceable. Meet compliance requirements
+            with detailed activity records and security events.
           </p>
         </div>
         <div className="feature-card">
-          <h3>⚡ Workflow Automation</h3>
+          <h3>Your Infrastructure</h3>
           <p>
-            Automate user onboarding, offboarding, and role changes
-            to reduce manual work and errors.
+            Service accounts and credentials stay on your servers.
+            No per-user fees. No data leaving your control.
           </p>
         </div>
       </div>

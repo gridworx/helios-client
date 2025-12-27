@@ -11,6 +11,7 @@ import {
   Maximize2,
   AlertCircle
 } from 'lucide-react';
+import { authFetch } from '../../config/api';
 import HeliosAvatar, { type AvatarState } from '../HeliosAvatar';
 import './ChatPanel.css';
 
@@ -138,12 +139,10 @@ export function ChatPanel({
     setAvatarState('thinking');
 
     try {
-      const token = localStorage.getItem('helios_token');
-      const res = await fetch('/api/v1/ai/chat', {
+      const res = await authFetch('/api/v1/ai/chat', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           message: messageText,

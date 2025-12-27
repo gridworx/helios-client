@@ -40,7 +40,6 @@ const OrgChartTree: React.FC<OrgChartTreeProps> = ({
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-  const [nodeOffsets, setNodeOffsets] = useState<Map<string, { dx: number; dy: number }>>(new Map());
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -138,53 +137,17 @@ const OrgChartTree: React.FC<OrgChartTreeProps> = ({
       .style('stroke', '#d1d5db')
       .style('stroke-width', 1);
 
-    // Draw nodes - position based on orientation with manual offsets
+    // Draw nodes - position based on orientation
     const node = g.selectAll('.node')
       .data(root.descendants())
       .enter()
       .append('g')
       .attr('class', 'node')
       .attr('transform', (d: any) => {
-        const offset = nodeOffsets.get(d.data.userId) || { dx: 0, dy: 0 };
-        const baseX = isVertical ? d.x : d.y;
-        const baseY = isVertical ? d.y : d.x;
-        return `translate(${baseX + offset.dx},${baseY + offset.dy})`;
+        const x = isVertical ? d.x : d.y;
+        const y = isVertical ? d.y : d.x;
+        return `translate(${x},${y})`;
       });
-
-    // Add drag behavior for repositioning nodes
-    const drag = d3.drag<SVGGElement, any>()
-      .on('start', function(_event) {
-        d3.select(this).raise().classed('dragging', true);
-      })
-      .on('drag', function(event, _d: any) {
-        const currentTransform = d3.select(this).attr('transform');
-        const match = currentTransform.match(/translate\(([^,]+),([^)]+)\)/);
-        if (match) {
-          const newX = parseFloat(match[1]) + event.dx;
-          const newY = parseFloat(match[2]) + event.dy;
-          d3.select(this).attr('transform', `translate(${newX},${newY})`);
-        }
-      })
-      .on('end', function(_event, d: any) {
-        d3.select(this).classed('dragging', false);
-        // Store the offset for this node
-        const currentTransform = d3.select(this).attr('transform');
-        const match = currentTransform.match(/translate\(([^,]+),([^)]+)\)/);
-        if (match) {
-          const finalX = parseFloat(match[1]);
-          const finalY = parseFloat(match[2]);
-          const baseX = isVertical ? d.x : d.y;
-          const baseY = isVertical ? d.y : d.x;
-          const newOffset = { dx: finalX - baseX, dy: finalY - baseY };
-          setNodeOffsets(prev => {
-            const next = new Map(prev);
-            next.set(d.data.userId, newOffset);
-            return next;
-          });
-        }
-      });
-
-    node.call(drag as any);
 
     // Add node rectangles (using nodeWidth/nodeHeight defined above)
     node.append('rect')
@@ -351,10 +314,6 @@ const OrgChartTree: React.FC<OrgChartTreeProps> = ({
     return text.length > maxLength ? text.substring(0, maxLength - 2) + '...' : text;
   };
 
-  const handleResetPositions = () => {
-    setNodeOffsets(new Map());
-  };
-
   return (
     <div className="org-chart-tree">
       <svg ref={svgRef} width="100%" height="100%"></svg>
@@ -368,14 +327,9 @@ const OrgChartTree: React.FC<OrgChartTreeProps> = ({
         }}>
           Reset Zoom
         </button>
-        {nodeOffsets.size > 0 && (
-          <button className="zoom-btn" onClick={handleResetPositions}>
-            Reset Positions
-          </button>
-        )}
       </div>
       <div className="org-chart-hints">
-        <span className="org-chart-hint">Drag cards to reposition</span>
+        <span className="org-chart-hint">Scroll to zoom, drag to pan</span>
         {onNodeOpen && (
           <span className="org-chart-hint">
             Double-click or Shift+click to open user

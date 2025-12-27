@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Key, Server, Users, ArrowRight, ArrowLeft, X, CheckCircle } from 'lucide-react';
+import { authFetch } from '../../config/api';
 import './ApiKeyWizard.css';
 
 interface ApiKeyWizardProps {
@@ -134,12 +135,10 @@ export function ApiKeyWizard({ organizationId: _organizationId, onClose, onSucce
     setIsSubmitting(true);
 
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch('/api/v1/organization/api-keys', {
+      const response = await authFetch('/api/v1/organization/api-keys', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           name: config.name,

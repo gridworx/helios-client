@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { authFetch } from '../config/api';
 import './Administrators.css';
 
 interface Admin {
@@ -36,12 +37,7 @@ export function Administrators() {
 
   const fetchAdmins = async () => {
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch('/api/v1/organization/admins', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await authFetch('/api/v1/organization/admins');
 
       if (response.ok) {
         const data = await response.json();
@@ -59,12 +55,7 @@ export function Administrators() {
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch('/api/v1/organization/users', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await authFetch('/api/v1/organization/users');
 
       if (response.ok) {
         const data = await response.json();
@@ -83,12 +74,8 @@ export function Administrators() {
     if (!selectedUserId) return;
 
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(`/api/v1/organization/admins/promote/${selectedUserId}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const response = await authFetch(`/api/v1/organization/admins/promote/${selectedUserId}`, {
+        method: 'POST'
       });
 
       if (response.ok) {
@@ -113,12 +100,8 @@ export function Administrators() {
     }
 
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(`/api/v1/organization/admins/demote/${adminId}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const response = await authFetch(`/api/v1/organization/admins/demote/${adminId}`, {
+        method: 'POST'
       });
 
       if (response.ok) {

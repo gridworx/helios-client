@@ -31,6 +31,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS update_user_dashboard_widgets_updated_at ON user_dashboard_widgets;
+DROP TRIGGER IF EXISTS update_user_dashboard_widgets_updated_at ON PLACEHOLDER;
 CREATE TRIGGER update_user_dashboard_widgets_updated_at
   BEFORE UPDATE ON user_dashboard_widgets
   FOR EACH ROW

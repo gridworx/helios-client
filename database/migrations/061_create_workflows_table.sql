@@ -17,6 +17,7 @@ CREATE INDEX IF NOT EXISTS idx_workflows_is_active ON workflows(is_active);
 
 -- Add trigger for updated_at
 DROP TRIGGER IF EXISTS update_workflows_updated_at ON workflows;
+DROP TRIGGER IF EXISTS update_workflows_updated_at ON PLACEHOLDER;
 CREATE TRIGGER update_workflows_updated_at
 BEFORE UPDATE ON workflows
 FOR EACH ROW

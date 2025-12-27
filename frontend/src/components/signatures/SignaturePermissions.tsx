@@ -20,6 +20,7 @@ import {
   RefreshCw,
   Crown,
 } from 'lucide-react';
+import { authFetch } from '../../config/api';
 import './SignaturePermissions.css';
 
 // Permission level type
@@ -106,13 +107,10 @@ const SignaturePermissions: React.FC = () => {
     setError(null);
 
     try {
-      const token = localStorage.getItem('helios_token');
-      const headers = { Authorization: `Bearer ${token}` };
-
       const [usersRes, levelsRes, statsRes] = await Promise.all([
-        fetch('/api/signatures/permissions', { headers }),
-        fetch('/api/signatures/permissions/levels', { headers }),
-        fetch('/api/signatures/permissions/stats', { headers }),
+        authFetch('/api/signatures/permissions'),
+        authFetch('/api/signatures/permissions/levels'),
+        authFetch('/api/signatures/permissions/stats'),
       ]);
 
       if (!usersRes.ok) throw new Error('Failed to fetch users');
@@ -138,10 +136,7 @@ const SignaturePermissions: React.FC = () => {
   // Fetch audit log
   const fetchAuditLog = useCallback(async () => {
     try {
-      const token = localStorage.getItem('helios_token');
-      const res = await fetch('/api/signatures/permissions/audit?limit=50', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await authFetch('/api/signatures/permissions/audit?limit=50');
       if (!res.ok) throw new Error('Failed to fetch audit log');
       const data = await res.json();
       setAuditLog(data.data || []);
@@ -168,12 +163,10 @@ const SignaturePermissions: React.FC = () => {
     setError(null);
 
     try {
-      const token = localStorage.getItem('helios_token');
-      const res = await fetch(`/api/signatures/permissions/users/${editingUser.userId}`, {
+      const res = await authFetch(`/api/signatures/permissions/users/${editingUser.userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           permissionLevel: editForm.permissionLevel,
@@ -206,10 +199,8 @@ const SignaturePermissions: React.FC = () => {
     setError(null);
 
     try {
-      const token = localStorage.getItem('helios_token');
-      const res = await fetch(`/api/signatures/permissions/users/${userId}`, {
+      const res = await authFetch(`/api/signatures/permissions/users/${userId}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!res.ok) {

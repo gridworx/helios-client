@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
-
-const API_BASE = '/api/v1';
+import { authFetch, apiPath } from '../config/api';
 
 /**
  * View modes available in the application
@@ -50,15 +49,8 @@ const ViewContext = createContext<ViewContextValue>({
  * Fetch view preference from API
  */
 async function fetchViewPreference(): Promise<ViewMode | null> {
-  const token = localStorage.getItem('helios_token');
-  if (!token) return null;
-
   try {
-    const response = await fetch(`${API_BASE}/me/view-preference`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
+    const response = await authFetch(apiPath('/me/view-preference'));
 
     if (!response.ok) return null;
 
@@ -77,14 +69,10 @@ async function fetchViewPreference(): Promise<ViewMode | null> {
  * Save view preference to API
  */
 async function saveViewPreference(viewPreference: ViewMode, fromView?: ViewMode): Promise<boolean> {
-  const token = localStorage.getItem('helios_token');
-  if (!token) return false;
-
   try {
-    const response = await fetch(`${API_BASE}/me/view-preference`, {
+    const response = await authFetch(apiPath('/me/view-preference'), {
       method: 'PUT',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ viewPreference, fromView }),

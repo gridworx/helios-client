@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import './Signatures.css';
 import { TemplateEditor, TemplatePreview, CampaignEditor, CampaignAnalytics, SignaturePermissions, DeploymentStatus } from '../components/signatures';
+import { authFetch } from '../config/api';
 
 interface SignatureTemplate {
   id: string;
@@ -117,11 +118,7 @@ const Signatures: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/signatures/templates', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
-        },
-      });
+      const response = await authFetch('/api/signatures/templates');
       const data = await response.json();
       if (data.success) {
         setTemplates(data.data || []);
@@ -140,11 +137,7 @@ const Signatures: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/signatures/campaigns', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
-        },
-      });
+      const response = await authFetch('/api/signatures/campaigns');
       const data = await response.json();
       if (data.success) {
         setCampaigns(data.data || []);
@@ -216,10 +209,9 @@ const Signatures: React.FC = () => {
         : '/api/signatures/templates';
       const method = selectedTemplate ? 'PUT' : 'POST';
 
-      const response = await fetch(url, {
+      const response = await authFetch(url, {
         method,
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
@@ -245,11 +237,8 @@ const Signatures: React.FC = () => {
     if (!confirm('Are you sure you want to delete this template?')) return;
 
     try {
-      const response = await fetch(`/api/signatures/templates/${templateId}`, {
+      const response = await authFetch(`/api/signatures/templates/${templateId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
-        },
       });
       const data = await response.json();
       if (data.success) {
@@ -278,10 +267,9 @@ const Signatures: React.FC = () => {
 
   const handleSetDefault = async (templateId: string) => {
     try {
-      const response = await fetch(`/api/signatures/templates/${templateId}`, {
+      const response = await authFetch(`/api/signatures/templates/${templateId}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ is_default: true }),
@@ -297,10 +285,9 @@ const Signatures: React.FC = () => {
 
   const handleCampaignStatusChange = async (campaignId: string, newStatus: string) => {
     try {
-      const response = await fetch(`/api/signatures/campaigns/${campaignId}`, {
+      const response = await authFetch(`/api/signatures/campaigns/${campaignId}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ status: newStatus }),
@@ -316,11 +303,8 @@ const Signatures: React.FC = () => {
 
   const handleManualSync = async () => {
     try {
-      const response = await fetch('/api/signatures/sync', {
+      const response = await authFetch('/api/signatures/sync', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
-        },
       });
       const data = await response.json();
       if (data.success) {

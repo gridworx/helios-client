@@ -1,4 +1,4 @@
-import { apiPath } from '../config/api';
+import { apiPath, authFetch } from '../config/api';
 
 export interface BulkOperation {
   id: string;
@@ -36,13 +36,6 @@ export interface UploadResult {
 }
 
 export class BulkOperationsService {
-  private getAuthHeaders(): HeadersInit {
-    const token = localStorage.getItem('helios_token');
-    return {
-      'Authorization': `Bearer ${token}`,
-    };
-  }
-
   /**
    * Upload and validate CSV file
    */
@@ -51,9 +44,9 @@ export class BulkOperationsService {
     formData.append('file', file);
     formData.append('operationType', operationType);
 
-    const response = await fetch(apiPath('/bulk/upload'), {
+    // Don't set Content-Type for FormData - browser sets it with boundary
+    const response = await authFetch(apiPath('/bulk/upload'), {
       method: 'POST',
-      headers: this.getAuthHeaders(),
       body: formData,
     });
 
@@ -69,12 +62,9 @@ export class BulkOperationsService {
    * Preview bulk operation changes
    */
   async previewOperation(operationType: string, items: any[]): Promise<any> {
-    const response = await fetch(apiPath('/bulk/preview'), {
+    const response = await authFetch(apiPath('/bulk/preview'), {
       method: 'POST',
-      headers: {
-        ...this.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ operationType, items }),
     });
 
@@ -95,12 +85,9 @@ export class BulkOperationsService {
     items: any[],
     operationName?: string
   ): Promise<{ bulkOperationId: string; status: string; totalItems: number }> {
-    const response = await fetch(apiPath('/bulk/execute'), {
+    const response = await authFetch(apiPath('/bulk/execute'), {
       method: 'POST',
-      headers: {
-        ...this.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ operationType, items, operationName }),
     });
 
@@ -117,9 +104,7 @@ export class BulkOperationsService {
    * Get bulk operation status
    */
   async getOperationStatus(bulkOperationId: string): Promise<BulkOperation> {
-    const response = await fetch(apiPath(`/bulk/status/${bulkOperationId}`), {
-      headers: this.getAuthHeaders(),
-    });
+    const response = await authFetch(apiPath(`/bulk/status/${bulkOperationId}`));
 
     if (!response.ok) {
       const error = await response.json();
@@ -134,9 +119,7 @@ export class BulkOperationsService {
    * Get bulk operation history
    */
   async getOperationHistory(limit: number = 50): Promise<BulkOperation[]> {
-    const response = await fetch(apiPath(`/bulk/history?limit=${limit}`), {
-      headers: this.getAuthHeaders(),
-    });
+    const response = await authFetch(apiPath(`/bulk/history?limit=${limit}`));
 
     if (!response.ok) {
       const error = await response.json();
@@ -151,9 +134,7 @@ export class BulkOperationsService {
    * Download CSV template
    */
   async downloadTemplate(operationType: string): Promise<void> {
-    const response = await fetch(apiPath(`/bulk/template/${operationType}`), {
-      headers: this.getAuthHeaders(),
-    });
+    const response = await authFetch(apiPath(`/bulk/template/${operationType}`));
 
     if (!response.ok) {
       throw new Error('Failed to download template');
@@ -174,12 +155,9 @@ export class BulkOperationsService {
    * Export data to CSV
    */
   async exportToCSV(data: any[], headers?: string[], filename?: string): Promise<void> {
-    const response = await fetch(apiPath('/bulk/export'), {
+    const response = await authFetch(apiPath('/bulk/export'), {
       method: 'POST',
-      headers: {
-        ...this.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ data, headers, filename }),
     });
 
@@ -230,9 +208,7 @@ export class BulkOperationsService {
    * Get all templates for the organization
    */
   async getTemplates(): Promise<any[]> {
-    const response = await fetch(apiPath('/bulk/templates'), {
-      headers: this.getAuthHeaders(),
-    });
+    const response = await authFetch(apiPath('/bulk/templates'));
 
     if (!response.ok) {
       const error = await response.json();
@@ -247,9 +223,7 @@ export class BulkOperationsService {
    * Get a single template by ID
    */
   async getTemplate(templateId: string): Promise<any> {
-    const response = await fetch(apiPath(`/bulk/templates/${templateId}`), {
-      headers: this.getAuthHeaders(),
-    });
+    const response = await authFetch(apiPath(`/bulk/templates/${templateId}`));
 
     if (!response.ok) {
       const error = await response.json();
@@ -269,12 +243,9 @@ export class BulkOperationsService {
     operationType: string;
     templateData: any;
   }): Promise<any> {
-    const response = await fetch(apiPath('/bulk/templates'), {
+    const response = await authFetch(apiPath('/bulk/templates'), {
       method: 'POST',
-      headers: {
-        ...this.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
     });
 
@@ -295,12 +266,9 @@ export class BulkOperationsService {
     description?: string;
     templateData?: any;
   }): Promise<any> {
-    const response = await fetch(apiPath(`/bulk/templates/${templateId}`), {
+    const response = await authFetch(apiPath(`/bulk/templates/${templateId}`), {
       method: 'PUT',
-      headers: {
-        ...this.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
     });
 
@@ -317,9 +285,8 @@ export class BulkOperationsService {
    * Delete a template
    */
   async deleteTemplate(templateId: string): Promise<void> {
-    const response = await fetch(apiPath(`/bulk/templates/${templateId}`), {
+    const response = await authFetch(apiPath(`/bulk/templates/${templateId}`), {
       method: 'DELETE',
-      headers: this.getAuthHeaders(),
     });
 
     if (!response.ok) {

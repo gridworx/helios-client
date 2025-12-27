@@ -24,6 +24,7 @@ import {
   Info,
   FileSignature,
 } from 'lucide-react';
+import { authFetch } from '../../config/api';
 import './OnboardingTemplateEditor.css'; // Reuse the same styles
 
 type DriveAction = 'transfer_manager' | 'transfer_user' | 'archive' | 'keep' | 'delete';
@@ -234,15 +235,8 @@ const OffboardingTemplateEditor: React.FC<OffboardingTemplateEditorProps> = ({
 
   const fetchTemplate = async () => {
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
-        `/api/v1/lifecycle/offboarding-templates/${templateId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
+      const response = await authFetch(
+        `/api/v1/lifecycle/offboarding-templates/${templateId}`
       );
 
       if (!response.ok) {
@@ -266,13 +260,7 @@ const OffboardingTemplateEditor: React.FC<OffboardingTemplateEditorProps> = ({
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch('/api/v1/users', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await authFetch('/api/v1/users');
 
       if (response.ok) {
         const data = await response.json();
@@ -295,15 +283,13 @@ const OffboardingTemplateEditor: React.FC<OffboardingTemplateEditorProps> = ({
     setError(null);
 
     try {
-      const token = localStorage.getItem('helios_token');
       const url = isEditing
         ? `/api/v1/lifecycle/offboarding-templates/${templateId}`
         : '/api/v1/lifecycle/offboarding-templates';
 
-      const response = await fetch(url, {
+      const response = await authFetch(url, {
         method: isEditing ? 'PUT' : 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(template),

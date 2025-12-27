@@ -96,26 +96,21 @@ export function SetupPassword() {
         return;
       }
 
-      // Store tokens and redirect to dashboard
-      if (data.data.tokens) {
-        localStorage.setItem('helios_token', data.data.tokens.accessToken);
-        localStorage.setItem('helios_refresh_token', data.data.tokens.refreshToken);
-
-        // Store user data
+      // Store user and organization data for UI purposes (non-sensitive metadata)
+      if (data.data.user) {
         localStorage.setItem('helios_user', JSON.stringify(data.data.user));
-
-        // Store organization data
-        if (data.data.organization) {
-          localStorage.setItem('helios_organization', JSON.stringify({
-            organizationId: data.data.organization.id,
-            organizationName: data.data.organization.name,
-            domain: data.data.organization.domain
-          }));
-        }
-
-        // Redirect to dashboard
-        window.location.href = '/';
       }
+
+      if (data.data.organization) {
+        localStorage.setItem('helios_organization', JSON.stringify({
+          organizationId: data.data.organization.id,
+          organizationName: data.data.organization.name,
+          domain: data.data.organization.domain
+        }));
+      }
+
+      // Redirect to login page - user will log in with their new password via session-based auth
+      window.location.href = '/?setup=complete';
     } catch (err: any) {
       setError('An error occurred. Please try again.');
     } finally {

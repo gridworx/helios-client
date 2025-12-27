@@ -100,6 +100,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trigger_dynamic_rules_updated_at ON dynamic_group_rules;
+DROP TRIGGER IF EXISTS trigger_dynamic_rules_updated_at ON PLACEHOLDER;
 CREATE TRIGGER trigger_dynamic_rules_updated_at
     BEFORE UPDATE ON dynamic_group_rules
     FOR EACH ROW

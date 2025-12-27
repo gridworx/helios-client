@@ -1,33 +1,33 @@
-FROM node:18-alpine
+FROM node:20-alpine
 
-WORKDIR /app
+# Create non-root user FIRST (before any file operations)
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
 
 # Install system dependencies
 RUN apk add --no-cache curl
 
-# Create logs directory
-RUN mkdir -p /app/logs
+# Create app directory with correct ownership
+WORKDIR /app
+RUN chown nodejs:nodejs /app
 
-# Copy package files
-COPY package*.json ./
+# Create logs directory with correct ownership
+RUN mkdir -p /app/logs && chown nodejs:nodejs /app/logs
+
+# Switch to non-root user BEFORE any file operations
+USER nodejs
+
+# Copy package files (already owned by nodejs due to USER switch)
+COPY --chown=nodejs:nodejs package*.json ./
 
 # Install all dependencies (including dev for development)
 RUN npm install
 
 # Copy tsconfig
-COPY tsconfig.json ./
+COPY --chown=nodejs:nodejs tsconfig.json ./
 
 # Copy source code
-COPY src ./src
-
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
-
-# Change ownership of the app directory
-RUN chown -R nodejs:nodejs /app
-
-USER nodejs
+COPY --chown=nodejs:nodejs src ./src
 
 # Expose port
 EXPOSE 3001

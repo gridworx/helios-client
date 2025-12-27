@@ -224,11 +224,8 @@ export function BulkOperations({ organizationId }: BulkOperationsProps) {
   // Initialize WebSocket connection
   useEffect(() => {
     const connectSocket = async () => {
-      const token = localStorage.getItem('helios_token');
-      if (!token) return;
-
       try {
-        await bulkOperationsSocket.connect(token);
+        await bulkOperationsSocket.connect('');
         setSocketConnected(true);
         console.log('[BulkOperations] WebSocket connected');
       } catch (error) {

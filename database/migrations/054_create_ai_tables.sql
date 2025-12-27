@@ -113,6 +113,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trigger_ai_config_updated_at ON ai_config;
+DROP TRIGGER IF EXISTS trigger_ai_config_updated_at ON PLACEHOLDER;
 CREATE TRIGGER trigger_ai_config_updated_at
     BEFORE UPDATE ON ai_config
     FOR EACH ROW

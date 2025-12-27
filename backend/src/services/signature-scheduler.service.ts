@@ -26,6 +26,7 @@ export class SignatureSchedulerService {
       logger.info('Initializing signature scheduler service...');
 
       // Load organizations with Google Workspace configured
+      // organization_settings uses key-value pattern
       const orgsQuery = `
         SELECT DISTINCT
           o.id,
@@ -33,14 +34,14 @@ export class SignatureSchedulerService {
           gc.service_account_key,
           gc.admin_email,
           COALESCE(
-            (SELECT signature_sync_enabled FROM organization_settings
-             WHERE organization_id = o.id
+            (SELECT value::boolean FROM organization_settings
+             WHERE organization_id = o.id AND key = 'signature_sync_enabled'
              LIMIT 1),
             true
           ) as sync_enabled,
           COALESCE(
-            (SELECT signature_sync_hour FROM organization_settings
-             WHERE organization_id = o.id
+            (SELECT value::integer FROM organization_settings
+             WHERE organization_id = o.id AND key = 'signature_sync_hour'
              LIMIT 1),
             2
           ) as sync_hour
@@ -435,15 +436,18 @@ export class SignatureSchedulerService {
    * Update sync schedule for an organization
    */
   async updateSyncSchedule(organizationId: string, enabled: boolean, syncHour?: number) {
-    // Update settings in database
+    // Update settings in database using key-value pattern (upsert)
     await db.query(
-      `UPDATE organization_settings
-       SET
-         signature_sync_enabled = $1,
-         signature_sync_hour = $2,
-         updated_at = CURRENT_TIMESTAMP
-       WHERE organization_id = $3`,
-      [enabled, syncHour || 2, organizationId]
+      `INSERT INTO organization_settings (organization_id, key, value, updated_at)
+       VALUES ($1, 'signature_sync_enabled', $2, CURRENT_TIMESTAMP)
+       ON CONFLICT (organization_id, key) DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP`,
+      [organizationId, String(enabled)]
+    );
+    await db.query(
+      `INSERT INTO organization_settings (organization_id, key, value, updated_at)
+       VALUES ($1, 'signature_sync_hour', $2, CURRENT_TIMESTAMP)
+       ON CONFLICT (organization_id, key) DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP`,
+      [organizationId, String(syncHour || 2)]
     );
 
     // Cancel existing job if any
@@ -484,10 +488,19 @@ export class SignatureSchedulerService {
    * Get sync status for an organization
    */
   async getSyncStatus(organizationId: string): Promise<any> {
+    // Use key-value pattern for organization_settings
     const query = `
       SELECT
-        os.signature_sync_enabled as enabled,
-        os.signature_sync_hour as sync_hour,
+        COALESCE(
+          (SELECT value::boolean FROM organization_settings
+           WHERE organization_id = $1 AND key = 'signature_sync_enabled'),
+          false
+        ) as enabled,
+        COALESCE(
+          (SELECT value::integer FROM organization_settings
+           WHERE organization_id = $1 AND key = 'signature_sync_hour'),
+          2
+        ) as sync_hour,
         (
           SELECT json_build_object(
             'id', id,
@@ -510,8 +523,6 @@ export class SignatureSchedulerService {
           WHERE organization_id = $1
             AND status = 'active'
         ) as active_campaigns
-      FROM organization_settings os
-      WHERE os.organization_id = $1
     `;
 
     const result = await db.query(query, [organizationId]);

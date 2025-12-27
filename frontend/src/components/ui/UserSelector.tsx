@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, X } from 'lucide-react';
+import { authFetch } from '../../config/api';
 import './ui.css';
 
 export interface User {
@@ -69,11 +70,7 @@ export const UserSelector: React.FC<UserSelectorProps> = ({
     const fetchUsers = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`/api/users?organization_id=${organizationId}`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        });
+        const response = await authFetch(`/api/users?organization_id=${organizationId}`);
 
         if (response.ok) {
           const data = await response.json();

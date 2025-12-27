@@ -236,6 +236,63 @@
   background: var(--theme-primary-hover);
 }
 
+/* Empty State */
+.org-chart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.org-chart-empty svg {
+  color: #d1d5db;
+}
+
+.org-chart-empty h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.org-chart-empty .empty-message {
+  margin: 0;
+  color: #6b7280;
+  font-size: 14px;
+  max-width: 400px;
+}
+
+.org-chart-empty .empty-hints {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px 24px;
+  text-align: left;
+  max-width: 400px;
+}
+
+.org-chart-empty .empty-hints p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.org-chart-empty .empty-hints ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.org-chart-empty .empty-hints li {
+  margin: 4px 0;
+}
+
 /* Orphans Section */
 .orphans-section {
   margin-top: 32px;

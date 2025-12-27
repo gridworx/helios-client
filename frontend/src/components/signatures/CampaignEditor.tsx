@@ -33,6 +33,7 @@ import {
   Search,
   Info
 } from 'lucide-react';
+import { authFetch } from '../../config/api';
 import './CampaignEditor.css';
 
 interface SignatureTemplate {
@@ -206,11 +207,7 @@ const CampaignEditor: React.FC<CampaignEditorProps> = ({
   const fetchTemplates = async () => {
     setLoadingTemplates(true);
     try {
-      const response = await fetch('/api/signatures/templates?status=active', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
-        },
-      });
+      const response = await authFetch('/api/signatures/templates?status=active');
       const data = await response.json();
       if (data.success) {
         setTemplates(data.data || []);
@@ -224,11 +221,7 @@ const CampaignEditor: React.FC<CampaignEditorProps> = ({
 
   const fetchCampaignAssignments = async (campaignId: string) => {
     try {
-      const response = await fetch(`/api/signatures/campaigns/${campaignId}/assignments`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
-        },
-      });
+      const response = await authFetch(`/api/signatures/campaigns/${campaignId}/assignments`);
       const data = await response.json();
       if (data.success) {
         setAssignments(data.data || []);
@@ -246,11 +239,7 @@ const CampaignEditor: React.FC<CampaignEditorProps> = ({
 
     setLoadingTargets(true);
     try {
-      const response = await fetch(`/api/signatures/v2/assignments/targets/${type}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
-        },
-      });
+      const response = await authFetch(`/api/signatures/v2/assignments/targets/${type}`);
       const data = await response.json();
       if (data.success) {
         setAvailableTargets(data.data || []);
@@ -316,11 +305,8 @@ const CampaignEditor: React.FC<CampaignEditorProps> = ({
       formDataUpload.append('file', file);
       formDataUpload.append('type', 'campaign-banner');
 
-      const response = await fetch('/api/media/upload', {
+      const response = await authFetch('/api/media/upload', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
-        },
         body: formDataUpload,
       });
 
@@ -398,10 +384,9 @@ const CampaignEditor: React.FC<CampaignEditorProps> = ({
         : '/api/signatures/campaigns';
       const method = isEditing ? 'PUT' : 'POST';
 
-      const response = await fetch(url, {
+      const response = await authFetch(url, {
         method,
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -418,10 +403,9 @@ const CampaignEditor: React.FC<CampaignEditorProps> = ({
         if (assignments.length > 0) {
           for (const assignment of assignments) {
             if (!assignment.id) {
-              await fetch(`/api/signatures/campaigns/${campaignId}/assignments`, {
+              await authFetch(`/api/signatures/campaigns/${campaignId}/assignments`, {
                 method: 'POST',
                 headers: {
-                  'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
                   'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(assignment),
@@ -461,10 +445,9 @@ const CampaignEditor: React.FC<CampaignEditorProps> = ({
         : '/api/signatures/campaigns';
       const method = isEditing ? 'PUT' : 'POST';
 
-      const response = await fetch(url, {
+      const response = await authFetch(url, {
         method,
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
@@ -481,10 +464,9 @@ const CampaignEditor: React.FC<CampaignEditorProps> = ({
       // Save assignments
       for (const assignment of assignments) {
         if (!assignment.id) {
-          await fetch(`/api/signatures/campaigns/${campaignId}/assignments`, {
+          await authFetch(`/api/signatures/campaigns/${campaignId}/assignments`, {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify(assignment),
@@ -493,11 +475,8 @@ const CampaignEditor: React.FC<CampaignEditorProps> = ({
       }
 
       // Launch the campaign
-      const launchResponse = await fetch(`/api/signatures/campaigns/${campaignId}/launch`, {
+      const launchResponse = await authFetch(`/api/signatures/campaigns/${campaignId}/launch`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
-        },
       });
 
       const launchData = await launchResponse.json();

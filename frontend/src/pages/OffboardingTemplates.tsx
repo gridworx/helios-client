@@ -26,6 +26,7 @@ import {
   UserMinus,
 } from 'lucide-react';
 import './OffboardingTemplates.css';
+import { authFetch } from '../config/api';
 
 type DriveAction = 'transfer_manager' | 'transfer_user' | 'archive' | 'keep' | 'delete';
 type EmailAction = 'forward_manager' | 'forward_user' | 'auto_reply' | 'archive' | 'keep';
@@ -92,13 +93,7 @@ const OffboardingTemplates: React.FC<OffboardingTemplatesProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch('/api/v1/lifecycle/offboarding-templates', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await authFetch('/api/v1/lifecycle/offboarding-templates');
 
       if (!response.ok) {
         throw new Error('Failed to fetch templates');
@@ -126,13 +121,8 @@ const OffboardingTemplates: React.FC<OffboardingTemplatesProps> = ({
   const handleDelete = async (templateId: string) => {
     setDeleteLoading(true);
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(`/api/v1/lifecycle/offboarding-templates/${templateId}`, {
+      const response = await authFetch(`/api/v1/lifecycle/offboarding-templates/${templateId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
       });
 
       if (!response.ok) {
@@ -152,11 +142,9 @@ const OffboardingTemplates: React.FC<OffboardingTemplatesProps> = ({
   // Duplicate template
   const handleDuplicate = async (template: OffboardingTemplate) => {
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch('/api/v1/lifecycle/offboarding-templates', {
+      const response = await authFetch('/api/v1/lifecycle/offboarding-templates', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -190,11 +178,9 @@ const OffboardingTemplates: React.FC<OffboardingTemplatesProps> = ({
   // Set default template
   const handleSetDefault = async (templateId: string) => {
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(`/api/v1/lifecycle/offboarding-templates/${templateId}`, {
+      const response = await authFetch(`/api/v1/lifecycle/offboarding-templates/${templateId}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ isDefault: true }),
@@ -214,11 +200,9 @@ const OffboardingTemplates: React.FC<OffboardingTemplatesProps> = ({
   // Toggle active status
   const handleToggleActive = async (templateId: string, isActive: boolean) => {
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(`/api/v1/lifecycle/offboarding-templates/${templateId}`, {
+      const response = await authFetch(`/api/v1/lifecycle/offboarding-templates/${templateId}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ isActive: !isActive }),

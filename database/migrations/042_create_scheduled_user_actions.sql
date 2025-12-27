@@ -161,6 +161,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS scheduled_user_actions_updated_at ON scheduled_user_actions;
+DROP TRIGGER IF EXISTS scheduled_user_actions_updated_at ON PLACEHOLDER;
 CREATE TRIGGER scheduled_user_actions_updated_at
   BEFORE UPDATE ON scheduled_user_actions
   FOR EACH ROW
@@ -178,6 +179,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS scheduled_user_actions_started ON scheduled_user_actions;
+DROP TRIGGER IF EXISTS scheduled_user_actions_started ON PLACEHOLDER;
 CREATE TRIGGER scheduled_user_actions_started
   BEFORE UPDATE ON scheduled_user_actions
   FOR EACH ROW
@@ -195,6 +197,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS scheduled_user_actions_completed ON scheduled_user_actions;
+DROP TRIGGER IF EXISTS scheduled_user_actions_completed ON PLACEHOLDER;
 CREATE TRIGGER scheduled_user_actions_completed
   BEFORE UPDATE ON scheduled_user_actions
   FOR EACH ROW

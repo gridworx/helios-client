@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Check, CheckCircle, FileUp, AlertTriangle } from 'lucide-react';
+import { authFetch } from '../../config/api';
 import './GoogleWorkspaceWizard.css';
 
 interface ServiceAccountData {
@@ -112,11 +113,10 @@ const GoogleWorkspaceWizard: React.FC<GoogleWorkspaceWizardProps> = ({
     setError('');
 
     try {
-      const response = await fetch('/api/v1/google-workspace/test-credentials', {
+      const response = await authFetch('/api/v1/google-workspace/test-credentials', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
         },
         body: JSON.stringify({
           serviceAccount: serviceAccountData,
@@ -154,11 +154,10 @@ const GoogleWorkspaceWizard: React.FC<GoogleWorkspaceWizardProps> = ({
       const orgData = localStorage.getItem('helios_organization');
       const parsedOrgData = orgData ? JSON.parse(orgData) : {};
 
-      const response = await fetch('/api/v1/google-workspace/setup', {
+      const response = await authFetch('/api/v1/google-workspace/setup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
         },
         body: JSON.stringify({
           credentials: serviceAccountData,

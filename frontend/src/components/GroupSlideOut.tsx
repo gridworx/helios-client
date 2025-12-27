@@ -3,6 +3,7 @@ import { X, Users, Info, Settings, Shield, Trash2, RefreshCw, UserPlus, UserMinu
 import { useTabPersistence } from '../hooks/useTabPersistence';
 import { PlatformIcon } from './ui/PlatformIcon';
 import { TreeSelect } from './ui/TreeSelect';
+import { authFetch } from '../config/api';
 import './GroupSlideOut.css';
 
 // Dynamic group types
@@ -163,13 +164,7 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
 
   const fetchDepartments = async () => {
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
-        '/api/v1/organization/departments',
-        {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }
-      );
+      const response = await authFetch('/api/v1/organization/departments');
 
       if (response.ok) {
         const data = await response.json();
@@ -186,13 +181,7 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
-        `/api/v1/organization/access-groups/${groupId}`,
-        {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }
-      );
+      const response = await authFetch(`/api/v1/organization/access-groups/${groupId}`);
 
       if (!response.ok) {
         throw new Error('Failed to fetch group details');
@@ -218,13 +207,11 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
 
     setIsSaving(true);
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
+      const response = await authFetch(
         `/api/v1/organization/access-groups/${groupId}`,
         {
           method: 'PUT',
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -263,12 +250,8 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
 
     setSearchLoading(true);
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
-        `/api/v1/organization/users?search=${encodeURIComponent(query)}&status=active`,
-        {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }
+      const response = await authFetch(
+        `/api/v1/organization/users?search=${encodeURIComponent(query)}&status=active`
       );
 
       if (response.ok) {
@@ -297,13 +280,11 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
   const handleAddMember = async (userId: string) => {
     setAddingUserId(userId);
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
+      const response = await authFetch(
         `/api/v1/organization/access-groups/${groupId}/members`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({ userId, memberType: 'member' })
@@ -330,12 +311,10 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
     if (!confirm(`Remove ${memberName} from this group?`)) return;
 
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
+      const response = await authFetch(
         `/api/v1/organization/access-groups/${groupId}/members/${userId}`,
         {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
+          method: 'DELETE'
         }
       );
 
@@ -354,12 +333,10 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
   const handleDeleteGroup = async () => {
     setIsDeleting(true);
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
+      const response = await authFetch(
         `/api/v1/organization/access-groups/${groupId}`,
         {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
+          method: 'DELETE'
         }
       );
 
@@ -386,13 +363,7 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
     if (rulesLoading) return;
     setRulesLoading(true);
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
-        `/api/v1/organization/access-groups/${groupId}/rules`,
-        {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }
-      );
+      const response = await authFetch(`/api/v1/organization/access-groups/${groupId}/rules`);
 
       if (response.ok) {
         const data = await response.json();
@@ -418,13 +389,11 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
 
     setIsAddingRule(true);
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
+      const response = await authFetch(
         `/api/v1/organization/access-groups/${groupId}/rules`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify(newRule)
@@ -450,12 +419,10 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
     if (!confirm('Delete this rule?')) return;
 
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
+      const response = await authFetch(
         `/api/v1/organization/access-groups/${groupId}/rules/${ruleId}`,
         {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
+          method: 'DELETE'
         }
       );
 
@@ -474,13 +441,11 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
   const handlePreviewRules = async () => {
     setIsPreviewLoading(true);
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
+      const response = await authFetch(
         `/api/v1/organization/access-groups/${groupId}/evaluate`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({ returnUsers: true, limit: 10 })
@@ -508,12 +473,10 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
 
     setIsApplyingRules(true);
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
+      const response = await authFetch(
         `/api/v1/organization/access-groups/${groupId}/apply-rules`,
         {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` }
+          method: 'POST'
         }
       );
 
@@ -542,13 +505,11 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
 
     setIsMembershipTypeChanging(true);
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
+      const response = await authFetch(
         `/api/v1/organization/access-groups/${groupId}/membership-type`,
         {
           method: 'PUT',
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({

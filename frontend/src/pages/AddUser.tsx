@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Upload, UserPlus, Users, FileSpreadsheet, Trash2, AlertCircle, CheckCircle, X, User, Mail, Key, Save, Loader, Plus } from 'lucide-react';
+import { authFetch } from '../config/api';
 import './AddUser.css';
 
 type ViewMode = 'single' | 'bulk' | 'csv';
@@ -43,15 +44,8 @@ export function AddUser() {
   const [createInGoogle, setCreateInGoogle] = useState(true);
   const [createInMicrosoft, setCreateInMicrosoft] = useState(false);
 
-  // Check authentication and edit mode on mount
+  // Check edit mode on mount
   useEffect(() => {
-    const token = localStorage.getItem('helios_token');
-    if (!token) {
-      // Not authenticated, redirect to home
-      navigate('/');
-      return;
-    }
-
     // Fetch dropdown data
     fetchDropdownData();
 
@@ -65,13 +59,9 @@ export function AddUser() {
   }, [navigate, searchParams]);
 
   const fetchDropdownData = async () => {
-    const token = localStorage.getItem('helios_token');
-
     // Fetch departments
     try {
-      const deptResponse = await fetch('/api/v1/organization/departments', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const deptResponse = await authFetch('/api/v1/organization/departments');
       if (deptResponse.ok) {
         const data = await deptResponse.json();
         if (data.success) setDepartments(data.data || []);
@@ -82,9 +72,7 @@ export function AddUser() {
 
     // Fetch job titles
     try {
-      const jtResponse = await fetch('/api/v1/organization/job-titles', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const jtResponse = await authFetch('/api/v1/organization/job-titles');
       if (jtResponse.ok) {
         const data = await jtResponse.json();
         if (data.success) setJobTitles(data.data || []);
@@ -95,9 +83,7 @@ export function AddUser() {
 
     // Fetch managers (active users)
     try {
-      const managersResponse = await fetch('/api/v1/organization/users?status=active&limit=100', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const managersResponse = await authFetch('/api/v1/organization/users?status=active&limit=100');
       if (managersResponse.ok) {
         const data = await managersResponse.json();
         setManagers(data.data || []);
@@ -108,9 +94,7 @@ export function AddUser() {
 
     // Fetch locations
     try {
-      const locResponse = await fetch('/api/v1/organization/locations', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const locResponse = await authFetch('/api/v1/organization/locations');
       if (locResponse.ok) {
         const data = await locResponse.json();
         if (data.success) setLocations(data.data || []);
@@ -121,9 +105,7 @@ export function AddUser() {
 
     // Fetch licenses
     try {
-      const licenseResponse = await fetch('/api/v1/organization/licenses', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const licenseResponse = await authFetch('/api/v1/organization/licenses');
       if (licenseResponse.ok) {
         const data = await licenseResponse.json();
         if (data.success) setLicenses(data.data?.licenses || []);
@@ -134,9 +116,7 @@ export function AddUser() {
 
     // Check integration status
     try {
-      const statsResponse = await fetch('/api/v1/dashboard/stats', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const statsResponse = await authFetch('/api/v1/dashboard/stats');
       if (statsResponse.ok) {
         const data = await statsResponse.json();
         if (data.success) {
@@ -152,12 +132,7 @@ export function AddUser() {
   const fetchUserForEdit = async (userId: string) => {
     try {
       setIsLoadingUser(true);
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(`/api/v1/organization/users`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await authFetch(`/api/v1/organization/users`);
 
       if (!response.ok) {
         throw new Error('Failed to fetch user data');
@@ -390,22 +365,16 @@ export function AddUser() {
     }
 
     try {
-      const token = localStorage.getItem('helios_token');
-      if (!token) {
-        throw new Error('Not authenticated. Please log in again.');
-      }
-
       let successCount = 0;
       let failedCount = 0;
       const errorMessages: string[] = [];
 
       for (const user of validUsers) {
         try {
-          const response = await fetch('/api/v1/organization/users', {
+          const response = await authFetch('/api/v1/organization/users', {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
+              'Content-Type': 'application/json'
             },
             body: JSON.stringify({
               email: user.email,
@@ -575,12 +544,6 @@ export function AddUser() {
         }
       }
 
-      const token = localStorage.getItem('helios_token');
-
-      if (!token) {
-        throw new Error('Not authenticated. Please log in again.');
-      }
-
       const requestBody: any = {
         email: formData.email,
         firstName: formData.firstName,
@@ -633,11 +596,10 @@ export function AddUser() {
         ? `/api/v1/organization/users/${editUserId}`
         : '/api/v1/organization/users';
 
-      const response = await fetch(url, {
+      const response = await authFetch(url, {
         method: isEditMode ? 'PUT' : 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(requestBody)
       });

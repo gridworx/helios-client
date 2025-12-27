@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Search, Trash2, AlertTriangle, CheckCircle, Clock, User } from 'lucide-react';
 import './EmailSecurity.css';
+import { authFetch } from '../config/api';
 
 interface MessageSearchResult {
   messageId: string;
@@ -42,11 +43,7 @@ export const EmailSecurity: React.FC = () => {
         ...(dateTo && { dateTo })
       });
 
-      const response = await fetch(`/api/v1/email-security/search?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
-        }
-      });
+      const response = await authFetch(`/api/v1/email-security/search?${params}`);
 
       const data = await response.json();
 
@@ -72,11 +69,10 @@ export const EmailSecurity: React.FC = () => {
     setDeleting(true);
 
     try {
-      const response = await fetch('/api/v1/email-security/delete', {
+      const response = await authFetch('/api/v1/email-security/delete', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
         },
         body: JSON.stringify({
           searchBy,

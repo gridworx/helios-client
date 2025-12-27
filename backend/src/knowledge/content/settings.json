@@ -158,6 +158,76 @@
       ],
       "relatedIds": [],
       "lastUpdated": "2025-12-21T00:00:00Z"
+    },
+    {
+      "id": "setting-feature-flags",
+      "type": "setting",
+      "title": "Feature Flags Settings",
+      "category": "advanced",
+      "subcategory": "features",
+      "summary": "Enable or disable specific features and navigation items",
+      "content": "Feature flags allow you to control which features are visible and enabled.\n\n**Access**:\nNavigate to Settings > Feature Flags.\n\n**Navigation Flags**:\nControl which menu items appear in the sidebar:\n- **Onboarding**: Show/hide onboarding templates\n- **Offboarding**: Show/hide offboarding templates\n- **Signatures**: Show/hide email signatures\n- **Scheduled Actions**: Show/hide scheduled actions\n- **Workflows**: Show/hide workflow builder\n- **IT Assets**: Show/hide IT asset management\n- **Media Files**: Show/hide media file library\n- **Mail Search**: Show/hide email security/search\n- **Security Events**: Show/hide security events\n- **Audit Logs**: Show/hide audit logs\n- **External Sharing**: Show/hide external sharing audit\n\n**Section Flags**:\nControl entire navigation sections:\n- **Automation Section**: Show/hide all automation features\n- **Assets Section**: Show/hide all asset features\n- **Security Section**: Show/hide all security features\n\n**Use Cases**:\n- Hide features not yet configured\n- Simplify UI for smaller organizations\n- Gradually roll out new features",
+      "keywords": ["feature flags", "toggle", "enable", "disable", "navigation", "visibility"],
+      "aliases": ["feature toggles", "show hide features", "nav settings"],
+      "examples": [],
+      "relatedIds": ["setting-organization"],
+      "lastUpdated": "2025-12-26T00:00:00Z"
+    },
+    {
+      "id": "setting-master-data",
+      "type": "setting",
+      "title": "Master Data Settings",
+      "category": "data",
+      "subcategory": "reference",
+      "summary": "Manage reference data like departments, locations, job titles, and cost centers",
+      "content": "Master Data contains the reference values used throughout the organization.\n\n**Access**:\nNavigate to Settings > Master Data.\n\n**Departments**:\n- Define organizational departments\n- Used for user assignment and filtering\n- Can sync from Google Workspace or create manually\n- Examples: Engineering, Marketing, Sales, HR\n\n**Locations**:\n- Define office locations and work sites\n- Include address, timezone, and capacity\n- Used for user assignment and reporting\n- Examples: HQ - New York, Remote, London Office\n\n**Job Titles**:\n- Standardize job titles across the organization\n- Helps with consistency in user profiles\n- Can be used in dynamic group rules\n- Examples: Software Engineer, Product Manager, Sales Rep\n\n**Cost Centers**:\n- Define financial cost centers\n- Used for budget tracking and allocation\n- Associate users with cost centers for reporting\n- Examples: CC-ENG-001, CC-SALES-002\n\n**Sync Behavior**:\nMaster data can sync from Google Workspace organizational units or be managed manually in Helios.",
+      "keywords": ["master data", "departments", "locations", "job titles", "cost centers", "reference data"],
+      "aliases": ["reference data", "org data", "department settings", "location settings"],
+      "examples": [],
+      "relatedIds": ["setting-entity-labels", "feature-user-directory"],
+      "lastUpdated": "2025-12-26T00:00:00Z"
+    },
+    {
+      "id": "setting-entity-labels",
+      "type": "setting",
+      "title": "Entity Labels Settings",
+      "category": "customization",
+      "subcategory": "terminology",
+      "summary": "Customize terminology used throughout the application",
+      "content": "Entity Labels let you customize how entities are named in the UI.\n\n**Access**:\nNavigate to Settings > Entity Labels.\n\n**Customizable Labels**:\n- **Users**: Change 'Users' to 'Team Members', 'Employees', 'Staff', etc.\n- **Groups**: Change 'Groups' to 'Teams', 'Distribution Lists', etc.\n- **Departments**: Change 'Departments' to 'Divisions', 'Business Units', etc.\n- **Locations**: Change 'Locations' to 'Offices', 'Sites', 'Branches', etc.\n\n**Format Options**:\nFor each entity, you can set:\n- **Singular**: Used when referring to one item (e.g., 'Team Member')\n- **Plural**: Used when referring to multiple items (e.g., 'Team Members')\n\n**Visibility**:\nYou can also hide entity types that aren't relevant to your organization.\n\n**Example Use Cases**:\n- University: Change 'Users' to 'Faculty & Staff'\n- Law Firm: Change 'Departments' to 'Practice Areas'\n- Non-profit: Change 'Cost Centers' to 'Programs'",
+      "keywords": ["labels", "terminology", "naming", "customize", "rename", "entity"],
+      "aliases": ["rename entities", "custom labels", "terminology settings"],
+      "examples": [],
+      "relatedIds": ["setting-master-data", "setting-organization"],
+      "lastUpdated": "2025-12-26T00:00:00Z"
+    },
+    {
+      "id": "setting-tracking",
+      "type": "setting",
+      "title": "Email Tracking Settings",
+      "category": "signatures",
+      "subcategory": "analytics",
+      "summary": "Configure email signature tracking and analytics",
+      "content": "Email Tracking monitors engagement with your email signatures.\n\n**Access**:\nNavigate to Settings > Tracking.\n\n**Tracking Options**:\n- **Enable Tracking**: Turn tracking on/off globally\n- **Track Opens**: Monitor when emails are opened\n- **Track Link Clicks**: Monitor when signature links are clicked\n\n**Tracking Pixel**:\nA small, invisible image added to signatures that records:\n- When the email was opened\n- Geographic location (city-level)\n- Device type (desktop/mobile)\n- Email client\n\n**Privacy Settings**:\n- **Anonymize Data**: Don't store recipient email addresses\n- **Retention Period**: How long to keep tracking data\n- **Honor Do-Not-Track**: Respect browser DNT settings\n\n**Custom Tracking Domain** (Enterprise):\n- Use your own domain for tracking pixels\n- Improves deliverability\n- Example: track.yourdomain.com\n\n**Reports**:\nView tracking data in the Signature Analytics dashboard.",
+      "keywords": ["tracking", "analytics", "email", "opens", "clicks", "pixel", "engagement"],
+      "aliases": ["email tracking", "signature analytics", "open tracking"],
+      "examples": [],
+      "relatedIds": ["setting-email-signatures", "feature-signatures"],
+      "lastUpdated": "2025-12-26T00:00:00Z"
+    },
+    {
+      "id": "setting-administrators",
+      "type": "setting",
+      "title": "Administrators Settings",
+      "category": "security",
+      "subcategory": "access",
+      "summary": "Manage administrator accounts and roles",
+      "content": "Manage who has administrative access to Helios.\n\n**Access**:\nNavigate to Settings > Administrators.\n\n**Administrator Roles**:\n- **Super Admin**: Full access to all features and settings\n- **Admin**: Access to most features, cannot manage other admins\n- **Helpdesk**: Limited to user management and support tasks\n- **Read-Only**: View access only, no modifications\n\n**Adding Administrators**:\n1. Click 'Add Administrator'\n2. Enter email address\n3. Select role\n4. User receives invitation email\n5. User sets password and activates account\n\n**Managing Access**:\n- Change roles at any time\n- Revoke access by deactivating account\n- View admin activity in audit logs\n\n**Best Practices**:\n- Limit Super Admin accounts\n- Use role appropriate to responsibilities\n- Review admin list regularly\n- Enable 2FA for all admins (when available)",
+      "keywords": ["administrators", "admins", "roles", "access", "permissions", "super admin"],
+      "aliases": ["admin settings", "manage admins", "admin roles"],
+      "examples": [],
+      "relatedIds": ["setting-security-settings", "feature-audit-logs"],
+      "lastUpdated": "2025-12-26T00:00:00Z"
     }
   ]
 }

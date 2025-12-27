@@ -136,17 +136,15 @@
 .ff-item-toggle {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 40px;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 60px;
+  flex-shrink: 0;
 }
 
-.ff-item-toggle .spin {
-  color: var(--helios-purple);
+.ff-item-toggle .ff-updating {
+  color: var(--theme-primary, #8b5cf6);
   animation: spin 1s linear infinite;
-}
-
-.ff-success {
-  color: #10b981;
 }
 
 .ff-toggle {

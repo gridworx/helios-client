@@ -211,6 +211,7 @@ END $$;
 
 -- Trigger for gw_credentials
 DROP TRIGGER IF EXISTS update_gw_credentials_updated_at ON gw_credentials;
+DROP TRIGGER IF EXISTS update_gw_credentials_updated_at ON PLACEHOLDER;
 CREATE TRIGGER update_gw_credentials_updated_at
     BEFORE UPDATE ON gw_credentials
     FOR EACH ROW
@@ -218,6 +219,7 @@ CREATE TRIGGER update_gw_credentials_updated_at
 
 -- Trigger for gw_synced_users
 DROP TRIGGER IF EXISTS update_gw_synced_users_updated_at ON gw_synced_users;
+DROP TRIGGER IF EXISTS update_gw_synced_users_updated_at ON PLACEHOLDER;
 CREATE TRIGGER update_gw_synced_users_updated_at
     BEFORE UPDATE ON gw_synced_users
     FOR EACH ROW
@@ -225,6 +227,7 @@ CREATE TRIGGER update_gw_synced_users_updated_at
 
 -- Trigger for gw_groups
 DROP TRIGGER IF EXISTS update_gw_groups_updated_at ON gw_groups;
+DROP TRIGGER IF EXISTS update_gw_groups_updated_at ON PLACEHOLDER;
 CREATE TRIGGER update_gw_groups_updated_at
     BEFORE UPDATE ON gw_groups
     FOR EACH ROW
@@ -232,6 +235,7 @@ CREATE TRIGGER update_gw_groups_updated_at
 
 -- Trigger for gw_org_units
 DROP TRIGGER IF EXISTS update_gw_org_units_updated_at ON gw_org_units;
+DROP TRIGGER IF EXISTS update_gw_org_units_updated_at ON PLACEHOLDER;
 CREATE TRIGGER update_gw_org_units_updated_at
     BEFORE UPDATE ON gw_org_units
     FOR EACH ROW

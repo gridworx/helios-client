@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { HelpCircle, BookOpen, Trash2, X, PanelLeftOpen, PanelRightOpen, ExternalLink, Minimize2 } from 'lucide-react';
 import { ConsoleHelpPanel } from '../components/ConsoleHelpPanel';
+import { authFetch } from '../config/api';
 import './DeveloperConsole.css';
 
 interface ConsoleOutput {
@@ -102,33 +103,19 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
     URL.revokeObjectURL(url);
   };
 
-  const getToken = (): string | null => {
-    return localStorage.getItem('helios_token');
-  };
-
   const getOrganizationId = (): string | null => {
-    const token = getToken();
-    if (!token) return null;
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.organizationId || organizationId;
-    } catch {
-      return organizationId;
-    }
+    return organizationId;
   };
 
   const apiRequest = async (method: string, path: string, body?: any): Promise<any> => {
-    const token = getToken();
-    if (!token) {
-      throw new Error('Not authenticated');
+    const headers: Record<string, string> = {};
+    if (body) {
+      headers['Content-Type'] = 'application/json';
     }
 
-    const response = await fetch(`${path}`, {
+    const response = await authFetch(`${path}`, {
       method,
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
+      headers,
       body: body ? JSON.stringify(body) : undefined
     });
 
@@ -175,14 +162,10 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
     errorMessage?: string
   ) => {
     try {
-      const token = getToken();
-      if (!token) return;
-
       // Fire and forget - don't await or block on audit logging
-      fetch('/api/v1/organization/audit-logs/console', {
+      authFetch('/api/v1/organization/audit-logs/console', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({

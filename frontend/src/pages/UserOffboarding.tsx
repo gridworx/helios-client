@@ -29,6 +29,7 @@ import {
   Users,
   UserCheck,
 } from 'lucide-react';
+import { authFetch } from '../config/api';
 import './UserOffboarding.css';
 
 interface User {
@@ -179,12 +180,7 @@ const UserOffboarding: React.FC<UserOffboardingProps> = ({
   const fetchDirectReports = async (userId: string) => {
     setLoadingDirectReports(true);
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(`/api/v1/organization/users/${userId}/direct-reports`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      const response = await authFetch(`/api/v1/organization/users/${userId}/direct-reports`);
 
       if (response.ok) {
         const data = await response.json();
@@ -234,15 +230,9 @@ const UserOffboarding: React.FC<UserOffboardingProps> = ({
     setError(null);
 
     try {
-      const token = localStorage.getItem('helios_token');
-      const headers = {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      };
-
       const [usersRes, templatesRes] = await Promise.all([
-        fetch('/api/v1/users?is_active=true', { headers }),
-        fetch('/api/v1/lifecycle/offboarding-templates', { headers }),
+        authFetch('/api/v1/users?is_active=true'),
+        authFetch('/api/v1/lifecycle/offboarding-templates'),
       ]);
 
       if (usersRes.ok) {
@@ -335,8 +325,6 @@ const UserOffboarding: React.FC<UserOffboardingProps> = ({
     setError(null);
 
     try {
-      const token = localStorage.getItem('helios_token');
-
       // Step 1: Reassign direct reports first (if any)
       if (directReports.length > 0 && selectedUserId) {
         const hasReassignments = reassignment.type === 'all_to_one'
@@ -355,11 +343,10 @@ const UserOffboarding: React.FC<UserOffboardingProps> = ({
                   .map(([reportId, newManagerId]) => ({ reportId, newManagerId })),
               };
 
-          const reassignResponse = await fetch(`/api/v1/organization/users/${selectedUserId}/reassign-reports`, {
+          const reassignResponse = await authFetch(`/api/v1/organization/users/${selectedUserId}/reassign-reports`, {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
+              'Content-Type': 'application/json'
             },
             body: JSON.stringify(reassignPayload),
           });
@@ -391,11 +378,10 @@ const UserOffboarding: React.FC<UserOffboardingProps> = ({
         },
       };
 
-      const response = await fetch('/api/v1/lifecycle/offboard', {
+      const response = await authFetch('/api/v1/lifecycle/offboard', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload),
       });

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, Users, Loader2 } from 'lucide-react';
-import axios from 'axios';
+import { authFetch } from '../config/api';
 import './RolesManagement.css';
 
 // Use versioned API paths
@@ -37,12 +37,10 @@ export function RolesManagement() {
   const fetchUserStats = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_BASE}/organization/users/stats`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (response.data.success) {
-        setUserStats(response.data.data);
+      const response = await authFetch(`${API_BASE}/organization/users/stats`);
+      const data = await response.json();
+      if (data.success) {
+        setUserStats(data.data);
       }
     } catch (error) {
       console.error('Failed to fetch user stats:', error);

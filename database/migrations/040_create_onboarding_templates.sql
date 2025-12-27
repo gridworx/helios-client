@@ -103,6 +103,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS onboarding_templates_updated_at ON onboarding_templates;
+DROP TRIGGER IF EXISTS onboarding_templates_updated_at ON PLACEHOLDER;
 CREATE TRIGGER onboarding_templates_updated_at
   BEFORE UPDATE ON onboarding_templates
   FOR EACH ROW
@@ -125,6 +126,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS ensure_single_default_onboarding ON onboarding_templates;
+DROP TRIGGER IF EXISTS ensure_single_default_onboarding ON PLACEHOLDER;
 CREATE TRIGGER ensure_single_default_onboarding
   BEFORE INSERT OR UPDATE ON onboarding_templates
   FOR EACH ROW

@@ -30,6 +30,7 @@ import {
   FolderTree,
   Eye
 } from 'lucide-react';
+import { authFetch } from '../../config/api';
 import './UserSyncStatusTable.css';
 
 type SyncStatus = 'pending' | 'syncing' | 'synced' | 'failed' | 'error' | 'skipped';
@@ -100,11 +101,7 @@ const UserSyncStatusTable: React.FC<UserSyncStatusTableProps> = ({
       if (search) params.set('search', search);
       if (statusFilter !== 'all') params.set('status', statusFilter);
 
-      const response = await fetch(`/api/signatures/sync/users?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
-        },
-      });
+      const response = await authFetch(`/api/signatures/sync/users?${params}`);
       const data = await response.json();
 
       if (data.success) {
@@ -138,11 +135,8 @@ const UserSyncStatusTable: React.FC<UserSyncStatusTableProps> = ({
     setError(null);
 
     try {
-      const response = await fetch(`/api/signatures/sync/users/${userId}`, {
+      const response = await authFetch(`/api/signatures/sync/users/${userId}`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
-        },
       });
       const data = await response.json();
 

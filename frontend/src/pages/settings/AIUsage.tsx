@@ -14,6 +14,7 @@ import {
   BarChart3,
   RefreshCw
 } from 'lucide-react';
+import { authFetch } from '../../config/api';
 import './AIUsage.css';
 
 interface UsageStats {
@@ -53,12 +54,7 @@ export function AIUsage({ organizationId: _organizationId }: AIUsageProps) {
   const fetchStats = async () => {
     try {
       setIsRefreshing(true);
-      const token = localStorage.getItem('helios_token');
-      const res = await fetch(`/api/v1/ai/usage?days=${dateRange}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const res = await authFetch(`/api/v1/ai/usage?days=${dateRange}`);
 
       const data = await res.json();
       if (data.success) {

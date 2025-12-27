@@ -129,6 +129,7 @@ CREATE INDEX IF NOT EXISTS idx_user_signature_status_pending
 
 -- Auto-update updated_at for signature_templates
 DROP TRIGGER IF EXISTS trg_signature_templates_updated_at ON signature_templates;
+DROP TRIGGER IF EXISTS trg_signature_templates_updated_at ON PLACEHOLDER;
 CREATE TRIGGER trg_signature_templates_updated_at
     BEFORE UPDATE ON signature_templates
     FOR EACH ROW
@@ -136,6 +137,7 @@ CREATE TRIGGER trg_signature_templates_updated_at
 
 -- Auto-update updated_at for signature_assignments
 DROP TRIGGER IF EXISTS trg_signature_assignments_updated_at ON signature_assignments;
+DROP TRIGGER IF EXISTS trg_signature_assignments_updated_at ON PLACEHOLDER;
 CREATE TRIGGER trg_signature_assignments_updated_at
     BEFORE UPDATE ON signature_assignments
     FOR EACH ROW
@@ -143,6 +145,7 @@ CREATE TRIGGER trg_signature_assignments_updated_at
 
 -- Auto-update updated_at for user_signature_status
 DROP TRIGGER IF EXISTS trg_user_signature_status_updated_at ON user_signature_status;
+DROP TRIGGER IF EXISTS trg_user_signature_status_updated_at ON PLACEHOLDER;
 CREATE TRIGGER trg_user_signature_status_updated_at
     BEFORE UPDATE ON user_signature_status
     FOR EACH ROW
@@ -169,6 +172,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trg_ensure_single_default_signature ON signature_templates;
+DROP TRIGGER IF EXISTS trg_ensure_single_default_signature ON PLACEHOLDER;
 CREATE TRIGGER trg_ensure_single_default_signature
     BEFORE INSERT OR UPDATE OF is_default ON signature_templates
     FOR EACH ROW

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, ChevronDown, RefreshCw, Eye, Code, AlertCircle, Activity, Info } from 'lucide-react';
+import { authFetch } from '../../config/api';
 import './TemplatePreview.css';
 
 interface UserData {
@@ -52,11 +53,7 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/users?per_page=20', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
-        },
-      });
+      const response = await authFetch('/api/users?per_page=20');
       const data = await response.json();
       if (data.success) {
         setUsers(data.data || []);
@@ -79,10 +76,9 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
     setError(null);
 
     try {
-      const response = await fetch('/api/signatures/templates/preview', {
+      const response = await authFetch('/api/signatures/templates/preview', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({

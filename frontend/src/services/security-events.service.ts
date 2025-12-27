@@ -1,4 +1,4 @@
-import { apiPath } from '../config/api';
+import { apiPath, authFetch } from '../config/api';
 
 export type SecurityEvent = {
   id: number;
@@ -36,16 +36,8 @@ export const securityEventsService = {
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.offset) queryParams.append('offset', params.offset.toString());
 
-    const token = localStorage.getItem('helios_token');
-    const response = await fetch(
-      apiPath(`/organization/security-events?${queryParams.toString()}`),
-      {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-      }
+    const response = await authFetch(
+      apiPath(`/organization/security-events?${queryParams.toString()}`)
     );
 
     if (!response.ok) {
@@ -56,15 +48,12 @@ export const securityEventsService = {
   },
 
   async acknowledgeEvent(eventId: number, note?: string): Promise<{ success: boolean; message: string }> {
-    const token = localStorage.getItem('helios_token');
-    const response = await fetch(
+    const response = await authFetch(
       apiPath(`/organization/security-events/${eventId}/acknowledge`),
       {
         method: 'PATCH',
-        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ note }),
       }

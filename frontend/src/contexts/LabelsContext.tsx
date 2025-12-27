@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { ENTITIES, DEFAULT_LABELS } from '../config/entities';
 import type { EntityName } from '../config/entities';
+import { authFetch } from '../config/api';
 
 /**
  * Label set (singular + plural)
@@ -77,23 +78,11 @@ export const LabelsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setIsLoading(true);
       setError(null);
 
-      const token = localStorage.getItem('helios_token');
-      if (!token) {
-        // Not logged in yet - use defaults
-        setLabels(DEFAULT_LABELS);
-        setIsLoading(false);
-        return;
-      }
-
-      const response = await fetch('/api/v1/organization/labels/with-availability', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      const response = await authFetch('/api/v1/organization/labels/with-availability');
 
       if (!response.ok) {
         if (response.status === 401) {
-          // Token invalid - use defaults
+          // Not authenticated - use defaults
           setLabels(DEFAULT_LABELS);
           setIsLoading(false);
           return;
@@ -152,14 +141,14 @@ export const LabelsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     await fetchLabels();
   };
 
-  // Fetch labels on mount and when token/labels change
+  // Fetch labels on mount and when labels/user change
   useEffect(() => {
     fetchLabels();
 
     // Listen for storage events
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'helios_token' || e.key === 'helios_labels_updated') {
-        // Token or labels changed, re-fetch
+      if (e.key === 'helios_user' || e.key === 'helios_labels_updated') {
+        // User or labels changed, re-fetch
         fetchLabels();
       }
     };

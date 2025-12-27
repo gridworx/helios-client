@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Building, MapPin, DollarSign, AlertTriangle, ChevronRight, ChevronDown, Plus, Edit2, Trash2, Users, RefreshCw, X } from 'lucide-react';
+import { authFetch } from '../../config/api';
 import './MasterDataSection.css';
 
 interface MasterDataSectionProps {
@@ -154,14 +155,6 @@ export function MasterDataSection({ organizationId }: MasterDataSectionProps) {
     fetchData();
   }, [activeTab, organizationId]);
 
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('helios_token');
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    };
-  };
-
   const fetchData = async () => {
     setIsLoading(true);
     try {
@@ -187,10 +180,7 @@ export function MasterDataSection({ organizationId }: MasterDataSectionProps) {
   };
 
   const fetchDepartments = async () => {
-    const response = await fetch(
-      `/api/v1/organization/departments`,
-      { headers: getAuthHeaders() }
-    );
+    const response = await authFetch('/api/v1/organization/departments');
     const data = await response.json();
     if (data.success) {
       // Normalize data to handle both camelCase and snake_case from API
@@ -205,10 +195,7 @@ export function MasterDataSection({ organizationId }: MasterDataSectionProps) {
   };
 
   const fetchLocations = async () => {
-    const response = await fetch(
-      `/api/v1/organization/locations`,
-      { headers: getAuthHeaders() }
-    );
+    const response = await authFetch('/api/v1/organization/locations');
     const data = await response.json();
     if (data.success) {
       // Normalize data
@@ -223,10 +210,7 @@ export function MasterDataSection({ organizationId }: MasterDataSectionProps) {
   };
 
   const fetchCostCenters = async () => {
-    const response = await fetch(
-      `/api/v1/organization/cost-centers`,
-      { headers: getAuthHeaders() }
-    );
+    const response = await authFetch('/api/v1/organization/cost-centers');
     const data = await response.json();
     if (data.success) {
       // Normalize data
@@ -240,10 +224,7 @@ export function MasterDataSection({ organizationId }: MasterDataSectionProps) {
   };
 
   const fetchQualityIssues = async () => {
-    const response = await fetch(
-      `/api/v1/organization/data-quality/orphans`,
-      { headers: getAuthHeaders() }
-    );
+    const response = await authFetch('/api/v1/organization/data-quality/orphans');
     const data = await response.json();
     if (data.success) {
       setQualityIssues(data.data);
@@ -355,11 +336,10 @@ export function MasterDataSection({ organizationId }: MasterDataSectionProps) {
     };
 
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `/api/v1/organization/${endpoints[type]}/${id}`,
         {
-          method: 'DELETE',
-          headers: getAuthHeaders()
+          method: 'DELETE'
         }
       );
       const data = await response.json();
@@ -458,9 +438,11 @@ export function MasterDataSection({ organizationId }: MasterDataSectionProps) {
       : `/api/v1/organization/departments`;
 
     try {
-      const response = await fetch(url, {
+      const response = await authFetch(url, {
         method: isEdit ? 'PUT' : 'POST',
-        headers: getAuthHeaders(),
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
           name: departmentForm.name.trim(),
           description: departmentForm.description.trim() || null,
@@ -496,9 +478,11 @@ export function MasterDataSection({ organizationId }: MasterDataSectionProps) {
       : `/api/v1/organization/locations`;
 
     try {
-      const response = await fetch(url, {
+      const response = await authFetch(url, {
         method: isEdit ? 'PUT' : 'POST',
-        headers: getAuthHeaders(),
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
           name: locationForm.name.trim(),
           code: locationForm.code.trim() || null,
@@ -540,9 +524,11 @@ export function MasterDataSection({ organizationId }: MasterDataSectionProps) {
       : `/api/v1/organization/cost-centers`;
 
     try {
-      const response = await fetch(url, {
+      const response = await authFetch(url, {
         method: isEdit ? 'PUT' : 'POST',
-        headers: getAuthHeaders(),
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
           code: costCenterForm.code.trim(),
           name: costCenterForm.name.trim(),

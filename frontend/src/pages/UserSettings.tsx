@@ -13,6 +13,7 @@ import {
   Sun,
   Monitor,
 } from 'lucide-react';
+import { authFetch } from '../config/api';
 import './UserSettings.css';
 
 interface UserSettingsProps {
@@ -159,11 +160,10 @@ export function UserSettings({ organizationId: _organizationId }: UserSettingsPr
     }
 
     try {
-      const response = await fetch('/api/v1/auth/change-password', {
+      const response = await authFetch('/api/v1/auth/change-password', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('helios_token')}`,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           currentPassword: passwordForm.currentPassword,

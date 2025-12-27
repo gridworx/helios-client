@@ -46,6 +46,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trigger_job_titles_updated_at ON job_titles;
+DROP TRIGGER IF EXISTS trigger_job_titles_updated_at ON PLACEHOLDER;
 CREATE TRIGGER trigger_job_titles_updated_at
     BEFORE UPDATE ON job_titles
     FOR EACH ROW

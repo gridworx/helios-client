@@ -176,6 +176,7 @@ ALTER TABLE user_signature_status
 
 -- Auto-update updated_at for signature_campaigns
 DROP TRIGGER IF EXISTS trg_signature_campaigns_updated_at ON signature_campaigns;
+DROP TRIGGER IF EXISTS trg_signature_campaigns_updated_at ON PLACEHOLDER;
 CREATE TRIGGER trg_signature_campaigns_updated_at
     BEFORE UPDATE ON signature_campaigns
     FOR EACH ROW

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { logger } from '../utils/logger.js';
+import { auth } from '../lib/auth.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secure_jwt_secret_key_here';
 
@@ -23,52 +24,109 @@ function isEmployeeUser(isExternalAdmin: boolean | undefined): boolean {
 // Express Request type extensions are defined in types/express.d.ts
 
 /**
- * Middleware to verify JWT token
+ * Try to get user from better-auth session cookie
+ * Returns null if no valid session
  */
-export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
+async function getUserFromSession(req: Request): Promise<{
+  userId: string;
+  email: string;
+  role: string;
+  organizationId: string;
+  isAdmin: boolean;
+  isEmployee: boolean;
+} | null> {
+  try {
+    // Convert Express request to a Headers object for better-auth
+    const headers = new Headers();
+    for (const [key, value] of Object.entries(req.headers)) {
+      if (typeof value === 'string') {
+        headers.set(key, value);
+      } else if (Array.isArray(value)) {
+        value.forEach(v => headers.append(key, v));
+      }
+    }
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Get session from better-auth
+    const session = await auth.api.getSession({ headers });
+
+    if (!session || !session.user) {
+      return null;
+    }
+
+    const user = session.user as any;
+
+    return {
+      userId: user.id,
+      email: user.email,
+      role: user.role || 'user',
+      organizationId: user.organizationId,
+      isAdmin: isAdminRole(user.role || 'user'),
+      isEmployee: isEmployeeUser(user.isExternalAdmin)
+    };
+  } catch (error) {
+    logger.debug('Session auth failed', { error: (error as Error).message });
+    return null;
+  }
+}
+
+/**
+ * Middleware to verify authentication (JWT token or session cookie)
+ *
+ * Supports two authentication methods:
+ * 1. JWT Bearer token in Authorization header (for API keys, legacy)
+ * 2. better-auth session cookie (for frontend, XSS-resistant)
+ */
+export const authenticateToken = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    // Method 1: Check for JWT Bearer token
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+
+      try {
+        const decoded: any = jwt.verify(token, JWT_SECRET);
+
+        if (decoded && decoded.type === 'access') {
+          // Attach user info from JWT
+          req.user = {
+            userId: decoded.userId,
+            email: decoded.email,
+            role: decoded.role,
+            organizationId: decoded.organizationId,
+            isAdmin: isAdminRole(decoded.role),
+            isEmployee: isEmployeeUser(decoded.isExternalAdmin)
+          };
+          next();
+          return;
+        }
+      } catch (jwtError) {
+        // JWT invalid, try session auth below
+        logger.debug('JWT auth failed, trying session', { error: (jwtError as Error).message });
+      }
+    }
+
+    // Method 2: Check for better-auth session cookie
+    const sessionUser = await getUserFromSession(req);
+    if (sessionUser) {
+      req.user = sessionUser;
+      return next();
+    }
+
+    // No valid authentication found
     return res.status(401).json({
       success: false,
       error: 'Authentication required',
-      message: 'No valid authorization token provided'
+      message: 'No valid authorization token or session provided'
     });
-  }
-
-  const token = authHeader.substring(7);
-
-  let decoded: any;
-  try {
-    decoded = jwt.verify(token, JWT_SECRET);
   } catch (error) {
-    return res.status(401).json({
+    logger.error('Auth middleware error', { error: (error as Error).message });
+    return res.status(500).json({
       success: false,
-      error: 'Invalid token',
-      message: 'The provided token is invalid or expired'
+      error: 'Authentication error',
+      message: 'An error occurred during authentication'
     });
   }
-
-  if (!decoded || decoded.type !== 'access') {
-    return res.status(401).json({
-      success: false,
-      error: 'Invalid token',
-      message: 'The provided token is invalid or expired'
-    });
-  }
-
-  // Attach user info to request with access flags
-  // isExternalAdmin comes from the JWT token payload
-  req.user = {
-    userId: decoded.userId,
-    email: decoded.email,
-    role: decoded.role,
-    organizationId: decoded.organizationId,
-    isAdmin: isAdminRole(decoded.role),
-    isEmployee: isEmployeeUser(decoded.isExternalAdmin)
-  };
-
-  next();
 };
 
 /**
@@ -158,11 +216,13 @@ export const requirePlatformOwner = (req: Request, res: Response, next: NextFunc
 };
 
 /**
- * Optional authentication - attaches user if token is valid, but doesn't fail if missing
+ * Optional authentication - attaches user if token/session is valid, but doesn't fail if missing
+ * Supports both JWT tokens and better-auth session cookies.
  */
-export const optionalAuth = (req: Request, res: Response, next: NextFunction) => {
+export const optionalAuth = async (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
 
+  // Method 1: Check for JWT Bearer token
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
 
@@ -178,10 +238,17 @@ export const optionalAuth = (req: Request, res: Response, next: NextFunction) =>
           isAdmin: isAdminRole(decoded.role),
           isEmployee: isEmployeeUser(decoded.isExternalAdmin)
         };
+        return next();
       }
     } catch (error) {
-      // Token invalid, just continue without user
+      // Token invalid, try session auth
     }
+  }
+
+  // Method 2: Check for better-auth session cookie
+  const sessionUser = await getUserFromSession(req);
+  if (sessionUser) {
+    req.user = sessionUser;
   }
 
   next();
@@ -195,53 +262,55 @@ export const requireAuth = authenticateToken;
 /**
  * Middleware to require specific permission/role
  * This middleware also handles authentication, so no need to call requireAuth separately
+ * Supports both JWT tokens and better-auth session cookies.
  */
 export const requirePermission = (permission: string) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    // First, authenticate the token
+  return async (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.headers.authorization;
+    let authenticated = false;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Method 1: Check for JWT Bearer token
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+
+      try {
+        const decoded: any = jwt.verify(token, JWT_SECRET);
+
+        if (decoded && decoded.type === 'access') {
+          req.user = {
+            userId: decoded.userId,
+            email: decoded.email,
+            role: decoded.role,
+            organizationId: decoded.organizationId,
+            isAdmin: isAdminRole(decoded.role),
+            isEmployee: isEmployeeUser(decoded.isExternalAdmin)
+          };
+          authenticated = true;
+        }
+      } catch (error) {
+        // JWT invalid, try session auth
+      }
+    }
+
+    // Method 2: Check for better-auth session cookie
+    if (!authenticated) {
+      const sessionUser = await getUserFromSession(req);
+      if (sessionUser) {
+        req.user = sessionUser;
+        authenticated = true;
+      }
+    }
+
+    if (!authenticated) {
       return res.status(401).json({
         success: false,
         error: 'Authentication required',
-        message: 'No valid authorization token provided'
+        message: 'No valid authorization token or session provided'
       });
     }
-
-    const token = authHeader.substring(7);
-
-    let decoded: any;
-    try {
-      decoded = jwt.verify(token, JWT_SECRET);
-    } catch (error) {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid token',
-        message: 'The provided token is invalid or expired'
-      });
-    }
-
-    if (!decoded || decoded.type !== 'access') {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid token',
-        message: 'The provided token is invalid or expired'
-      });
-    }
-
-    // Attach user info to request
-    req.user = {
-      userId: decoded.userId,
-      email: decoded.email,
-      role: decoded.role,
-      organizationId: decoded.organizationId,
-      isAdmin: isAdminRole(decoded.role),
-      isEmployee: isEmployeeUser(decoded.isExternalAdmin)
-    };
 
     // Now check permission
-    if (permission === 'admin' && !req.user.isAdmin) {
+    if (permission === 'admin' && !req.user!.isAdmin) {
       return res.status(403).json({
         success: false,
         error: 'Insufficient permissions',

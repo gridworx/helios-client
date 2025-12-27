@@ -97,8 +97,27 @@
 
 /* User Table */
 .user-table {
-  /* No styling - will be styled by parent card */
+  /* Enable horizontal scroll when content overflows */
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Table header and rows use flexbox with consistent column sizing */
+.table-header,
+.table-row {
+  display: flex;
+  align-items: center;
+  min-width: 800px;
+}
+
+/* Base column styling - all columns are flex items with no grow/shrink */
+.table-header > div,
+.table-row > div {
+  flex: 0 0 auto;
+  box-sizing: border-box;
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Bulk Action Bar */
@@ -208,8 +227,6 @@
 }
 
 .table-header {
-  display: flex;
-  align-items: center;
   padding: 8px 16px;
   background: #fafbfc;
   border-bottom: 1px solid #e5e7eb;
@@ -220,7 +237,7 @@
   letter-spacing: 0.05em;
   height: 36px;
   position: relative;
-  gap: 12px;
+  gap: 0; /* No gap - use margin on columns instead for consistency */
 }
 
 /* Edit Columns Button - Far right in table header */
@@ -257,15 +274,13 @@
 }
 
 .table-row {
-  display: flex;
-  align-items: center;
   padding: 0 16px;
   border-bottom: 1px solid #f5f5f5;
   transition: background 0.1s ease;
   height: 48px;
   min-height: 48px;
   max-height: 48px;
-  gap: 12px;
+  gap: 0; /* No gap - use margin on columns instead for consistency */
 }
 
 .table-row.clickable {
@@ -284,24 +299,34 @@
   background: #ede9fe;
 }
 
-/* Column Widths - Flexbox */
+/* Column Widths - Fixed widths with consistent spacing */
+/* All columns use flex: 0 0 <width> via base styles, plus margin for spacing */
+
 .col-checkbox {
   width: 36px;
-  flex-shrink: 0;
+  margin-right: 12px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
 }
 
-/* User Column */
+/* Name Columns - Fixed width to fit typical names */
+.col-first-name,
+.col-last-name {
+  width: 100px;
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+}
+
+/* Legacy User Column (combined name) */
 .col-user {
-  min-width: 140px;
-  flex: 1;
+  width: 160px;
+  margin-right: 12px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 2px;
-  overflow: hidden;
 }
 
 .user-info {
@@ -345,25 +370,20 @@
   line-height: 1.2;
 }
 
-/* Email Column */
+/* Email Column - Fixed width, typical email is ~25 chars */
 .col-email {
-  min-width: 180px;
-  flex: 1.5;
+  width: 200px;
+  margin-right: 12px;
   color: #6b7280;
   font-size: 13px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* Platform Column */
 .col-platforms {
   width: 80px;
-  min-width: 80px;
-  flex-shrink: 0;
+  margin-right: 12px;
   display: flex;
   align-items: center;
-  padding-right: 12px;
 }
 
 .platform-icons {
@@ -490,59 +510,100 @@
 /* Last Login Column */
 .col-last-login {
   width: 100px;
-  flex-shrink: 0;
+  margin-right: 12px;
   color: #9ca3af;
-  font-size: 12px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 500;
 }
 
-/* Department, Company, etc. */
+/* Department, Company columns - fixed width */
 .col-department,
 .col-company {
-  min-width: 100px;
-  flex: 0.8;
+  width: 120px;
+  margin-right: 12px;
   color: #6b7280;
   font-size: 13px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
+/* Phone, Title, Expires, Added Date - standard fixed width */
 .col-phone,
 .col-title,
 .col-expires,
 .col-added-date {
   width: 100px;
-  flex-shrink: 0;
+  margin-right: 12px;
   color: #6b7280;
   font-size: 13px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+/* Job Title column - wider for longer titles */
+.col-job-title {
+  width: 140px;
+  margin-right: 12px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+/* Location column */
+.col-location {
+  width: 120px;
+  margin-right: 12px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+/* Employee Type column - wider to fit "Employee Type" header */
+.col-employee-type {
+  width: 115px;
+  margin-right: 12px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+/* Employee ID, Cost Center - standard width */
+.col-employee-id,
+.col-cost-center {
+  width: 100px;
+  margin-right: 12px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+/* Date columns - consistent width for dates */
+.col-start-date,
+.col-created-at {
+  width: 95px;
+  margin-right: 12px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+/* Source column */
+.col-source {
+  width: 80px;
+  margin-right: 12px;
+  color: #6b7280;
+  font-size: 13px;
 }
 
 .col-role {
   width: 80px;
-  flex-shrink: 0;
+  margin-right: 12px;
   display: flex;
   align-items: center;
 }
 
 .col-status {
   width: 100px;
-  min-width: 100px;
-  flex-shrink: 0;
+  margin-right: 12px;
   display: flex;
   align-items: center;
-  padding-left: 8px;
 }
 
-/* Actions Column */
+/* Actions Column - no right margin, last column */
 .col-actions {
   width: 48px;
-  flex-shrink: 0;
+  margin-left: auto; /* Push to right edge */
   position: relative;
 }
 
@@ -709,12 +770,7 @@
   color: #666;
 }
 
-/* Last Login Status */
-.col-last-login {
-  font-size: 13px;
-  font-weight: 500;
-}
-
+/* Last Login Status Colors */
 .login-recent {
   color: #059669;
   font-weight: 600;

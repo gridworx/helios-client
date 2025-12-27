@@ -26,7 +26,8 @@ import {
   RefreshCw,
   AlertTriangle
 } from 'lucide-react';
-import { Toggle } from '../ui';
+import { ToggleSwitch } from '@/components/ui';
+import { authFetch } from '../../config/api';
 
 type AIRole = 'viewer' | 'operator' | 'admin';
 import './AISettings.css';
@@ -198,10 +199,7 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
   const fetchConfig = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch('/api/v1/ai/config', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await authFetch('/api/v1/ai/config');
 
       const data = await response.json();
       if (data.success && data.data.isConfigured) {
@@ -250,10 +248,7 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
 
   const fetchUsage = async () => {
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch('/api/v1/ai/usage?days=30', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await authFetch('/api/v1/ai/usage?days=30');
 
       const data = await response.json();
       if (data.success) {
@@ -269,16 +264,14 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
     setTestResult(null);
 
     try {
-      const token = localStorage.getItem('helios_token');
       const endpoint = type === 'primary' ? primaryEndpointUrl : fallbackEndpointUrl;
       const apiKey = type === 'primary' ? primaryApiKey : fallbackApiKey;
       const model = type === 'primary' ? primaryModel : fallbackModel;
 
-      const response = await fetch('/api/v1/ai/test-connection', {
+      const response = await authFetch('/api/v1/ai/test-connection', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ endpoint, apiKey: apiKey || undefined, model })
       });
@@ -301,7 +294,6 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
     setSuccessMessage(null);
 
     try {
-      const token = localStorage.getItem('helios_token');
       const config: Record<string, any> = {
         isEnabled,
         primaryEndpointUrl,
@@ -343,11 +335,10 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
         config.toolCallModel = null;
       }
 
-      const response = await fetch('/api/v1/ai/config', {
+      const response = await authFetch('/api/v1/ai/config', {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(config)
       });
@@ -377,10 +368,7 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
     setLoadingModels(true);
     setModelsError(null);
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch('/api/v1/ai/models', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await authFetch('/api/v1/ai/models');
 
       const data = await response.json();
       if (data.success) {
@@ -404,12 +392,10 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
     setTestingTools(true);
     setToolTestResult(null);
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch('/api/v1/ai/test-tools', {
+      const response = await authFetch('/api/v1/ai/test-tools', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           endpoint: primaryEndpointUrl,
@@ -470,10 +456,9 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
               <p>Allow users to interact with an AI assistant powered by your choice of LLM provider</p>
             </div>
           </div>
-          <Toggle
+          <ToggleSwitch
             checked={isEnabled}
             onChange={setIsEnabled}
-            size="medium"
           />
         </div>
       </div>

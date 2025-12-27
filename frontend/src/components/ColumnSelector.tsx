@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Check, GripVertical } from 'lucide-react';
+import { X, Check, GripVertical, AlertCircle } from 'lucide-react';
 import './ColumnSelector.css';
 
 export interface ColumnConfig {
@@ -15,14 +15,19 @@ interface ColumnSelectorProps {
   columns: ColumnConfig[];
   onColumnsChange: (columns: ColumnConfig[]) => void;
   storageKey?: string; // localStorage key for persistence
+  maxColumns?: number; // Maximum number of visible columns (default: 8)
 }
+
+// Industry standard: most admin tools limit to 6-8 visible columns
+const DEFAULT_MAX_COLUMNS = 8;
 
 export function ColumnSelector({
   isOpen,
   onClose,
   columns,
   onColumnsChange,
-  storageKey = 'helios_user_columns'
+  storageKey = 'helios_user_columns',
+  maxColumns = DEFAULT_MAX_COLUMNS
 }: ColumnSelectorProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [localColumns, setLocalColumns] = useState<ColumnConfig[]>(columns);
@@ -72,6 +77,11 @@ export function ColumnSelector({
     const column = localColumns.find(c => c.key === key);
     if (!column || column.required) return;
 
+    // Prevent adding more columns if at max limit
+    if (!column.visible && visibleCount >= maxColumns) {
+      return;
+    }
+
     const updatedColumns = localColumns.map(col =>
       col.key === key ? { ...col, visible: !col.visible } : col
     );
@@ -89,10 +99,15 @@ export function ColumnSelector({
     }
   };
 
+  const visibleCount = localColumns.filter(c => c.visible).length;
+  const atMaxColumns = visibleCount >= maxColumns;
+
   const resetToDefaults = () => {
-    const defaultColumns = columns.map(col => ({
+    // Reset to initial defaults (respecting max columns)
+    const defaultVisibleKeys = ['firstName', 'lastName', 'email', 'department', 'role', 'platforms', 'status', 'lastLogin'];
+    const defaultColumns: ColumnConfig[] = columns.map(col => ({
       ...col,
-      visible: true
+      visible: defaultVisibleKeys.includes(col.key) || col.required === true
     }));
     setLocalColumns(defaultColumns);
     onColumnsChange(defaultColumns);
@@ -101,9 +116,6 @@ export function ColumnSelector({
       localStorage.removeItem(storageKey);
     }
   };
-
-  const visibleCount = localColumns.filter(c => c.visible).length;
-  const totalCount = localColumns.length;
 
   if (!isOpen) return null;
 
@@ -122,33 +134,43 @@ export function ColumnSelector({
       </div>
 
       <div className="column-selector-info">
-        <span>{visibleCount} of {totalCount} columns visible</span>
+        <span>{visibleCount} of {maxColumns} max columns</span>
       </div>
 
+      {atMaxColumns && (
+        <div className="column-selector-warning">
+          <AlertCircle size={14} />
+          <span>Maximum {maxColumns} columns. Hide one to add another.</span>
+        </div>
+      )}
+
       <div className="column-selector-list">
-        {localColumns.map(column => (
-          <label
-            key={column.key}
-            className={`column-item ${column.visible ? 'visible' : ''} ${column.required ? 'required' : ''}`}
-          >
-            <div className="column-item-left">
-              <GripVertical size={14} className="drag-handle" />
-              <input
-                type="checkbox"
-                checked={column.visible}
-                onChange={() => handleToggleColumn(column.key)}
-                disabled={column.required}
-              />
-              <span className="column-label">{column.label}</span>
-            </div>
-            {column.required && (
-              <span className="required-badge">Required</span>
-            )}
-            {column.visible && !column.required && (
-              <Check size={14} className="check-icon" />
-            )}
-          </label>
-        ))}
+        {localColumns.map(column => {
+          const isDisabled = column.required || (atMaxColumns && !column.visible);
+          return (
+            <label
+              key={column.key}
+              className={`column-item ${column.visible ? 'visible' : ''} ${column.required ? 'required' : ''} ${isDisabled && !column.visible ? 'disabled' : ''}`}
+            >
+              <div className="column-item-left">
+                <GripVertical size={14} className="drag-handle" />
+                <input
+                  type="checkbox"
+                  checked={column.visible}
+                  onChange={() => handleToggleColumn(column.key)}
+                  disabled={isDisabled}
+                />
+                <span className="column-label">{column.label}</span>
+              </div>
+              {column.required && (
+                <span className="required-badge">Required</span>
+              )}
+              {column.visible && !column.required && (
+                <Check size={14} className="check-icon" />
+              )}
+            </label>
+          );
+        })}
       </div>
     </div>
   );

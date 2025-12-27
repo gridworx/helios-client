@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Image, FileText, Video, Music, Paperclip, Upload, Search, RefreshCw, Package, Eye, Copy, Trash2, X, FolderOpen, Plus, Loader } from 'lucide-react';
 import './PublicAssets.css';
+import { authFetch } from '../config/api';
 
 interface Asset {
   id: string;
@@ -58,12 +59,7 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
       setIsLoading(true);
       setError(null);
 
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch('/api/v1/public-files', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await authFetch('/api/v1/public-files');
 
       if (response.ok) {
         const data = await response.json();
@@ -147,12 +143,8 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
       if (moduleSource) formData.append('module_source', moduleSource);
       if (tags.length > 0) formData.append('tags', JSON.stringify(tags));
 
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch('/api/v1/public-files/upload', {
+      const response = await authFetch('/api/v1/public-files/upload', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
         body: formData
       });
 
@@ -190,12 +182,8 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
     }
 
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(`/api/v1/public-files/${asset.id}`, {
+      const response = await authFetch(`/api/v1/public-files/${asset.id}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
       });
 
       const data = await response.json();

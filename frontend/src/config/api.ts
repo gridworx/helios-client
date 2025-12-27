@@ -87,3 +87,64 @@ export function wsUrl(path: string): string {
  * fetch(api('/auth/login'))      // fetches /api/v1/auth/login
  */
 export const api = apiPath;
+
+/**
+ * Authenticated fetch wrapper
+ *
+ * Automatically includes credentials for session-based authentication.
+ * Uses httpOnly session cookies - no tokens stored in localStorage.
+ *
+ * @param url - The URL to fetch (can use api() helper)
+ * @param options - Standard fetch options
+ * @returns Promise<Response>
+ *
+ * @example
+ * // Simple GET request
+ * const response = await authFetch(api('/users'));
+ *
+ * // POST with JSON body
+ * const response = await authFetch(api('/users'), {
+ *   method: 'POST',
+ *   headers: { 'Content-Type': 'application/json' },
+ *   body: JSON.stringify({ name: 'John' })
+ * });
+ */
+export async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const { headers = {}, ...restOptions } = options;
+
+  return fetch(url, {
+    ...restOptions,
+    credentials: 'include', // Always send session cookies
+    headers: {
+      ...headers,
+    },
+  });
+}
+
+/**
+ * Authenticated JSON fetch wrapper
+ *
+ * Like authFetch but automatically sets Content-Type to application/json
+ * and parses the response as JSON.
+ *
+ * @param url - The URL to fetch
+ * @param options - Standard fetch options
+ * @returns Promise with parsed JSON data
+ *
+ * @example
+ * const { success, data } = await authFetchJson(api('/users'));
+ */
+export async function authFetchJson<T = any>(url: string, options: RequestInit = {}): Promise<T> {
+  const { headers = {}, ...restOptions } = options;
+
+  const response = await fetch(url, {
+    ...restOptions,
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...headers,
+    },
+  });
+
+  return response.json();
+}

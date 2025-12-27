@@ -11,7 +11,7 @@ import {
   Smartphone,
   Tablet,
 } from 'lucide-react';
-import { apiPath } from '../../config/api';
+import { apiPath, authFetch } from '../../config/api';
 import { EngagementChart } from '../../components/charts/EngagementChart';
 import './TeamAnalytics.css';
 
@@ -75,23 +75,11 @@ export const TeamAnalytics: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const token = localStorage.getItem('helios_token');
-      if (!token) {
-        setError('Not authenticated');
-        return;
-      }
-
       // Fetch all data in parallel
       const [statsRes, devicesRes, peakRes] = await Promise.all([
-        fetch(apiPath(`/admin/tracking/organization-stats?days=${days}`), {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(apiPath(`/admin/tracking/devices?days=${days}`), {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(apiPath(`/admin/tracking/peak-hours?days=${days}`), {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+        authFetch(apiPath(`/admin/tracking/organization-stats?days=${days}`)),
+        authFetch(apiPath(`/admin/tracking/devices?days=${days}`)),
+        authFetch(apiPath(`/admin/tracking/peak-hours?days=${days}`)),
       ]);
 
       if (!statsRes.ok) {

@@ -3,6 +3,7 @@ import { Tag, RotateCcw, Save, Loader, AlertCircle, CheckCircle, Info } from 'lu
 import { useLabels } from '../../contexts/LabelsContext';
 import { ENTITIES, ENTITY_METADATA, DEFAULT_LABELS } from '../../config/entities';
 import type { EntityName } from '../../config/entities';
+import { authFetch } from '../../config/api';
 import './EntityLabelSettings.css';
 
 interface EntityLabelSettingsProps {
@@ -73,12 +74,10 @@ export function EntityLabelSettings({ isAdmin }: EntityLabelSettingsProps) {
     setErrorMessage('');
 
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch('/api/v1/organization/labels', {
+      const response = await authFetch('/api/v1/organization/labels', {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ labels: editedLabels }),
       });
@@ -112,12 +111,8 @@ export function EntityLabelSettings({ isAdmin }: EntityLabelSettingsProps) {
     setErrorMessage('');
 
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch('/api/v1/organization/labels/reset', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+      const response = await authFetch('/api/v1/organization/labels/reset', {
+        method: 'POST'
       });
 
       const data = await response.json();

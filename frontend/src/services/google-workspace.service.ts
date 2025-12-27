@@ -1,4 +1,4 @@
-import { apiPath } from '../config/api';
+import { apiPath, authFetch } from '../config/api';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -25,20 +25,9 @@ interface OrgUnit {
 }
 
 class GoogleWorkspaceService {
-  private getAuthHeaders() {
-    const token = localStorage.getItem('helios_token');
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    };
-  }
-
   async getGroups(organizationId: string): Promise<ApiResponse<{ groups: Group[] }>> {
     try {
-      const response = await fetch(apiPath(`/google-workspace/groups/${organizationId}`), {
-        method: 'GET',
-        headers: this.getAuthHeaders()
-      });
+      const response = await authFetch(apiPath(`/google-workspace/groups/${organizationId}`));
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -56,9 +45,9 @@ class GoogleWorkspaceService {
 
   async syncGroups(organizationId: string): Promise<ApiResponse<{ count: number; groups: Group[] }>> {
     try {
-      const response = await fetch(apiPath('/google-workspace/sync-groups'), {
+      const response = await authFetch(apiPath('/google-workspace/sync-groups'), {
         method: 'POST',
-        headers: this.getAuthHeaders(),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ organizationId })
       });
 
@@ -78,10 +67,7 @@ class GoogleWorkspaceService {
 
   async getOrgUnits(organizationId: string): Promise<ApiResponse<{ orgUnits: OrgUnit[] }>> {
     try {
-      const response = await fetch(apiPath(`/google-workspace/org-units/${organizationId}`), {
-        method: 'GET',
-        headers: this.getAuthHeaders()
-      });
+      const response = await authFetch(apiPath(`/google-workspace/org-units/${organizationId}`));
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -99,9 +85,9 @@ class GoogleWorkspaceService {
 
   async syncOrgUnits(organizationId: string): Promise<ApiResponse<{ count: number; orgUnits: OrgUnit[] }>> {
     try {
-      const response = await fetch(apiPath('/google-workspace/sync-org-units'), {
+      const response = await authFetch(apiPath('/google-workspace/sync-org-units'), {
         method: 'POST',
-        headers: this.getAuthHeaders(),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ organizationId })
       });
 
@@ -121,10 +107,7 @@ class GoogleWorkspaceService {
 
   async getCachedGroups(organizationId: string): Promise<ApiResponse<any>> {
     try {
-      const response = await fetch(apiPath(`/google-workspace/cached-groups/${organizationId}`), {
-        method: 'GET',
-        headers: this.getAuthHeaders()
-      });
+      const response = await authFetch(apiPath(`/google-workspace/cached-groups/${organizationId}`));
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

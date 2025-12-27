@@ -194,6 +194,7 @@ $$ LANGUAGE plpgsql;
 
 -- Create trigger on organization_users table
 DROP TRIGGER IF EXISTS trigger_create_user_tracking ON organization_users;
+DROP TRIGGER IF EXISTS trigger_create_user_tracking ON PLACEHOLDER;
 CREATE TRIGGER trigger_create_user_tracking
     AFTER INSERT ON organization_users
     FOR EACH ROW

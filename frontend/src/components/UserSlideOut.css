@@ -223,44 +223,64 @@
   font-weight: 600;
 }
 
-/* Info Grid - Single column list layout for user profile fields */
+/* Info Grid - Two-column grid layout for user profile fields */
 .slideout-panel .info-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  margin-bottom: 2rem;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
   background: #f9fafb;
   border-radius: 8px;
-  padding: 0.5rem 1rem;
+  padding: 1rem 1.25rem;
 }
 
 .info-item {
   display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #f3f4f6;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
-.info-item:last-child {
-  border-bottom: none;
+/* Full-width items (like email) can span both columns */
+.info-item.full-width {
+  grid-column: span 2;
 }
 
 .info-item label {
-  font-size: 0.8125rem;
-  font-weight: 500;
+  font-size: 0.6875rem;
+  font-weight: 600;
   color: #6b7280;
-  flex-shrink: 0;
-  min-width: 100px;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
 }
 
 .info-item > div {
   font-size: 0.9375rem;
   color: #1f2937;
-  text-align: right;
+  font-weight: 500;
   word-break: break-word;
+}
+
+.info-item > div:empty::before {
+  content: '-';
+  color: #9ca3af;
+}
+
+/* Input styling in edit mode */
+.info-item input,
+.info-item select {
+  padding: 0.375rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #d1d5db;
+  font-size: 0.875rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.info-item input:focus,
+.info-item select:focus {
+  outline: none;
+  border-color: var(--theme-primary, #8b5cf6);
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1);
 }
 
 /* Role Badge */

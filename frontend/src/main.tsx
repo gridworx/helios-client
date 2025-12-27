@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import './styles/tokens.css'  // Design tokens - must load before themes
 import './styles/themes.css'
 import './styles/cards.css'
 import App from './App.tsx'

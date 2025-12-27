@@ -88,6 +88,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trigger_update_feature_flags_updated_at ON feature_flags;
+DROP TRIGGER IF EXISTS trigger_update_feature_flags_updated_at ON PLACEHOLDER;
 CREATE TRIGGER trigger_update_feature_flags_updated_at
     BEFORE UPDATE ON feature_flags
     FOR EACH ROW

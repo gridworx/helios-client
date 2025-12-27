@@ -158,6 +158,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS tr_media_assets_set_token ON media_assets;
+DROP TRIGGER IF EXISTS tr_media_assets_set_token ON PLACEHOLDER;
 CREATE TRIGGER tr_media_assets_set_token
   BEFORE INSERT ON media_assets
   FOR EACH ROW
@@ -167,18 +168,21 @@ CREATE TRIGGER tr_media_assets_set_token
 -- Triggers to update updated_at timestamp
 -- ============================================================================
 DROP TRIGGER IF EXISTS tr_media_assets_updated_at ON media_assets;
+DROP TRIGGER IF EXISTS tr_media_assets_updated_at ON PLACEHOLDER;
 CREATE TRIGGER tr_media_assets_updated_at
   BEFORE UPDATE ON media_assets
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
 DROP TRIGGER IF EXISTS tr_media_asset_folders_updated_at ON media_asset_folders;
+DROP TRIGGER IF EXISTS tr_media_asset_folders_updated_at ON PLACEHOLDER;
 CREATE TRIGGER tr_media_asset_folders_updated_at
   BEFORE UPDATE ON media_asset_folders
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
 DROP TRIGGER IF EXISTS tr_media_asset_settings_updated_at ON media_asset_settings;
+DROP TRIGGER IF EXISTS tr_media_asset_settings_updated_at ON PLACEHOLDER;
 CREATE TRIGGER tr_media_asset_settings_updated_at
   BEFORE UPDATE ON media_asset_settings
   FOR EACH ROW

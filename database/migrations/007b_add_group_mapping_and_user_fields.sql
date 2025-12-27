@@ -113,11 +113,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS platform_integrations_updated_at ON PLACEHOLDER;
 CREATE TRIGGER platform_integrations_updated_at
     BEFORE UPDATE ON platform_integrations
     FOR EACH ROW
     EXECUTE FUNCTION update_platform_integrations_updated_at();
 
+DROP TRIGGER IF EXISTS user_platform_ids_updated_at ON PLACEHOLDER;
 CREATE TRIGGER user_platform_ids_updated_at
     BEFORE UPDATE ON user_platform_ids
     FOR EACH ROW

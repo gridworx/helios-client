@@ -25,6 +25,7 @@ import {
   Loader2,
   Eye
 } from 'lucide-react';
+import { authFetch } from '../../config/api';
 import './UserSignatureStatus.css';
 
 type AssignmentSource = 'user' | 'group' | 'dynamic_group' | 'department' | 'ou' | 'organization' | null;
@@ -100,11 +101,7 @@ const UserSignatureStatus: React.FC<UserSignatureStatusProps> = ({
     setError(null);
     try {
       // Fetch effective signature assignment
-      const effectiveRes = await fetch(`/api/signatures/v2/assignments/user/${userId}/effective`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
-        },
-      });
+      const effectiveRes = await authFetch(`/api/signatures/v2/assignments/user/${userId}/effective`);
       const effectiveData = await effectiveRes.json();
 
       if (effectiveData.success) {
@@ -112,11 +109,7 @@ const UserSignatureStatus: React.FC<UserSignatureStatusProps> = ({
       }
 
       // Also fetch user signature status from the v1 API
-      const statusRes = await fetch(`/api/signatures/users/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
-        },
-      });
+      const statusRes = await authFetch(`/api/signatures/users/${userId}`);
       const statusData = await statusRes.json();
 
       if (statusData.success && statusData.data) {
@@ -151,11 +144,8 @@ const UserSignatureStatus: React.FC<UserSignatureStatusProps> = ({
     setSyncing(true);
     setError(null);
     try {
-      const response = await fetch(`/api/signatures/users/${userId}/sync`, {
+      const response = await authFetch(`/api/signatures/users/${userId}/sync`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('helios_token')}`,
-        },
       });
       const data = await response.json();
 

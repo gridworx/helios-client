@@ -5,7 +5,7 @@
  * Supports calendar and list views, filtering, cancellation, and approval workflows.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Calendar,
   List,
@@ -24,51 +24,21 @@ import {
   X,
   Check,
   Eye,
+  Loader2,
 } from 'lucide-react';
+import { DataTable, createColumnHelper } from '../../components/ui/DataTable';
+import {
+  useScheduledActions,
+  useActionLogs,
+  useCancelAction,
+  useApproveAction,
+  useRejectAction,
+} from '../../hooks/queries/useScheduledActions';
+import type { ScheduledAction } from '../../hooks/queries/useScheduledActions';
 import ActionTimeline from '../../components/lifecycle/ActionTimeline';
 import './ScheduledActions.css';
 
-// Types
-interface ScheduledAction {
-  id: string;
-  userId?: string;
-  targetEmail?: string;
-  targetFirstName?: string;
-  targetLastName?: string;
-  actionType: 'onboard' | 'offboard' | 'suspend' | 'unsuspend' | 'delete' | 'restore' | 'manual';
-  onboardingTemplateId?: string;
-  offboardingTemplateId?: string;
-  templateName?: string;
-  scheduledFor: string;
-  isRecurring: boolean;
-  recurrenceInterval?: 'daily' | 'weekly' | 'monthly';
-  status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled';
-  totalSteps: number;
-  completedSteps: number;
-  currentStep?: string;
-  errorMessage?: string;
-  requiresApproval: boolean;
-  approvedBy?: string;
-  approvedAt?: string;
-  rejectedBy?: string;
-  rejectedAt?: string;
-  rejectionReason?: string;
-  createdBy?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface ActionLog {
-  id: string;
-  actionStep: string;
-  stepDescription?: string;
-  stepOrder: number;
-  status: 'success' | 'failed' | 'pending' | 'skipped' | 'warning';
-  durationMs?: number;
-  errorMessage?: string;
-  executedAt?: string;
-  details?: Record<string, unknown>;
-}
+const columnHelper = createColumnHelper<ScheduledAction>();
 
 interface ScheduledActionsProps {
   organizationId: string;
@@ -93,140 +63,83 @@ const statusConfig: Record<string, { label: string; color: string; bgColor: stri
   cancelled: { label: 'Cancelled', color: '#6b7280', bgColor: '#f3f4f6' },
 };
 
-const ScheduledActions: React.FC<ScheduledActionsProps> = ({ organizationId }) => {
+// Get action type icon
+const getActionIcon = (type: string) => {
+  switch (type) {
+    case 'onboard':
+      return <UserPlus size={16} />;
+    case 'offboard':
+      return <UserMinus size={16} />;
+    case 'suspend':
+      return <Pause size={16} />;
+    case 'unsuspend':
+      return <Play size={16} />;
+    case 'delete':
+      return <Trash2 size={16} />;
+    default:
+      return <Clock size={16} />;
+  }
+};
+
+// Get status icon
+const getStatusIcon = (status: string) => {
+  switch (status) {
+    case 'completed':
+      return <CheckCircle size={14} />;
+    case 'failed':
+      return <XCircle size={14} />;
+    case 'cancelled':
+      return <X size={14} />;
+    case 'in_progress':
+      return <RefreshCw size={14} className="animate-spin" />;
+    default:
+      return <Clock size={14} />;
+  }
+};
+
+const ScheduledActions: React.FC<ScheduledActionsProps> = ({ organizationId: _organizationId }) => {
   // State
-  const [actions, setActions] = useState<ScheduledAction[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterType, setFilterType] = useState<string>('all');
   const [selectedAction, setSelectedAction] = useState<ScheduledAction | null>(null);
-  const [actionLogs, setActionLogs] = useState<ActionLog[]>([]);
-  const [logsLoading, setLogsLoading] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState('');
-  const [cancelLoading, setCancelLoading] = useState(false);
   const [showApprovalModal, setShowApprovalModal] = useState<{ id: string; type: 'approve' | 'reject' } | null>(null);
   const [approvalNotes, setApprovalNotes] = useState('');
-  const [approvalLoading, setApprovalLoading] = useState(false);
 
-  // Fetch scheduled actions
-  const fetchActions = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const token = localStorage.getItem('helios_token');
-      const params = new URLSearchParams();
-      if (filterStatus !== 'all') params.append('status', filterStatus);
-      if (filterType !== 'all') params.append('actionType', filterType);
+  // TanStack Query hooks
+  const { data: actions = [], isLoading, error, refetch } = useScheduledActions({
+    status: filterStatus,
+    actionType: filterType,
+    search: searchQuery,
+  });
 
-      const response = await fetch(
-        `/api/v1/lifecycle/scheduled-actions?${params}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+  const { data: actionLogs = [], isLoading: logsLoading } = useActionLogs(selectedAction?.id || null);
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch scheduled actions');
-      }
-
-      const data = await response.json();
-      if (data.success) {
-        setActions(data.data || []);
-      } else {
-        throw new Error(data.error || 'Failed to fetch scheduled actions');
-      }
-    } catch (err: any) {
-      console.error('Error fetching actions:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch action logs
-  const fetchActionLogs = async (actionId: string) => {
-    setLogsLoading(true);
-    try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
-        `/api/v1/lifecycle/logs?actionId=${actionId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch action logs');
-      }
-
-      const data = await response.json();
-      if (data.success) {
-        setActionLogs(data.data || []);
-      }
-    } catch (err: any) {
-      console.error('Error fetching action logs:', err);
-    } finally {
-      setLogsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchActions();
-  }, [organizationId, filterStatus, filterType]);
+  const cancelMutation = useCancelAction();
+  const approveMutation = useApproveAction();
+  const rejectMutation = useRejectAction();
 
   // Handle action selection
   const handleSelectAction = (action: ScheduledAction) => {
     setSelectedAction(action);
-    fetchActionLogs(action.id);
   };
 
   // Cancel action
   const handleCancelAction = async () => {
     if (!showCancelModal) return;
 
-    setCancelLoading(true);
     try {
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(
-        `/api/v1/lifecycle/scheduled-actions/${showCancelModal}`,
-        {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ reason: cancelReason }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to cancel action');
-      }
-
-      // Refresh actions list
-      fetchActions();
+      await cancelMutation.mutateAsync({ actionId: showCancelModal, reason: cancelReason });
       setShowCancelModal(null);
       setCancelReason('');
-
-      // If this was the selected action, close the detail panel
       if (selectedAction?.id === showCancelModal) {
         setSelectedAction(null);
       }
-    } catch (err: any) {
-      console.error('Error cancelling action:', err);
-      setError(err.message);
-    } finally {
-      setCancelLoading(false);
+    } catch (err) {
+      // Error handled by mutation
     }
   };
 
@@ -234,108 +147,181 @@ const ScheduledActions: React.FC<ScheduledActionsProps> = ({ organizationId }) =
   const handleApprovalAction = async () => {
     if (!showApprovalModal) return;
 
-    setApprovalLoading(true);
     try {
-      const token = localStorage.getItem('helios_token');
-      const endpoint =
-        showApprovalModal.type === 'approve'
-          ? `/api/v1/lifecycle/scheduled-actions/${showApprovalModal.id}/approve`
-          : `/api/v1/lifecycle/scheduled-actions/${showApprovalModal.id}/reject`;
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(
-          showApprovalModal.type === 'approve'
-            ? { notes: approvalNotes }
-            : { reason: approvalNotes }
-        ),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to ${showApprovalModal.type} action`);
+      if (showApprovalModal.type === 'approve') {
+        await approveMutation.mutateAsync({ actionId: showApprovalModal.id, notes: approvalNotes });
+      } else {
+        await rejectMutation.mutateAsync({ actionId: showApprovalModal.id, reason: approvalNotes });
       }
-
-      // Refresh actions list
-      fetchActions();
       setShowApprovalModal(null);
       setApprovalNotes('');
-    } catch (err: any) {
-      console.error('Error with approval action:', err);
-      setError(err.message);
-    } finally {
-      setApprovalLoading(false);
+    } catch (err) {
+      // Error handled by mutation
     }
   };
-
-  // Filter actions
-  const filteredActions = actions.filter((action) => {
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const targetName = `${action.targetFirstName || ''} ${action.targetLastName || ''}`.toLowerCase();
-      if (
-        !targetName.includes(query) &&
-        !action.targetEmail?.toLowerCase().includes(query)
-      ) {
-        return false;
-      }
-    }
-    return true;
-  });
 
   // Group actions by date for calendar view
-  const actionsByDate = filteredActions.reduce((acc, action) => {
-    const date = new Date(action.scheduledFor).toDateString();
-    if (!acc[date]) {
-      acc[date] = [];
-    }
-    acc[date].push(action);
-    return acc;
-  }, {} as Record<string, ScheduledAction[]>);
+  const actionsByDate = useMemo(() => {
+    return actions.reduce((acc, action) => {
+      const date = new Date(action.scheduledFor).toDateString();
+      if (!acc[date]) {
+        acc[date] = [];
+      }
+      acc[date].push(action);
+      return acc;
+    }, {} as Record<string, ScheduledAction[]>);
+  }, [actions]);
 
-  // Get action type icon
-  const getActionIcon = (type: string) => {
-    switch (type) {
-      case 'onboard':
-        return <UserPlus size={16} />;
-      case 'offboard':
-        return <UserMinus size={16} />;
-      case 'suspend':
-        return <Pause size={16} />;
-      case 'unsuspend':
-        return <Play size={16} />;
-      case 'delete':
-        return <Trash2 size={16} />;
-      default:
-        return <Clock size={16} />;
-    }
-  };
-
-  // Get status icon
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle size={14} />;
-      case 'failed':
-        return <XCircle size={14} />;
-      case 'cancelled':
-        return <X size={14} />;
-      case 'in_progress':
-        return <RefreshCw size={14} className="animate-spin" />;
-      default:
-        return <Clock size={14} />;
-    }
-  };
+  // Define columns using TanStack Table
+  const columns = useMemo(() => [
+    columnHelper.display({
+      id: 'user',
+      header: 'User',
+      cell: ({ row }) => {
+        const action = row.original;
+        return (
+          <div className="user-info">
+            <span className="user-name">
+              {action.targetFirstName} {action.targetLastName}
+            </span>
+            <span className="user-email">{action.targetEmail}</span>
+          </div>
+        );
+      },
+      size: 200,
+    }),
+    columnHelper.accessor('actionType', {
+      header: 'Action',
+      cell: ({ getValue }) => {
+        const actionType = getValue();
+        return (
+          <span
+            className="action-type-badge"
+            style={{ color: actionTypeConfig[actionType]?.color || '#6b7280' }}
+          >
+            {getActionIcon(actionType)}
+            {actionTypeConfig[actionType]?.label || actionType}
+          </span>
+        );
+      },
+      size: 120,
+    }),
+    columnHelper.accessor('scheduledFor', {
+      header: 'Scheduled For',
+      cell: ({ getValue }) => {
+        const date = new Date(getValue());
+        return (
+          <div className="date-info">
+            <span className="date">{date.toLocaleDateString()}</span>
+            <span className="time">
+              {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+        );
+      },
+      size: 140,
+    }),
+    columnHelper.accessor('status', {
+      header: 'Status',
+      cell: ({ row }) => {
+        const action = row.original;
+        const status = action.status;
+        return (
+          <div className="status-wrapper">
+            <span
+              className="status-badge"
+              style={{
+                color: statusConfig[status]?.color,
+                backgroundColor: statusConfig[status]?.bgColor,
+              }}
+            >
+              {getStatusIcon(status)}
+              {statusConfig[status]?.label}
+            </span>
+            {action.requiresApproval && status === 'pending' && !action.approvedAt && (
+              <span className="approval-badge">Needs Approval</span>
+            )}
+          </div>
+        );
+      },
+      size: 150,
+    }),
+    columnHelper.display({
+      id: 'progress',
+      header: 'Progress',
+      cell: ({ row }) => {
+        const action = row.original;
+        if (action.totalSteps <= 0) return null;
+        const percent = (action.completedSteps / action.totalSteps) * 100;
+        return (
+          <div className="progress-wrapper">
+            <div className="progress-bar">
+              <div className="progress-fill" style={{ width: `${percent}%` }} />
+            </div>
+            <span className="progress-text">
+              {action.completedSteps}/{action.totalSteps}
+            </span>
+          </div>
+        );
+      },
+      size: 120,
+    }),
+    columnHelper.display({
+      id: 'actions',
+      header: '',
+      cell: ({ row }) => {
+        const action = row.original;
+        return (
+          <div className="actions-cell" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="icon-btn"
+              onClick={() => handleSelectAction(action)}
+              title="View details"
+            >
+              <Eye size={16} />
+            </button>
+            {action.status === 'pending' && (
+              <>
+                {action.requiresApproval && !action.approvedAt && (
+                  <>
+                    <button
+                      className="icon-btn approve"
+                      onClick={() => setShowApprovalModal({ id: action.id, type: 'approve' })}
+                      title="Approve"
+                    >
+                      <Check size={16} />
+                    </button>
+                    <button
+                      className="icon-btn reject"
+                      onClick={() => setShowApprovalModal({ id: action.id, type: 'reject' })}
+                      title="Reject"
+                    >
+                      <X size={16} />
+                    </button>
+                  </>
+                )}
+                <button
+                  className="icon-btn cancel"
+                  onClick={() => setShowCancelModal(action.id)}
+                  title="Cancel"
+                >
+                  <XCircle size={16} />
+                </button>
+              </>
+            )}
+          </div>
+        );
+      },
+      size: 140,
+    }),
+  ], []);
 
   // Render loading state
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="scheduled-actions-page">
         <div className="loading-state">
-          <RefreshCw className="animate-spin" size={24} />
+          <Loader2 className="animate-spin" size={24} />
           <span>Loading scheduled actions...</span>
         </div>
       </div>
@@ -373,11 +359,15 @@ const ScheduledActions: React.FC<ScheduledActionsProps> = ({ organizationId }) =
       </div>
 
       {/* Error Banner */}
-      {error && (
+      {(error || cancelMutation.error || approveMutation.error || rejectMutation.error) && (
         <div className="error-banner">
           <AlertCircle size={16} />
-          <span>{error}</span>
-          <button onClick={() => setError(null)}>Dismiss</button>
+          <span>
+            {(error as Error)?.message ||
+              (cancelMutation.error as Error)?.message ||
+              (approveMutation.error as Error)?.message ||
+              (rejectMutation.error as Error)?.message}
+          </span>
         </div>
       )}
 
@@ -424,7 +414,7 @@ const ScheduledActions: React.FC<ScheduledActionsProps> = ({ organizationId }) =
           </div>
         </div>
 
-        <button className="btn-secondary" onClick={fetchActions}>
+        <button className="btn-secondary" onClick={() => refetch()}>
           <RefreshCw size={14} />
           Refresh
         </button>
@@ -433,154 +423,26 @@ const ScheduledActions: React.FC<ScheduledActionsProps> = ({ organizationId }) =
       {/* Main Content Area */}
       <div className={`content-area ${selectedAction ? 'with-panel' : ''}`}>
         {/* Actions List */}
-        {filteredActions.length === 0 ? (
+        {actions.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">
               <Clock size={48} />
             </div>
             <h2>No scheduled actions</h2>
-            <p>
-              {actions.length === 0
-                ? 'Schedule user onboarding or offboarding to see actions here.'
-                : 'No actions match your current filters.'}
-            </p>
+            <p>Schedule user onboarding or offboarding to see actions here.</p>
           </div>
         ) : viewMode === 'list' ? (
           <div className="actions-list">
-            <table className="actions-table">
-              <thead>
-                <tr>
-                  <th>User</th>
-                  <th>Action</th>
-                  <th>Scheduled For</th>
-                  <th>Status</th>
-                  <th>Progress</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredActions.map((action) => (
-                  <tr
-                    key={action.id}
-                    className={`${selectedAction?.id === action.id ? 'selected' : ''} ${action.requiresApproval && action.status === 'pending' && !action.approvedAt ? 'requires-approval' : ''}`}
-                    onClick={() => handleSelectAction(action)}
-                  >
-                    <td className="user-cell">
-                      <div className="user-info">
-                        <span className="user-name">
-                          {action.targetFirstName} {action.targetLastName}
-                        </span>
-                        <span className="user-email">{action.targetEmail}</span>
-                      </div>
-                    </td>
-                    <td className="action-type-cell">
-                      <span
-                        className="action-type-badge"
-                        style={{
-                          color: actionTypeConfig[action.actionType]?.color || '#6b7280',
-                        }}
-                      >
-                        {getActionIcon(action.actionType)}
-                        {actionTypeConfig[action.actionType]?.label || action.actionType}
-                      </span>
-                    </td>
-                    <td className="date-cell">
-                      <span className="date">
-                        {new Date(action.scheduledFor).toLocaleDateString()}
-                      </span>
-                      <span className="time">
-                        {new Date(action.scheduledFor).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </span>
-                    </td>
-                    <td className="status-cell">
-                      <span
-                        className="status-badge"
-                        style={{
-                          color: statusConfig[action.status]?.color,
-                          backgroundColor: statusConfig[action.status]?.bgColor,
-                        }}
-                      >
-                        {getStatusIcon(action.status)}
-                        {statusConfig[action.status]?.label}
-                      </span>
-                      {action.requiresApproval && action.status === 'pending' && !action.approvedAt && (
-                        <span className="approval-badge">Needs Approval</span>
-                      )}
-                    </td>
-                    <td className="progress-cell">
-                      {action.totalSteps > 0 && (
-                        <div className="progress-wrapper">
-                          <div className="progress-bar">
-                            <div
-                              className="progress-fill"
-                              style={{
-                                width: `${(action.completedSteps / action.totalSteps) * 100}%`,
-                              }}
-                            />
-                          </div>
-                          <span className="progress-text">
-                            {action.completedSteps}/{action.totalSteps}
-                          </span>
-                        </div>
-                      )}
-                    </td>
-                    <td className="actions-cell">
-                      <button
-                        className="icon-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSelectAction(action);
-                        }}
-                        title="View details"
-                      >
-                        <Eye size={16} />
-                      </button>
-                      {action.status === 'pending' && (
-                        <>
-                          {action.requiresApproval && !action.approvedAt && (
-                            <>
-                              <button
-                                className="icon-btn approve"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setShowApprovalModal({ id: action.id, type: 'approve' });
-                                }}
-                                title="Approve"
-                              >
-                                <Check size={16} />
-                              </button>
-                              <button
-                                className="icon-btn reject"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setShowApprovalModal({ id: action.id, type: 'reject' });
-                                }}
-                                title="Reject"
-                              >
-                                <X size={16} />
-                              </button>
-                            </>
-                          )}
-                          <button
-                            className="icon-btn cancel"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setShowCancelModal(action.id);
-                            }}
-                            title="Cancel"
-                          >
-                            <XCircle size={16} />
-                          </button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <DataTable
+              data={actions}
+              columns={columns}
+              onRowClick={handleSelectAction}
+              enableSorting={true}
+              enableFiltering={false}
+              rowHeight={56}
+              emptyMessage="No scheduled actions"
+              getRowId={(row) => row.id}
+            />
           </div>
         ) : (
           /* Calendar View */
@@ -755,7 +617,7 @@ const ScheduledActions: React.FC<ScheduledActionsProps> = ({ organizationId }) =
                 <h4>Execution Timeline</h4>
                 {logsLoading ? (
                   <div className="loading-state small">
-                    <RefreshCw className="animate-spin" size={16} />
+                    <Loader2 className="animate-spin" size={16} />
                     <span>Loading...</span>
                   </div>
                 ) : actionLogs.length > 0 ? (
@@ -816,18 +678,18 @@ const ScheduledActions: React.FC<ScheduledActionsProps> = ({ organizationId }) =
                   setShowCancelModal(null);
                   setCancelReason('');
                 }}
-                disabled={cancelLoading}
+                disabled={cancelMutation.isPending}
               >
                 Keep Action
               </button>
               <button
                 className="btn-danger"
                 onClick={handleCancelAction}
-                disabled={cancelLoading}
+                disabled={cancelMutation.isPending}
               >
-                {cancelLoading ? (
+                {cancelMutation.isPending ? (
                   <>
-                    <RefreshCw className="animate-spin" size={14} />
+                    <Loader2 className="animate-spin" size={14} />
                     Cancelling...
                   </>
                 ) : (
@@ -873,7 +735,7 @@ const ScheduledActions: React.FC<ScheduledActionsProps> = ({ organizationId }) =
                   setShowApprovalModal(null);
                   setApprovalNotes('');
                 }}
-                disabled={approvalLoading}
+                disabled={approveMutation.isPending || rejectMutation.isPending}
               >
                 Cancel
               </button>
@@ -881,13 +743,14 @@ const ScheduledActions: React.FC<ScheduledActionsProps> = ({ organizationId }) =
                 className={showApprovalModal.type === 'approve' ? 'btn-primary' : 'btn-danger'}
                 onClick={handleApprovalAction}
                 disabled={
-                  approvalLoading ||
+                  approveMutation.isPending ||
+                  rejectMutation.isPending ||
                   (showApprovalModal.type === 'reject' && !approvalNotes.trim())
                 }
               >
-                {approvalLoading ? (
+                {approveMutation.isPending || rejectMutation.isPending ? (
                   <>
-                    <RefreshCw className="animate-spin" size={14} />
+                    <Loader2 className="animate-spin" size={14} />
                     Processing...
                   </>
                 ) : showApprovalModal.type === 'approve' ? (

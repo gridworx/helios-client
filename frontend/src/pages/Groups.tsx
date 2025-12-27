@@ -1,22 +1,13 @@
-import { useState, useEffect } from 'react';
-import { googleWorkspaceService } from '../services/google-workspace.service';
+import { useState, useMemo } from 'react';
 import { useEntityLabels } from '../contexts/LabelsContext';
 import { ENTITIES } from '../config/entities';
-import { Search, RefreshCw, Plus, Users } from 'lucide-react';
+import { Search, RefreshCw, Plus, Users, Loader2 } from 'lucide-react';
 import { PlatformIcon } from '../components/ui/PlatformIcon';
 import { GroupSlideOut } from '../components/GroupSlideOut';
+import { DataTable, createColumnHelper } from '../components/ui/DataTable';
+import { useGroups, useSyncGroups, useCreateGroup } from '../hooks/queries/useGroups';
+import type { Group } from '../hooks/queries/useGroups';
 import './Pages.css';
-
-interface Group {
-  id: string;
-  name: string;
-  description: string;
-  email: string;
-  memberCount: number;
-  platform: string;
-  type: string;
-  createdAt: string;
-}
 
 interface GroupsProps {
   organizationId: string;
@@ -24,154 +15,119 @@ interface GroupsProps {
   onSelectGroup?: (groupId: string) => void;
 }
 
+const columnHelper = createColumnHelper<Group>();
+
 export function Groups({ organizationId, customLabel: _customLabel, onSelectGroup }: GroupsProps) {
   const labels = useEntityLabels(ENTITIES.ACCESS_GROUP);
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
   const [filterPlatform, setFilterPlatform] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newGroupEmail, setNewGroupEmail] = useState('');
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDescription, setNewGroupDescription] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [createError, setCreateError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchGroups();
-  }, [organizationId]);
+  // TanStack Query hooks
+  const { data: groups = [], isLoading, error, refetch } = useGroups({
+    platform: filterPlatform,
+    search: searchTerm
+  });
 
-  const fetchGroups = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      // Fetch from new access_groups API
-      const token = localStorage.getItem('helios_token');
-      const response = await fetch(`/api/v1/organization/access-groups`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Groups API error:', response.status, errorData);
-        if (response.status === 401) {
-          setError('Session expired. Please log in again.');
-        } else {
-          setError(errorData.error || 'Failed to load groups');
-        }
-        setGroups([]);
-        return;
-      }
-
-      const result = await response.json();
-
-      if (result.success && result.data) {
-        const formattedGroups = result.data.map((group: any) => ({
-          id: group.id,
-          name: group.name,
-          description: group.description || '',
-          email: group.email,
-          memberCount: parseInt(group.member_count) || parseInt(group.metadata?.directMembersCount) || group.directMembersCount || 0,
-          platform: group.platform || 'google_workspace',
-          type: group.group_type || (group.metadata?.adminCreated ? 'Admin' : 'User'),
-          createdAt: group.created_at || group.createdAt || new Date().toISOString()
-        }));
-        setGroups(formattedGroups);
-      } else {
-        setGroups([]);
-        if (result.error) {
-          setError(result.error);
-        }
-      }
-    } catch (err: any) {
-      console.error('Groups fetch error:', err);
-      setError(err.message || 'Failed to fetch groups');
-      setGroups([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const syncMutation = useSyncGroups();
+  const createMutation = useCreateGroup();
 
   const handleSyncGroups = async () => {
     try {
-      setIsSyncing(true);
-      setError(null);
-
-      const result = await googleWorkspaceService.syncGroups(organizationId);
-
-      if (result.success) {
-        await fetchGroups();
-      } else {
-        setError(result.error || 'Failed to sync groups');
-      }
+      await syncMutation.mutateAsync(organizationId);
     } catch (err: any) {
-      setError(err.message || 'Failed to sync groups');
-    } finally {
-      setIsSyncing(false);
+      // Error handled by mutation
     }
   };
 
   const handleCreateGroup = async () => {
     if (!newGroupEmail || !newGroupName) {
-      setError('Please provide both email and group name');
+      setCreateError('Please provide both email and group name');
       return;
     }
 
     try {
-      setIsCreating(true);
-      setError(null);
-
-      const response = await fetch(
-        `/api/v1/google-workspace/groups`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('helios_token')}`
-          },
-          body: JSON.stringify({
-            organizationId,
-            email: newGroupEmail,
-            name: newGroupName,
-            description: newGroupDescription
-          })
-        }
-      );
-
-      const result = await response.json();
-
-      if (result.success) {
-        setShowCreateModal(false);
-        setNewGroupEmail('');
-        setNewGroupName('');
-        setNewGroupDescription('');
-        await fetchGroups(); // Refresh groups list
-      } else {
-        setError(result.error || 'Failed to create group');
-      }
+      setCreateError(null);
+      await createMutation.mutateAsync({
+        email: newGroupEmail,
+        name: newGroupName,
+        description: newGroupDescription
+      });
+      setShowCreateModal(false);
+      setNewGroupEmail('');
+      setNewGroupName('');
+      setNewGroupDescription('');
     } catch (err: any) {
-      setError(err.message || 'Failed to create group');
-    } finally {
-      setIsCreating(false);
+      setCreateError(err.message || 'Failed to create group');
     }
   };
 
-  
+  const handleRowClick = (group: Group) => {
+    if (onSelectGroup) {
+      onSelectGroup(group.id);
+    } else {
+      setSelectedGroupId(group.id);
+    }
+  };
 
-  const filteredGroups = groups.filter(group => {
-    const matchesPlatform = filterPlatform === 'all' || group.platform === filterPlatform;
-    const matchesSearch = group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          group.description.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesPlatform && matchesSearch;
-  });
+  // Define columns using TanStack Table
+  const columns = useMemo(() => [
+    columnHelper.accessor('name', {
+      header: 'Group Name',
+      cell: ({ row }) => (
+        <div className="item-info">
+          <Users className="item-icon" size={20} />
+          <div>
+            <div className="item-name">{row.original.name}</div>
+            {row.original.description && (
+              <div className="item-description">{row.original.description}</div>
+            )}
+          </div>
+        </div>
+      ),
+      size: 300,
+    }),
+    columnHelper.accessor('memberCount', {
+      header: 'Members',
+      cell: ({ getValue }) => (
+        <span className="member-count">{getValue()} members</span>
+      ),
+      size: 120,
+    }),
+    columnHelper.accessor('platform', {
+      header: 'Platform',
+      cell: ({ getValue }) => {
+        const platform = getValue();
+        return (
+          <PlatformIcon
+            platform={platform === 'google_workspace' ? 'google' : platform === 'microsoft_365' ? 'microsoft' : 'helios'}
+            size={28}
+          />
+        );
+      },
+      size: 80,
+    }),
+    columnHelper.accessor('email', {
+      header: 'Email',
+      cell: ({ getValue }) => (
+        <span className="email-text">{getValue()}</span>
+      ),
+      size: 250,
+    }),
+  ], []);
 
   if (isLoading) {
     return (
       <div className="page-container">
-        <div className="loading-spinner">Loading groups...</div>
+        <div className="loading-spinner">
+          <Loader2 className="spin" size={24} />
+          Loading groups...
+        </div>
       </div>
     );
   }
@@ -191,9 +147,9 @@ export function Groups({ organizationId, customLabel: _customLabel, onSelectGrou
         </button>
       </div>
 
-      {error && (
+      {(error || syncMutation.error) && (
         <div className="error-message" style={{ margin: '1rem 0', padding: '1rem', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '8px', color: '#dc2626' }}>
-          {error}
+          {(error as Error)?.message || (syncMutation.error as Error)?.message}
         </div>
       )}
 
@@ -221,72 +177,30 @@ export function Groups({ organizationId, customLabel: _customLabel, onSelectGrou
         <button
           className="btn-secondary"
           onClick={handleSyncGroups}
-          disabled={isSyncing}
+          disabled={syncMutation.isPending}
         >
-          <RefreshCw size={14} className={isSyncing ? 'spinning' : ''} />
-          {isSyncing ? 'Syncing...' : 'Sync Groups'}
+          <RefreshCw size={14} className={syncMutation.isPending ? 'spinning' : ''} />
+          {syncMutation.isPending ? 'Syncing...' : 'Sync Groups'}
         </button>
       </div>
 
-      <div className="data-grid">
-        <div className="grid-header" style={{ gridTemplateColumns: '2fr 1fr 80px 1.5fr' }}>
-          <div className="col-wide">Group Name</div>
-          <div className="col-medium">Members</div>
-          <div className="col-small">Platform</div>
-          <div className="col-medium">Email</div>
+      {groups.length === 0 ? (
+        <div className="empty-state">
+          <Users className="empty-icon" size={48} strokeWidth={1.5} />
+          <h3>No groups found</h3>
+          <p>Start by syncing groups from your connected platforms</p>
         </div>
-
-        {filteredGroups.length === 0 ? (
-          <div className="empty-state">
-            <Users className="empty-icon" size={48} strokeWidth={1.5} />
-            <h3>No groups found</h3>
-            <p>Start by syncing groups from your connected platforms</p>
-          </div>
-        ) : (
-          <div className="grid-body">
-            {filteredGroups.map(group => {
-              const handleRowClick = () => {
-                if (onSelectGroup) {
-                  onSelectGroup(group.id);
-                } else {
-                  setSelectedGroupId(group.id);
-                }
-              };
-
-              return (
-                <div
-                  key={group.id}
-                  className="grid-row"
-                  onClick={handleRowClick}
-                  style={{ cursor: 'pointer', gridTemplateColumns: '2fr 1fr 80px 1.5fr' }}
-                >
-                  <div className="col-wide">
-                    <div className="item-info">
-                      <Users className="item-icon" size={20} />
-                      <div>
-                        <div className="item-name">{group.name}</div>
-                        <div className="item-description">{group.description}</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="col-medium">
-                    <span className="member-count">{group.memberCount} members</span>
-                  </div>
-                  <div className="col-small">
-                    <PlatformIcon
-                      platform={group.platform === 'google_workspace' ? 'google' : group.platform === 'microsoft_365' ? 'microsoft' : 'helios'}
-                      size={28}
-                    />
-                  </div>
-                  <div className="col-medium">
-                    <span className="email-text">{group.email}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      ) : (
+        <DataTable
+          data={groups}
+          columns={columns}
+          onRowClick={handleRowClick}
+          enableSorting={true}
+          enableFiltering={false}
+          rowHeight={56}
+          emptyMessage="No groups found"
+        />
+      )}
 
       {/* Create Group Modal */}
       {showCreateModal && (
@@ -318,9 +232,9 @@ export function Groups({ organizationId, customLabel: _customLabel, onSelectGrou
           >
             <h2 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Create New Group</h2>
 
-            {error && (
+            {createError && (
               <div className="error-message" style={{ margin: '1rem 0', padding: '1rem', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '8px', color: '#dc2626' }}>
-                {error}
+                {createError}
               </div>
             )}
 
@@ -340,7 +254,7 @@ export function Groups({ organizationId, customLabel: _customLabel, onSelectGrou
                   borderRadius: '8px',
                   fontSize: '1rem'
                 }}
-                disabled={isCreating}
+                disabled={createMutation.isPending}
               />
             </div>
 
@@ -360,7 +274,7 @@ export function Groups({ organizationId, customLabel: _customLabel, onSelectGrou
                   borderRadius: '8px',
                   fontSize: '1rem'
                 }}
-                disabled={isCreating}
+                disabled={createMutation.isPending}
               />
             </div>
 
@@ -381,7 +295,7 @@ export function Groups({ organizationId, customLabel: _customLabel, onSelectGrou
                   fontSize: '1rem',
                   resize: 'vertical'
                 }}
-                disabled={isCreating}
+                disabled={createMutation.isPending}
               />
             </div>
 
@@ -393,19 +307,19 @@ export function Groups({ organizationId, customLabel: _customLabel, onSelectGrou
                   setNewGroupEmail('');
                   setNewGroupName('');
                   setNewGroupDescription('');
-                  setError(null);
+                  setCreateError(null);
                 }}
-                disabled={isCreating}
+                disabled={createMutation.isPending}
               >
                 Cancel
               </button>
               <button
                 className="btn-primary"
                 onClick={handleCreateGroup}
-                disabled={isCreating || !newGroupEmail || !newGroupName}
+                disabled={createMutation.isPending || !newGroupEmail || !newGroupName}
               >
                 <Plus size={14} />
-                {isCreating ? 'Creating...' : 'Create Group'}
+                {createMutation.isPending ? 'Creating...' : 'Create Group'}
               </button>
             </div>
           </div>
@@ -419,7 +333,7 @@ export function Groups({ organizationId, customLabel: _customLabel, onSelectGrou
           organizationId={organizationId}
           onClose={() => setSelectedGroupId(null)}
           onGroupUpdated={() => {
-            fetchGroups();
+            refetch();
           }}
         />
       )}

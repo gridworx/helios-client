@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { authFetch } from '../../config/api';
 import './UserProfile.css';
 
 interface UserData {
@@ -57,11 +58,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId: _userId }) => {
   const fetchUserData = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/user/me', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      const response = await authFetch('/api/user/me');
 
       if (response.ok) {
         const data = await response.json();
@@ -81,11 +78,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId: _userId }) => {
 
   const fetchSessions = async () => {
     try {
-      const response = await fetch('/api/user/sessions', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      const response = await authFetch('/api/user/sessions');
 
       if (response.ok) {
         const data = await response.json();
@@ -102,11 +95,10 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId: _userId }) => {
     setMessage(null);
 
     try {
-      const response = await fetch('/api/user/profile', {
+      const response = await authFetch('/api/user/profile', {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(formData)
       });
@@ -144,11 +136,10 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId: _userId }) => {
     setMessage(null);
 
     try {
-      const response = await fetch('/api/user/password', {
+      const response = await authFetch('/api/user/password', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           currentPassword: passwordData.currentPassword,
@@ -180,11 +171,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId: _userId }) => {
     setMessage(null);
 
     try {
-      const response = await fetch('/api/user/2fa/setup', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+      const response = await authFetch('/api/user/2fa/setup', {
+        method: 'POST'
       });
 
       const result = await response.json();
@@ -211,11 +199,10 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId: _userId }) => {
     setMessage(null);
 
     try {
-      const response = await fetch('/api/user/2fa/verify', {
+      const response = await authFetch('/api/user/2fa/verify', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           code: twoFactorData.verificationCode
@@ -252,11 +239,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId: _userId }) => {
     setMessage(null);
 
     try {
-      const response = await fetch('/api/user/2fa/disable', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+      const response = await authFetch('/api/user/2fa/disable', {
+        method: 'POST'
       });
 
       if (response.ok) {
@@ -274,11 +258,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId: _userId }) => {
 
   const handleTerminateSession = async (sessionId: string) => {
     try {
-      const response = await fetch(`/api/user/sessions/${sessionId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+      const response = await authFetch(`/api/user/sessions/${sessionId}`, {
+        method: 'DELETE'
       });
 
       if (response.ok) {

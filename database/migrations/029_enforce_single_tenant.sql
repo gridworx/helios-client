@@ -18,6 +18,7 @@ $$ LANGUAGE plpgsql;
 
 -- Create trigger to enforce single organization on INSERT
 DROP TRIGGER IF EXISTS enforce_single_org_trigger ON organizations;
+DROP TRIGGER IF EXISTS enforce_single_org_trigger ON PLACEHOLDER;
 CREATE TRIGGER enforce_single_org_trigger
     BEFORE INSERT ON organizations
     FOR EACH ROW

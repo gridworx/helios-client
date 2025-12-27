@@ -1,5 +1,8 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { ToastContainer, type ToastMessage, type ToastType } from '../components/Toast';
+import React, { createContext, useContext, useCallback, useMemo } from 'react';
+import { toast } from 'sonner';
+import { Toaster } from '@/components/ui/sonner';
+
+export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 interface ToastContextType {
   showToast: (message: string, type?: ToastType, duration?: number) => void;
@@ -24,44 +27,54 @@ interface ToastProviderProps {
 }
 
 export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
-  const [toasts, setToasts] = useState<ToastMessage[]>([]);
-
   const showToast = useCallback((message: string, type: ToastType = 'info', duration: number = 3000) => {
-    const id = Date.now().toString();
-    const newToast: ToastMessage = {
-      id,
-      message,
-      type,
-      duration
-    };
+    const options = { duration };
 
-    setToasts(prev => [...prev, newToast]);
+    switch (type) {
+      case 'success':
+        toast.success(message, options);
+        break;
+      case 'error':
+        toast.error(message, options);
+        break;
+      case 'warning':
+        toast.warning(message, options);
+        break;
+      case 'info':
+      default:
+        toast.info(message, options);
+        break;
+    }
   }, []);
 
   const showSuccess = useCallback((message: string) => {
-    showToast(message, 'success');
-  }, [showToast]);
-
-  const showError = useCallback((message: string) => {
-    showToast(message, 'error', 5000); // Errors stay longer
-  }, [showToast]);
-
-  const showWarning = useCallback((message: string) => {
-    showToast(message, 'warning', 4000);
-  }, [showToast]);
-
-  const showInfo = useCallback((message: string) => {
-    showToast(message, 'info');
-  }, [showToast]);
-
-  const handleClose = useCallback((id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
+    toast.success(message, { duration: 3000 });
   }, []);
 
+  const showError = useCallback((message: string) => {
+    toast.error(message, { duration: 5000 }); // Errors stay longer
+  }, []);
+
+  const showWarning = useCallback((message: string) => {
+    toast.warning(message, { duration: 4000 });
+  }, []);
+
+  const showInfo = useCallback((message: string) => {
+    toast.info(message, { duration: 3000 });
+  }, []);
+
+  const value = useMemo(() => ({
+    showToast,
+    showSuccess,
+    showError,
+    showWarning,
+    showInfo
+  }), [showToast, showSuccess, showError, showWarning, showInfo]);
+
   return (
-    <ToastContext.Provider value={{ showToast, showSuccess, showError, showWarning, showInfo }}>
+    <ToastContext.Provider value={value}>
       {children}
-      <ToastContainer toasts={toasts} onClose={handleClose} />
+      <Toaster position="top-right" richColors />
     </ToastContext.Provider>
   );
 };
