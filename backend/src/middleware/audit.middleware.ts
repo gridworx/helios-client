@@ -15,7 +15,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { pool } from '../database';
+import { db } from '../database/connection.js';
 import crypto from 'crypto';
 
 // Routes that should NOT be logged (health checks, static assets, etc.)
@@ -162,7 +162,7 @@ function generateRecordHash(data: object): string {
 // Get the last hash for chain integrity
 async function getLastHash(): Promise<string | null> {
   try {
-    const result = await pool.query(
+    const result = await db.query(
       'SELECT record_hash FROM security_audit_logs ORDER BY timestamp DESC LIMIT 1'
     );
     return result.rows[0]?.record_hash || null;
@@ -262,7 +262,7 @@ export async function auditMiddleware(req: Request, res: Response, next: NextFun
 
       const recordHash = generateRecordHash({ ...logData, previous_hash: previousHash });
 
-      await pool.query(`
+      await db.query(`
         INSERT INTO security_audit_logs (
           actor_id, actor_type, actor_identifier,
           action, action_category,

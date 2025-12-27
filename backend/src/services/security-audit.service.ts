@@ -14,8 +14,8 @@
  *   });
  */
 
-import { pool } from '../database/connection';
-import { logger } from '../utils/logger';
+import { db } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
 
 // Action categories for filtering
 export type ActionCategory = 'auth' | 'admin' | 'data' | 'security' | 'api' | 'sync';
@@ -139,7 +139,7 @@ class SecurityAuditService {
     const actorType = entry.actorType || 'user';
 
     try {
-      const result = await pool.query(`
+      const result = await db.query(`
         INSERT INTO security_audit_logs (
           actor_id, actor_type, actor_email, actor_ip, actor_user_agent,
           action, action_category,
@@ -400,13 +400,13 @@ class SecurityAuditService {
     const offset = params.offset || 0;
 
     const [logsResult, countResult] = await Promise.all([
-      pool.query(`
+      db.query(`
         SELECT * FROM security_audit_logs
         WHERE ${whereClause}
         ORDER BY timestamp DESC
         LIMIT $${paramIndex++} OFFSET $${paramIndex}
       `, [...values, limit, offset]),
-      pool.query(`
+      db.query(`
         SELECT COUNT(*) as total FROM security_audit_logs
         WHERE ${whereClause}
       `, values),

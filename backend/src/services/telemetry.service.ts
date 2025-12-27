@@ -7,8 +7,8 @@
  * - Never collects PII, credentials, or organization-specific data
  */
 
-import { pool } from '../database/connection';
-import { nanoid } from 'nanoid';
+import { db } from '../database/connection.js';
+import crypto from 'crypto';
 
 interface TelemetryPayload {
   instance_id: string;
@@ -102,7 +102,7 @@ class TelemetryService {
    * Stored in organization_settings table
    */
   private async getOrCreateInstanceId(): Promise<string> {
-    const client = await pool.connect();
+    const client = await db.getClient();
     try {
       // Check for existing instance ID
       const result = await client.query(`
@@ -116,7 +116,7 @@ class TelemetryService {
       }
 
       // Generate new instance ID
-      const instanceId = `helios_${nanoid(21)}`;
+      const instanceId = `helios_${crypto.randomUUID().replace(/-/g, '').slice(0, 21)}`;
 
       // Store it
       await client.query(`
@@ -162,7 +162,7 @@ class TelemetryService {
    * Get user count range (anonymized)
    */
   private async getUserCountRange(): Promise<string> {
-    const client = await pool.connect();
+    const client = await db.getClient();
     try {
       const result = await client.query(`
         SELECT COUNT(*) as count FROM organization_users WHERE is_active = true
@@ -184,7 +184,7 @@ class TelemetryService {
    * Get list of enabled modules
    */
   private async getEnabledModules(): Promise<string[]> {
-    const client = await pool.connect();
+    const client = await db.getClient();
     try {
       const result = await client.query(`
         SELECT slug FROM modules WHERE is_enabled = true
@@ -202,7 +202,7 @@ class TelemetryService {
    * Get last sync status
    */
   private async getLastSyncStatus(): Promise<'success' | 'error' | 'none'> {
-    const client = await pool.connect();
+    const client = await db.getClient();
     try {
       const result = await client.query(`
         SELECT status FROM sync_logs
