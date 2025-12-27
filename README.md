@@ -1,95 +1,56 @@
-# Helios Client Portal
+# Helios
 
-> **Self-Hosted Google Workspace Management with Full API Access & Audit Trail**
+**Self-hosted Google Workspace administration portal.**
 
-## Overview
+> Open source. Self-host for free, or let us host it for you.
 
-Helios is a self-hosted management platform for Google Workspace. It provides a modern UI for common admin tasks while giving power users direct API access through an audited proxy console. Every action—whether through the UI or API—is logged for compliance and security.
-
-**Why Helios?**
-
-- **Data Sovereignty:** Your data stays on your infrastructure. No third-party SaaS touches your directory or emails.
-- **API Proxy with Audit Trail:** Execute any Google Workspace API call through Helios. Every request is logged with who, what, when, and the full response—even for APIs without UI features yet.
-- **Cost Efficiency:** Alternatives like BetterCloud ($3-5/user/month) or GAT Labs ($2-4/user/month) add up fast. Helios is a fixed infrastructure cost.
-- **Power User Friendly:** Know the Google Admin SDK? Use it directly through the console. Don't know it? Use the UI.
-
----
-
-## Key Features
-
-### 1. Audited API Proxy Console
-*Full Google Workspace API access with complete audit trail.*
-
-- **Direct API Access:** Call any Google Admin SDK endpoint through Helios
-- **Full Audit Logging:** Every API request logged with actor, timestamp, request, and response
-- **Use Before UI Exists:** Need a feature we haven't built yet? Use the API directly
-- **Compliance Ready:** Demonstrate exactly what changes were made and by whom
-
-### 2. User & Directory Management
-*Comprehensive user lifecycle from a single interface.*
-
-- **User Directory:** View, search, and manage all Google Workspace users
-- **Groups Management:** Create and manage groups, membership, and access
-- **Org Chart:** Visualize reporting relationships and organizational structure
-- **Bulk Operations:** Import users via CSV, bulk update attributes
-
-### 3. User Lifecycle Automation
-*Streamline onboarding and offboarding.*
-
-- **Workflow Builder:** Visual drag-and-drop workflow creation
-- **Scheduled Actions:** Pre-provision users or schedule access revocation for future dates
-- **Onboarding Templates:** Define standard setup steps for new hires by role/department
-- **Offboarding Workflows:** Data transfer, access revocation, account suspension
-
-### 4. Email Signature Management
-*Centralized signatures without per-user SaaS fees.*
-
-- **Dynamic Templates:** Variables like `{{Name}}`, `{{JobTitle}}`, `{{Department}}` auto-populate
-- **Campaign Banners:** Schedule promotional banners for specific teams or date ranges
-- **Direct API Deployment:** Push signatures directly to Gmail settings—no agents needed
-- **Analytics:** Optional tracking pixels for engagement metrics
-
-### 5. Asset Proxy & Drive Management
-*Secure file sharing with branded URLs.*
-
-- **Google Drive Proxy:** Share assets from a private Shared Drive via branded URLs
-- **Access Logging:** Track who accesses files and when
-- **No Public Links:** Keep Drive files private while still sharing externally
-
-### 6. Admin/User Separation
-*Self-service for employees, full control for admins.*
-
-- **Self-Service Portal:** Users can view their profile, org chart, and company resources
-- **Role-Based Access:** Admins see everything; users see only what's relevant to them
-- **View Switching:** Admins can preview what users see
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         Your Options                             │
+│                                                                  │
+│  ┌─────────────────────┐          ┌─────────────────────┐       │
+│  │    Self-Hosted      │    OR    │      Hosted         │       │
+│  │                     │          │                     │       │
+│  │  • Free forever     │          │  • $9-19/month      │       │
+│  │  • Your server      │          │  • We manage it     │       │
+│  │  • Full control     │          │  • Auto-updates     │       │
+│  │  • GitHub support   │          │  • Chat support     │       │
+│  │                     │          │                     │       │
+│  │  git clone & go     │          │  helios.gridworx.io │       │
+│  └─────────────────────┘          └─────────────────────┘       │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## Comparison
+## What is Helios?
 
-| Feature | Helios | BetterCloud / GAT | GAM (CLI) |
-| :--- | :---: | :---: | :---: |
-| **Data Location** | Your Infrastructure | SaaS Cloud | Local Machine |
-| **Interface** | Modern Web UI | Modern Web UI | Command Line |
-| **API Access** | Full + Audited | Limited | Full |
-| **Audit Trail** | Every Action Logged | Varies | Manual |
-| **Cost Model** | Fixed Infrastructure | $30-60/user/year | Free |
-| **Setup** | Docker Compose | SaaS Signup | Complex Auth |
+Helios is a web-based admin portal for Google Workspace. It gives you a modern UI for managing users, groups, email signatures, and more—while keeping all your data on your own infrastructure.
 
----
+### Key Features
 
-## Tech Stack
+| Feature | Description |
+|---------|-------------|
+| **User Management** | View, search, edit users. Bulk import via CSV. |
+| **Groups & Org Units** | Manage groups, membership, org structure. |
+| **Email Signatures** | Dynamic templates with variables. Deploy directly to Gmail. |
+| **Org Chart** | Visual reporting relationships. |
+| **Lifecycle Automation** | Onboarding/offboarding templates and workflows. |
+| **API Proxy Console** | Direct Google Workspace API access with full audit trail. |
+| **Asset Sharing** | Proxy files from private Drive with branded URLs. |
 
-- **Frontend:** React, TypeScript, Vite
-- **Backend:** Node.js, Express, TypeScript
-- **Database:** PostgreSQL
-- **Cache:** Redis
-- **Storage:** MinIO (S3 Compatible)
-- **Deployment:** Docker Compose
+### Why Self-Hosted?
+
+- **Data Sovereignty** - Your data never leaves your infrastructure
+- **No Per-User Fees** - One fixed cost, not $3-5/user/month like SaaS alternatives
+- **Full Control** - Customize, extend, integrate however you want
+- **Compliance Ready** - Every action logged for audit
 
 ---
 
 ## Quick Start
+
+### Option 1: Self-Hosted (Free)
 
 ```bash
 # Clone the repository
@@ -106,18 +67,157 @@ docker-compose up -d
 open http://localhost:3000
 ```
 
-See [docs/guides/SETUP.md](docs/guides/SETUP.md) for complete setup instructions including Google Workspace service account configuration.
+See [docs/guides/SETUP.md](docs/guides/SETUP.md) for complete setup including Google Workspace service account configuration.
+
+### Option 2: Hosted by Us
+
+Visit [helios.gridworx.io](https://helios.gridworx.io) to sign up.
+
+| Plan | Price | Includes |
+|------|-------|----------|
+| Starter | $9/mo | Hosting, backups, updates, email support |
+| Pro | $19/mo | + Custom domain, chat support, priority updates |
+
+**What hosted means:** We run the server infrastructure. You have full admin access. We never access your data.
+
+---
+
+## Tech Stack
+
+- **Frontend:** React, TypeScript, Vite
+- **Backend:** Node.js, Express, TypeScript
+- **Database:** PostgreSQL
+- **Cache:** Redis
+- **Storage:** MinIO (S3-compatible)
+- **Deployment:** Docker Compose
+
+---
+
+## Privacy & Telemetry
+
+### What We Collect (If Enabled)
+
+Telemetry is **disabled by default** for self-hosted instances.
+
+If you choose to enable it, we collect:
+- Instance health (version, uptime)
+- Anonymous usage metrics (user count range, enabled modules)
+
+We **never** collect:
+- Your organization name or domain
+- User names, emails, or any PII
+- Your Google Workspace data
+
+See [TELEMETRY.md](projects/helios-web/docs/TELEMETRY.md) for full details.
+
+### How to Control Telemetry
+
+```env
+# In your .env file
+HELIOS_TELEMETRY_ENABLED=false  # Default: disabled
+```
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     Your Helios Instance                         │
+│                                                                  │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
+│  │  Frontend   │  │   Backend   │  │  Database   │              │
+│  │  (React)    │──│  (Express)  │──│ (Postgres)  │              │
+│  └─────────────┘  └─────────────┘  └─────────────┘              │
+│                          │                                       │
+│                          │ Google Workspace API                  │
+│                          ▼                                       │
+│                   ┌─────────────┐                                │
+│                   │   Google    │                                │
+│                   │  Workspace  │                                │
+│                   └─────────────┘                                │
+└─────────────────────────────────────────────────────────────────┘
+                          │
+                          │ Optional telemetry (if enabled)
+                          ▼
+                   ┌─────────────┐
+                   │ helios-web  │
+                   │ (gridworx)  │
+                   └─────────────┘
+```
+
+Your instance talks to Google Workspace using your own service account. Optionally, it can send anonymous health/usage data to helios.gridworx.io.
+
+---
+
+## Comparison
+
+| Feature | Helios | BetterCloud/GAT | GAM (CLI) |
+|---------|--------|-----------------|-----------|
+| Data Location | Your Infrastructure | SaaS Cloud | Local Machine |
+| Interface | Modern Web UI | Modern Web UI | Command Line |
+| API Access | Full + Audited | Limited | Full |
+| Audit Trail | Every Action Logged | Varies | Manual |
+| Cost Model | Free or Fixed | $30-60/user/year | Free |
+| Setup | Docker Compose | SaaS Signup | Complex Auth |
+
+---
+
+## Related Projects
+
+| Project | License | Purpose |
+|---------|---------|---------|
+| **helios-client** (this) | MIT | Single-organization admin portal |
+| [helios-mtp](https://github.com/gridworx/helios-mtp) | BSL | Multi-tenant portal for MSPs |
+| helios-web | Proprietary | Marketing site & hosting portal |
+
+---
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [SETUP.md](docs/guides/SETUP.md) | Complete setup guide |
+| [GOOGLE-WORKSPACE-SETUP-GUIDE.md](docs/GOOGLE-WORKSPACE-SETUP-GUIDE.md) | Google Workspace integration |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture |
+| [DESIGN-SYSTEM.md](DESIGN-SYSTEM.md) | UI/UX guidelines |
+
+---
+
+## Contributing
+
+Contributions welcome! Please read our contributing guidelines before submitting PRs.
+
+```bash
+# Run development environment
+cd backend && npm run dev
+cd frontend && npm run dev
+
+# Run tests
+npm test
+```
 
 ---
 
 ## License
 
-**Business Source License (BSL) 1.1**
+**MIT License** - Use it however you want.
 
-- **Free for internal use:** Run Helios for your organization at no cost
-- **Source Available:** Code is open for inspection and audit
-- **No Commercial Resale:** Cannot offer Helios as a managed service or resell without a commercial license
+See [LICENSE](LICENSE) for details.
 
-**MSPs & Service Providers:** We offer a multi-tenant platform (Helios MTP) for managing multiple client organizations. Contact us at [info@gridworx.io](mailto:info@gridworx.io) for commercial licensing and partnership opportunities.
+---
 
-For more information, visit [gridworx.io](https://gridworx.io).
+## Support
+
+- **Self-hosted:** [GitHub Discussions](https://github.com/gridworx/helios-client/discussions)
+- **Hosted customers:** Chat support via your dashboard
+
+---
+
+## About
+
+Built by [Gridworx](https://gridworx.io). We also offer:
+- **Managed Services:** We manage your Google Workspace for you
+- **helios-mtp:** Multi-tenant version for MSPs and IT providers
+
+Contact: [info@gridworx.io](mailto:info@gridworx.io)
