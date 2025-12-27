@@ -14,6 +14,7 @@ import {
   notFoundResponse
 } from '../utils/response.js';
 import { ErrorCode } from '../types/error-codes.js';
+import { securityAudit, AuditActions } from '../services/security-audit.service.js';
 
 const router = Router();
 
@@ -119,12 +120,27 @@ router.post('/login',
     );
 
     if (result.rows.length === 0) {
+      // Log failed login attempt (user not found) - need org ID for audit
+      // Since we don't know org, use a placeholder or skip detailed audit
+      logger.warn('Failed login attempt - user not found', { email });
       return unauthorizedResponse(res, 'Invalid email or password');
     }
 
     const user = result.rows[0];
 
     if (!user.is_active) {
+      // Log disabled account login attempt
+      await securityAudit.logAuth({
+        action: AuditActions.AUTH_LOGIN_FAILURE,
+        outcome: 'blocked',
+        userId: user.id,
+        email: user.email,
+        organizationId: user.organization_id,
+        ip: req.ip || undefined,
+        userAgent: req.get('User-Agent'),
+        requestId: req.requestId,
+        errorMessage: 'Account is disabled',
+      });
       return unauthorizedResponse(res, 'Account is disabled');
     }
 
@@ -133,6 +149,18 @@ router.post('/login',
 
     if (!isPasswordValid) {
       logger.warn('Failed login attempt', { email });
+      // Log failed password attempt
+      await securityAudit.logAuth({
+        action: AuditActions.AUTH_LOGIN_FAILURE,
+        outcome: 'failure',
+        userId: user.id,
+        email: user.email,
+        organizationId: user.organization_id,
+        ip: req.ip || undefined,
+        userAgent: req.get('User-Agent'),
+        requestId: req.requestId,
+        errorMessage: 'Invalid password',
+      });
       return unauthorizedResponse(res, 'Invalid email or password');
     }
 
@@ -155,12 +183,24 @@ router.post('/login',
     // Update last login
     await db.query('UPDATE organization_users SET last_login = NOW() WHERE id = $1', [user.id]);
 
-    // Log login
+    // Log login to legacy audit_logs table (for backwards compatibility)
     await db.query(
       `INSERT INTO audit_logs (user_id, organization_id, action, resource, ip_address, user_agent)
        VALUES ($1, $2, 'login', 'auth', $3, $4)`,
       [user.id, user.organization_id, req.ip, req.get('User-Agent') || 'Unknown']
     );
+
+    // Log to security audit (comprehensive)
+    await securityAudit.logAuth({
+      action: AuditActions.AUTH_LOGIN_SUCCESS,
+      outcome: 'success',
+      userId: user.id,
+      email: user.email,
+      organizationId: user.organization_id,
+      ip: req.ip || undefined,
+      userAgent: req.get('User-Agent'),
+      requestId: req.requestId,
+    });
 
     // Get organization details
     const orgResult = await db.query(

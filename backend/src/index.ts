@@ -84,6 +84,7 @@ import { startSignatureSyncJob, stopSignatureSyncJob } from './jobs/signature-sy
 import { startCampaignSchedulerJob, stopCampaignSchedulerJob } from './jobs/campaign-scheduler.job.js';
 import { startTrackingRetentionJob, stopTrackingRetentionJob } from './jobs/tracking-retention.job.js';
 import { syncScheduler } from './services/sync-scheduler.service.js';
+import { telemetryService } from './services/telemetry.service.js';
 
 import transparentProxyRouter from './middleware/transparent-proxy.js';
 import microsoftTransparentProxyRouter from './middleware/microsoft-transparent-proxy.js';
@@ -813,6 +814,16 @@ async function startServer(): Promise<void> {
       logger.info('🗑️ Tracking retention job disabled');
     }
 
+    // Initialize telemetry service (opt-in anonymous usage tracking)
+    try {
+      await telemetryService.init();
+      if (telemetryService.isEnabled()) {
+        logger.info('📊 Telemetry service enabled');
+      }
+    } catch (err) {
+      logger.warn('Telemetry initialization failed (non-critical)', err);
+    }
+
     // Start Google Workspace sync scheduler for configured organizations
     try {
       const orgsWithGW = await db.query(`
@@ -860,6 +871,7 @@ process.on('SIGTERM', async () => {
   stopCampaignSchedulerJob();
   stopTrackingRetentionJob();
   syncScheduler.stopAll();
+  telemetryService.shutdown();
   await db.close();
   process.exit(0);
 });
@@ -871,6 +883,7 @@ process.on('SIGINT', async () => {
   stopCampaignSchedulerJob();
   stopTrackingRetentionJob();
   syncScheduler.stopAll();
+  telemetryService.shutdown();
   await db.close();
   process.exit(0);
 });

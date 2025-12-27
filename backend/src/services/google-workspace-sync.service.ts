@@ -2,6 +2,7 @@ import { google } from 'googleapis';
 import { JWT } from 'google-auth-library';
 import { db } from '../database/connection.js';
 import { logger } from '../utils/logger.js';
+import { telemetryService } from './telemetry.service.js';
 
 interface GoogleUser {
   id: string;
@@ -96,6 +97,9 @@ export class GoogleWorkspaceSyncService {
           groupsCreated: groupResult.created,
           groupsUpdated: groupResult.updated
         });
+
+        // Track sync command for telemetry
+        telemetryService.trackCommand('sync_google_workspace');
 
         return {
           success: true,

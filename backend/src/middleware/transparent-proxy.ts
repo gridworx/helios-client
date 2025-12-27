@@ -18,6 +18,7 @@ import { db } from '../database/connection.js';
 import { logger } from '../utils/logger.js';
 import { authenticateToken } from './auth.js';
 import axios from 'axios';
+import { telemetryService } from '../services/telemetry.service.js';
 
 // Extend Express Request type for API keys
 // Note: The base user type is declared in auth.ts with isAdmin/isEmployee flags
@@ -133,6 +134,12 @@ transparentProxyRouter.all('/api/google/*', combinedAuth, async (req: Request, r
       path: googleApiPath,
       organizationId: req.user?.organizationId
     });
+
+    // Track API relay call for telemetry
+    // Extract API name like "admin.directory.users" or "gmail.settings.delegates"
+    const apiParts = googleApiPath.split('/').filter(p => p && !p.match(/^v\d+$/));
+    const apiName = apiParts.slice(0, 3).join('.');
+    telemetryService.trackApiCall(apiName);
 
     // 2. EXTRACT ACTOR INFORMATION
     const actor = extractActor(req);
