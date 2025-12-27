@@ -360,6 +360,43 @@
   color: #374151;
 }
 
+/* AI Status (when AI disabled) */
+.ai-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-disabled-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.ai-disabled-hint svg {
+  width: 14px;
+  height: 14px;
+}
+
+.configure-link {
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 11px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.configure-link:hover {
+  background: #f3f4f6;
+  border-color: var(--helios-purple, #8b5cf6);
+  color: var(--helios-purple, #8b5cf6);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .help-widget-popup {

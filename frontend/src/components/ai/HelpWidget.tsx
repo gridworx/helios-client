@@ -343,79 +343,89 @@ export function HelpWidget({
             </div>
           </div>
 
-          {!aiEnabled ? (
-            <div className="help-widget-disabled">
-              <Bot size={32} className="disabled-icon" />
-              <p>AI Assistant is not available</p>
-              {onConfigure && (
-                <button className="configure-btn" onClick={onConfigure}>
-                  Go to AI Settings
-                </button>
-              )}
-            </div>
-          ) : (
-            <>
-              {/* Quick answer display */}
-              {quickAnswer && (
-                <div className="quick-answer">
-                  <div className="quick-answer-header">
-                    <Bot size={14} />
-                    <span>AI Assistant</span>
-                  </div>
-                  <p>{quickAnswer}</p>
-                  <button
-                    className="expand-chat-btn"
-                    onClick={() => handleOpenChat()}
-                  >
-                    Continue in chat
-                    <ChevronRight size={14} />
-                  </button>
-                </div>
-              )}
-
-              {/* Loading state */}
-              {isLoading && (
-                <div className="help-loading">
-                  <Loader2 size={20} className="spin" />
-                  <span>Getting answer...</span>
-                </div>
-              )}
-
-              {/* Suggestions */}
-              {!quickAnswer && !isLoading && (
-                <div className="help-suggestions">
-                  <p className="suggestions-label">Suggested questions:</p>
-                  <ul>
-                    {suggestions.map((suggestion, index) => (
-                      <li key={index}>
-                        <button
-                          onClick={() => handleQuickQuestion(suggestion.question)}
-                          className="suggestion-btn"
-                        >
-                          <span className="suggestion-text">{suggestion.question}</span>
-                          {getCategoryIcon(suggestion.category)}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Open full chat */}
-              <div className="help-widget-footer">
-                <button
-                  className="open-chat-btn"
-                  onClick={() => handleOpenChat()}
-                >
-                  <MessageSquare size={14} />
-                  <span>Open full chat</span>
-                </button>
-                <span className="keyboard-hint">
-                  Press <kbd>?</kbd> to toggle
-                </span>
+          {/* Quick answer display (AI enabled only) */}
+          {aiEnabled && quickAnswer && (
+            <div className="quick-answer">
+              <div className="quick-answer-header">
+                <Bot size={14} />
+                <span>AI Assistant</span>
               </div>
-            </>
+              <p>{quickAnswer}</p>
+              <button
+                className="expand-chat-btn"
+                onClick={() => handleOpenChat()}
+              >
+                Continue in chat
+                <ChevronRight size={14} />
+              </button>
+            </div>
           )}
+
+          {/* Loading state (AI enabled only) */}
+          {aiEnabled && isLoading && (
+            <div className="help-loading">
+              <Loader2 size={20} className="spin" />
+              <span>Getting answer...</span>
+            </div>
+          )}
+
+          {/* Suggestions - always shown (works with or without AI) */}
+          {!quickAnswer && !isLoading && (
+            <div className="help-suggestions">
+              <p className="suggestions-label">
+                {aiEnabled ? 'Ask about this page:' : 'Common questions for this page:'}
+              </p>
+              <ul>
+                {suggestions.map((suggestion, index) => (
+                  <li key={index}>
+                    <button
+                      onClick={() => {
+                        if (aiEnabled) {
+                          handleQuickQuestion(suggestion.question);
+                        } else {
+                          // Without AI, show a tooltip or navigate to docs
+                          handleOpenChat(suggestion.question);
+                        }
+                      }}
+                      className="suggestion-btn"
+                      title={aiEnabled ? 'Click for AI answer' : 'Open chat to get help'}
+                    >
+                      <span className="suggestion-text">{suggestion.question}</span>
+                      {getCategoryIcon(suggestion.category)}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Footer with chat option and AI status */}
+          <div className="help-widget-footer">
+            {aiEnabled ? (
+              <button
+                className="open-chat-btn"
+                onClick={() => handleOpenChat()}
+              >
+                <MessageSquare size={14} />
+                <span>Open full chat</span>
+              </button>
+            ) : (
+              <div className="ai-status">
+                <span className="ai-disabled-hint">
+                  <Bot size={14} />
+                  AI chat available in Settings
+                </span>
+                {onConfigure && (
+                  <button className="configure-link" onClick={onConfigure}>
+                    Enable
+                  </button>
+                )}
+              </div>
+            )}
+            <span className="keyboard-hint">
+              Press <kbd>?</kbd> to toggle
+            </span>
+          </div>
         </div>
       )}
     </div>
