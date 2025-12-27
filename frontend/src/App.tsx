@@ -675,43 +675,59 @@ function AppContent() {
     return (
       <AccountSetup
         onComplete={(autoLogin) => {
-          if (autoLogin) {
-            // Auto-login with the returned token
-            localStorage.setItem('helios_token', autoLogin.token);
-            localStorage.setItem('helios_user', JSON.stringify({
-              ...autoLogin.user,
-              organizationId: autoLogin.organization.id
-            }));
+          console.log('[App] AccountSetup onComplete called', autoLogin ? 'with autoLogin data' : 'without data');
 
-            // Set user state
-            setCurrentUser({
-              ...autoLogin.user,
-              organizationId: autoLogin.organization.id
-            });
+          try {
+            if (autoLogin) {
+              // Auto-login with the returned token
+              localStorage.setItem('helios_token', autoLogin.token);
+              localStorage.setItem('helios_user', JSON.stringify({
+                ...autoLogin.user,
+                organizationId: autoLogin.organization.id
+              }));
 
-            // Set capabilities (new admin is always admin + employee)
-            setCapabilities({
-              isAdmin: true,
-              isEmployee: true,
-            });
+              // Set user state
+              setCurrentUser({
+                ...autoLogin.user,
+                organizationId: autoLogin.organization.id
+              });
 
-            // Set organization config
-            setConfig({
-              organizationId: autoLogin.organization.id,
-              domain: autoLogin.organization.domain,
-              organizationName: autoLogin.organization.name,
-              dwdConfigured: false
-            });
+              // Set capabilities (new admin is always admin + employee)
+              setCapabilities({
+                isAdmin: true,
+                isEmployee: true,
+              });
 
-            // Refresh labels and feature flags then go to dashboard
-            Promise.all([refreshLabels(), refreshFeatureFlags()]).then(async () => {
-              setStep('dashboard');
+              // Set organization config
+              setConfig({
+                organizationId: autoLogin.organization.id,
+                domain: autoLogin.organization.domain,
+                organizationName: autoLogin.organization.name,
+                dwdConfigured: false
+              });
 
-              // Fetch organization stats
-              await fetchOrganizationStats(autoLogin.organization.id);
-            });
-          } else {
-            // Fallback to login if no auto-login data
+              // Refresh labels and feature flags then go to dashboard
+              Promise.all([refreshLabels(), refreshFeatureFlags()])
+                .then(async () => {
+                  console.log('[App] Labels and flags refreshed, going to dashboard');
+                  setStep('dashboard');
+
+                  // Fetch organization stats
+                  await fetchOrganizationStats(autoLogin.organization.id);
+                })
+                .catch((err) => {
+                  console.error('[App] Error refreshing labels/flags:', err);
+                  // Still go to dashboard even if labels/flags fail
+                  setStep('dashboard');
+                });
+            } else {
+              // Fallback to login if no auto-login data
+              console.log('[App] No autoLogin data, going to login');
+              setStep('login');
+            }
+          } catch (err) {
+            console.error('[App] Error in onComplete:', err);
+            // Fallback to login on any error
             setStep('login');
           }
         }}

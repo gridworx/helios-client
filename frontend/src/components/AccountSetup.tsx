@@ -50,6 +50,8 @@ export function AccountSetup({ onComplete }: AccountSetupProps) {
       setLoading(true);
       setError(null);
 
+      console.log('[Setup] Starting organization setup...');
+
       const response = await fetch('/api/v1/organization/setup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -63,10 +65,23 @@ export function AccountSetup({ onComplete }: AccountSetupProps) {
         })
       });
 
+      console.log('[Setup] Response status:', response.status);
+
       const data = await response.json();
+      console.log('[Setup] Response data:', data);
 
       if (!response.ok) {
-        throw new Error(data.error || 'Setup failed');
+        throw new Error(data.error?.message || data.error || data.message || 'Setup failed');
+      }
+
+      if (!data.success) {
+        throw new Error(data.error?.message || data.message || 'Setup failed');
+      }
+
+      // Validate response structure
+      if (!data.data?.organization || !data.data?.admin) {
+        console.error('[Setup] Invalid response structure:', data);
+        throw new Error('Invalid server response - missing organization or admin data');
       }
 
       // Store the organization info for UI purposes (non-sensitive metadata)
@@ -79,6 +94,8 @@ export function AccountSetup({ onComplete }: AccountSetupProps) {
       // Save the selected theme
       localStorage.setItem('helios_theme', selectedTheme);
 
+      console.log('[Setup] Setup complete, calling onComplete...');
+
       // Auto-login with the returned token and navigate to dashboard
       onComplete({
         token: data.data.token,
@@ -86,7 +103,8 @@ export function AccountSetup({ onComplete }: AccountSetupProps) {
         organization: data.data.organization
       });
     } catch (err: any) {
-      setError(err.message || 'Setup failed');
+      console.error('[Setup] Error:', err);
+      setError(err.message || 'Setup failed. Please check the console for details.');
     } finally {
       setLoading(false);
     }
