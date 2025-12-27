@@ -9,6 +9,7 @@ import { PasswordSetupService } from '../services/password-setup.service.js';
 import { syncScheduler } from '../services/sync-scheduler.service.js';
 import { googleWorkspaceService } from '../services/google-workspace.service.js';
 import { activityTracker } from '../services/activity-tracker.service.js';
+import { securityAudit, AuditActions } from '../services/security-audit.service.js';
 import {
   successResponse,
   errorResponse,
@@ -246,6 +247,30 @@ router.post('/setup', async (req: Request, res: Response) => {
       logger.info('Organization setup completed', {
         organizationId: organization.id,
         adminId: admin.id
+      });
+
+      // Log organization setup to security audit
+      // Note: The database triggers will also log user.create and organizations.create,
+      // but this provides the "setup complete" context with IP/user-agent
+      await securityAudit.log({
+        action: 'setup.complete',
+        actionCategory: 'admin',
+        actorType: 'anonymous', // No user yet during setup
+        actorEmail: adminEmail,
+        actorIp: req.ip || undefined,
+        actorUserAgent: req.get('User-Agent'),
+        targetType: 'organization',
+        targetId: organization.id,
+        targetIdentifier: organization.name,
+        organizationId: organization.id,
+        requestId: req.requestId,
+        outcome: 'success',
+        changesAfter: {
+          organizationName: organization.name,
+          domain: organization.domain,
+          adminEmail: admin.email,
+          adminName: `${admin.first_name} ${admin.last_name}`
+        }
       });
 
       successResponse(res, {
