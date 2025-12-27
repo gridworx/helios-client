@@ -4,7 +4,7 @@ import { themeService, availableThemes, type ThemeName } from '../services/theme
 import './AccountSetup.css';
 
 interface AccountSetupProps {
-  onComplete: () => void;
+  onComplete: (autoLogin?: { token: string; user: any; organization: any }) => void;
 }
 
 export function AccountSetup({ onComplete }: AccountSetupProps) {
@@ -76,8 +76,15 @@ export function AccountSetup({ onComplete }: AccountSetupProps) {
         domain: data.data.organization.domain
       }));
 
-      // Proceed to login page - user will log in with their credentials via session-based auth
-      onComplete();
+      // Save the selected theme
+      localStorage.setItem('helios_theme', selectedTheme);
+
+      // Auto-login with the returned token and navigate to dashboard
+      onComplete({
+        token: data.data.token,
+        user: data.data.admin,
+        organization: data.data.organization
+      });
     } catch (err: any) {
       setError(err.message || 'Setup failed');
     } finally {

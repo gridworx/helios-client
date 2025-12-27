@@ -674,9 +674,46 @@ function AppContent() {
   if (step === 'setup') {
     return (
       <AccountSetup
-        onComplete={() => {
-          // After account setup, show login
-          setStep('login');
+        onComplete={(autoLogin) => {
+          if (autoLogin) {
+            // Auto-login with the returned token
+            localStorage.setItem('helios_token', autoLogin.token);
+            localStorage.setItem('helios_user', JSON.stringify({
+              ...autoLogin.user,
+              organizationId: autoLogin.organization.id
+            }));
+
+            // Set user state
+            setCurrentUser({
+              ...autoLogin.user,
+              organizationId: autoLogin.organization.id
+            });
+
+            // Set capabilities (new admin is always admin + employee)
+            setCapabilities({
+              isAdmin: true,
+              isEmployee: true,
+            });
+
+            // Set organization config
+            setConfig({
+              organizationId: autoLogin.organization.id,
+              domain: autoLogin.organization.domain,
+              organizationName: autoLogin.organization.name,
+              dwdConfigured: false
+            });
+
+            // Refresh labels and feature flags then go to dashboard
+            Promise.all([refreshLabels(), refreshFeatureFlags()]).then(async () => {
+              setStep('dashboard');
+
+              // Fetch organization stats
+              await fetchOrganizationStats(autoLogin.organization.id);
+            });
+          } else {
+            // Fallback to login if no auto-login data
+            setStep('login');
+          }
         }}
       />
     );
