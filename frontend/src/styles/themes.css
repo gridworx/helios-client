@@ -96,10 +96,75 @@
 }
 
 /* ============================================
-   OPTIONAL ACCENT THEMES (keep brand purple, change accent)
+   THEME VARIATIONS
    ============================================ */
-/* Google Workspace Blue accent */
+
+/* Helios Purple (default brand theme) */
+:root[data-theme="helios-purple"] {
+  --helios-purple: #8b5cf6;
+  --helios-purple-hover: #7c3aed;
+  --helios-purple-light: rgba(139, 92, 246, 0.1);
+  --helios-purple-shadow: rgba(139, 92, 246, 0.4);
+  --theme-primary: #8b5cf6;
+  --theme-primary-hover: #7c3aed;
+  --theme-primary-light: rgba(139, 92, 246, 0.1);
+  --theme-primary-shadow: rgba(139, 92, 246, 0.4);
+  --theme-gradient: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%);
+  --theme-primary-start: #7c3aed;
+  --theme-primary-end: #8b5cf6;
+}
+
+/* Corporate Blue - Professional, trustworthy */
+:root[data-theme="corporate-blue"] {
+  --helios-purple: #3b82f6;
+  --helios-purple-hover: #2563eb;
+  --helios-purple-light: rgba(59, 130, 246, 0.1);
+  --helios-purple-shadow: rgba(59, 130, 246, 0.4);
+  --theme-primary: #3b82f6;
+  --theme-primary-hover: #2563eb;
+  --theme-primary-light: rgba(59, 130, 246, 0.1);
+  --theme-primary-shadow: rgba(59, 130, 246, 0.4);
+  --theme-gradient: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  --theme-primary-start: #2563eb;
+  --theme-primary-end: #3b82f6;
+}
+
+/* Sophisticated Purple - Deeper purple */
+:root[data-theme="sophisticated-purple"] {
+  --helios-purple: #7c3aed;
+  --helios-purple-hover: #6d28d9;
+  --helios-purple-light: rgba(124, 58, 237, 0.1);
+  --helios-purple-shadow: rgba(124, 58, 237, 0.4);
+  --theme-primary: #7c3aed;
+  --theme-primary-hover: #6d28d9;
+  --theme-primary-light: rgba(124, 58, 237, 0.1);
+  --theme-primary-shadow: rgba(124, 58, 237, 0.4);
+  --theme-gradient: linear-gradient(135deg, #6d28d9 0%, #7c3aed 100%);
+  --theme-primary-start: #6d28d9;
+  --theme-primary-end: #7c3aed;
+}
+
+/* Modern Teal - Fresh and contemporary */
+:root[data-theme="modern-teal"] {
+  --helios-purple: #14b8a6;
+  --helios-purple-hover: #0d9488;
+  --helios-purple-light: rgba(20, 184, 166, 0.1);
+  --helios-purple-shadow: rgba(20, 184, 166, 0.4);
+  --theme-primary: #14b8a6;
+  --theme-primary-hover: #0d9488;
+  --theme-primary-light: rgba(20, 184, 166, 0.1);
+  --theme-primary-shadow: rgba(20, 184, 166, 0.4);
+  --theme-gradient: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
+  --theme-primary-start: #0d9488;
+  --theme-primary-end: #14b8a6;
+}
+
+/* Google Workspace Blue - Google-inspired */
 :root[data-theme="google-blue"] {
+  --helios-purple: #1a73e8;
+  --helios-purple-hover: #1765cc;
+  --helios-purple-light: rgba(26, 115, 232, 0.1);
+  --helios-purple-shadow: rgba(26, 115, 232, 0.4);
   --theme-primary: #1a73e8;
   --theme-primary-hover: #1765cc;
   --theme-primary-light: rgba(26, 115, 232, 0.1);
@@ -107,13 +172,9 @@
   --theme-gradient: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
   --theme-primary-start: #1a73e8;
   --theme-primary-end: #4285f4;
-
-  /* Accent for CTAs and interactive elements */
-  --theme-accent: #FF6B6B;
-  --theme-accent-hover: #E05F5F;
 }
 
-/* Legacy alias - use data-theme="dark" instead */
+/* Helios Dark Mode */
 :root[data-theme="helios-dark"] {
   /* Redirect to new dark theme */
   --helios-purple-light: rgba(139, 92, 246, 0.2);
