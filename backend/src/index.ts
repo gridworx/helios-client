@@ -102,6 +102,7 @@ import externalSharingRoutes from './routes/external-sharing.routes.js';
 import workflowsRoutes from './routes/workflows.routes.js';
 import { requestIdMiddleware, REQUEST_ID_HEADER } from './middleware/request-id.js';
 import { authHandler } from './lib/auth-handler.js';
+import { auditMiddleware } from './middleware/audit.middleware.js';
 const app = express();
 const httpServer = createServer(app);
 const PORT = process.env['PORT'] || 3001;
@@ -575,6 +576,21 @@ app.all('/api/v1/auth/*', (req, res, next) => {
   }
 });
 app.all('/api/auth/*', (req, res) => authHandler(req, res));
+
+// =============================================================================
+// Audit Middleware - Automatic API Request Logging
+// =============================================================================
+// Logs all mutating API requests (POST, PUT, PATCH, DELETE) to security_audit_logs.
+// This provides API-level audit coverage with actor context from JWT.
+// Combined with database triggers, this gives comprehensive audit trail:
+// - Middleware: WHO did WHAT via API (with full request context)
+// - Triggers: WHAT data changed in the database (with before/after values)
+const auditEnabled = process.env['AUDIT_LOGGING_ENABLED'] !== 'false';
+if (auditEnabled) {
+  app.use('/api/v1', auditMiddleware);
+  app.use('/api', auditMiddleware);
+  logger.info('🔍 Audit middleware enabled');
+}
 
 // Helper to register routes on both versioned and unversioned paths
 const registerRoute = (path: string, router: express.Router) => {
