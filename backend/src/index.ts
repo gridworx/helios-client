@@ -145,7 +145,7 @@ if (rateLimitEnabled) {
 }
 
 // CORS configuration helper
-function getCorsOrigins(): (string | boolean)[] {
+function getCorsOrigins(): (string | boolean | RegExp)[] {
   const frontendUrl = process.env['FRONTEND_URL'];
   const publicUrl = process.env['PUBLIC_URL'];
 
@@ -161,7 +161,7 @@ function getCorsOrigins(): (string | boolean)[] {
     return origins.length > 0 ? origins : [false]; // Disable CORS if no origins configured
   }
 
-  // Development - allow common local origins
+  // Development - allow common local origins AND local network IPs
   return [
     'http://localhost:3000',
     'http://localhost:3001',
@@ -169,9 +169,11 @@ function getCorsOrigins(): (string | boolean)[] {
     'http://localhost:5174',
     'http://localhost:80',
     'http://localhost',
+    // Allow local network IPs (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+    /^http:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)(:\d+)?$/,
     ...(frontendUrl ? [frontendUrl] : []),
     ...(publicUrl && publicUrl !== frontendUrl ? [publicUrl] : [])
-  ].filter(Boolean) as string[];
+  ].filter(Boolean) as (string | RegExp)[];
 }
 
 const corsOptions = {

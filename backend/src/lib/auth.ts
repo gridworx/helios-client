@@ -204,6 +204,17 @@ export const auth = betterAuth({
       });
     }
 
+    // In development, dynamically allow local network IPs
+    // This is safe because it's only for non-production environments
+    if (process.env['NODE_ENV'] !== 'production') {
+      // Get the host IP from common env vars or use a broad pattern
+      const hostIp = process.env['HOST_IP'] || process.env['SERVER_IP'];
+      if (hostIp) {
+        origins.add(`http://${hostIp}`);
+        origins.add(`http://${hostIp}:80`);
+      }
+    }
+
     return Array.from(origins);
   })(),
 
