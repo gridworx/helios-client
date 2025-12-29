@@ -4,6 +4,7 @@ import { PenLine, Mail, Globe, Puzzle, Plus, FileText, Calendar, Target, Search,
 import './TemplateStudio.css';
 import { AssetPickerModal } from '../components/AssetPickerModal';
 import { authFetch } from '../config/api';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 
 interface Template {
   id: string;
@@ -77,6 +78,7 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
+  const [templateToDelete, setTemplateToDelete] = useState<Template | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [showTemplatePreview, setShowTemplatePreview] = useState(false);
 
@@ -411,18 +413,19 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
     }
   };
 
-  const handleDeleteTemplate = async (template: Template) => {
+  const handleDeleteTemplate = (template: Template) => {
     if (template.usage_count > 0) {
       alert(`Cannot delete "${template.name}" - it is currently assigned to ${template.usage_count} user(s)`);
       return;
     }
+    setTemplateToDelete(template);
+  };
 
-    if (!confirm(`Delete template "${template.name}"? This action cannot be undone.`)) {
-      return;
-    }
+  const confirmDeleteTemplate = async () => {
+    if (!templateToDelete) return;
 
     try {
-      const response = await authFetch(`/api/v1/signatures/templates/${template.id}`, {
+      const response = await authFetch(`/api/v1/signatures/templates/${templateToDelete.id}`, {
         method: 'DELETE'
       });
 
@@ -435,6 +438,8 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
       await fetchTemplates();
     } catch (err: any) {
       alert(`Error deleting template: ${err.message}`);
+    } finally {
+      setTemplateToDelete(null);
     }
   };
 
@@ -1278,6 +1283,17 @@ export function TemplateStudio({ organizationId }: TemplateStudioProps) {
         title="Insert Image"
         acceptedTypes={['image/*']}
         category="signatures"
+      />
+
+      {/* Delete Template Confirmation */}
+      <ConfirmDialog
+        isOpen={templateToDelete !== null}
+        title="Delete Template"
+        message={`Are you sure you want to delete "${templateToDelete?.name}"? This action cannot be undone.`}
+        variant="danger"
+        confirmText="Delete"
+        onConfirm={confirmDeleteTemplate}
+        onCancel={() => setTemplateToDelete(null)}
       />
     </div>
   );

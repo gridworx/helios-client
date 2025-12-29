@@ -36,6 +36,7 @@ Each organization MUST use their own service account for:
 2. Search and enable these APIs:
    - **Admin SDK API** (required)
    - **Google Workspace Admin Reports API** (optional, for audit logs)
+   - **Enterprise License Manager API** (optional, for license management)
 3. Click **"Enable"** for each API
 
 ## Step 2: Create Service Account
@@ -89,6 +90,7 @@ Each organization MUST use their own service account for:
      https://www.googleapis.com/auth/admin.directory.orgunit
      https://www.googleapis.com/auth/admin.directory.domain.readonly
      https://www.googleapis.com/auth/admin.reports.audit.readonly
+     https://www.googleapis.com/auth/apps.licensing
      ```
 3. Click **"Authorize"**
 
@@ -150,7 +152,7 @@ Each organization MUST use their own service account for:
 **Solution:**
 1. Go back to Google Admin Console
 2. Edit the Domain-Wide Delegation entry
-3. Ensure all 5 scopes are present
+3. Ensure all 6 scopes are present
 4. Re-authorize
 
 #### ❌ "Connection failed" Error
@@ -223,7 +225,7 @@ Before marking setup as complete, verify:
 - [ ] Service account created with JSON key downloaded
 - [ ] Admin SDK API enabled
 - [ ] Domain-Wide Delegation configured with Client ID
-- [ ] All 5 OAuth scopes added and authorized
+- [ ] All 6 OAuth scopes added and authorized
 - [ ] Service account uploaded to Helios
 - [ ] Test connection successful
 - [ ] Initial sync completed

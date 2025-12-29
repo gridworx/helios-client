@@ -21,8 +21,10 @@ import OrgChart from './pages/OrgChart'
 import { AssetManagement } from './pages/AssetManagement'
 import { Workspaces } from './pages/Workspaces'
 import SecurityEvents from './pages/SecurityEvents'
+import { OAuthApps } from './pages/OAuthApps'
 import { EmailSecurity } from './pages/EmailSecurity'
 import AuditLogs from './pages/AuditLogs'
+import Licenses from './pages/Licenses'
 import { MyProfile } from './pages/MyProfile'
 import { People } from './pages/People'
 import { MyTeam } from './pages/MyTeam'
@@ -43,8 +45,14 @@ const UserOffboarding = lazy(() => import('./pages/UserOffboarding'))
 const ScheduledActions = lazy(() => import('./pages/admin/ScheduledActions'))
 const TeamAnalytics = lazy(() => import('./pages/admin/TeamAnalytics'))
 const ExternalSharingManager = lazy(() => import('./pages/admin/ExternalSharingManager'))
-const WorkflowBuilder = lazy(() => import('./pages/WorkflowBuilder'));
 const RequestsPage = lazy(() => import('./pages/RequestsPage'));
+const TasksDashboard = lazy(() => import('./pages/TasksDashboard'));
+const TrainingContent = lazy(() => import('./pages/TrainingContent'));
+const UserOnboardingPortal = lazy(() => import('./pages/UserOnboardingPortal'));
+const HRDashboard = lazy(() => import('./pages/HRDashboard'));
+const ManagerDashboard = lazy(() => import('./pages/ManagerDashboard'));
+const LifecycleAnalytics = lazy(() => import('./pages/LifecycleAnalytics'));
+const RulesEngine = lazy(() => import('./pages/RulesEngine'));
 import { CommandBar } from './components/ai/CommandBar'
 import { ChatPanel } from './components/ai/ChatPanel'
 import { HelpWidget } from './components/ai/HelpWidget'
@@ -53,8 +61,9 @@ import { ViewProvider, useView } from './contexts/ViewContext'
 import { FeatureFlagsProvider, useFeatureFlags } from './contexts/FeatureFlagsContext'
 import { ToastProvider } from './contexts/ToastContext'
 import { AdminNavigation, UserNavigation, ViewSwitcher, ViewOnboarding } from './components/navigation'
-import { Button } from '@/components/ui/button'
+// Button component removed - using styled quick-action-btn classes instead
 import { EmailEngagementWidget } from './components/widgets/EmailEngagementWidget'
+import { LoginMapWidget } from './components/widgets/LoginMapWidget'
 import { getWidgetData } from './utils/widget-data'
 import { getEnabledWidgets, type WidgetId } from './config/widgets'
 import { UserPlus, Upload, Download, RefreshCw, AlertCircle, Info, Edit3, Bell, Building, Building2, HelpCircle, Search, Users as UsersIcon, Loader2, MessageSquare, User, Network, Settings as SettingsIcon } from 'lucide-react'
@@ -72,6 +81,10 @@ interface OrganizationConfig {
   domain: string;
   organizationName: string;
   dwdConfigured: boolean;
+  // Branding & Support (optional)
+  logoClickUrl?: string;      // Where logo click goes (default: /admin/dashboard)
+  supportUrl?: string;        // External support portal URL
+  supportEmail?: string;      // Support email address
 }
 
 interface LicenseData {
@@ -130,7 +143,9 @@ function getPageFromPath(pathname: string): string {
   if (pathname.startsWith('/admin/email-security')) return 'email-security';
   if (pathname.startsWith('/admin/signatures')) return 'signatures';
   if (pathname.startsWith('/admin/security-events')) return 'security-events';
+  if (pathname.startsWith('/admin/security/oauth-apps')) return 'oauth-apps';
   if (pathname.startsWith('/admin/audit-logs')) return 'audit-logs';
+  if (pathname.startsWith('/admin/licenses')) return 'licenses';
   if (pathname.startsWith('/admin/external-sharing')) return 'external-sharing';
   if (pathname.startsWith('/admin/settings')) return 'settings';
   if (pathname.startsWith('/admin/administrators')) return 'administrators';
@@ -139,7 +154,13 @@ function getPageFromPath(pathname: string): string {
   if (pathname.startsWith('/admin/onboarding-templates')) return 'onboarding-templates';
   if (pathname.startsWith('/admin/offboarding-templates')) return 'offboarding-templates';
   if (pathname.startsWith('/admin/scheduled-actions')) return 'scheduled-actions';
-  if (pathname.startsWith('/admin/workflow-builder')) return 'workflow-builder';
+  if (pathname.startsWith('/admin/training')) return 'training';
+  if (pathname.startsWith('/admin/tasks')) return 'tasks';
+  if (pathname.startsWith('/admin/requests')) return 'requests';
+  if (pathname.startsWith('/admin/hr-dashboard')) return 'hr-dashboard';
+  if (pathname.startsWith('/admin/manager-dashboard')) return 'manager-dashboard';
+  if (pathname.startsWith('/admin/lifecycle-analytics')) return 'lifecycle-analytics';
+  if (pathname.startsWith('/admin/rules-engine')) return 'rules-engine';
   // User lifecycle routes
   if (pathname.startsWith('/admin/onboarding/new') || pathname.startsWith('/new-user-onboarding')) return 'new-user-onboarding';
   if (pathname.startsWith('/admin/offboarding/user') || pathname.startsWith('/user-offboarding')) return 'user-offboarding';
@@ -150,6 +171,7 @@ function getPageFromPath(pathname: string): string {
   if (pathname.startsWith('/my-team')) return 'my-team';
   if (pathname.startsWith('/my-groups')) return 'my-groups';
   if (pathname.startsWith('/my-profile')) return 'my-profile';
+  if (pathname.startsWith('/my-onboarding')) return 'my-onboarding';
   if (pathname.startsWith('/user-settings')) return 'user-settings';
 
   // Special pages
@@ -207,7 +229,9 @@ function AppContent() {
       'email-security': '/admin/email-security',
       'signatures': '/admin/signatures',
       'security-events': '/admin/security-events',
+      'oauth-apps': '/admin/security/oauth-apps',
       'audit-logs': '/admin/audit-logs',
+      'licenses': '/admin/licenses',
       'external-sharing': '/admin/external-sharing',
       'settings': '/admin/settings',
       'administrators': '/admin/administrators',
@@ -216,8 +240,13 @@ function AppContent() {
       'onboarding-templates': '/admin/onboarding-templates',
       'offboarding-templates': '/admin/offboarding-templates',
       'scheduled-actions': '/admin/scheduled-actions',
-      'workflow-builder': '/admin/workflow-builder',
+      'tasks': '/admin/tasks',
+      'training': '/admin/training',
       'requests': '/admin/requests',
+      'hr-dashboard': '/admin/hr-dashboard',
+      'manager-dashboard': '/admin/manager-dashboard',
+      'lifecycle-analytics': '/admin/lifecycle-analytics',
+      'rules-engine': '/admin/rules-engine',
       // User management routes
       'add-user': '/add-user',
       'new-user-onboarding': '/admin/onboarding/new',
@@ -232,6 +261,7 @@ function AppContent() {
       'my-team': '/my-team',
       'my-groups': '/my-groups',
       'my-profile': '/my-profile',
+      'my-onboarding': '/my-onboarding',
       'user-settings': '/user-settings',
     };
 
@@ -417,20 +447,22 @@ function AppContent() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Check AI status function (reusable for initial load and after config changes)
+  const checkAiStatus = async () => {
+    if (step !== 'dashboard') return;
+    try {
+      const response = await authFetch('/api/v1/ai/status');
+      const data = await response.json();
+      if (data.success) {
+        setAiEnabled(data.data.available);
+      }
+    } catch {
+      // Ignore errors
+    }
+  };
+
   // Check AI status when authenticated
   useEffect(() => {
-    const checkAiStatus = async () => {
-      if (step !== 'dashboard') return;
-      try {
-        const response = await authFetch('/api/v1/ai/status');
-        const data = await response.json();
-        if (data.success) {
-          setAiEnabled(data.data.available);
-        }
-      } catch {
-        // Ignore errors
-      }
-    };
     checkAiStatus();
   }, [step]);
 
@@ -628,7 +660,7 @@ function AppContent() {
       setSyncLoading(true);
 
       // Start sync in background
-      const response = await fetch('/api/v1/google-workspace/sync-now', {
+      const response = await authFetch('/api/v1/google-workspace/sync-now', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ organizationId: config.organizationId })
@@ -712,13 +744,21 @@ function AppContent() {
                   console.log('[App] Labels and flags refreshed, going to dashboard');
                   setStep('dashboard');
 
-                  // Fetch organization stats
-                  await fetchOrganizationStats(autoLogin.organization.id);
+                  // Fetch organization stats and load widget preferences
+                  await Promise.all([
+                    fetchOrganizationStats(autoLogin.organization.id),
+                    loadUserPreferences()
+                  ]);
                 })
-                .catch((err) => {
+                .catch(async (err) => {
                   console.error('[App] Error refreshing labels/flags:', err);
                   // Still go to dashboard even if labels/flags fail
                   setStep('dashboard');
+                  // Still try to load dashboard data
+                  await Promise.all([
+                    fetchOrganizationStats(autoLogin.organization.id),
+                    loadUserPreferences()
+                  ]).catch(() => {});
                 });
             } else {
               // Fallback to login if no auto-login data
@@ -853,11 +893,26 @@ function AppContent() {
     <div className="app">
       <header className="client-header">
         <div className="header-left">
-          <div className="org-logo"><Building size={24} /></div>
-          <div className="org-info">
-            <div className="org-name">{config?.organizationName || 'Organization'}</div>
-            <div className="platform-name">Helios Admin Portal</div>
-          </div>
+          <a
+            href={config?.logoClickUrl || (currentUser?.isAdmin ? '/admin/dashboard' : '/user/dashboard')}
+            className="org-branding-link"
+            onClick={(e) => {
+              // If it's an internal link, use navigation instead of full page load
+              const defaultUrl = currentUser?.isAdmin ? '/admin/dashboard' : '/user/dashboard';
+              const url = config?.logoClickUrl || defaultUrl;
+              if (url.startsWith('/')) {
+                e.preventDefault();
+                navigate(url);
+              }
+              // External URLs open naturally
+            }}
+          >
+            <div className="org-logo"><Building size={24} /></div>
+            <div className="org-info">
+              <div className="org-name">{config?.organizationName || 'Organization'}</div>
+              <div className="platform-name">Helios Admin Portal</div>
+            </div>
+          </a>
         </div>
         <div className="header-center">
           <div className="search-container">
@@ -953,15 +1008,13 @@ function AppContent() {
           <div className="welcome-stats">
             <span className="welcome-text">Welcome, {currentUser?.firstName || 'User'}!</span>
           </div>
-          {aiEnabled && (
-            <button
-              className="icon-btn ai-chat-btn"
-              title="AI Assistant (Chat)"
-              onClick={() => setShowChatPanel(true)}
-            >
-              <MessageSquare size={18} />
-            </button>
-          )}
+          <button
+            className={`icon-btn ai-chat-btn ${!aiEnabled ? 'disabled' : ''}`}
+            title={aiEnabled ? "AI Assistant (Chat)" : "AI Assistant (Not configured)"}
+            onClick={() => setShowChatPanel(true)}
+          >
+            <MessageSquare size={18} />
+          </button>
           <button className="icon-btn" title="Help" onClick={() => setShowHelpWidget(!showHelpWidget)}><HelpCircle size={18} /></button>
           <button className="icon-btn" title="Notifications"><Bell size={18} /></button>
           <ClientUserMenu
@@ -1135,19 +1188,19 @@ function AppContent() {
               {/* Quick Actions Section */}
               <div className="quick-actions-section">
                 <h2 className="section-title">Quick Actions</h2>
-                <div className="flex gap-3">
-                  <Button onClick={() => navigate('/add-user')} className="flex-1">
+                <div className="quick-actions-grid">
+                  <button className="quick-action-btn primary" onClick={() => navigate('/add-user')}>
                     <UserPlus size={18} />
                     Add User
-                  </Button>
-                  <Button variant="outline" onClick={() => setCurrentPage('users')} className="flex-1">
+                  </button>
+                  <button className="quick-action-btn" onClick={() => setCurrentPage('users')}>
                     <Upload size={18} />
                     Import CSV
-                  </Button>
-                  <Button variant="outline" onClick={() => setCurrentPage('users')} className="flex-1">
+                  </button>
+                  <button className="quick-action-btn" onClick={() => setCurrentPage('users')}>
                     <Download size={18} />
                     Export Report
-                  </Button>
+                  </button>
                 </div>
               </div>
 
@@ -1189,20 +1242,20 @@ function AppContent() {
                     ) : (
                       <div className="empty-state">
                         <Info size={32} className="empty-icon" />
-                        <p className="empty-title">No activity yet</p>
-                        <p className="empty-subtitle">Get started with these actions:</p>
-                        <div className="empty-actions">
-                          {stats?.google?.connected && !stats.google.lastSync && (
-                            <button className="empty-action-btn" onClick={handleManualSync}>
+                        <p className="empty-title">No sync activity yet</p>
+                        <p className="empty-subtitle">
+                          {stats?.google?.connected
+                            ? 'Run your first sync to see activity here.'
+                            : 'Connect Google Workspace or Microsoft 365 to sync users.'}
+                        </p>
+                        {stats?.google?.connected && !stats.google.lastSync && (
+                          <div className="empty-actions">
+                            <button className="quick-action-btn primary" onClick={handleManualSync}>
                               <RefreshCw size={16} />
                               Run first sync
                             </button>
-                          )}
-                          <button className="empty-action-btn" onClick={() => setCurrentPage('users')}>
-                            <UserPlus size={16} />
-                            Add a user
-                          </button>
-                        </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1274,6 +1327,14 @@ function AppContent() {
               <div className="dashboard-engagement-section">
                 <EmailEngagementWidget />
               </div>
+
+              {/* Login Map Widget - Security monitoring */}
+              {stats?.google?.connected && (
+                <div className="dashboard-security-section">
+                  <h2 className="section-title">Security Overview</h2>
+                  <LoginMapWidget />
+                </div>
+              )}
             </div>
           )}
 
@@ -1292,23 +1353,23 @@ function AppContent() {
               {/* User Quick Actions */}
               <div className="quick-actions-section">
                 <h2 className="section-title">Quick Actions</h2>
-                <div className="flex gap-3 flex-wrap">
-                  <Button onClick={() => setCurrentPage('my-profile')} className="flex-1 min-w-[140px]">
+                <div className="quick-actions-grid">
+                  <button className="quick-action-btn primary" onClick={() => setCurrentPage('my-profile')}>
                     <User size={18} />
                     My Profile
-                  </Button>
-                  <Button variant="outline" onClick={() => setCurrentPage('people')} className="flex-1 min-w-[140px]">
+                  </button>
+                  <button className="quick-action-btn" onClick={() => setCurrentPage('people')}>
                     <UsersIcon size={18} />
                     People Directory
-                  </Button>
-                  <Button variant="outline" onClick={() => setCurrentPage('my-team')} className="flex-1 min-w-[140px]">
+                  </button>
+                  <button className="quick-action-btn" onClick={() => setCurrentPage('my-team')}>
                     <Building2 size={18} />
                     My Team
-                  </Button>
-                  <Button variant="outline" onClick={() => setCurrentPage('my-groups')} className="flex-1 min-w-[140px]">
+                  </button>
+                  <button className="quick-action-btn" onClick={() => setCurrentPage('my-groups')}>
                     <UsersIcon size={18} />
                     My Groups
-                  </Button>
+                  </button>
                 </div>
               </div>
 
@@ -1375,6 +1436,7 @@ function AppContent() {
               showPasswordModal={showPasswordModal}
               onPasswordModalChange={setShowPasswordModal}
               currentUser={currentUser}
+              onAIConfigChange={checkAiStatus}
             />
           )}
 
@@ -1427,8 +1489,16 @@ function AppContent() {
             <SecurityEvents />
           )}
 
+          {currentPage === 'oauth-apps' && (
+            <OAuthApps organizationId={config?.organizationId || ''} />
+          )}
+
           {currentPage === 'audit-logs' && (
             <AuditLogs />
+          )}
+
+          {currentPage === 'licenses' && (
+            <Licenses />
           )}
 
           {currentPage === 'external-sharing' && (
@@ -1541,15 +1611,51 @@ function AppContent() {
             </Suspense>
           )}
 
-          {currentPage === 'workflow-builder' && (
-            <Suspense fallback={<PageLoader />}>
-              <WorkflowBuilder />
-            </Suspense>
-          )}
-
           {currentPage === 'requests' && (
             <Suspense fallback={<PageLoader />}>
               <RequestsPage />
+            </Suspense>
+          )}
+
+          {currentPage === 'tasks' && (
+            <Suspense fallback={<PageLoader />}>
+              <TasksDashboard />
+            </Suspense>
+          )}
+
+          {currentPage === 'training' && (
+            <Suspense fallback={<PageLoader />}>
+              <TrainingContent />
+            </Suspense>
+          )}
+
+          {currentPage === 'my-onboarding' && (
+            <Suspense fallback={<PageLoader />}>
+              <UserOnboardingPortal />
+            </Suspense>
+          )}
+
+          {currentPage === 'hr-dashboard' && (
+            <Suspense fallback={<PageLoader />}>
+              <HRDashboard onNavigate={(page: string) => setCurrentPage(page)} />
+            </Suspense>
+          )}
+
+          {currentPage === 'manager-dashboard' && (
+            <Suspense fallback={<PageLoader />}>
+              <ManagerDashboard onNavigate={(page: string) => setCurrentPage(page)} />
+            </Suspense>
+          )}
+
+          {currentPage === 'lifecycle-analytics' && (
+            <Suspense fallback={<PageLoader />}>
+              <LifecycleAnalytics onNavigate={(page: string) => setCurrentPage(page)} />
+            </Suspense>
+          )}
+
+          {currentPage === 'rules-engine' && (
+            <Suspense fallback={<PageLoader />}>
+              <RulesEngine />
             </Suspense>
           )}
 
@@ -1573,17 +1679,16 @@ function AppContent() {
             </Suspense>
           )}
 
-          {currentPage !== 'dashboard' && currentPage !== 'settings' && currentPage !== 'users' && currentPage !== 'groups' && currentPage !== 'workspaces' && currentPage !== 'orgUnits' && currentPage !== 'assets' && currentPage !== 'files-assets' && currentPage !== 'email-security' && currentPage !== 'signatures' && currentPage !== 'security-events' && currentPage !== 'audit-logs' && currentPage !== 'console' && currentPage !== 'administrators' && currentPage !== 'my-profile' && currentPage !== 'people' && currentPage !== 'my-team' && currentPage !== 'my-groups' && currentPage !== 'user-settings' && currentPage !== 'orgChart' && currentPage !== 'add-user' && currentPage !== 'onboarding-templates' && currentPage !== 'new-onboarding-template' && currentPage !== 'edit-onboarding-template' && currentPage !== 'offboarding-templates' && currentPage !== 'new-offboarding-template' && currentPage !== 'edit-offboarding-template' && currentPage !== 'scheduled-actions' && currentPage !== 'new-user-onboarding' && currentPage !== 'user-offboarding' && currentPage !== 'requests' && (
+          {currentPage !== 'dashboard' && currentPage !== 'settings' && currentPage !== 'users' && currentPage !== 'groups' && currentPage !== 'workspaces' && currentPage !== 'orgUnits' && currentPage !== 'assets' && currentPage !== 'files-assets' && currentPage !== 'email-security' && currentPage !== 'signatures' && currentPage !== 'security-events' && currentPage !== 'audit-logs' && currentPage !== 'licenses' && currentPage !== 'console' && currentPage !== 'administrators' && currentPage !== 'my-profile' && currentPage !== 'people' && currentPage !== 'my-team' && currentPage !== 'my-groups' && currentPage !== 'user-settings' && currentPage !== 'orgChart' && currentPage !== 'add-user' && currentPage !== 'onboarding-templates' && currentPage !== 'new-onboarding-template' && currentPage !== 'edit-onboarding-template' && currentPage !== 'offboarding-templates' && currentPage !== 'new-offboarding-template' && currentPage !== 'edit-offboarding-template' && currentPage !== 'scheduled-actions' && currentPage !== 'new-user-onboarding' && currentPage !== 'user-offboarding' && currentPage !== 'requests' && (
             <div className="page-placeholder">
               <div className="placeholder-content">
-                <div className="placeholder-icon">🚧</div>
-                <h2>{currentPage.charAt(0).toUpperCase() + currentPage.slice(1)}</h2>
-                <p>This section is coming soon!</p>
+                <h2>Page Not Found</h2>
+                <p>The page you're looking for doesn't exist or you don't have access.</p>
                 <button
                   className="btn-primary"
                   onClick={() => setCurrentPage('dashboard')}
                 >
-                  ← Back to Dashboard
+                  Go to Dashboard
                 </button>
               </div>
             </div>
@@ -1634,24 +1739,18 @@ function AppContent() {
       />
 
       {/* Contextual Help Widget - triggered by ? icon in header */}
-      {!showChatPanel && (
-        <HelpWidget
-          currentPage={currentPage}
-          aiEnabled={aiEnabled}
-          externalOpen={showHelpWidget}
-          onExternalClose={() => setShowHelpWidget(false)}
-          hideFloatingButton={true}
-          onOpenChat={(message) => {
-            if (message) setChatInitialMessage(message);
-            setShowHelpWidget(false);
-            setShowChatPanel(true);
-          }}
-          onConfigure={() => {
-            setShowHelpWidget(false);
-            navigate('/admin/settings');
-          }}
-        />
-      )}
+      {/* Help is independent of AI - shows knowledge base articles */}
+      <HelpWidget
+        currentPage={currentPage}
+        externalOpen={showHelpWidget}
+        onExternalClose={() => setShowHelpWidget(false)}
+        hideFloatingButton={true}
+        onAskAI={(question) => {
+          setShowHelpWidget(false);
+          setChatInitialMessage(question);
+          setShowChatPanel(true);
+        }}
+      />
     </div>
   );
 }

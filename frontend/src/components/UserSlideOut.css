@@ -223,64 +223,85 @@
   font-weight: 600;
 }
 
-/* Info Grid - Two-column grid layout for user profile fields */
+/* Info Grid - Definition List Style Layout (Label:Value rows) */
 .slideout-panel .info-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
   margin-bottom: 1.5rem;
-  background: #f9fafb;
+  background: var(--color-bg-card, #fff);
+  border: 1px solid var(--color-border, #e5e7eb);
   border-radius: 8px;
-  padding: 1rem 1.25rem;
+  overflow: hidden;
 }
 
 .info-item {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  flex-direction: row;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border-light, #f3f4f6);
+  min-height: 44px;
 }
 
-/* Full-width items (like email) can span both columns */
+.info-item:last-child {
+  border-bottom: none;
+}
+
+/* Alternating row backgrounds for better readability */
+.info-item:nth-child(odd) {
+  background: var(--color-bg-hover, #f9fafb);
+}
+
+.info-item:nth-child(even) {
+  background: var(--color-bg-card, #fff);
+}
+
+/* Full-width items span full width but keep same row layout */
 .info-item.full-width {
-  grid-column: span 2;
+  /* No change needed - already full width */
 }
 
 .info-item label {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
+  flex: 0 0 140px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-secondary, #6b7280);
+  padding-right: 1rem;
 }
 
 .info-item > div {
-  font-size: 0.9375rem;
-  color: #1f2937;
+  flex: 1;
+  font-size: 0.875rem;
+  color: var(--color-text-primary, #1f2937);
   font-weight: 500;
   word-break: break-word;
 }
 
 .info-item > div:empty::before {
   content: '-';
-  color: #9ca3af;
+  color: var(--color-text-tertiary, #9ca3af);
+  font-weight: 400;
 }
 
-/* Input styling in edit mode */
+/* Input styling in edit mode - inline with label */
 .info-item input,
 .info-item select {
-  padding: 0.375rem 0.5rem;
+  flex: 1;
+  padding: 0.375rem 0.625rem;
   border-radius: 4px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--input-border, #d1d5db);
   font-size: 0.875rem;
-  width: 100%;
-  box-sizing: border-box;
+  background: var(--input-bg, white);
+  color: var(--input-text, #1f2937);
+  max-width: 100%;
 }
 
 .info-item input:focus,
 .info-item select:focus {
   outline: none;
   border-color: var(--theme-primary, #8b5cf6);
-  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1);
+  box-shadow: 0 0 0 2px var(--theme-primary-light, rgba(139, 92, 246, 0.1));
 }
 
 /* Role Badge */
@@ -659,8 +680,31 @@
   }
 
   .slideout-panel .info-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
+    /* On mobile, stack label above value */
+  }
+
+  .slideout-panel .info-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    padding: 0.625rem 1rem;
+  }
+
+  .slideout-panel .info-item label {
+    flex: none;
+    padding-right: 0;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+  }
+
+  .slideout-panel .info-item > div {
+    width: 100%;
+  }
+
+  .slideout-panel .info-item input,
+  .slideout-panel .info-item select {
+    width: 100%;
   }
 
   .slideout-tabs {
@@ -692,9 +736,10 @@
 
 /* New sync status styles for Control Center approach */
 .section-description {
-  color: #6b7280;
+  color: var(--color-text-secondary, #6b7280);
   font-size: 0.875rem;
   margin: -0.5rem 0 1.5rem 0;
+  line-height: 1.5;
 }
 
 .platform-info {
@@ -1007,4 +1052,219 @@
 
 .connection-card.microsoft .platform-icon {
   background-color: #00a4ef;
+}
+
+/* ============================================
+ * Email Settings Tab
+ * ============================================ */
+.email-section {
+  background: var(--color-bg-card, #fff);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.email-section .section-header h4 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #1f2937);
+}
+
+.email-section .section-hint {
+  margin: 0 0 1rem 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.email-section .empty-message {
+  color: var(--color-text-tertiary, #9ca3af);
+  font-size: 0.875rem;
+  font-style: italic;
+  margin: 0.5rem 0;
+}
+
+/* Delegate List */
+.delegate-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.delegate-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 0.75rem;
+  background: var(--color-bg-hover, #f9fafb);
+  border-radius: 6px;
+  gap: 0.75rem;
+}
+
+.delegate-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.delegate-info svg {
+  color: var(--theme-primary, #8b5cf6);
+  flex-shrink: 0;
+}
+
+.delegate-info span {
+  font-size: 0.875rem;
+  color: var(--color-text-primary, #1f2937);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.delegate-status {
+  font-size: 0.6875rem;
+  padding: 0.125rem 0.375rem;
+  background: var(--color-warning-light, rgba(245, 158, 11, 0.1));
+  color: var(--color-warning, #f59e0b);
+  border-radius: 4px;
+  text-transform: capitalize;
+  flex-shrink: 0;
+}
+
+.btn-icon-danger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-tertiary, #9ca3af);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-icon-danger:hover:not(:disabled) {
+  background: var(--color-error-light, rgba(239, 68, 68, 0.1));
+  color: var(--color-error, #ef4444);
+}
+
+.btn-icon-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Add Delegate Form */
+.add-delegate-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.add-delegate-form input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--input-border, #d1d5db);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background: var(--input-bg, white);
+  color: var(--input-text, #1f2937);
+}
+
+.add-delegate-form input:focus {
+  outline: none;
+  border-color: var(--theme-primary, #8b5cf6);
+  box-shadow: 0 0 0 2px var(--theme-primary-light, rgba(139, 92, 246, 0.1));
+}
+
+.add-delegate-form button {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  white-space: nowrap;
+}
+
+/* Forwarding Sections */
+.forwarding-active {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.forwarding-info {
+  display: flex;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.forwarding-info .success-icon {
+  color: var(--color-success, #10b981);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.forwarding-info strong {
+  display: block;
+  color: var(--color-text-primary, #1f2937);
+  margin-bottom: 0.25rem;
+}
+
+.forwarding-info p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.forwarding-disposition {
+  font-size: 0.8125rem;
+  color: var(--color-text-tertiary, #9ca3af) !important;
+  margin-top: 0.25rem !important;
+}
+
+.forwarding-disabled {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.forwarding-disabled button {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.btn-danger-text {
+  color: var(--color-error, #ef4444) !important;
+}
+
+.btn-danger-text:hover:not(:disabled) {
+  background: var(--color-error-light, rgba(239, 68, 68, 0.1)) !important;
+}
+
+/* Info Message */
+.info-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--color-info-light, rgba(59, 130, 246, 0.1));
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 8px;
+  color: var(--color-info, #3b82f6);
+  font-size: 0.875rem;
+}
+
+.info-message svg {
+  flex-shrink: 0;
+  margin-top: 2px;
 }

@@ -132,3 +132,170 @@ button:focus-visible {
   overflow: hidden;
   background: #1e1e1e;
 }
+
+/* ============================================================================
+   SHARED ACTION BAR STYLES
+   Consistent toolbar pattern for all pages with search, filters, and actions
+   ============================================================================ */
+
+/* Action Bar Container */
+.page-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.page-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* Search Box - Consistent sizing */
+.page-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.page-search-icon {
+  position: absolute;
+  left: 10px;
+  color: #9ca3af;
+  pointer-events: none;
+  width: 16px;
+  height: 16px;
+}
+
+.page-search-input {
+  height: 32px;
+  width: 200px;
+  padding: 0 10px 0 32px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 13px;
+  background: #fafbfc;
+  color: #374151;
+  transition: all 0.15s;
+}
+
+.page-search-input::placeholder {
+  color: #9ca3af;
+}
+
+.page-search-input:focus {
+  outline: none;
+  border-color: var(--theme-primary, #8b5cf6);
+  background: white;
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1);
+}
+
+/* Action Buttons - Consistent 32px height */
+.btn-action {
+  height: 32px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: white;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.btn-action:hover {
+  border-color: #d1d5db;
+  background: #f9fafb;
+}
+
+.btn-action:focus {
+  outline: none;
+  border-color: var(--theme-primary, #8b5cf6);
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1);
+}
+
+.btn-action.active {
+  border-color: var(--theme-primary, #8b5cf6);
+  background: rgba(139, 92, 246, 0.08);
+  color: var(--theme-primary, #8b5cf6);
+}
+
+.btn-action svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* Primary Action Button */
+.btn-action-primary {
+  height: 32px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  border-radius: 6px;
+  background: var(--theme-primary, #8b5cf6);
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.btn-action-primary:hover {
+  background: var(--theme-primary-hover, #7c3aed);
+}
+
+.btn-action-primary:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.3);
+}
+
+.btn-action-primary svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* Icon-only Button */
+.btn-action-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: white;
+  color: #6b7280;
+  transition: all 0.15s;
+}
+
+.btn-action-icon:hover {
+  border-color: #d1d5db;
+  background: #f9fafb;
+  color: #374151;
+}
+
+.btn-action-icon.active {
+  border-color: var(--theme-primary, #8b5cf6);
+  background: rgba(139, 92, 246, 0.08);
+  color: var(--theme-primary, #8b5cf6);
+}
+
+.btn-action-icon svg {
+  width: 16px;
+  height: 16px;
+}

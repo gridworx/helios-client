@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTabPersistence } from '../hooks/useTabPersistence';
 import { UsersRound, Search, Plus, Trash2, Loader, Save, BarChart3, User, Pencil } from 'lucide-react';
 import { PlatformBadge } from '../components/ui/PlatformBadge';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import './Pages.css';
 import { authFetch } from '../config/api';
 
@@ -36,6 +37,7 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
   const [editedName, setEditedName] = useState('');
   const [editedDescription, setEditedDescription] = useState('');
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<string | null>(null);
 
   useEffect(() => {
     fetchGroupDetails();
@@ -133,17 +135,19 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
     }
   };
 
-  const handleRemoveMember = async (memberEmail: string) => {
-    if (!confirm(`Are you sure you want to remove ${memberEmail} from this group?`)) {
-      return;
-    }
+  const handleRemoveMember = (memberEmail: string) => {
+    setMemberToRemove(memberEmail);
+  };
+
+  const confirmRemoveMember = async () => {
+    if (!memberToRemove) return;
 
     try {
-      setRemovingMember(memberEmail);
+      setRemovingMember(memberToRemove);
       setError(null);
 
       const response = await authFetch(
-        `/api/v1/google-workspace/groups/${groupId}/members/${encodeURIComponent(memberEmail)}?organizationId=${organizationId}`,
+        `/api/v1/google-workspace/groups/${groupId}/members/${encodeURIComponent(memberToRemove)}?organizationId=${organizationId}`,
         {
           method: 'DELETE',
         }
@@ -160,6 +164,7 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
       setError(err.message || 'Failed to remove member');
     } finally {
       setRemovingMember(null);
+      setMemberToRemove(null);
     }
   };
 
@@ -626,6 +631,17 @@ export function GroupDetail({ organizationId, groupId, onBack }: GroupDetailProp
           </div>
         </div>
       )}
+
+      {/* Remove Member Confirmation */}
+      <ConfirmDialog
+        isOpen={memberToRemove !== null}
+        title="Remove Member"
+        message={`Are you sure you want to remove ${memberToRemove} from this group?`}
+        variant="danger"
+        confirmText="Remove"
+        onConfirm={confirmRemoveMember}
+        onCancel={() => setMemberToRemove(null)}
+      />
     </div>
   );
 }

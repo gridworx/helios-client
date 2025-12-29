@@ -50,7 +50,7 @@
 }
 
 /* ============================================
-   HELIOS DARK THEME
+   HELIOS DARK THEME (generic dark variant)
    ============================================ */
 :root[data-theme="dark"] {
   /* Primary colors stay the same for brand consistency */
@@ -72,12 +72,26 @@
   --color-border: #334155;
   --color-border-light: #1e293b;
 
+  /* Gray scale for dark mode */
+  --color-gray-50: #1e293b;
+  --color-gray-100: #334155;
+  --color-gray-200: #475569;
+  --color-gray-300: #64748b;
+  --color-gray-400: #94a3b8;
+  --color-gray-500: #cbd5e1;
+  --color-gray-600: #e2e8f0;
+  --color-gray-700: #f1f5f9;
+  --color-gray-800: #f8fafc;
+  --color-gray-900: #ffffff;
+
   /* Dark mode sidebar */
   --sidebar-bg: #0f172a;
   --sidebar-text: #f1f5f9;
+  --sidebar-text-muted: #94a3b8;
   --sidebar-hover: #1e293b;
   --sidebar-active-bg: var(--helios-purple-light);
   --sidebar-active-text: var(--helios-purple);
+  --sidebar-border: #334155;
 
   /* Dark mode cards */
   --card-bg: #1e293b;
@@ -87,12 +101,43 @@
   --card-border: #334155;
   --card-shadow: rgba(0, 0, 0, 0.3);
 
-  /* Login page in dark mode */
+  /* Cards on gradient backgrounds (login page) */
   --card-on-gradient-bg: rgba(15, 23, 42, 0.9);
   --card-on-gradient-text: #e2e8f0;
   --card-on-gradient-heading: #f8fafc;
   --card-on-gradient-border: rgba(139, 92, 246, 0.3);
   --card-on-gradient-shadow: rgba(0, 0, 0, 0.5);
+
+  /* Interactive elements */
+  --button-primary-bg: var(--helios-purple);
+  --button-primary-hover: var(--helios-purple-hover);
+  --button-primary-text: white;
+  --button-secondary-bg: #334155;
+  --button-secondary-hover: #475569;
+  --button-secondary-text: #f1f5f9;
+  --button-secondary-border: #475569;
+
+  /* Form elements */
+  --input-bg: #1e293b;
+  --input-border: #475569;
+  --input-border-focus: var(--helios-purple);
+  --input-text: #f1f5f9;
+  --input-placeholder: #64748b;
+
+  /* Tables */
+  --table-header-bg: #1e293b;
+  --table-row-hover: #334155;
+  --table-border: #334155;
+
+  /* Toggle/switch states */
+  --toggle-off-bg: #475569;
+  --toggle-on-bg: var(--helios-purple);
+  --toggle-knob: white;
+
+  /* Shadows for dark mode */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
 }
 
 /* ============================================
@@ -174,16 +219,103 @@
   --theme-primary-end: #4285f4;
 }
 
-/* Helios Dark Mode */
+/* Helios Dark Mode - Complete dark theme */
 :root[data-theme="helios-dark"] {
-  /* Redirect to new dark theme */
+  /* Primary colors stay the same for brand consistency */
+  --helios-purple: #8b5cf6;
+  --helios-purple-hover: #7c3aed;
   --helios-purple-light: rgba(139, 92, 246, 0.2);
+  --helios-purple-lighter: rgba(139, 92, 246, 0.1);
+  --helios-purple-shadow: rgba(139, 92, 246, 0.4);
+  --theme-primary: #8b5cf6;
+  --theme-primary-hover: #7c3aed;
+  --theme-primary-light: rgba(139, 92, 246, 0.2);
+  --theme-primary-shadow: rgba(139, 92, 246, 0.4);
+  --theme-gradient: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%);
+  --theme-primary-start: #7c3aed;
+  --theme-primary-end: #8b5cf6;
+
+  /* Dark mode backgrounds */
   --color-bg-main: #0f172a;
   --color-bg-card: #1e293b;
   --color-bg-hover: #334155;
+  --color-bg-input: #1e293b;
+
+  /* Dark mode text */
   --color-text-primary: #f1f5f9;
   --color-text-secondary: #94a3b8;
+  --color-text-tertiary: #64748b;
+
+  /* Dark mode borders */
   --color-border: #334155;
+  --color-border-light: #1e293b;
+
+  /* Gray scale for dark mode */
+  --color-gray-50: #1e293b;
+  --color-gray-100: #334155;
+  --color-gray-200: #475569;
+  --color-gray-300: #64748b;
+  --color-gray-400: #94a3b8;
+  --color-gray-500: #cbd5e1;
+  --color-gray-600: #e2e8f0;
+  --color-gray-700: #f1f5f9;
+  --color-gray-800: #f8fafc;
+  --color-gray-900: #ffffff;
+
+  /* Dark mode sidebar */
+  --sidebar-bg: #0f172a;
+  --sidebar-text: #f1f5f9;
+  --sidebar-text-muted: #94a3b8;
+  --sidebar-hover: #1e293b;
+  --sidebar-active-bg: var(--helios-purple-light);
+  --sidebar-active-text: var(--helios-purple);
+  --sidebar-border: #334155;
+
+  /* Dark mode cards */
+  --card-bg: #1e293b;
+  --card-bg-hover: #334155;
+  --card-text: #e2e8f0;
+  --card-heading: #f8fafc;
+  --card-border: #334155;
+  --card-shadow: rgba(0, 0, 0, 0.3);
+
+  /* Cards on gradient backgrounds (login page) */
+  --card-on-gradient-bg: rgba(15, 23, 42, 0.9);
+  --card-on-gradient-text: #e2e8f0;
+  --card-on-gradient-heading: #f8fafc;
+  --card-on-gradient-border: rgba(139, 92, 246, 0.3);
+  --card-on-gradient-shadow: rgba(0, 0, 0, 0.5);
+
+  /* Interactive elements */
+  --button-primary-bg: var(--helios-purple);
+  --button-primary-hover: var(--helios-purple-hover);
+  --button-primary-text: white;
+  --button-secondary-bg: #334155;
+  --button-secondary-hover: #475569;
+  --button-secondary-text: #f1f5f9;
+  --button-secondary-border: #475569;
+
+  /* Form elements */
+  --input-bg: #1e293b;
+  --input-border: #475569;
+  --input-border-focus: var(--helios-purple);
+  --input-text: #f1f5f9;
+  --input-placeholder: #64748b;
+
+  /* Tables */
+  --table-header-bg: #1e293b;
+  --table-row-hover: #334155;
+  --table-border: #334155;
+
+  /* Toggle/switch states */
+  --toggle-off-bg: #475569;
+  --toggle-on-bg: var(--helios-purple);
+  --toggle-knob: white;
+
+  /* Shadows for dark mode */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
 }
 
 /* ============================================

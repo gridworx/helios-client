@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { authFetch } from '../../config/api';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import './UserProfile.css';
 
 interface UserData {
@@ -47,6 +48,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId: _userId }) => {
   });
 
   const [activeSessions, setActiveSessions] = useState<any[]>([]);
+  const [showDisable2FAConfirm, setShowDisable2FAConfirm] = useState(false);
 
   useEffect(() => {
     fetchUserData();
@@ -230,11 +232,12 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId: _userId }) => {
     }
   };
 
-  const handleDisable2FA = async () => {
-    if (!confirm('Are you sure you want to disable two-factor authentication?')) {
-      return;
-    }
+  const handleDisable2FA = () => {
+    setShowDisable2FAConfirm(true);
+  };
 
+  const confirmDisable2FA = async () => {
+    setShowDisable2FAConfirm(false);
     setIsLoading(true);
     setMessage(null);
 
@@ -585,6 +588,16 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId: _userId }) => {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={showDisable2FAConfirm}
+        title="Disable Two-Factor Authentication"
+        message="Are you sure you want to disable two-factor authentication? This will reduce the security of your account."
+        variant="warning"
+        confirmText="Disable 2FA"
+        onConfirm={confirmDisable2FA}
+        onCancel={() => setShowDisable2FAConfirm(false)}
+      />
     </div>
   );
 };

@@ -13,6 +13,7 @@ import { profileService } from '../services/profile.service';
 import type { ProfileData } from '../services/profile.service';
 import { MediaRecorderComponent } from '../components/MediaRecorder';
 import { AssetPickerModal } from '../components/AssetPickerModal';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import './MyProfile.css';
 
 interface MyProfileProps {
@@ -38,6 +39,7 @@ export function MyProfile({ organizationId: _organizationId }: MyProfileProps) {
     preferredLanguage: '',
   });
   const [hasChanges, setHasChanges] = useState(false);
+  const [funFactToDelete, setFunFactToDelete] = useState<string | null>(null);
 
   // Fun facts state
   const [newFunFact, setNewFunFact] = useState({ emoji: '', content: '' });
@@ -134,11 +136,15 @@ export function MyProfile({ organizationId: _organizationId }: MyProfileProps) {
     setAddingFunFact(false);
   };
 
-  const handleDeleteFunFact = async (id: string) => {
-    if (confirm('Delete this fun fact?')) {
-      await profileService.deleteFunFact(id);
-      loadProfile();
-    }
+  const handleDeleteFunFact = (id: string) => {
+    setFunFactToDelete(id);
+  };
+
+  const confirmDeleteFunFact = async () => {
+    if (!funFactToDelete) return;
+    await profileService.deleteFunFact(funFactToDelete);
+    loadProfile();
+    setFunFactToDelete(null);
   };
 
   // Interest handlers
@@ -761,6 +767,17 @@ export function MyProfile({ organizationId: _organizationId }: MyProfileProps) {
         title="Choose Profile Photo"
         acceptedTypes={['image/*']}
         category="profiles"
+      />
+
+      {/* Delete Fun Fact Confirmation */}
+      <ConfirmDialog
+        isOpen={funFactToDelete !== null}
+        title="Delete Fun Fact"
+        message="Are you sure you want to delete this fun fact?"
+        variant="danger"
+        confirmText="Delete"
+        onConfirm={confirmDeleteFunFact}
+        onCancel={() => setFunFactToDelete(null)}
       />
     </div>
   );

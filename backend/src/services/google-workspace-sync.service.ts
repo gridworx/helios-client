@@ -24,6 +24,9 @@ interface GoogleUser {
     title?: string;
     department?: string;
   }>;
+  // 2FA fields
+  isEnrolledIn2Sv?: boolean;
+  isEnforcedIn2Sv?: boolean;
 }
 
 interface SyncResult {
@@ -205,6 +208,8 @@ export class GoogleWorkspaceSyncService {
                 last_login_time = $12,
                 creation_time = $13,
                 raw_data = $14,
+                is_enrolled_2sv = $15,
+                is_enforced_2sv = $16,
                 last_sync_at = NOW(),
                 updated_at = NOW()
               WHERE organization_id = $1 AND google_id = $2
@@ -222,7 +227,9 @@ export class GoogleWorkspaceSyncService {
               user.organizations?.[0]?.title || null,
               user.lastLoginTime ? new Date(user.lastLoginTime) : null,
               user.creationTime ? new Date(user.creationTime) : null,
-              JSON.stringify(user)
+              JSON.stringify(user),
+              user.isEnrolledIn2Sv || false,
+              user.isEnforcedIn2Sv || false
             ]);
             updated++;
           } else {
@@ -232,10 +239,11 @@ export class GoogleWorkspaceSyncService {
                 organization_id, google_id, email, given_name, family_name,
                 full_name, is_admin, is_suspended, org_unit_path, department,
                 job_title, last_login_time, creation_time, raw_data,
+                is_enrolled_2sv, is_enforced_2sv,
                 last_sync_at, created_at, updated_at
               ) VALUES (
                 $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
-                NOW(), NOW(), NOW()
+                $15, $16, NOW(), NOW(), NOW()
               )
             `, [
               organizationId,
@@ -251,7 +259,9 @@ export class GoogleWorkspaceSyncService {
               user.organizations?.[0]?.title || null,
               user.lastLoginTime ? new Date(user.lastLoginTime) : null,
               user.creationTime ? new Date(user.creationTime) : null,
-              JSON.stringify(user)
+              JSON.stringify(user),
+              user.isEnrolledIn2Sv || false,
+              user.isEnforcedIn2Sv || false
             ]);
             created++;
           }
@@ -513,16 +523,14 @@ export class GoogleWorkspaceSyncService {
       const suspendResult = await db.query(`
         UPDATE organization_users ou
         SET
-          user_status = 'suspended',
-          is_active = false,
+          status = 'suspended',
           updated_at = NOW()
         FROM gw_synced_users gw
         WHERE ou.google_workspace_id = gw.google_id
           AND ou.organization_id = $1
           AND gw.organization_id = $1
           AND gw.is_suspended = true
-          AND ou.user_status != 'suspended'
-          AND ou.deleted_at IS NULL
+          AND ou.status != 'suspended'
       `, [organizationId]);
 
       updated += suspendResult.rowCount || 0;
@@ -531,16 +539,14 @@ export class GoogleWorkspaceSyncService {
       const activateResult = await db.query(`
         UPDATE organization_users ou
         SET
-          user_status = 'active',
-          is_active = true,
+          status = 'active',
           updated_at = NOW()
         FROM gw_synced_users gw
         WHERE ou.google_workspace_id = gw.google_id
           AND ou.organization_id = $1
           AND gw.organization_id = $1
           AND gw.is_suspended = false
-          AND ou.user_status = 'suspended'
-          AND ou.deleted_at IS NULL
+          AND ou.status = 'suspended'
       `, [organizationId]);
 
       updated += activateResult.rowCount || 0;

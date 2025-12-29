@@ -1,24 +1,31 @@
 import { logger } from '../utils/logger.js';
 import { db } from '../database/connection.js';
 import { googleWorkspaceService } from './google-workspace.service.js';
+import { OAuthTokenSyncService } from './oauth-token-sync.service.js';
 
 interface SyncConfig {
   minInterval: number; // Platform minimum in seconds
   defaultInterval: number; // Default for new organizations in seconds
   maxInterval: number; // Maximum allowed in seconds
+  tokenSyncInterval: number; // OAuth token sync interval in seconds (less frequent)
 }
 
 export class SyncSchedulerService {
   private syncIntervals: Map<string, NodeJS.Timeout> = new Map();
+  private tokenSyncIntervals: Map<string, NodeJS.Timeout> = new Map();
+  private lastTokenSync: Map<string, Date> = new Map();
   private config: SyncConfig;
+  private oauthTokenSyncService: OAuthTokenSyncService;
 
   constructor() {
     this.config = {
       minInterval: parseInt(process.env.MIN_SYNC_INTERVAL_SECONDS || '300'),  // 5 minutes
       defaultInterval: parseInt(process.env.DEFAULT_SYNC_INTERVAL_SECONDS || '900'),  // 15 minutes
-      maxInterval: parseInt(process.env.MAX_SYNC_INTERVAL_SECONDS || '86400')  // 24 hours
+      maxInterval: parseInt(process.env.MAX_SYNC_INTERVAL_SECONDS || '86400'),  // 24 hours
+      tokenSyncInterval: parseInt(process.env.TOKEN_SYNC_INTERVAL_SECONDS || '21600')  // 6 hours default
     };
 
+    this.oauthTokenSyncService = new OAuthTokenSyncService();
     logger.info('Sync scheduler initialized', this.config);
   }
 
@@ -79,7 +86,97 @@ export class SyncSchedulerService {
       logger.info('Stopped sync for organization', { organizationId });
     }
     this.syncIntervals.clear();
+
+    // Also stop token sync intervals
+    for (const [organizationId, interval] of this.tokenSyncIntervals) {
+      clearInterval(interval);
+      logger.info('Stopped token sync for organization', { organizationId });
+    }
+    this.tokenSyncIntervals.clear();
+
     logger.info('All sync schedulers stopped');
+  }
+
+  /**
+   * Start OAuth token sync for an organization
+   */
+  async startTokenSync(organizationId: string): Promise<void> {
+    try {
+      // Stop existing token sync if any
+      this.stopTokenSync(organizationId);
+
+      const intervalMs = this.config.tokenSyncInterval * 1000;
+
+      // Set up new interval for token sync
+      const timeout = setInterval(() => {
+        this.syncOAuthTokens(organizationId).catch(error => {
+          logger.error('OAuth token sync failed for organization', { organizationId, error });
+        });
+      }, intervalMs);
+
+      this.tokenSyncIntervals.set(organizationId, timeout);
+
+      // Run initial token sync
+      await this.syncOAuthTokens(organizationId);
+
+      logger.info('Started OAuth token sync for organization', {
+        organizationId,
+        intervalSeconds: this.config.tokenSyncInterval
+      });
+    } catch (error) {
+      logger.error('Failed to start token sync', { organizationId, error });
+    }
+  }
+
+  /**
+   * Stop OAuth token sync for an organization
+   */
+  stopTokenSync(organizationId: string): void {
+    const interval = this.tokenSyncIntervals.get(organizationId);
+    if (interval) {
+      clearInterval(interval);
+      this.tokenSyncIntervals.delete(organizationId);
+      logger.info('Stopped token sync for organization', { organizationId });
+    }
+  }
+
+  /**
+   * Sync OAuth tokens for an organization
+   */
+  async syncOAuthTokens(organizationId: string): Promise<{ success: boolean; message: string; stats?: any }> {
+    try {
+      logger.info('Starting OAuth token sync for organization', { organizationId });
+
+      const result = await this.oauthTokenSyncService.syncAllTokens(organizationId);
+
+      this.lastTokenSync.set(organizationId, new Date());
+
+      logger.info('OAuth token sync completed', {
+        organizationId,
+        usersProcessed: result.usersProcessed,
+        tokensProcessed: result.tokensProcessed,
+        appsFound: result.appsFound
+      });
+
+      return {
+        success: true,
+        message: 'OAuth token sync completed successfully',
+        stats: result
+      };
+    } catch (error: any) {
+      logger.error('OAuth token sync failed', { organizationId, error: error.message });
+      return {
+        success: false,
+        message: error.message || 'OAuth token sync failed'
+      };
+    }
+  }
+
+  /**
+   * Get last token sync time for an organization
+   */
+  getLastTokenSyncTime(organizationId: string): Date | null {
+    return this.lastTokenSync.get(organizationId) || null;
   }
 
   /**
@@ -187,8 +284,8 @@ export class SyncSchedulerService {
           await db.query(`
             INSERT INTO organization_users (
               organization_id, email, first_name, last_name,
-              google_workspace_id, is_active, role, password_hash, created_at, updated_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+              google_workspace_id, is_active, role, password_hash, user_type, created_at, updated_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'staff', NOW(), NOW())
           `, [
             organizationId,
             user.primaryEmail,

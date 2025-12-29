@@ -200,7 +200,7 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
       return;
     }
 
-    // For bulk user actions, we'd need to get selected users from UserList
+    // For bulk user actions, we'd need to get selected users from UserTable
     // For now, show a message that selection is required
     alert(`Please select users in the table to ${action} them.`);
   };
@@ -245,33 +245,6 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
       {/* Page Title */}
       <div className="page-title">
         <h1>{getTypeLabel()}</h1>
-      </div>
-
-      {/* Inline Statistics Bar */}
-      <div className="users-stats-inline">
-        <div className="stat-item">
-          <span className="stat-value">{counts.staff + counts.guests + counts.contacts}</span>
-          <span className="stat-label">Total</span>
-        </div>
-        <span className="stat-divider">|</span>
-        <div className="stat-item">
-          <span className="stat-value stat-active">{statusCounts.active}</span>
-          <span className="stat-label">Active</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-value stat-pending">{statusCounts.pending}</span>
-          <span className="stat-label">Pending</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-value stat-suspended">{statusCounts.suspended}</span>
-          <span className="stat-label">Suspended</span>
-        </div>
-        {statusCounts.deleted > 0 && (
-          <div className="stat-item">
-            <span className="stat-value stat-deleted">{statusCounts.deleted}</span>
-            <span className="stat-label">Deleted</span>
-          </div>
-        )}
       </div>
 
       {/* Type Tabs - JumpCloud Style */}

@@ -54,6 +54,7 @@ export const DashboardCustomizer: React.FC<DashboardCustomizerProps> = ({
       microsoft: 'Microsoft 365',
       helios: 'Helios Portal',
       system: 'System',
+      security: 'Security',
     };
     return titles[category];
   };
@@ -61,10 +62,10 @@ export const DashboardCustomizer: React.FC<DashboardCustomizerProps> = ({
   const isCategoryEnabled = (category: WidgetCategory) => {
     if (category === 'google') return connectedPlatforms.google;
     if (category === 'microsoft') return connectedPlatforms.microsoft;
-    return true; // Helios and system always enabled
+    return true; // Helios, system, and security always enabled
   };
 
-  const categories: WidgetCategory[] = ['google', 'microsoft', 'helios', 'system'];
+  const categories: WidgetCategory[] = ['google', 'microsoft', 'helios', 'system', 'security'];
 
   return (
     <div className="modal-overlay" onClick={handleCancel}>

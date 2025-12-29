@@ -7,6 +7,7 @@ import {
   errorResponse,
 } from '../utils/response.js';
 import { ErrorCode } from '../types/error-codes.js';
+import { googleWorkspaceService } from '../services/google-workspace.service.js';
 
 const router = Router();
 
@@ -169,7 +170,7 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
       }
     ];
 
-    // Check if Google Workspace is enabled for this organization
+    // Check if Google Workspace is enabled and get real license data
     try {
       const gwResult = await db.query(`
         SELECT id FROM gw_credentials
@@ -177,21 +178,42 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
       `, [organizationId]);
 
       if (gwResult.rows.length > 0) {
-        // Google Workspace is configured - add available license types
-        // Note: In a real implementation, we would query the Google Licensing API
-        // to get actual license counts. For now, we provide the list of available SKUs.
-        for (const sku of googleLicenseSKUs) {
-          licenses.push({
-            id: `gw-${sku.skuId}`,
-            provider: 'google',
-            skuId: sku.skuId,
-            displayName: sku.displayName,
-            description: sku.description,
-            totalUnits: -1, // -1 indicates unknown (requires API call)
-            consumedUnits: -1,
-            availableUnits: -1,
-            features: []
+        // Try to get real license inventory from Google Licensing API
+        const inventoryResult = await googleWorkspaceService.getLicenseInventory(organizationId);
+
+        if (inventoryResult.success && inventoryResult.licenses && inventoryResult.licenses.length > 0) {
+          // Use real data from Licensing API
+          for (const lic of inventoryResult.licenses) {
+            licenses.push({
+              id: `gw-${lic.productId}-${lic.skuId}`,
+              provider: 'google',
+              skuId: lic.skuId,
+              displayName: `${lic.productName} ${lic.skuName}`,
+              description: `${lic.productName} - ${lic.skuName}`,
+              totalUnits: -1, // Google doesn't expose total seats via API
+              consumedUnits: lic.assignedCount,
+              availableUnits: -1,
+              features: []
+            });
+          }
+        } else {
+          // Fallback to static SKU list if Licensing API fails (scope not delegated)
+          logger.debug('Licensing API not available, using static SKU list', {
+            error: inventoryResult.error
           });
+          for (const sku of googleLicenseSKUs) {
+            licenses.push({
+              id: `gw-${sku.skuId}`,
+              provider: 'google',
+              skuId: sku.skuId,
+              displayName: sku.displayName,
+              description: sku.description,
+              totalUnits: -1,
+              consumedUnits: -1,
+              availableUnits: -1,
+              features: []
+            });
+          }
         }
       }
     } catch (e: any) {
@@ -324,6 +346,64 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response) => {
   } catch (error: any) {
     logger.error('Failed to fetch license', { error: error.message });
     errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to fetch license');
+  }
+});
+
+/**
+ * @openapi
+ * /organization/licenses/{productId}/{skuId}/users:
+ *   get:
+ *     summary: Get users assigned to a license
+ *     description: Lists all users who have a specific license assigned.
+ *     tags: [Licenses]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: productId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Product ID (e.g., Google-Apps)
+ *       - in: path
+ *         name: skuId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: SKU ID (e.g., Google-Apps-For-Business)
+ *     responses:
+ *       200:
+ *         description: List of users with license
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
+ */
+router.get('/:productId/:skuId/users', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { productId, skuId } = req.params;
+    const organizationId = req.user?.organizationId;
+
+    if (!organizationId) {
+      return errorResponse(res, ErrorCode.UNAUTHORIZED, 'Organization ID not found');
+    }
+
+    // Get users from Google Licensing API
+    const result = await googleWorkspaceService.getLicenseUsers(organizationId, productId, skuId);
+
+    if (!result.success) {
+      return errorResponse(res, ErrorCode.INTERNAL_ERROR, result.error || 'Failed to fetch license users');
+    }
+
+    successResponse(res, {
+      productId,
+      skuId,
+      users: result.users || [],
+      count: result.users?.length || 0
+    });
+  } catch (error: any) {
+    logger.error('Failed to fetch license users', { error: error.message });
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to fetch license users');
   }
 });
 

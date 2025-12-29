@@ -439,7 +439,7 @@ const OrgChart: React.FC = () => {
       </div>
 
       <div id="org-chart-content" className="org-chart-content">
-        {viewMode === 'tree' && (
+        {viewMode === 'tree' && filteredData.root && (
           <OrgChartTree
             data={filteredData.root}
             expandedNodes={expandedNodes}
@@ -452,7 +452,7 @@ const OrgChart: React.FC = () => {
           />
         )}
 
-        {viewMode === 'list' && (
+        {viewMode === 'list' && filteredData.root && (
           <OrgChartList
             data={filteredData.root}
             expandedNodes={expandedNodes}
@@ -463,7 +463,7 @@ const OrgChart: React.FC = () => {
           />
         )}
 
-        {viewMode === 'card' && (
+        {viewMode === 'card' && filteredData.root && (
           <OrgChartCard
             data={filteredData.root}
             selectedNode={selectedNode}

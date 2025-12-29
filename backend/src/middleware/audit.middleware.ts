@@ -264,19 +264,19 @@ export async function auditMiddleware(req: Request, res: Response, next: NextFun
 
       await db.query(`
         INSERT INTO security_audit_logs (
-          actor_id, actor_type, actor_identifier,
+          actor_id, actor_type, actor_email,
           action, action_category,
           target_type, target_id, target_identifier,
           organization_id,
           outcome, error_message,
-          ip_address, user_agent, request_id,
-          metadata,
+          actor_ip, actor_user_agent, request_id,
+          changes_after,
           previous_hash, record_hash
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::inet, $13, $14, $15, $16, $17)
       `, [
         actorId,
         actorType,
-        actorIdentifier,
+        actorIdentifier, // actor_email
         action,
         actionCategory,
         targetType,
@@ -285,7 +285,7 @@ export async function auditMiddleware(req: Request, res: Response, next: NextFun
         organizationId,
         outcome,
         errorMessage,
-        req.ip || req.socket.remoteAddress,
+        req.ip || req.socket.remoteAddress || null, // actor_ip (cast to inet)
         req.get('User-Agent'),
         requestId,
         JSON.stringify({

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Key, Copy, Check, AlertTriangle, Download } from 'lucide-react';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import './ApiKeyShowOnce.css';
 
 interface ApiKeyShowOnceProps {
@@ -16,6 +17,7 @@ interface ApiKeyShowOnceProps {
 export function ApiKeyShowOnce({ keyData, onClose }: ApiKeyShowOnceProps) {
   const [copied, setCopied] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
   const handleCopy = async () => {
     try {
@@ -65,10 +67,14 @@ ${keyData.type === 'vendor' ? `
 
   const handleClose = () => {
     if (!confirmed) {
-      if (!confirm('Are you sure? This API key will never be shown again. Make sure you\'ve saved it securely.')) {
-        return;
-      }
+      setShowCloseConfirm(true);
+      return;
     }
+    onClose();
+  };
+
+  const confirmClose = () => {
+    setShowCloseConfirm(false);
     onClose();
   };
 
@@ -195,6 +201,16 @@ ${keyData.type === 'vendor' ? `
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={showCloseConfirm}
+        title="Close Without Saving?"
+        message="Are you sure? This API key will never be shown again. Make sure you've saved it securely."
+        variant="danger"
+        confirmText="Close Anyway"
+        onConfirm={confirmClose}
+        onCancel={() => setShowCloseConfirm(false)}
+      />
     </div>
   );
 }

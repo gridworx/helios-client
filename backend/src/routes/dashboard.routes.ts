@@ -4,6 +4,7 @@ import { db } from '../database/connection.js';
 import { logger } from '../utils/logger.js';
 import { cacheService } from '../services/cache.service.js';
 import { activityTracker } from '../services/activity-tracker.service.js';
+import { oauthTokenSyncService } from '../services/oauth-token-sync.service.js';
 import {
   successResponse,
   errorResponse,
@@ -142,6 +143,44 @@ router.get('/stats', async (req: Request, res: Response): Promise<void> => {
         lastSync = syncResult.rows[0]?.last_sync || null;
       }
 
+      // Get security stats (unified 2FA across all sources + OAuth)
+      let securityStats = null;
+      try {
+        // Get unified 2FA status from all sources (Helios, Google, M365)
+        const unified2FAData = await oauthTokenSyncService.getUnified2FAStatus(organizationId);
+
+        // Get OAuth apps data if Google is configured
+        let oauthAppsData = null;
+        if (isGoogleConfigured) {
+          oauthAppsData = await oauthTokenSyncService.getOAuthApps(organizationId, {
+            sortBy: 'userCount',
+            sortOrder: 'desc',
+            limit: 5
+          });
+        }
+
+        securityStats = {
+          twoFactor: {
+            total: unified2FAData.summary.total,
+            enrolled: unified2FAData.summary.enrolled,
+            notEnrolled: unified2FAData.summary.notEnrolled,
+            percentage: unified2FAData.summary.percentage,
+            bySource: unified2FAData.summary.bySource
+          },
+          oauthApps: oauthAppsData ? {
+            totalApps: oauthAppsData.total,
+            totalGrants: oauthAppsData.totalGrants,
+            topApps: oauthAppsData.apps.map(app => ({
+              displayName: app.displayName || 'Unknown App',
+              userCount: app.userCount
+            }))
+          } : null
+        };
+      } catch (err) {
+        // Security stats are optional, don't fail the whole request
+        logger.debug('Failed to get security stats for dashboard', { error: (err as Error).message });
+      }
+
       return {
         google: isGoogleConfigured ? {
           connected: true,
@@ -167,7 +206,8 @@ router.get('/stats', async (req: Request, res: Response): Promise<void> => {
           disabledUsers: 0,
           adminUsers: 0,
           lastSync: null as string | null
-        }
+        },
+        security: securityStats
       };
     }, 60); // Cache for 1 minute
 

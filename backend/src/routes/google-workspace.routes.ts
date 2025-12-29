@@ -453,7 +453,7 @@ router.get('/module-status/:organizationId', async (req: Request, res: Response)
         m.slug as slug
       FROM organization_modules om
       JOIN modules m ON m.id = om.module_id
-      WHERE om.organization_id = $1 AND m.slug = 'google_workspace'
+      WHERE om.organization_id = $1 AND m.slug = 'google-workspace'
     `, [organizationId]);
 
     if (result.rows.length === 0) {
@@ -740,7 +740,7 @@ router.post('/disable/:organizationId', async (req: Request, res: Response) => {
 
     // Get Google Workspace module ID
     const moduleResult = await db.query(
-      `SELECT id FROM modules WHERE slug = 'google_workspace' LIMIT 1`
+      `SELECT id FROM modules WHERE slug = 'google-workspace' LIMIT 1`
     );
 
     if (moduleResult.rows.length === 0) {
@@ -850,8 +850,8 @@ router.post('/users', authenticateToken, async (req: Request, res: Response) => 
     }
 
     // Check if Google Workspace is enabled
-    const gwEnabled = await googleWorkspaceService.isEnabled(organizationId);
-    if (!gwEnabled) {
+    const gwStatus = await googleWorkspaceService.getSetupStatus(organizationId);
+    if (!gwStatus.isConfigured) {
       return res.status(400).json({
         success: false,
         error: 'Google Workspace integration is not enabled'
@@ -916,6 +916,175 @@ router.post('/users', authenticateToken, async (req: Request, res: Response) => 
     res.status(500).json({
       success: false,
       error: 'Failed to create user in Google Workspace'
+    });
+  }
+});
+
+// ============================================================
+// GOOGLE WORKSPACE RESOURCES API (Buildings, Rooms, Equipment)
+// ============================================================
+
+/**
+ * @openapi
+ * /api/google-workspace/resources/buildings/{organizationId}:
+ *   get:
+ *     summary: List all buildings
+ *     description: List all buildings configured in Google Workspace Admin Console.
+ *     tags: [Google Workspace]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: organizationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: List of buildings
+ */
+router.get('/resources/buildings/:organizationId', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { organizationId } = req.params;
+
+    const result = await googleWorkspaceService.listBuildings(organizationId);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: result.error
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        buildings: result.buildings || []
+      }
+    });
+  } catch (error: any) {
+    logger.error('Failed to list buildings', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to list buildings'
+    });
+  }
+});
+
+/**
+ * @openapi
+ * /api/google-workspace/resources/calendars/{organizationId}:
+ *   get:
+ *     summary: List calendar resources (rooms, equipment)
+ *     description: List all calendar resources like meeting rooms and equipment.
+ *     tags: [Google Workspace]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: organizationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *       - in: query
+ *         name: buildingId
+ *         schema:
+ *           type: string
+ *         description: Filter by building ID
+ *       - in: query
+ *         name: resourceType
+ *         schema:
+ *           type: string
+ *           enum: [room, equipment]
+ *         description: Filter by resource type
+ *     responses:
+ *       200:
+ *         description: List of calendar resources
+ */
+router.get('/resources/calendars/:organizationId', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { organizationId } = req.params;
+    const { buildingId, resourceType } = req.query;
+
+    const result = await googleWorkspaceService.listCalendarResources(organizationId, {
+      buildingId: buildingId as string,
+      resourceType: resourceType as string
+    });
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: result.error
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        resources: result.resources || []
+      }
+    });
+  } catch (error: any) {
+    logger.error('Failed to list calendar resources', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to list calendar resources'
+    });
+  }
+});
+
+/**
+ * @openapi
+ * /api/google-workspace/calendar/acl/{organizationId}/{calendarId}:
+ *   get:
+ *     summary: List calendar ACLs
+ *     description: List access control entries for a calendar.
+ *     tags: [Google Workspace]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: organizationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *       - in: path
+ *         name: calendarId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Calendar ID or 'primary'
+ *     responses:
+ *       200:
+ *         description: List of ACL entries
+ */
+router.get('/calendar/acl/:organizationId/:calendarId', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { organizationId, calendarId } = req.params;
+
+    const result = await googleWorkspaceService.listCalendarAcl(organizationId, calendarId);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: result.error
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        acl: result.acl || []
+      }
+    });
+  } catch (error: any) {
+    logger.error('Failed to list calendar ACL', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to list calendar ACL'
     });
   }
 });

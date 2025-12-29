@@ -26,6 +26,7 @@ import {
 import './Signatures.css';
 import { TemplateEditor, TemplatePreview, CampaignEditor, CampaignAnalytics, SignaturePermissions, DeploymentStatus } from '../components/signatures';
 import { authFetch } from '../config/api';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 
 interface SignatureTemplate {
   id: string;
@@ -90,6 +91,7 @@ const Signatures: React.FC = () => {
   const [previewTemplate, setPreviewTemplate] = useState<SignatureTemplate | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [error, setError] = useState<string | null>(null);
@@ -233,11 +235,15 @@ const Signatures: React.FC = () => {
     }
   };
 
-  const handleDeleteTemplate = async (templateId: string) => {
-    if (!confirm('Are you sure you want to delete this template?')) return;
+  const handleDeleteTemplate = (templateId: string) => {
+    setTemplateToDelete(templateId);
+  };
+
+  const confirmDeleteTemplate = async () => {
+    if (!templateToDelete) return;
 
     try {
-      const response = await authFetch(`/api/signatures/templates/${templateId}`, {
+      const response = await authFetch(`/api/signatures/templates/${templateToDelete}`, {
         method: 'DELETE',
       });
       const data = await response.json();
@@ -249,6 +255,8 @@ const Signatures: React.FC = () => {
     } catch (err) {
       console.error('Error deleting template:', err);
       setError('Failed to delete template');
+    } finally {
+      setTemplateToDelete(null);
     }
   };
 
@@ -1001,6 +1009,17 @@ const Signatures: React.FC = () => {
           }}
         />
       )}
+
+      {/* Delete Template Confirmation */}
+      <ConfirmDialog
+        isOpen={templateToDelete !== null}
+        title="Delete Template"
+        message="Are you sure you want to delete this template? This action cannot be undone."
+        variant="danger"
+        confirmText="Delete"
+        onConfirm={confirmDeleteTemplate}
+        onCancel={() => setTemplateToDelete(null)}
+      />
     </div>
   );
 };

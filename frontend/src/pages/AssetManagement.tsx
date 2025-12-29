@@ -260,8 +260,8 @@ export function AssetManagement({ organizationId: _organizationId }: AssetManage
         <div className="empty-state">
           <span className="empty-icon"><HardDrive size={32} /></span>
           <h3>Software Management</h3>
-          <p>Track installed software, versions, and compliance across your organization</p>
-          <button className="btn-primary">Coming Soon</button>
+          <p>Track installed software, versions, and compliance across your organization.</p>
+          <p style={{ fontSize: '13px', color: '#9ca3af', marginTop: '8px' }}>Requires device enrollment integration</p>
         </div>
       )}
 
@@ -269,8 +269,8 @@ export function AssetManagement({ organizationId: _organizationId }: AssetManage
         <div className="empty-state">
           <span className="empty-icon"><Key size={32} /></span>
           <h3>License Management</h3>
-          <p>Manage software licenses, renewals, and compliance tracking</p>
-          <button className="btn-primary">Coming Soon</button>
+          <p>Manage software licenses, renewals, and compliance tracking.</p>
+          <p style={{ fontSize: '13px', color: '#9ca3af', marginTop: '8px' }}>Requires software tracking integration</p>
         </div>
       )}
     </div>

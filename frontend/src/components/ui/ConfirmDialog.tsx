@@ -20,8 +20,9 @@ export interface ConfirmDialogProps {
   cancelText?: string;
   variant?: 'danger' | 'warning' | 'info' | 'success';
   icon?: React.ReactNode;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   onCancel: () => void;
+  children?: React.ReactNode;
 }
 
 const variantIconColors = {
@@ -66,7 +67,8 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   variant = 'info',
   icon,
   onConfirm,
-  onCancel
+  onCancel,
+  children
 }) => {
   // Default icons based on variant
   const getDefaultIcon = () => {
@@ -98,6 +100,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
               <AlertDialogDescription className="mt-2">
                 {message}
               </AlertDialogDescription>
+              {children && <div className="mt-4">{children}</div>}
             </div>
           </div>
         </AlertDialogHeader>

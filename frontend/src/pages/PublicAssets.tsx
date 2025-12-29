@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Image, FileText, Video, Music, Paperclip, Upload, Search, RefreshCw, Package, Eye, Copy, Trash2, X, FolderOpen, Plus, Loader } from 'lucide-react';
 import './PublicAssets.css';
 import { authFetch } from '../config/api';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 
 interface Asset {
   id: string;
@@ -36,6 +37,7 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [assetToDelete, setAssetToDelete] = useState<Asset | null>(null);
 
   // Upload state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -171,18 +173,19 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
     }
   };
 
-  const handleDeleteAsset = async (asset: Asset) => {
+  const handleDeleteAsset = (asset: Asset) => {
     if (asset.usage_count > 0) {
       alert(`Cannot delete "${asset.original_file_name}" - it is being used in ${asset.usage_count} place(s)`);
       return;
     }
+    setAssetToDelete(asset);
+  };
 
-    if (!confirm(`Delete "${asset.original_file_name}"? This action cannot be undone.`)) {
-      return;
-    }
+  const confirmDeleteAsset = async () => {
+    if (!assetToDelete) return;
 
     try {
-      const response = await authFetch(`/api/v1/public-files/${asset.id}`, {
+      const response = await authFetch(`/api/v1/public-files/${assetToDelete.id}`, {
         method: 'DELETE',
       });
 
@@ -195,6 +198,8 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
       await fetchAssets();
     } catch (err: any) {
       alert(`Error deleting asset: ${err.message}`);
+    } finally {
+      setAssetToDelete(null);
     }
   };
 
@@ -645,6 +650,17 @@ export function PublicAssets({ organizationId }: PublicAssetsProps) {
           </div>
         </div>
       )}
+
+      {/* Delete Asset Confirmation */}
+      <ConfirmDialog
+        isOpen={assetToDelete !== null}
+        title="Delete Asset"
+        message={`Are you sure you want to delete "${assetToDelete?.original_file_name}"? This action cannot be undone.`}
+        variant="danger"
+        confirmText="Delete"
+        onConfirm={confirmDeleteAsset}
+        onCancel={() => setAssetToDelete(null)}
+      />
     </div>
   );
 }

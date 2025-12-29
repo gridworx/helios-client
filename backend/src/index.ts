@@ -93,15 +93,20 @@ import { swaggerSpec } from './config/swagger.js';
 import assetProxyRoutes from './routes/asset-proxy.routes.js';
 import assetsRoutes from './routes/assets.routes.js';
 import lifecycleRoutes from './routes/lifecycle.routes.js';
+import trainingRoutes from './routes/training.routes.js';
+import automationRoutes from './routes/automation.routes.js';
 import trackingRoutes from './routes/tracking.routes.js';
 import trackingAnalyticsRoutes from './routes/tracking-analytics.routes.js';
 import mcpRoutes from './routes/mcp.routes.js';
 import featureFlagsRoutes from './routes/feature-flags.routes.js';
 import aiRoutes from './routes/ai.routes.js';
+import helpRoutes from './routes/help.routes.js';
 import externalSharingRoutes from './routes/external-sharing.routes.js';
-import workflowsRoutes from './routes/workflows.routes.js';
+import loginActivityRoutes from './routes/login-activity.routes.js';
+import initialPasswordsRoutes from './routes/initial-passwords.routes.js';
+import securityRoutes from './routes/security.routes.js';
 import { requestIdMiddleware, REQUEST_ID_HEADER } from './middleware/request-id.js';
-import { authHandler } from './lib/auth-handler.js';
+import { authHandler, auth } from './lib/auth-handler.js';
 import { auditMiddleware } from './middleware/audit.middleware.js';
 const app = express();
 const httpServer = createServer(app);
@@ -540,6 +545,34 @@ app.use('/api/v1', setupCheckMiddleware);
 app.use('/api', setupCheckMiddleware);
 
 // =============================================================================
+// Custom 2FA Status Endpoint
+// =============================================================================
+// Check if the current user has 2FA enabled (queries two_factor table)
+app.get('/api/v1/auth/two-factor/status', async (req, res) => {
+  try {
+    // Get session from better-auth
+    const session = await auth.api.getSession({ headers: req.headers as any });
+
+    if (!session?.user?.id) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+
+    // Check if user has 2FA enabled
+    const result = await db.query(
+      'SELECT enabled FROM two_factor WHERE user_id = $1',
+      [session.user.id]
+    );
+
+    const enabled = result.rows.length > 0 && result.rows[0].enabled === true;
+
+    res.json({ success: true, enabled });
+  } catch (error: any) {
+    logger.error('Failed to check 2FA status', { error: error.message });
+    res.status(500).json({ success: false, error: 'Failed to check 2FA status' });
+  }
+});
+
+// =============================================================================
 // API Routes - v1 (Primary) and unversioned (Backwards Compatibility)
 // =============================================================================
 // All routes are registered under both /api/v1/ (recommended) and /api/ (deprecated)
@@ -562,7 +595,7 @@ app.use('/api', setupCheckMiddleware);
 // - GET /api/v1/auth/verify - Verify JWT token
 //
 // NOTE: Only handle better-auth specific paths, let JWT routes pass through
-const betterAuthPaths = ['/sign-in', '/sign-out', '/sign-up', '/get-session', '/session', '/error', '/callback'];
+const betterAuthPaths = ['/sign-in', '/sign-out', '/sign-up', '/get-session', '/session', '/error', '/callback', '/two-factor', '/passkey'];
 app.all('/api/v1/auth/*', (req, res, next) => {
   // Check if this is a better-auth path
   const path = req.path.replace('/api/v1/auth', '');
@@ -609,6 +642,7 @@ registerRoute('/organization/labels', labelsRoutes);
 registerRoute('/organization/workspaces', workspacesRoutes);
 registerRoute('/organization/access-groups', accessGroupsRoutes);
 registerRoute('/organization/security-events', securityEventsRoutes);
+registerRoute('/organization/security', securityRoutes);
 registerRoute('/organization/audit-logs', auditLogsRoutes);
 registerRoute('/organization/custom-fields', customFieldsRoutes);
 registerRoute('/organization/departments', departmentsRoutes);
@@ -646,6 +680,10 @@ registerRoute('/modules', modulesRoutes);
 // Assets & Lifecycle
 registerRoute('/assets', assetsRoutes);
 registerRoute('/lifecycle', lifecycleRoutes);
+registerRoute('/training', trainingRoutes);
+
+// Automation & Rules Engine
+registerRoute('/automation', automationRoutes);
 
 // Tracking Analytics (user and admin engagement stats)
 registerRoute('/tracking', trackingAnalyticsRoutes);
@@ -660,11 +698,17 @@ registerRoute('/mcp', mcpRoutes);
 // AI Assistant
 registerRoute('/ai', aiRoutes);
 
+// Help System (context-based help, works without AI)
+registerRoute('/help', helpRoutes);
+
 // External Sharing Audit (Google Drive)
 registerRoute('/external-sharing', externalSharingRoutes);
 
-// Workflows
-registerRoute('/workflows', workflowsRoutes);
+// Login Activity (security monitoring)
+registerRoute('/login-activity', loginActivityRoutes);
+
+// Initial Passwords (for newly created users)
+registerRoute('/initial-passwords', initialPasswordsRoutes);
 
 // Feature Flags
 registerRoute('/organization/feature-flags', featureFlagsRoutes);

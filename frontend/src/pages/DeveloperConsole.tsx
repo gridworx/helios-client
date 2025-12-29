@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { HelpCircle, BookOpen, Trash2, X, PanelLeftOpen, PanelRightOpen, ExternalLink, Minimize2 } from 'lucide-react';
+import { HelpCircle, BookOpen, Trash2, X, PanelLeftOpen, PanelRightOpen, ExternalLink, Minimize2, Copy, Download, Check } from 'lucide-react';
 import { ConsoleHelpPanel } from '../components/ConsoleHelpPanel';
 import { authFetch } from '../config/api';
 import './DeveloperConsole.css';
@@ -101,6 +101,151 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  // State for copy feedback
+  const [copied, setCopied] = useState(false);
+
+  // Get console output as text
+  const getConsoleText = () => {
+    return output.map(item => {
+      const timestamp = formatTimestamp(item.timestamp);
+      return `[${timestamp}] ${item.content}`;
+    }).join('\n');
+  };
+
+  // Copy console output to clipboard
+  const handleCopyConsole = async () => {
+    const text = getConsoleText();
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback for older browsers
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  // Download console output as text file
+  const handleDownloadConsole = () => {
+    const text = getConsoleText();
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `helios-console-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // ===== PASSWORD GENERATOR (reusable) =====
+  const PASSWORD_ADJECTIVES = [
+    'Brave', 'Bright', 'Calm', 'Clever', 'Cool', 'Cosmic', 'Daring', 'Dynamic',
+    'Epic', 'Fearless', 'Fierce', 'Flying', 'Gentle', 'Gleaming', 'Glorious', 'Golden',
+    'Grand', 'Happy', 'Hardy', 'Heroic', 'Honest', 'Humble', 'Keen', 'Kind',
+    'Lively', 'Lucky', 'Loyal', 'Lunar', 'Magic', 'Majestic', 'Merry', 'Mighty',
+    'Mystic', 'Noble', 'Nimble', 'Ocean', 'Peaceful', 'Perfect', 'Polar', 'Proud',
+    'Quick', 'Quiet', 'Radiant', 'Rapid', 'Rising', 'Royal', 'Ruby', 'Rustic',
+    'Sacred', 'Serene', 'Sharp', 'Shining', 'Silent', 'Silver', 'Sky', 'Smart',
+    'Solar', 'Solid', 'Sonic', 'Spark', 'Speedy', 'Spirit', 'Splash', 'Spring',
+    'Starry', 'Steady', 'Storm', 'Strong', 'Summer', 'Summit', 'Super', 'Supreme',
+    'Swift', 'Thunder', 'Titan', 'Topaz', 'Tranquil', 'Triumph', 'True', 'Trusty',
+    'Turbo', 'Ultra', 'United', 'Valiant', 'Velvet', 'Victory', 'Vivid', 'Warm',
+    'Wild', 'Wise', 'Wonder', 'Worthy', 'Zesty', 'Zen', 'Zero', 'Zoom'
+  ];
+
+  const PASSWORD_NOUNS = [
+    'Anchor', 'Arrow', 'Aurora', 'Badge', 'Bear', 'Beacon', 'Birch', 'Blaze',
+    'Bolt', 'Breeze', 'Bridge', 'Brook', 'Canyon', 'Castle', 'Cedar', 'Cheetah',
+    'Cloud', 'Cobra', 'Comet', 'Condor', 'Coral', 'Coyote', 'Crane', 'Creek',
+    'Crest', 'Crown', 'Cypress', 'Dawn', 'Deer', 'Delta', 'Diamond', 'Dolphin',
+    'Dragon', 'Drift', 'Eagle', 'Echo', 'Falcon', 'Fern', 'Finch', 'Flame',
+    'Flash', 'Fleet', 'Flint', 'Forest', 'Forge', 'Fox', 'Frost', 'Galaxy',
+    'Glacier', 'Glider', 'Grove', 'Harbor', 'Hawk', 'Heron', 'Horizon', 'Husky',
+    'Iris', 'Island', 'Jade', 'Jaguar', 'Jasper', 'Jet', 'Jewel', 'Jupiter',
+    'Kelp', 'Kite', 'Lake', 'Lark', 'Leaf', 'Ledge', 'Legend', 'Leopard',
+    'Light', 'Lion', 'Lotus', 'Lynx', 'Maple', 'Marble', 'Mars', 'Meadow',
+    'Mesa', 'Meteor', 'Moon', 'Moose', 'Mountain', 'Neptune', 'Nova', 'Oak',
+    'Oasis', 'Ocelot', 'Onyx', 'Orbit', 'Orca', 'Orion', 'Osprey', 'Otter',
+    'Owl', 'Palm', 'Panther', 'Peak', 'Pearl', 'Pelican', 'Phoenix', 'Pine',
+    'Planet', 'Pluto', 'Prism', 'Puma', 'Quartz', 'Quest', 'Raven', 'Reef',
+    'Ridge', 'River', 'Robin', 'Rock', 'Sage', 'Saturn', 'Scout', 'Sequoia',
+    'Shadow', 'Shark', 'Shore', 'Shuttle', 'Sierra', 'Slate', 'Snow', 'Sparrow',
+    'Sphinx', 'Spirit', 'Spruce', 'Star', 'Stone', 'Storm', 'Stream', 'Summit',
+    'Sun', 'Swan', 'Temple', 'Terra', 'Thistle', 'Thunder', 'Tiger', 'Timber',
+    'Trail', 'Trout', 'Tulip', 'Tundra', 'Valley', 'Venus', 'Viper', 'Vista',
+    'Voyage', 'Walrus', 'Wave', 'Whale', 'Willow', 'Wind', 'Wolf', 'Wren',
+    'Zenith', 'Zephyr'
+  ];
+
+  const generateMemorablePassword = () => {
+    const adj = PASSWORD_ADJECTIVES[Math.floor(Math.random() * PASSWORD_ADJECTIVES.length)];
+    const noun = PASSWORD_NOUNS[Math.floor(Math.random() * PASSWORD_NOUNS.length)];
+    const num = Math.floor(Math.random() * 900) + 100; // 100-999
+    return `${adj}${noun}#${num}`;
+  };
+
+  // Store initial passwords for newly created users
+  // Persisted to backend API, with local state for session display
+  const [initialPasswords, setInitialPasswords] = useState<Record<string, { password: string; createdAt: Date; revealed: boolean }>>({});
+
+  const storeInitialPassword = async (email: string, password: string) => {
+    // Store locally for immediate display
+    setInitialPasswords(prev => ({
+      ...prev,
+      [email.toLowerCase()]: { password, createdAt: new Date(), revealed: false }
+    }));
+
+    // Persist to backend API (fire and forget, errors logged but not blocking)
+    try {
+      await authFetch('/api/v1/initial-passwords', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+    } catch (err) {
+      console.warn('Failed to persist initial password to backend:', err);
+    }
+  };
+
+  const revealInitialPassword = (email: string): { password: string; createdAt: Date } | null => {
+    const entry = initialPasswords[email.toLowerCase()];
+    if (entry) {
+      setInitialPasswords(prev => ({
+        ...prev,
+        [email.toLowerCase()]: { ...entry, revealed: true }
+      }));
+      return { password: entry.password, createdAt: entry.createdAt };
+    }
+    return null;
+  };
+
+  const clearInitialPassword = async (email: string) => {
+    // Clear locally
+    setInitialPasswords(prev => {
+      const updated = { ...prev };
+      delete updated[email.toLowerCase()];
+      return updated;
+    });
+
+    // Clear from backend API
+    try {
+      await authFetch(`/api/v1/initial-passwords/${encodeURIComponent(email)}`, {
+        method: 'DELETE'
+      });
+    } catch (err) {
+      console.warn('Failed to clear initial password from backend:', err);
+    }
   };
 
   const getOrganizationId = (): string | null => {
@@ -210,12 +355,13 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
         setOutput([]);
         return; // Skip audit for clear
       } else {
-        // Auto-prepend "helios" if command starts with a known module
+        // Auto-prepend "helios" if command starts with a known module or verb
         const knownModules = ['api', 'gw', 'google-workspace', 'users', 'groups', 'ms', 'microsoft'];
+        const knownVerbs = ['create', 'list', 'get', 'update', 'delete', 'generate', 'set', 'show', 'sync', 'export'];
         const firstWord = trimmedCommand.split(' ')[0];
 
         let commandToExecute = trimmedCommand;
-        if (!trimmedCommand.startsWith('helios ') && knownModules.includes(firstWord)) {
+        if (!trimmedCommand.startsWith('helios ') && (knownModules.includes(firstWord) || knownVerbs.includes(firstWord))) {
           commandToExecute = `helios ${trimmedCommand}`;
         }
 
@@ -245,21 +391,227 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
 
   const executeHeliosCommand = async (command: string) => {
     try {
-      // Parse command: helios <module> <resource> <action> [args]
+      // Parse command: helios <verb> <resource> [args] OR helios <module> <resource> <action> [args]
       const parts = command.split(' ').filter(p => p);
       parts.shift(); // Remove 'helios'
 
       if (parts.length === 0) {
-        addOutput('error', 'Usage: helios <module> <resource> <action> [options]');
+        addOutput('error', 'Usage: <verb> <resource> [options]');
+        addOutput('info', 'Examples: create user, list users, get user john@company.com');
         return;
       }
 
-      const module = parts[0];
+      const firstWord = parts[0];
 
-      // Route to appropriate handler
-      switch (module) {
+      // ===== VERB-FIRST COMMANDS (Primary Pattern) =====
+      // create user, list users, get user, update user, delete user
+      // create group, list groups, get group, delete group
+      // generate password, export users, sync gw
+
+      switch (firstWord) {
+        // ----- CREATE -----
+        case 'create': {
+          const resource = parts[1];
+          const args = parts.slice(2);
+          switch (resource) {
+            case 'user':
+              await handleCreateUser(args);
+              break;
+            case 'group':
+              await handleCreateGroup(args);
+              break;
+            default:
+              addOutput('error', `Unknown resource: ${resource}. Use: create user, create group`);
+          }
+          return;
+        }
+
+        // ----- LIST -----
+        case 'list': {
+          const resource = parts[1];
+          const args = parts.slice(2);
+          switch (resource) {
+            case 'users':
+              await handleListUsers(args);
+              break;
+            case 'groups':
+              await handleListGroups(args);
+              break;
+            case '2fa':
+              await handleList2FA(args);
+              break;
+            case 'tokens':
+              await handleListTokens(args);
+              break;
+            case 'audit':
+            case 'audit-logs':
+              await handleListAuditLogs(args);
+              break;
+            case 'licenses':
+              await handleListLicenses(args);
+              break;
+            case 'logins':
+            case 'login-activity':
+              await handleListLoginActivity(args);
+              break;
+            case 'buildings':
+              await handleListBuildings(args);
+              break;
+            case 'resources':
+            case 'rooms':
+              await handleListResources(args);
+              break;
+            default:
+              addOutput('error', `Unknown resource: ${resource}. Use: list users, groups, 2fa, tokens, audit-logs, licenses, logins, buildings, rooms`);
+          }
+          return;
+        }
+
+        // ----- GET -----
+        case 'get': {
+          const resource = parts[1];
+          const args = parts.slice(2);
+          switch (resource) {
+            case 'user':
+              await handleGetUser(args);
+              break;
+            case 'group':
+              await handleGetGroup(args);
+              break;
+            case '2fa':
+              await handleGet2FA(args);
+              break;
+            default:
+              addOutput('error', `Unknown resource: ${resource}. Use: get user <email>, get group <email>, get 2fa <email>`);
+          }
+          return;
+        }
+
+        // ----- REVOKE -----
+        case 'revoke': {
+          const resource = parts[1];
+          const args = parts.slice(2);
+          switch (resource) {
+            case 'token':
+              await handleRevokeToken(args);
+              break;
+            default:
+              addOutput('error', `Unknown resource: ${resource}. Use: revoke token <email> <clientId>`);
+          }
+          return;
+        }
+
+        // ----- UPDATE -----
+        case 'update': {
+          const resource = parts[1];
+          const args = parts.slice(2);
+          switch (resource) {
+            case 'user':
+              await handleUpdateUser(args);
+              break;
+            case 'group':
+              await handleUpdateGroup(args);
+              break;
+            default:
+              addOutput('error', `Unknown resource: ${resource}. Use: update user, update group`);
+          }
+          return;
+        }
+
+        // ----- DELETE -----
+        case 'delete': {
+          const resource = parts[1];
+          const args = parts.slice(2);
+          switch (resource) {
+            case 'user':
+              await handleDeleteUser(args);
+              break;
+            case 'group':
+              await handleDeleteGroup(args);
+              break;
+            default:
+              addOutput('error', `Unknown resource: ${resource}. Use: delete user, delete group`);
+          }
+          return;
+        }
+
+        // ----- GENERATE -----
+        case 'generate': {
+          const resource = parts[1];
+          const args = parts.slice(2);
+          switch (resource) {
+            case 'password':
+            case 'pwd':
+              handlePasswordCommand(['generate', ...args]);
+              break;
+            default:
+              addOutput('error', `Unknown resource: ${resource}. Use: generate password`);
+          }
+          return;
+        }
+
+        // ----- EXPORT -----
+        case 'export': {
+          const resource = parts[1];
+          const args = parts.slice(2);
+          switch (resource) {
+            case 'users':
+              await handleExportUsers(args);
+              break;
+            case 'groups':
+              await handleExportGroups(args);
+              break;
+            default:
+              addOutput('error', `Unknown resource: ${resource}. Use: export users, export groups`);
+          }
+          return;
+        }
+
+        // ----- SYNC -----
+        case 'sync': {
+          const platform = parts[1];
+          const args = parts.slice(2);
+          switch (platform) {
+            case 'gw':
+            case 'google':
+              await handleSyncGoogleWorkspace(args);
+              break;
+            case 'm365':
+            case 'microsoft':
+              addOutput('info', 'Microsoft 365 sync coming soon...');
+              break;
+            default:
+              addOutput('error', `Unknown platform: ${platform}. Use: sync gw, sync m365`);
+          }
+          return;
+        }
+
+        // ----- SHOW (for initial-password, etc.) -----
+        case 'show': {
+          const resource = parts[1];
+          const args = parts.slice(2);
+          switch (resource) {
+            case 'initial-password':
+            case 'password':
+              await handleShowInitialPassword(args);
+              break;
+            default:
+              addOutput('error', `Unknown resource: ${resource}. Use: show initial-password <email>`);
+          }
+          return;
+        }
+      }
+
+      // ===== LEGACY MODULE-BASED COMMANDS =====
+      // Still support: gw, api, etc. but show deprecation for user CRUD
+
+      switch (firstWord) {
         case 'api':
           await handleApiCommand(parts.slice(1));
+          break;
+        case 'password':
+        case 'pwd':
+          handlePasswordCommand(parts.slice(1));
           break;
         case 'gw':
         case 'google-workspace':
@@ -270,18 +622,1152 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
           await handleMicrosoft365Command(parts.slice(1));
           break;
         case 'users':
+          // Deprecation notice
+          addOutput('info', '💡 Tip: Use "list users", "create user", "get user" instead of "users list/create/get"');
           await handleUsersCommand(parts.slice(1));
           break;
         case 'groups':
+          // Deprecation notice
+          addOutput('info', '💡 Tip: Use "list groups", "create group" instead of "groups list/create"');
           await handleGroupsCommand(parts.slice(1));
           break;
         default:
-          addOutput('error', `Unknown module: ${module}. Use: api, gw, m365, users, or groups`);
+          addOutput('error', `Unknown command: ${firstWord}`);
+          addOutput('info', 'Available commands: create, list, get, update, delete, generate, export, sync');
+          addOutput('info', 'Platform commands: gw <command>, api <method> <path>');
       }
     } catch (error: any) {
       addOutput('error', `Command failed: ${error.message}`);
     }
   };
+
+  // =============================================================================
+  // VERB-FIRST COMMAND HANDLERS (Primary Pattern)
+  // =============================================================================
+
+  // ===== CREATE USER =====
+  const handleCreateUser = async (args: string[]) => {
+    if (args.length < 1) {
+      addOutput('error', 'Usage: create user <email> --firstName=<name> --lastName=<name> [options]');
+      addOutput('info', '');
+      addOutput('info', 'Options:');
+      addOutput('info', '  --firstName=X       First name (required)');
+      addOutput('info', '  --lastName=Y        Last name (required)');
+      addOutput('info', '  --password=auto     Auto-generate memorable password (AdjectiveNoun#XXX)');
+      addOutput('info', '  --password=<pwd>    Set specific password');
+      addOutput('info', '  --department=X      Department name');
+      addOutput('info', '  --jobTitle=X        Job title');
+      addOutput('info', '  --role=user|manager|admin  Role (default: user)');
+      addOutput('info', '  --gw                Also create in Google Workspace');
+      addOutput('info', '  --m365              Also create in Microsoft 365');
+      addOutput('info', '  --ou=/Path          Organizational unit (for Google/M365)');
+      addOutput('info', '');
+      addOutput('info', 'Examples:');
+      addOutput('info', '  create user john@company.com --firstName=John --lastName=Doe --password=auto');
+      addOutput('info', '  create user john@company.com --firstName=John --lastName=Doe --password=auto --gw --ou=/Staff');
+      return;
+    }
+
+    const email = args[0];
+    const params = parseArgs(args.slice(1));
+
+    if (!params.firstName || !params.lastName) {
+      addOutput('error', 'Required: --firstName and --lastName');
+      return;
+    }
+
+    // Handle password
+    let password = params.password;
+    let isAutoGenerated = false;
+    if (password === 'auto' || password === '') {
+      password = generateMemorablePassword();
+      isAutoGenerated = true;
+    }
+
+    const createInGoogle = params.gw !== undefined || params.google !== undefined;
+    const createInM365 = params.m365 !== undefined || params.microsoft !== undefined;
+
+    // Step 1: Create user in Helios
+    addOutput('info', `Creating user in Helios: ${email}`);
+
+    const heliosBody: any = {
+      email,
+      firstName: params.firstName,
+      lastName: params.lastName,
+      department: params.department || null,
+      jobTitle: params.jobTitle || null,
+      role: params.role || 'user',
+      userType: (createInGoogle || createInM365) ? 'synced' : 'local'
+    };
+
+    if (password) {
+      heliosBody.password = password;
+    }
+
+    try {
+      const heliosResult = await apiRequest('POST', '/api/v1/organization/users', heliosBody);
+
+      if (heliosResult.success) {
+        addOutput('success', `  ✓ Created in Helios`);
+
+        if (isAutoGenerated && password) {
+          await storeInitialPassword(email, password);
+        }
+
+        // Step 2: Create in Google Workspace if requested
+        if (createInGoogle) {
+          addOutput('info', `Creating user in Google Workspace...`);
+          try {
+            const gwBody = {
+              primaryEmail: email,
+              name: { givenName: params.firstName, familyName: params.lastName },
+              password: password || generateMemorablePassword(),
+              orgUnitPath: params.ou || '/',
+              changePasswordAtNextLogin: true
+            };
+            await apiRequest('POST', '/api/google/admin/directory/v1/users', gwBody);
+            addOutput('success', `  ✓ Created in Google Workspace`);
+          } catch (gwError: any) {
+            addOutput('error', `  ✗ Google Workspace: ${gwError.message}`);
+          }
+        }
+
+        // Step 3: Create in M365 if requested
+        if (createInM365) {
+          addOutput('info', `Creating user in Microsoft 365...`);
+          addOutput('info', `  (M365 provisioning not yet implemented)`);
+        }
+
+        // Summary
+        addOutput('info', '');
+        addOutput('success', `User created: ${email}`);
+
+        if (isAutoGenerated && password) {
+          addOutput('info', '');
+          addOutput('info', 'Initial Password (auto-generated):');
+          addOutput('info', '='.repeat(50));
+          addOutput('success', `  ${password}`);
+          addOutput('info', '='.repeat(50));
+          addOutput('info', '');
+          addOutput('info', 'To retrieve later: show initial-password ' + email);
+        }
+
+        const platforms = ['Helios'];
+        if (createInGoogle) platforms.push('Google Workspace');
+        if (createInM365) platforms.push('Microsoft 365');
+        addOutput('info', `Platforms: ${platforms.join(', ')}`);
+
+      } else {
+        addOutput('error', `Failed to create user: ${heliosResult.error || 'Unknown error'}`);
+      }
+    } catch (error: any) {
+      addOutput('error', `Failed to create user: ${error.message}`);
+    }
+  };
+
+  // ===== LIST USERS =====
+  const handleListUsers = async (args: string[]) => {
+    const params = parseArgs(args);
+    const status = params.status || 'all';
+    const filter = params.filter;
+
+    let url = `/api/v1/organization/users?status=${status}`;
+    const data = await apiRequest('GET', url);
+
+    if (data.success) {
+      let users = data.data;
+
+      // Apply filter if provided
+      if (filter) {
+        const filterLower = filter.toLowerCase();
+        let filterField = 'email';
+        let filterValue = filterLower;
+
+        if (filter.includes(':')) {
+          const [field, ...valueParts] = filter.split(':');
+          filterField = field.toLowerCase();
+          filterValue = valueParts.join(':').toLowerCase();
+        }
+
+        const pattern = filterValue.replace(/\*/g, '.*');
+        const regex = new RegExp(`^${pattern}`, 'i');
+
+        users = users.filter((u: any) => {
+          const email = (u.email || '').toLowerCase();
+          const dept = (u.department || '').toLowerCase();
+          const uStatus = (u.status || 'active').toLowerCase();
+
+          switch (filterField) {
+            case 'email': return regex.test(email);
+            case 'department': case 'dept': return dept.includes(filterValue) || regex.test(dept);
+            case 'status': return uStatus === filterValue;
+            default: return regex.test(email);
+          }
+        });
+      }
+
+      const output = users.map((u: any) => {
+        const email = (u.email || '').padEnd(30);
+        const firstName = (u.firstName || u.first_name || '').substring(0, 15).padEnd(15);
+        const lastName = (u.lastName || u.last_name || '').substring(0, 15).padEnd(15);
+        const platforms = u.platforms || [];
+        let platformStr = 'Local';
+        if (platforms.includes('google_workspace') && platforms.includes('microsoft_365')) {
+          platformStr = 'GW, M365';
+        } else if (platforms.includes('google_workspace')) {
+          platformStr = 'GW';
+        } else if (platforms.includes('microsoft_365')) {
+          platformStr = 'M365';
+        }
+        const platformDisplay = platformStr.padEnd(12);
+        const statusDisplay = (u.status || 'active').padEnd(10);
+        return `${email} ${firstName} ${lastName} ${platformDisplay} ${statusDisplay}`;
+      }).join('\n');
+
+      addOutput('success', `\nEMAIL${' '.repeat(25)}FIRST NAME${' '.repeat(5)}LAST NAME${' '.repeat(6)}PLATFORMS    STATUS\n${'='.repeat(90)}\n${output}`);
+      addOutput('info', `\nTotal: ${users.length} user(s)`);
+    }
+  };
+
+  // ===== GET USER =====
+  const handleGetUser = async (args: string[]) => {
+    if (args.length === 0) {
+      addOutput('error', 'Usage: get user <email>');
+      return;
+    }
+    const email = args[0];
+    try {
+      const data = await apiRequest('GET', `/api/v1/organization/users?email=${encodeURIComponent(email)}`);
+      if (data.success && data.data && data.data.length > 0) {
+        const user = data.data[0];
+        addOutput('info', '');
+        addOutput('info', `User: ${user.email}`);
+        addOutput('info', '='.repeat(60));
+        addOutput('info', `  Name: ${user.firstName || ''} ${user.lastName || ''}`);
+        addOutput('info', `  Role: ${user.role || 'user'}`);
+        addOutput('info', `  Status: ${user.status || 'active'}`);
+        addOutput('info', `  Department: ${user.department || '-'}`);
+        addOutput('info', `  Job Title: ${user.jobTitle || '-'}`);
+        addOutput('info', `  Platforms: ${(user.platforms || ['Local']).join(', ')}`);
+        addOutput('info', `  Created: ${user.createdAt ? new Date(user.createdAt).toLocaleString() : '-'}`);
+        addOutput('info', '='.repeat(60));
+      } else {
+        addOutput('error', `User not found: ${email}`);
+      }
+    } catch (error: any) {
+      addOutput('error', `Failed to get user: ${error.message}`);
+    }
+  };
+
+  // ===== UPDATE USER =====
+  const handleUpdateUser = async (args: string[]) => {
+    if (args.length === 0) {
+      addOutput('error', 'Usage: update user <email> [options]');
+      addOutput('info', '');
+      addOutput('info', 'Options:');
+      addOutput('info', '  --firstName=X       Update first name');
+      addOutput('info', '  --lastName=Y        Update last name');
+      addOutput('info', '  --department=X      Update department');
+      addOutput('info', '  --jobTitle=X        Update job title');
+      addOutput('info', '  --role=user|manager|admin  Update role');
+      return;
+    }
+    const email = args[0];
+    const params = parseArgs(args.slice(1));
+
+    const body: any = {};
+    if (params.firstName) body.firstName = params.firstName;
+    if (params.lastName) body.lastName = params.lastName;
+    if (params.department) body.department = params.department;
+    if (params.jobTitle) body.jobTitle = params.jobTitle;
+    if (params.role) body.role = params.role;
+
+    if (Object.keys(body).length === 0) {
+      addOutput('error', 'No fields to update. Use --firstName, --lastName, --department, --jobTitle, or --role');
+      return;
+    }
+
+    try {
+      await apiRequest('PATCH', `/api/v1/organization/users/by-email/${encodeURIComponent(email)}`, body);
+      addOutput('success', `User updated: ${email}`);
+    } catch (error: any) {
+      addOutput('error', `Failed to update user: ${error.message}`);
+    }
+  };
+
+  // ===== DELETE USER =====
+  const handleDeleteUser = async (args: string[]) => {
+    if (args.length === 0) {
+      addOutput('error', 'Usage: delete user <email> [--gw] [--confirm]');
+      addOutput('info', '  --gw       Also delete from Google Workspace');
+      addOutput('info', '  --confirm  Skip confirmation prompt');
+      return;
+    }
+    const email = args[0];
+    const params = parseArgs(args.slice(1));
+    const deleteFromGW = params.gw !== undefined;
+    const confirmed = params.confirm !== undefined;
+
+    if (!confirmed) {
+      addOutput('error', `This will delete user ${email}. Add --confirm to proceed.`);
+      return;
+    }
+
+    try {
+      // Delete from Helios
+      await apiRequest('DELETE', `/api/v1/organization/users/by-email/${encodeURIComponent(email)}`);
+      addOutput('success', `  ✓ Deleted from Helios: ${email}`);
+
+      // Delete from Google Workspace if requested
+      if (deleteFromGW) {
+        try {
+          await apiRequest('DELETE', `/api/google/admin/directory/v1/users/${email}`);
+          addOutput('success', `  ✓ Deleted from Google Workspace`);
+        } catch (gwError: any) {
+          addOutput('error', `  ✗ Google Workspace: ${gwError.message}`);
+        }
+      }
+
+      addOutput('info', '');
+      addOutput('success', `User deleted: ${email}`);
+    } catch (error: any) {
+      addOutput('error', `Failed to delete user: ${error.message}`);
+    }
+  };
+
+  // ===== CREATE GROUP =====
+  const handleCreateGroup = async (args: string[]) => {
+    if (args.length < 1) {
+      addOutput('error', 'Usage: create group <email> --name="Group Name" [options]');
+      addOutput('info', '');
+      addOutput('info', 'Options:');
+      addOutput('info', '  --name=X            Group name (required)');
+      addOutput('info', '  --description=X     Group description');
+      addOutput('info', '  --gw                Also create in Google Workspace');
+      return;
+    }
+    const email = args[0];
+    const params = parseArgs(args.slice(1));
+
+    if (!params.name) {
+      addOutput('error', 'Required: --name="Group Name"');
+      return;
+    }
+
+    const createInGoogle = params.gw !== undefined;
+
+    // Create in Helios
+    addOutput('info', `Creating group in Helios: ${email}`);
+    try {
+      await apiRequest('POST', '/api/v1/organization/groups', {
+        email,
+        name: params.name,
+        description: params.description || ''
+      });
+      addOutput('success', `  ✓ Created in Helios`);
+
+      if (createInGoogle) {
+        addOutput('info', `Creating group in Google Workspace...`);
+        try {
+          await apiRequest('POST', '/api/google/admin/directory/v1/groups', {
+            email,
+            name: params.name,
+            description: params.description || ''
+          });
+          addOutput('success', `  ✓ Created in Google Workspace`);
+        } catch (gwError: any) {
+          addOutput('error', `  ✗ Google Workspace: ${gwError.message}`);
+        }
+      }
+
+      addOutput('info', '');
+      addOutput('success', `Group created: ${email}`);
+    } catch (error: any) {
+      addOutput('error', `Failed to create group: ${error.message}`);
+    }
+  };
+
+  // ===== LIST GROUPS =====
+  const handleListGroups = async (_args: string[]) => {
+    // Future: support --source=all|helios|gw filtering with parseArgs(_args)
+
+    try {
+      // Get Helios groups
+      const data = await apiRequest('GET', '/api/v1/organization/groups');
+      if (data.success && data.data) {
+        const groups = data.data.map((g: any) => {
+          const email = (g.email || '').padEnd(35);
+          const name = (g.name || '').substring(0, 30).padEnd(31);
+          const memberCount = String(g.memberCount || 0).padEnd(8);
+          return `${email} ${name} ${memberCount}`;
+        }).join('\n');
+        addOutput('success', `\nEMAIL${' '.repeat(30)}NAME${' '.repeat(27)}MEMBERS\n${'='.repeat(80)}\n${groups}`);
+        addOutput('info', `\nTotal: ${data.data.length} group(s)`);
+      } else {
+        addOutput('info', 'No groups found');
+      }
+    } catch (error: any) {
+      addOutput('error', `Failed to list groups: ${error.message}`);
+    }
+  };
+
+  // ===== GET GROUP =====
+  const handleGetGroup = async (args: string[]) => {
+    if (args.length === 0) {
+      addOutput('error', 'Usage: get group <email>');
+      return;
+    }
+    const email = args[0];
+    try {
+      const data = await apiRequest('GET', `/api/v1/organization/groups/${encodeURIComponent(email)}`);
+      if (data.success && data.data) {
+        const group = data.data;
+        addOutput('info', '');
+        addOutput('info', `Group: ${group.email}`);
+        addOutput('info', '='.repeat(60));
+        addOutput('info', `  Name: ${group.name || '-'}`);
+        addOutput('info', `  Description: ${group.description || '-'}`);
+        addOutput('info', `  Members: ${group.memberCount || 0}`);
+        addOutput('info', '='.repeat(60));
+      } else {
+        addOutput('error', `Group not found: ${email}`);
+      }
+    } catch (error: any) {
+      addOutput('error', `Failed to get group: ${error.message}`);
+    }
+  };
+
+  // ===== UPDATE GROUP =====
+  const handleUpdateGroup = async (args: string[]) => {
+    if (args.length === 0) {
+      addOutput('error', 'Usage: update group <email> --name="New Name" [--description="..."]');
+      return;
+    }
+    const email = args[0];
+    const params = parseArgs(args.slice(1));
+
+    const body: any = {};
+    if (params.name) body.name = params.name;
+    if (params.description) body.description = params.description;
+
+    if (Object.keys(body).length === 0) {
+      addOutput('error', 'No fields to update. Use --name or --description');
+      return;
+    }
+
+    try {
+      await apiRequest('PATCH', `/api/v1/organization/groups/${encodeURIComponent(email)}`, body);
+      addOutput('success', `Group updated: ${email}`);
+    } catch (error: any) {
+      addOutput('error', `Failed to update group: ${error.message}`);
+    }
+  };
+
+  // ===== DELETE GROUP =====
+  const handleDeleteGroup = async (args: string[]) => {
+    if (args.length === 0) {
+      addOutput('error', 'Usage: delete group <email> [--gw] [--confirm]');
+      return;
+    }
+    const email = args[0];
+    const params = parseArgs(args.slice(1));
+    const deleteFromGW = params.gw !== undefined;
+    const confirmed = params.confirm !== undefined;
+
+    if (!confirmed) {
+      addOutput('error', `This will delete group ${email}. Add --confirm to proceed.`);
+      return;
+    }
+
+    try {
+      await apiRequest('DELETE', `/api/v1/organization/groups/${encodeURIComponent(email)}`);
+      addOutput('success', `  ✓ Deleted from Helios: ${email}`);
+
+      if (deleteFromGW) {
+        try {
+          await apiRequest('DELETE', `/api/google/admin/directory/v1/groups/${email}`);
+          addOutput('success', `  ✓ Deleted from Google Workspace`);
+        } catch (gwError: any) {
+          addOutput('error', `  ✗ Google Workspace: ${gwError.message}`);
+        }
+      }
+
+      addOutput('success', `Group deleted: ${email}`);
+    } catch (error: any) {
+      addOutput('error', `Failed to delete group: ${error.message}`);
+    }
+  };
+
+  // ===== EXPORT USERS =====
+  const handleExportUsers = async (args: string[]) => {
+    const params = parseArgs(args);
+    const format = params.format || 'csv';
+
+    addOutput('info', 'Exporting users...');
+
+    try {
+      const data = await apiRequest('GET', '/api/v1/organization/users?status=all');
+      if (data.success && data.data) {
+        const users = data.data;
+
+        if (format === 'csv') {
+          const headers = ['Email', 'First Name', 'Last Name', 'Department', 'Job Title', 'Role', 'Status', 'Platforms'];
+          const rows = users.map((u: any) => [
+            u.email || '',
+            u.firstName || '',
+            u.lastName || '',
+            u.department || '',
+            u.jobTitle || '',
+            u.role || 'user',
+            u.status || 'active',
+            (u.platforms || []).join(';')
+          ]);
+
+          const csv = [headers.join(','), ...rows.map((r: string[]) => r.map(v => `"${v}"`).join(','))].join('\n');
+
+          // Download CSV
+          const blob = new Blob([csv], { type: 'text/csv' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `users-export-${new Date().toISOString().slice(0, 10)}.csv`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+
+          addOutput('success', `Exported ${users.length} users to CSV`);
+        } else if (format === 'json') {
+          downloadJSON(users, `users-export-${new Date().toISOString().slice(0, 10)}.json`);
+          addOutput('success', `Exported ${users.length} users to JSON`);
+        }
+      }
+    } catch (error: any) {
+      addOutput('error', `Failed to export users: ${error.message}`);
+    }
+  };
+
+  // ===== EXPORT GROUPS =====
+  const handleExportGroups = async (args: string[]) => {
+    const params = parseArgs(args);
+    const format = params.format || 'csv';
+
+    addOutput('info', 'Exporting groups...');
+
+    try {
+      const data = await apiRequest('GET', '/api/v1/organization/groups');
+      if (data.success && data.data) {
+        const groups = data.data;
+
+        if (format === 'csv') {
+          const headers = ['Email', 'Name', 'Description', 'Member Count'];
+          const rows = groups.map((g: any) => [
+            g.email || '',
+            g.name || '',
+            g.description || '',
+            String(g.memberCount || 0)
+          ]);
+
+          const csv = [headers.join(','), ...rows.map((r: string[]) => r.map(v => `"${v}"`).join(','))].join('\n');
+
+          const blob = new Blob([csv], { type: 'text/csv' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `groups-export-${new Date().toISOString().slice(0, 10)}.csv`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+
+          addOutput('success', `Exported ${groups.length} groups to CSV`);
+        } else if (format === 'json') {
+          downloadJSON(groups, `groups-export-${new Date().toISOString().slice(0, 10)}.json`);
+          addOutput('success', `Exported ${groups.length} groups to JSON`);
+        }
+      }
+    } catch (error: any) {
+      addOutput('error', `Failed to export groups: ${error.message}`);
+    }
+  };
+
+  // ===== SYNC GOOGLE WORKSPACE =====
+  const handleSyncGoogleWorkspace = async (_args: string[]) => {
+    addOutput('info', 'Starting Google Workspace sync...');
+    try {
+      const result = await apiRequest('POST', '/api/v1/google-workspace/sync');
+      if (result.success) {
+        addOutput('success', 'Sync completed successfully');
+        addOutput('info', `  Users synced: ${result.data?.usersCreated || 0} created, ${result.data?.usersUpdated || 0} updated`);
+      } else {
+        addOutput('error', `Sync failed: ${result.error || 'Unknown error'}`);
+      }
+    } catch (error: any) {
+      addOutput('error', `Sync failed: ${error.message}`);
+    }
+  };
+
+  // ===== SHOW INITIAL PASSWORD =====
+  const handleShowInitialPassword = async (args: string[]) => {
+    if (args.length === 0) {
+      addOutput('error', 'Usage: show initial-password <email>');
+      return;
+    }
+    const email = args[0];
+
+    // Try local state first
+    let entry = revealInitialPassword(email);
+
+    // If not in local state, try fetching from backend API
+    if (!entry) {
+      try {
+        const response = await authFetch(`/api/v1/initial-passwords/${encodeURIComponent(email)}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data) {
+            entry = {
+              password: data.data.password,
+              createdAt: new Date(data.data.createdAt)
+            };
+            setInitialPasswords(prev => ({
+              ...prev,
+              [email.toLowerCase()]: { ...entry!, revealed: true }
+            }));
+          }
+        }
+      } catch (err) {
+        // Silent fail
+      }
+    }
+
+    if (entry) {
+      addOutput('info', '');
+      addOutput('info', `Initial Password for ${email}`);
+      addOutput('info', '='.repeat(50));
+      addOutput('success', `  ${entry.password}`);
+      addOutput('info', '='.repeat(50));
+      addOutput('info', `Created: ${entry.createdAt.toLocaleString()}`);
+    } else {
+      addOutput('error', `No initial password stored for ${email}`);
+    }
+  };
+
+  // =============================================================================
+  // SECURITY COMMAND HANDLERS (2FA status, OAuth tokens)
+  // =============================================================================
+
+  // ===== LIST 2FA STATUS =====
+  const handleList2FA = async (args: string[]) => {
+    try {
+      addOutput('info', 'Fetching 2FA status for all users...');
+
+      const response = await authFetch('/api/v1/security/2fa-status');
+      if (!response.ok) {
+        throw new Error('Failed to fetch 2FA status');
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch 2FA status');
+      }
+
+      const summary = data.data.summary;
+      const users = data.data.users || [];
+
+      // Parse filter args
+      const enrolledOnly = args.includes('--enrolled');
+      const notEnrolledOnly = args.includes('--not-enrolled');
+      const enforcedOnly = args.includes('--enforced');
+
+      addOutput('info', '');
+      addOutput('info', '2FA Status Summary');
+      addOutput('info', '═'.repeat(60));
+      addOutput('info', `  Total Users:        ${summary.total_users}`);
+      addOutput('success', `  2FA Enrolled:       ${summary.enrolled_count} (${summary.enrollment_rate}%)`);
+      addOutput('info', `  2FA Enforced:       ${summary.enforced_count}`);
+      addOutput('error', `  Not Enrolled:       ${summary.not_enrolled_count}`);
+      addOutput('info', '═'.repeat(60));
+      addOutput('info', '');
+
+      // Filter users based on args
+      let filteredUsers = users;
+      if (enrolledOnly) {
+        filteredUsers = users.filter((u: { is_enrolled_in_2sv: boolean }) => u.is_enrolled_in_2sv);
+        addOutput('info', 'Showing only enrolled users:');
+      } else if (notEnrolledOnly) {
+        filteredUsers = users.filter((u: { is_enrolled_in_2sv: boolean }) => !u.is_enrolled_in_2sv);
+        addOutput('info', 'Showing users NOT enrolled in 2FA:');
+      } else if (enforcedOnly) {
+        filteredUsers = users.filter((u: { is_enforced_in_2sv: boolean }) => u.is_enforced_in_2sv);
+        addOutput('info', 'Showing users with 2FA enforced:');
+      } else {
+        addOutput('info', 'User 2FA Status:');
+      }
+
+      addOutput('info', '─'.repeat(60));
+
+      if (filteredUsers.length === 0) {
+        addOutput('info', '  No users match the filter criteria');
+      } else {
+        for (const user of filteredUsers.slice(0, 50)) { // Limit to 50
+          const status = user.is_enrolled_in_2sv ? '✓ Enrolled' : '✗ Not Enrolled';
+          const enforced = user.is_enforced_in_2sv ? ' [Enforced]' : '';
+          const statusType = user.is_enrolled_in_2sv ? 'success' : 'error';
+          addOutput(statusType, `  ${user.primary_email.padEnd(35)} ${status}${enforced}`);
+        }
+        if (filteredUsers.length > 50) {
+          addOutput('info', `  ... and ${filteredUsers.length - 50} more users`);
+        }
+      }
+
+      addOutput('info', '');
+      addOutput('info', 'Filters: --enrolled, --not-enrolled, --enforced');
+      addOutput('info', 'Get details: get 2fa <email>');
+    } catch (err) {
+      addOutput('error', `Error: ${err instanceof Error ? err.message : 'Failed to fetch 2FA status'}`);
+    }
+  };
+
+  // ===== LIST OAUTH TOKENS/APPS =====
+  const handleListTokens = async (args: string[]) => {
+    try {
+      // Check for --user filter
+      const userIndex = args.indexOf('--user');
+      const userEmail = userIndex >= 0 && args[userIndex + 1] ? args[userIndex + 1] : null;
+
+      if (userEmail) {
+        // List tokens for specific user
+        addOutput('info', `Fetching OAuth tokens for ${userEmail}...`);
+
+        const response = await authFetch(`/api/v1/security/users/${encodeURIComponent(userEmail)}/oauth-tokens`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch user tokens');
+        }
+
+        const data = await response.json();
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to fetch user tokens');
+        }
+
+        const tokens = data.data || [];
+
+        addOutput('info', '');
+        addOutput('info', `OAuth Tokens for ${userEmail}`);
+        addOutput('info', '═'.repeat(70));
+
+        if (tokens.length === 0) {
+          addOutput('info', '  No OAuth tokens found for this user');
+        } else {
+          for (const token of tokens) {
+            const riskColor = token.risk_level === 'high' ? 'error' :
+                              token.risk_level === 'medium' ? 'info' : 'success';
+            addOutput('info', `  ${token.display_text || token.client_id}`);
+            addOutput(riskColor, `    Risk: ${token.risk_level?.toUpperCase() || 'UNKNOWN'}`);
+            addOutput('info', `    Scopes: ${token.scopes?.slice(0, 3).join(', ')}${token.scopes?.length > 3 ? '...' : ''}`);
+            addOutput('info', '');
+          }
+        }
+
+        addOutput('info', 'To revoke: revoke token <email> <clientId>');
+      } else {
+        // List all OAuth apps across organization
+        addOutput('info', 'Fetching OAuth apps across organization...');
+
+        const response = await authFetch('/api/v1/security/oauth-apps');
+        if (!response.ok) {
+          throw new Error('Failed to fetch OAuth apps');
+        }
+
+        const data = await response.json();
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to fetch OAuth apps');
+        }
+
+        const apps = data.data || [];
+
+        // Parse filter args
+        const highRiskOnly = args.includes('--high-risk');
+
+        let filteredApps = apps;
+        if (highRiskOnly) {
+          filteredApps = apps.filter((a: { risk_level: string }) => a.risk_level === 'high');
+        }
+
+        addOutput('info', '');
+        addOutput('info', 'OAuth Apps in Organization');
+        addOutput('info', '═'.repeat(70));
+        addOutput('info', `  Total Apps: ${apps.length}`);
+        addOutput('info', '─'.repeat(70));
+        addOutput('info', '');
+
+        if (filteredApps.length === 0) {
+          addOutput('info', '  No OAuth apps found');
+        } else {
+          // Sort by user count descending
+          filteredApps.sort((a: { user_count: number }, b: { user_count: number }) => b.user_count - a.user_count);
+
+          for (const app of filteredApps.slice(0, 30)) { // Limit to 30
+            const riskColor = app.risk_level === 'high' ? 'error' :
+                              app.risk_level === 'medium' ? 'info' : 'success';
+            const appName = (app.display_text || app.client_id).substring(0, 40);
+            addOutput('info', `  ${appName.padEnd(42)} ${String(app.user_count).padStart(3)} users`);
+            addOutput(riskColor, `    Risk: ${app.risk_level?.toUpperCase() || 'UNKNOWN'}`);
+          }
+          if (filteredApps.length > 30) {
+            addOutput('info', `  ... and ${filteredApps.length - 30} more apps`);
+          }
+        }
+
+        addOutput('info', '');
+        addOutput('info', 'Filters: --high-risk, --user <email>');
+      }
+    } catch (err) {
+      addOutput('error', `Error: ${err instanceof Error ? err.message : 'Failed to fetch tokens'}`);
+    }
+  };
+
+  // ===== LIST AUDIT LOGS =====
+  const handleListAuditLogs = async (args: string[]) => {
+    try {
+      const params = parseArgs(args);
+      const limit = params.limit || 50;
+      const action = params.action || '';
+      const user = params.user || '';
+
+      addOutput('info', 'Fetching audit logs...');
+
+      let endpoint = `/api/v1/organization/audit-logs?limit=${limit}`;
+      if (action) endpoint += `&action=${encodeURIComponent(action)}`;
+      if (user) endpoint += `&actor=${encodeURIComponent(user)}`;
+
+      const data = await apiRequest('GET', endpoint);
+
+      if (data.success && data.data?.logs) {
+        const logs = data.data.logs;
+
+        addOutput('info', '');
+        addOutput('info', 'Audit Logs');
+        addOutput('info', '═'.repeat(100));
+        addOutput('info', `TIMESTAMP${' '.repeat(14)}ACTION${' '.repeat(20)}ACTOR${' '.repeat(25)}OUTCOME`);
+        addOutput('info', '─'.repeat(100));
+
+        if (logs.length === 0) {
+          addOutput('info', '  No audit logs found');
+        } else {
+          for (const log of logs) {
+            const timestamp = new Date(log.timestamp).toLocaleString().padEnd(22);
+            const action = (log.action || 'unknown').substring(0, 25).padEnd(26);
+            const actor = (log.actor_email || log.actor_identifier || 'system').substring(0, 28).padEnd(30);
+            const outcome = log.outcome || 'unknown';
+            const outcomeType = outcome === 'success' ? 'success' : 'error';
+            addOutput(outcomeType, `${timestamp}${action}${actor}${outcome}`);
+          }
+        }
+
+        addOutput('info', '');
+        addOutput('info', `Showing ${logs.length} of ${data.data.total || logs.length} logs`);
+        addOutput('info', 'Filters: --limit=N, --action=<action>, --user=<email>');
+        addOutput('info', 'Export: Use Audit Logs page for CSV export');
+      } else {
+        addOutput('error', 'Failed to fetch audit logs');
+      }
+    } catch (err) {
+      addOutput('error', `Error: ${err instanceof Error ? err.message : 'Failed to fetch audit logs'}`);
+    }
+  };
+
+  // ===== LIST LICENSES =====
+  const handleListLicenses = async (args: string[]) => {
+    try {
+      const params = parseArgs(args);
+      const provider = params.provider || 'all'; // google, microsoft, all
+
+      addOutput('info', 'Fetching licenses...');
+
+      const data = await apiRequest('GET', '/api/v1/organization/licenses');
+
+      if (data.success && data.data?.licenses) {
+        let licenses = data.data.licenses;
+
+        if (provider !== 'all') {
+          licenses = licenses.filter((l: any) => l.provider === provider);
+        }
+
+        addOutput('info', '');
+        addOutput('info', 'Organization Licenses');
+        addOutput('info', '═'.repeat(90));
+        addOutput('info', `PROVIDER${' '.repeat(4)}LICENSE NAME${' '.repeat(28)}TOTAL${' '.repeat(5)}USED${' '.repeat(6)}AVAILABLE`);
+        addOutput('info', '─'.repeat(90));
+
+        if (licenses.length === 0) {
+          addOutput('info', '  No licenses found');
+        } else {
+          for (const lic of licenses) {
+            const provider = lic.provider.padEnd(12);
+            const name = (lic.displayName || lic.skuId).substring(0, 38).padEnd(40);
+            const total = lic.totalUnits === -1 ? 'N/A'.padStart(8) : String(lic.totalUnits).padStart(8);
+            const used = lic.consumedUnits === -1 ? 'N/A'.padStart(8) : String(lic.consumedUnits).padStart(8);
+            const available = lic.availableUnits === -1 ? 'N/A'.padStart(10) : String(lic.availableUnits).padStart(10);
+            addOutput('info', `${provider}${name}${total}${used}${available}`);
+          }
+        }
+
+        addOutput('info', '');
+        addOutput('info', `Summary: ${data.data.summary.googleLicenses} Google, ${data.data.summary.microsoftLicenses} Microsoft`);
+        addOutput('info', 'Filter: --provider=google|microsoft');
+        addOutput('info', 'Note: Google license counts require Enterprise API access');
+      } else {
+        addOutput('error', 'Failed to fetch licenses');
+      }
+    } catch (err) {
+      addOutput('error', `Error: ${err instanceof Error ? err.message : 'Failed to fetch licenses'}`);
+    }
+  };
+
+  // ===== LIST LOGIN ACTIVITY =====
+  const handleListLoginActivity = async (args: string[]) => {
+    try {
+      const params = parseArgs(args);
+      const limit = params.limit || 50;
+      const user = params.user || '';
+
+      addOutput('info', 'Fetching login activity...');
+
+      let endpoint = `/api/v1/login-activity?limit=${limit}`;
+      if (user) endpoint += `&email=${encodeURIComponent(user)}`;
+
+      const data = await apiRequest('GET', endpoint);
+
+      if (data.success && data.data) {
+        const logins = data.data;
+
+        addOutput('info', '');
+        addOutput('info', 'Login Activity');
+        addOutput('info', '═'.repeat(100));
+        addOutput('info', `TIMESTAMP${' '.repeat(14)}USER${' '.repeat(31)}IP ADDRESS${' '.repeat(8)}COUNTRY${' '.repeat(5)}STATUS`);
+        addOutput('info', '─'.repeat(100));
+
+        if (logins.length === 0) {
+          addOutput('info', '  No login activity found. Run: list logins --sync to fetch from Google.');
+        } else {
+          for (const login of logins) {
+            const timestamp = new Date(login.timestamp || login.login_time).toLocaleString().padEnd(22);
+            const email = (login.user_email || login.email || 'unknown').substring(0, 33).padEnd(35);
+            const ip = (login.ip_address || 'N/A').padEnd(18);
+            const country = (login.country_name || login.country_code || 'N/A').substring(0, 10).padEnd(12);
+            const success = login.is_successful !== false;
+            const status = success ? 'OK' : 'FAILED';
+            const statusType = success ? 'success' : 'error';
+            addOutput(statusType, `${timestamp}${email}${ip}${country}${status}`);
+          }
+        }
+
+        addOutput('info', '');
+        addOutput('info', `Showing ${logins.length} logins`);
+        addOutput('info', 'Filters: --limit=N, --user=<email>');
+        addOutput('info', 'Sync: POST /api/v1/login-activity/sync to fetch latest from Google');
+      } else {
+        addOutput('error', 'Failed to fetch login activity');
+      }
+    } catch (err) {
+      addOutput('error', `Error: ${err instanceof Error ? err.message : 'Failed to fetch login activity'}`);
+    }
+  };
+
+  // ===== LIST BUILDINGS (Google Workspace Resources) =====
+  const handleListBuildings = async (_args: string[]) => {
+    const orgId = getOrganizationId();
+
+    try {
+      addOutput('info', 'Fetching buildings...');
+
+      const data = await apiRequest('GET', `/api/google-workspace/resources/buildings/${orgId}`);
+
+      if (data.success && data.data?.buildings) {
+        const buildings = data.data.buildings;
+
+        addOutput('info', '');
+        addOutput('info', 'Google Workspace Buildings');
+        addOutput('info', '═'.repeat(90));
+        addOutput('info', `BUILDING ID${' '.repeat(24)}NAME${' '.repeat(26)}FLOORS${' '.repeat(5)}ADDRESS`);
+        addOutput('info', '─'.repeat(90));
+
+        if (buildings.length === 0) {
+          addOutput('info', '  No buildings configured');
+        } else {
+          for (const building of buildings) {
+            const id = (building.buildingId || '').substring(0, 33).padEnd(35);
+            const name = (building.buildingName || 'Unnamed').substring(0, 28).padEnd(30);
+            const floors = String(building.floorNames?.length || 0).padStart(6);
+            const address = (building.address?.addressLines?.[0] || 'No address').substring(0, 30);
+            addOutput('info', `${id}${name}${floors}   ${address}`);
+          }
+        }
+
+        addOutput('info', '');
+        addOutput('info', 'Use: list rooms --building=<id> to see resources');
+      } else if (data.error) {
+        addOutput('error', `Error: ${data.error}`);
+        addOutput('info', 'Buildings require admin.directory.resource.readonly scope');
+      } else {
+        addOutput('info', 'No buildings found or API not available');
+      }
+    } catch (err) {
+      addOutput('error', `Error: ${err instanceof Error ? err.message : 'Failed to fetch buildings'}`);
+      addOutput('info', 'Note: This requires Google Admin SDK Resources API access');
+    }
+  };
+
+  // ===== LIST CALENDAR RESOURCES (Rooms, Equipment) =====
+  const handleListResources = async (args: string[]) => {
+    const orgId = getOrganizationId();
+    const params = parseArgs(args);
+    const buildingId = params.building || '';
+    const resourceType = params.type || ''; // room, equipment
+
+    try {
+      addOutput('info', 'Fetching calendar resources...');
+
+      let endpoint = `/api/google-workspace/resources/calendars/${orgId}`;
+      const queryParams: string[] = [];
+      if (buildingId) queryParams.push(`buildingId=${encodeURIComponent(buildingId)}`);
+      if (resourceType) queryParams.push(`resourceType=${encodeURIComponent(resourceType)}`);
+      if (queryParams.length > 0) endpoint += `?${queryParams.join('&')}`;
+
+      const data = await apiRequest('GET', endpoint);
+
+      if (data.success && data.data?.resources) {
+        const resources = data.data.resources;
+
+        addOutput('info', '');
+        addOutput('info', 'Calendar Resources (Rooms & Equipment)');
+        addOutput('info', '═'.repeat(100));
+        addOutput('info', `RESOURCE NAME${' '.repeat(27)}TYPE${' '.repeat(8)}CAPACITY${' '.repeat(4)}BUILDING${' '.repeat(17)}EMAIL`);
+        addOutput('info', '─'.repeat(100));
+
+        if (resources.length === 0) {
+          addOutput('info', '  No calendar resources found');
+        } else {
+          for (const resource of resources) {
+            const name = (resource.resourceName || resource.generatedResourceName || 'Unnamed').substring(0, 38).padEnd(40);
+            const type = (resource.resourceType || 'Room').padEnd(12);
+            const capacity = String(resource.capacity || '-').padStart(8);
+            const building = (resource.buildingId || 'N/A').substring(0, 23).padEnd(25);
+            const email = (resource.resourceEmail || '').substring(0, 30);
+            addOutput('info', `${name}${type}${capacity}   ${building}${email}`);
+          }
+        }
+
+        addOutput('info', '');
+        addOutput('info', `Total: ${resources.length} resources`);
+        addOutput('info', 'Filters: --building=<id>, --type=room|equipment');
+      } else if (data.error) {
+        addOutput('error', `Error: ${data.error}`);
+        addOutput('info', 'Calendar resources require admin.directory.resource.calendar.readonly scope');
+      } else {
+        addOutput('info', 'No calendar resources found or API not available');
+      }
+    } catch (err) {
+      addOutput('error', `Error: ${err instanceof Error ? err.message : 'Failed to fetch resources'}`);
+      addOutput('info', 'Note: This requires Google Admin SDK Resources API access');
+    }
+  };
+
+  // ===== GET 2FA STATUS FOR USER =====
+  const handleGet2FA = async (args: string[]) => {
+    if (args.length === 0) {
+      addOutput('error', 'Usage: get 2fa <email>');
+      return;
+    }
+
+    const email = args[0];
+
+    try {
+      addOutput('info', `Fetching 2FA status for ${email}...`);
+
+      const response = await authFetch(`/api/v1/security/2fa-status/${encodeURIComponent(email)}`);
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error(`User not found: ${email}`);
+        }
+        throw new Error('Failed to fetch 2FA status');
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch 2FA status');
+      }
+
+      const status = data.data;
+
+      addOutput('info', '');
+      addOutput('info', `2FA Status for ${email}`);
+      addOutput('info', '═'.repeat(50));
+
+      const enrolledStatus = status.is_enrolled_in_2sv ? 'Yes ✓' : 'No ✗';
+      const enrolledType = status.is_enrolled_in_2sv ? 'success' : 'error';
+      addOutput(enrolledType, `  Enrolled in 2FA:    ${enrolledStatus}`);
+
+      const enforcedStatus = status.is_enforced_in_2sv ? 'Yes' : 'No';
+      addOutput('info', `  2FA Enforced:       ${enforcedStatus}`);
+
+      if (status.last_login_time) {
+        addOutput('info', `  Last Login:         ${new Date(status.last_login_time).toLocaleString()}`);
+      }
+
+      addOutput('info', '═'.repeat(50));
+
+      if (!status.is_enrolled_in_2sv) {
+        addOutput('info', '');
+        addOutput('info', 'Recommendation: Enable 2FA for this user for better security');
+      }
+    } catch (err) {
+      addOutput('error', `Error: ${err instanceof Error ? err.message : 'Failed to fetch 2FA status'}`);
+    }
+  };
+
+  // ===== REVOKE OAUTH TOKEN =====
+  const handleRevokeToken = async (args: string[]) => {
+    if (args.length < 2) {
+      addOutput('error', 'Usage: revoke token <email> <clientId>');
+      addOutput('info', 'Example: revoke token user@example.com 123456789.apps.googleusercontent.com');
+      return;
+    }
+
+    const email = args[0];
+    const clientId = args[1];
+
+    try {
+      addOutput('info', `Revoking token ${clientId} from ${email}...`);
+
+      const response = await authFetch(`/api/v1/security/users/${encodeURIComponent(email)}/oauth-tokens/${encodeURIComponent(clientId)}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error(`Token not found for user: ${email}`);
+        }
+        throw new Error('Failed to revoke token');
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to revoke token');
+      }
+
+      addOutput('success', `✓ Successfully revoked token from ${email}`);
+      addOutput('info', `  Client ID: ${clientId}`);
+      addOutput('info', '');
+      addOutput('info', 'The user will need to re-authorize this app to use it again.');
+    } catch (err) {
+      addOutput('error', `Error: ${err instanceof Error ? err.message : 'Failed to revoke token'}`);
+    }
+  };
+
+  // =============================================================================
+  // LEGACY COMMAND HANDLERS (For backwards compatibility)
+  // =============================================================================
 
   // ===== API COMMAND HANDLER =====
   const handleApiCommand = async (args: string[]) => {
@@ -298,11 +1784,108 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
     addOutput('success', JSON.stringify(data, null, 2));
   };
 
+  // ===== PASSWORD GENERATOR COMMAND =====
+  const handlePasswordCommand = (args: string[]) => {
+    // Uses shared PASSWORD_ADJECTIVES and PASSWORD_NOUNS from above
+
+    const generateRandom = (length: number = 16) => {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
+      let password = '';
+      for (let i = 0; i < length; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return password;
+    };
+
+    const generatePassphrase = () => {
+      const words = [];
+      for (let i = 0; i < 3; i++) {
+        words.push(PASSWORD_NOUNS[Math.floor(Math.random() * PASSWORD_NOUNS.length)].toLowerCase());
+      }
+      return words.join('-');
+    };
+
+    const generatePin = (length: number = 6) => {
+      let pin = '';
+      for (let i = 0; i < length; i++) {
+        pin += Math.floor(Math.random() * 10).toString();
+      }
+      return pin;
+    };
+
+    const action = args[0] || 'generate';
+    const params = parseArgs(args.slice(1));
+
+    switch (action) {
+      case 'generate':
+      case 'gen': {
+        const count = parseInt(params.count || '1', 10);
+        const style = params.style || 'memorable';
+
+        addOutput('info', `\nGenerated Password${count > 1 ? 's' : ''} (${style}):`);
+        addOutput('info', '='.repeat(40));
+
+        const passwords: string[] = [];
+        for (let i = 0; i < Math.min(count, 20); i++) {
+          let pwd: string;
+          switch (style) {
+            case 'random':
+              pwd = generateRandom(parseInt(params.length || '16', 10));
+              break;
+            case 'passphrase':
+            case 'phrase':
+              pwd = generatePassphrase();
+              break;
+            case 'pin':
+              pwd = generatePin(parseInt(params.length || '6', 10));
+              break;
+            case 'memorable':
+            default:
+              pwd = generateMemorablePassword();
+              break;
+          }
+          passwords.push(pwd);
+          addOutput('success', `  ${pwd}`);
+        }
+        addOutput('info', '='.repeat(40));
+
+        if (count === 1) {
+          addOutput('info', '\nTip: Use with user creation:');
+          addOutput('info', `  gw users create user@domain.com --password="${passwords[0]}"`);
+          addOutput('info', '  gw users create user@domain.com --password=auto  (auto-generate & store)');
+        }
+        break;
+      }
+
+      case 'styles': {
+        addOutput('info', '\nAvailable Password Styles:');
+        addOutput('info', '='.repeat(50));
+        addOutput('info', '  memorable   AdjectiveNoun#XXX (default)');
+        addOutput('info', `              Example: ${generateMemorablePassword()}`);
+        addOutput('info', '');
+        addOutput('info', '  random      Random characters (16 chars)');
+        addOutput('info', `              Example: ${generateRandom()}`);
+        addOutput('info', '');
+        addOutput('info', '  passphrase  Three random words');
+        addOutput('info', `              Example: ${generatePassphrase()}`);
+        addOutput('info', '');
+        addOutput('info', '  pin         Numeric PIN (6 digits)');
+        addOutput('info', `              Example: ${generatePin()}`);
+        addOutput('info', '='.repeat(50));
+        break;
+      }
+
+      default:
+        addOutput('error', 'Usage: helios password generate [--count=N] [--style=memorable|random|passphrase|pin]');
+        addOutput('info', '       helios password styles    Show available styles with examples');
+    }
+  };
+
   // ===== GOOGLE WORKSPACE COMMAND HANDLER =====
   const handleGoogleWorkspaceCommand = async (args: string[]) => {
     if (args.length === 0) {
       addOutput('error', 'Usage: helios gw <resource> <action> [options]');
-      addOutput('info', 'Resources: users, groups, orgunits, delegates, drive, shared-drives, transfer, forwarding, vacation, sync');
+      addOutput('info', 'Resources: users, groups, orgunits, domains, delegates, drive, shared-drives, transfer, forwarding, vacation, sync');
       return;
     }
 
@@ -338,8 +1921,23 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
       case 'vacation':
         await handleGWVacation(action, restArgs);
         break;
+      case 'signature':
+      case 'sig':
+        await handleGWSignature(action, restArgs);
+        break;
+      case 'sendas':
+      case 'send-as':
+        await handleGWSendAs(action, restArgs);
+        break;
+      case 'calendar':
+      case 'cal':
+        await handleGWCalendar(action, restArgs);
+        break;
       case 'sync':
         await handleGWSync(action, restArgs);
+        break;
+      case 'domains':
+        await handleGWDomains(action, restArgs);
         break;
       default:
         addOutput('error', `Unknown resource: ${resource}`);
@@ -352,11 +1950,56 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
 
     switch (action) {
       case 'list': {
+        const params = parseArgs(args);
+        const filter = params.filter || '';
+
         const data = await apiRequest('GET', `/api/google-workspace/cached-users/${orgId}`);
         if (data.success && data.data?.users) {
-          const users = data.data.users.map((u: any) => {
+          let filteredUsers = data.data.users;
+
+          // Apply filter if provided
+          if (filter) {
+            const filterLower = filter.toLowerCase();
+            // Support patterns: "email:test*", "orgUnit:/Test", "status:suspended", or just "test*"
+            let filterField = 'email';
+            let filterValue = filterLower;
+
+            if (filter.includes(':')) {
+              const [field, ...valueParts] = filter.split(':');
+              filterField = field.toLowerCase();
+              filterValue = valueParts.join(':').toLowerCase();
+            }
+
+            // Convert glob pattern to regex (simple * support)
+            const pattern = filterValue.replace(/\*/g, '.*');
+            const regex = new RegExp(`^${pattern}`, 'i');
+
+            filteredUsers = data.data.users.filter((u: any) => {
+              const email = (u.email || u.primaryEmail || '').toLowerCase();
+              const orgUnit = (u.orgUnitPath || u.org_unit_path || '/').toLowerCase();
+              const status = (u.isSuspended || u.is_suspended || u.suspended) ? 'suspended' : 'active';
+              const firstName = (u.givenName || u.given_name || u.name?.givenName || u.firstName || u.first_name || '').toLowerCase();
+              const lastName = (u.familyName || u.family_name || u.name?.familyName || u.lastName || u.last_name || '').toLowerCase();
+
+              switch (filterField) {
+                case 'email': return regex.test(email);
+                case 'orgunit': case 'ou': return orgUnit.includes(filterValue) || regex.test(orgUnit);
+                case 'status': return status === filterValue;
+                case 'firstname': case 'first': return regex.test(firstName);
+                case 'lastname': case 'last': return regex.test(lastName);
+                default: return regex.test(email); // Default to email matching
+              }
+            });
+
+            if (filteredUsers.length === 0) {
+              addOutput('info', `No users match filter: ${filter}`);
+              return;
+            }
+            addOutput('info', `Found ${filteredUsers.length} user(s) matching: ${filter}`);
+          }
+
+          const users = filteredUsers.map((u: any) => {
             const email = (u.email || u.primaryEmail || '').padEnd(30);
-            // Try multiple field name variations
             const firstName = (u.givenName || u.given_name || u.name?.givenName || u.firstName || u.first_name || '').substring(0, 15).padEnd(15);
             const lastName = (u.familyName || u.family_name || u.name?.familyName || u.lastName || u.last_name || '').substring(0, 15).padEnd(15);
             const orgUnit = (u.orgUnitPath || u.org_unit_path || '/').substring(0, 25).padEnd(25);
@@ -419,26 +2062,102 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
       }
 
       case 'create': {
-        if (args.length < 3) {
-          addOutput('error', 'Usage: helios gw users create <email> --firstName=<name> --lastName=<name> --password=<pwd>');
+        // Show deprecation notice for verb-first pattern
+        addOutput('info', '💡 Tip: Prefer "create user <email> --gw" for the new verb-first syntax');
+        addOutput('info', '');
+
+        if (args.length < 1) {
+          addOutput('error', 'Usage: helios gw users create <email> --firstName=<name> --lastName=<name> --password=<pwd|auto>');
+          addOutput('info', '       Use --password=auto to generate a memorable password (AdjectiveNoun#XXX)');
           return;
         }
         const email = args[0];
         const params = parseArgs(args.slice(1));
 
+        // Validate required fields
+        if (!params.firstName || !params.lastName) {
+          addOutput('error', 'Required: --firstName and --lastName');
+          return;
+        }
+
+        // Handle password: auto-generate if "auto", otherwise use provided
+        let password = params.password;
+        let isAutoGenerated = false;
+        if (password === 'auto' || password === '') {
+          password = generateMemorablePassword();
+          isAutoGenerated = true;
+        }
+
+        if (!password) {
+          addOutput('error', 'Required: --password=<password> or --password=auto');
+          return;
+        }
+
+        // Step 1: Create user in Helios first (source of truth)
+        addOutput('info', `Creating user in Helios: ${email}`);
+        let heliosCreated = false;
+        try {
+          const heliosBody = {
+            email,
+            firstName: params.firstName,
+            lastName: params.lastName,
+            department: params.department || null,
+            jobTitle: params.jobTitle || null,
+            role: 'user',
+            userType: 'synced' // Mark as synced since we're creating in GW
+          };
+          if (password) {
+            (heliosBody as any).password = password;
+          }
+          await apiRequest('POST', '/api/v1/organization/users', heliosBody);
+          addOutput('success', `  ✓ Created in Helios`);
+          heliosCreated = true;
+        } catch (heliosError: any) {
+          // User might already exist in Helios - that's OK
+          if (heliosError.message?.includes('already exists') || heliosError.message?.includes('duplicate')) {
+            addOutput('info', `  → User already exists in Helios`);
+            heliosCreated = true;
+          } else {
+            addOutput('error', `  ✗ Helios: ${heliosError.message}`);
+            addOutput('info', '  Continuing with Google Workspace creation...');
+          }
+        }
+
+        // Step 2: Create in Google Workspace
+        addOutput('info', `Creating user in Google Workspace: ${email}`);
         const body = {
           primaryEmail: email,
           name: {
             givenName: params.firstName,
             familyName: params.lastName
           },
-          password: params.password,
+          password: password,
           orgUnitPath: params.ou || '/',
           changePasswordAtNextLogin: params.changePassword !== 'false'
         };
 
         await apiRequest('POST', '/api/google/admin/directory/v1/users', body);
-        addOutput('success', `User created: ${email}`);
+        addOutput('success', `  ✓ Created in Google Workspace`);
+
+        if (isAutoGenerated) {
+          // Store the initial password for later retrieval
+          await storeInitialPassword(email, password);
+          addOutput('info', '');
+          addOutput('success', `User created: ${email}`);
+          addOutput('info', `Platforms: ${heliosCreated ? 'Helios, ' : ''}Google Workspace`);
+          addOutput('info', '');
+          addOutput('info', 'Initial Password (auto-generated):');
+          addOutput('info', '='.repeat(50));
+          addOutput('success', `  ${password}`);
+          addOutput('info', '='.repeat(50));
+          addOutput('info', '');
+          addOutput('info', 'To retrieve later: helios users initial-password ' + email);
+          addOutput('info', 'Or view in User Slideout > Settings > Password');
+        } else {
+          addOutput('info', '');
+          addOutput('success', `User created: ${email}`);
+          addOutput('info', `Platforms: ${heliosCreated ? 'Helios, ' : ''}Google Workspace`);
+        }
         break;
       }
 
@@ -487,8 +2206,103 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
       }
 
       case 'delete': {
-        if (args.length === 0) {
+        // Show deprecation notice for verb-first pattern
+        addOutput('info', '💡 Tip: Prefer "delete user <email> --gw" for the new verb-first syntax');
+        addOutput('info', '');
+
+        const params = parseArgs(args);
+        const filter = params.filter;
+        const confirmed = params.confirm === 'true' || params.confirm === '';
+        const dryRun = params['dry-run'] === 'true' || params['dry-run'] === '';
+
+        // Batch delete with filter
+        if (filter) {
+          const data = await apiRequest('GET', `/api/google-workspace/cached-users/${orgId}`);
+          if (!data.success || !data.data?.users) {
+            addOutput('error', 'Failed to fetch users');
+            return;
+          }
+
+          // Apply same filter logic as list
+          const filterLower = filter.toLowerCase();
+          let filterField = 'email';
+          let filterValue = filterLower;
+
+          if (filter.includes(':')) {
+            const [field, ...valueParts] = filter.split(':');
+            filterField = field.toLowerCase();
+            filterValue = valueParts.join(':').toLowerCase();
+          }
+
+          const pattern = filterValue.replace(/\*/g, '.*');
+          const regex = new RegExp(`^${pattern}`, 'i');
+
+          const matchingUsers = data.data.users.filter((u: any) => {
+            const email = (u.email || u.primaryEmail || '').toLowerCase();
+            const orgUnit = (u.orgUnitPath || u.org_unit_path || '/').toLowerCase();
+            const status = (u.isSuspended || u.is_suspended || u.suspended) ? 'suspended' : 'active';
+
+            switch (filterField) {
+              case 'email': return regex.test(email);
+              case 'orgunit': case 'ou': return orgUnit.includes(filterValue) || regex.test(orgUnit);
+              case 'status': return status === filterValue;
+              default: return regex.test(email);
+            }
+          });
+
+          if (matchingUsers.length === 0) {
+            addOutput('info', `No users match filter: ${filter}`);
+            return;
+          }
+
+          // Show preview
+          addOutput('info', `\nBatch Delete Preview - ${matchingUsers.length} user(s) matching: ${filter}`);
+          addOutput('info', '='.repeat(60));
+          matchingUsers.forEach((u: any) => {
+            const email = u.email || u.primaryEmail;
+            const name = `${u.givenName || u.firstName || ''} ${u.familyName || u.lastName || ''}`.trim();
+            addOutput('info', `  ${email} (${name || 'No name'})`);
+          });
+          addOutput('info', '='.repeat(60));
+
+          if (dryRun) {
+            addOutput('info', '\n[DRY RUN] No users were deleted. Remove --dry-run to execute.');
+            return;
+          }
+
+          if (!confirmed) {
+            addOutput('error', `\n⚠️  This will PERMANENTLY DELETE ${matchingUsers.length} user(s)!`);
+            addOutput('info', 'To proceed, run the same command with --confirm:');
+            addOutput('info', `  helios gw users delete --filter="${filter}" --confirm`);
+            addOutput('info', '\nOr preview first with --dry-run');
+            return;
+          }
+
+          // Execute batch delete
+          addOutput('info', `\nDeleting ${matchingUsers.length} users...`);
+          let successCount = 0;
+          let errorCount = 0;
+
+          for (const u of matchingUsers) {
+            const email = u.email || u.primaryEmail;
+            try {
+              await apiRequest('DELETE', `/api/google/admin/directory/v1/users/${email}`);
+              addOutput('success', `  ✓ Deleted: ${email}`);
+              successCount++;
+            } catch (err: any) {
+              addOutput('error', `  ✗ Failed: ${email} - ${err.message}`);
+              errorCount++;
+            }
+          }
+
+          addOutput('info', `\nBatch delete complete: ${successCount} deleted, ${errorCount} failed`);
+          return;
+        }
+
+        // Single user delete (original behavior)
+        if (args.length === 0 || args[0].startsWith('--')) {
           addOutput('error', 'Usage: helios gw users delete <email>');
+          addOutput('info', '       helios gw users delete --filter="email:test*" [--dry-run] [--confirm]');
           return;
         }
         const email = args[0];
@@ -526,15 +2340,11 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
       }
 
       case 'reset-password': {
-        if (args.length === 0) {
-          addOutput('error', 'Usage: gw users reset-password <email> [--password=X]');
-          addOutput('info', 'If password not provided, a random one will be generated');
-          return;
-        }
-        const email = args[0];
-        const params = parseArgs(args.slice(1));
+        const params = parseArgs(args);
+        const filter = params.filter;
+        const dryRun = params['dry-run'] === 'true' || params['dry-run'] === '';
 
-        // Generate random password if not provided
+        // Generate random password
         const generatePassword = () => {
           const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
           let password = '';
@@ -543,6 +2353,101 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
           }
           return password;
         };
+
+        // Batch reset with filter
+        if (filter) {
+          const userData = await apiRequest('GET', `/api/google-workspace/cached-users/${orgId}`);
+          if (!userData.success || !userData.data?.users) {
+            addOutput('error', 'Failed to fetch users');
+            return;
+          }
+
+          // Apply filter
+          const filterLower = filter.toLowerCase();
+          let filterField = 'email';
+          let filterValue = filterLower;
+
+          if (filter.includes(':')) {
+            const [field, ...valueParts] = filter.split(':');
+            filterField = field.toLowerCase();
+            filterValue = valueParts.join(':').toLowerCase();
+          }
+
+          const pattern = filterValue.replace(/\*/g, '.*');
+          const regex = new RegExp(`^${pattern}`, 'i');
+
+          const matchingUsers = userData.data.users.filter((u: any) => {
+            const email = (u.email || u.primaryEmail || '').toLowerCase();
+            const ouPath = (u.orgUnitPath || u.org_unit_path || '/').toLowerCase();
+            const status = (u.isSuspended || u.is_suspended) ? 'suspended' : 'active';
+
+            switch (filterField) {
+              case 'email': return regex.test(email);
+              case 'orgunit': case 'ou': return ouPath.includes(filterValue) || regex.test(ouPath);
+              case 'status': return status === filterValue;
+              default: return regex.test(email);
+            }
+          });
+
+          if (matchingUsers.length === 0) {
+            addOutput('info', `No users match filter: ${filter}`);
+            return;
+          }
+
+          addOutput('info', `\nBatch Password Reset - ${matchingUsers.length} user(s) matching: ${filter}`);
+          addOutput('info', '='.repeat(60));
+          matchingUsers.slice(0, 10).forEach((u: any) => {
+            addOutput('info', `  ${u.email || u.primaryEmail}`);
+          });
+          if (matchingUsers.length > 10) {
+            addOutput('info', `  ... and ${matchingUsers.length - 10} more`);
+          }
+          addOutput('info', '='.repeat(60));
+
+          if (dryRun) {
+            addOutput('info', `\n[DRY RUN] No passwords were reset. Remove --dry-run to execute.`);
+            return;
+          }
+
+          addOutput('info', `\nResetting passwords for ${matchingUsers.length} users...`);
+          const results: { email: string; password: string }[] = [];
+          let errorCount = 0;
+
+          for (const u of matchingUsers) {
+            const email = u.email || u.primaryEmail;
+            const password = generatePassword();
+            try {
+              await apiRequest('PATCH', `/api/google/admin/directory/v1/users/${email}`, {
+                password: password
+              });
+              addOutput('success', `  ✓ ${email}`);
+              results.push({ email, password });
+            } catch (err: any) {
+              addOutput('error', `  ✗ ${email} - ${err.message}`);
+              errorCount++;
+            }
+          }
+
+          addOutput('info', `\nBatch complete: ${results.length} reset, ${errorCount} failed`);
+          if (results.length > 0) {
+            addOutput('info', '\n[KEY]Generated passwords:');
+            addOutput('info', '-'.repeat(60));
+            results.forEach(r => {
+              addOutput('info', `  ${r.email.padEnd(35)} ${r.password}`);
+            });
+            addOutput('info', '-'.repeat(60));
+            addOutput('info', 'Copy the above before navigating away!');
+          }
+          return;
+        }
+
+        // Single user reset (original behavior)
+        if (args.length === 0 || args[0].startsWith('--')) {
+          addOutput('error', 'Usage: gw users reset-password <email> [--password=X]');
+          addOutput('info', '       gw users reset-password --filter="orgunit:/Contractors" [--dry-run]');
+          return;
+        }
+        const email = args[0];
 
         const password = params.password || generatePassword();
 
@@ -586,6 +2491,117 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
         await apiRequest('DELETE', `/api/google/admin/directory/v1/users/${email}/aliases/${alias}`);
 
         addOutput('success', `[OK]Removed alias ${alias} from ${email}`);
+        break;
+      }
+
+      case 'initial-password': {
+        if (args.length === 0) {
+          addOutput('error', 'Usage: gw users initial-password <email>');
+          addOutput('info', 'Reveals the auto-generated initial password for a newly created user.');
+          addOutput('info', '');
+          addOutput('info', 'Note: Initial passwords are persisted and can also be revealed in the User Slideout.');
+          addOutput('info', 'Use "gw users list-initial-passwords" to see all stored passwords.');
+          return;
+        }
+        const email = args[0];
+
+        // Try local state first
+        let entry = revealInitialPassword(email);
+
+        // If not in local state, try fetching from backend API
+        if (!entry) {
+          try {
+            const response = await authFetch(`/api/v1/initial-passwords/${encodeURIComponent(email)}`);
+            if (response.ok) {
+              const data = await response.json();
+              if (data.success && data.data) {
+                entry = {
+                  password: data.data.password,
+                  createdAt: new Date(data.data.createdAt)
+                };
+                // Cache locally
+                setInitialPasswords(prev => ({
+                  ...prev,
+                  [email.toLowerCase()]: { ...entry!, revealed: true }
+                }));
+              }
+            }
+          } catch (err) {
+            // Silent fail, will show "not found" message below
+          }
+        }
+
+        if (entry) {
+          addOutput('info', '');
+          addOutput('info', `Initial Password for ${email}`);
+          addOutput('info', '='.repeat(50));
+          addOutput('success', `  ${entry.password}`);
+          addOutput('info', '='.repeat(50));
+          addOutput('info', `Created: ${entry.createdAt.toLocaleString()}`);
+          addOutput('info', '');
+          addOutput('info', 'Once the user has changed their password, clear this with:');
+          addOutput('info', `  gw users clear-initial-password ${email}`);
+        } else {
+          addOutput('error', `No initial password stored for ${email}`);
+          addOutput('info', 'Initial passwords are only stored when using --password=auto during user creation.');
+        }
+        break;
+      }
+
+      case 'clear-initial-password': {
+        if (args.length === 0) {
+          addOutput('error', 'Usage: gw users clear-initial-password <email|--all>');
+          addOutput('info', 'Clears the stored initial password for a user after they have set their own.');
+          return;
+        }
+        const target = args[0];
+
+        if (target === '--all') {
+          const count = Object.keys(initialPasswords).length;
+          if (count === 0) {
+            addOutput('info', 'No initial passwords are currently stored.');
+          } else {
+            Object.keys(initialPasswords).forEach(email => clearInitialPassword(email));
+            addOutput('success', `Cleared ${count} stored initial password(s).`);
+          }
+        } else {
+          if (initialPasswords[target.toLowerCase()]) {
+            clearInitialPassword(target);
+            addOutput('success', `Cleared initial password for ${target}`);
+          } else {
+            addOutput('error', `No initial password stored for ${target}`);
+          }
+        }
+        break;
+      }
+
+      case 'list-initial-passwords': {
+        const entries = Object.entries(initialPasswords);
+
+        if (entries.length === 0) {
+          addOutput('info', 'No initial passwords are currently stored.');
+          addOutput('info', '');
+          addOutput('info', 'Initial passwords are stored when creating users with --password=auto:');
+          addOutput('info', '  gw users create john@company.com --firstName=John --lastName=Doe --password=auto');
+          return;
+        }
+
+        addOutput('info', '');
+        addOutput('info', `Stored Initial Passwords (${entries.length}):`);
+        addOutput('info', '='.repeat(80));
+        addOutput('info', 'Email'.padEnd(40) + 'Password'.padEnd(25) + 'Created');
+        addOutput('info', '-'.repeat(80));
+
+        entries.forEach(([email, entry]) => {
+          const created = entry.createdAt.toLocaleString();
+          const password = entry.revealed ? entry.password : '********** (use initial-password to reveal)';
+          addOutput('info', `${email.padEnd(40)}${password.padEnd(25)}${created}`);
+        });
+
+        addOutput('info', '='.repeat(80));
+        addOutput('info', '');
+        addOutput('info', 'To reveal a password: gw users initial-password <email>');
+        addOutput('info', 'To clear after user sets password: gw users clear-initial-password <email|--all>');
         break;
       }
 
@@ -801,15 +2817,55 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
 
     switch (action) {
       case 'list': {
+        const params = parseArgs(args);
+        const filter = params.filter || '';
+
         const data = await apiRequest('GET', `/api/google-workspace/groups/${orgId}`);
         if (data.success && data.data?.groups) {
-          const groups = data.data.groups.map((g: any) => {
+          let filteredGroups = data.data.groups;
+
+          // Apply filter if provided
+          if (filter) {
+            const filterLower = filter.toLowerCase();
+            let filterField = 'email';
+            let filterValue = filterLower;
+
+            if (filter.includes(':')) {
+              const [field, ...valueParts] = filter.split(':');
+              filterField = field.toLowerCase();
+              filterValue = valueParts.join(':').toLowerCase();
+            }
+
+            const pattern = filterValue.replace(/\*/g, '.*');
+            const regex = new RegExp(`^${pattern}`, 'i');
+
+            filteredGroups = data.data.groups.filter((g: any) => {
+              const email = (g.email || '').toLowerCase();
+              const name = (g.name || '').toLowerCase();
+
+              switch (filterField) {
+                case 'email': return regex.test(email);
+                case 'name': return regex.test(name) || name.includes(filterValue);
+                default: return regex.test(email);
+              }
+            });
+          }
+
+          if (filteredGroups.length === 0) {
+            addOutput('info', filter ? `No groups match filter: ${filter}` : 'No groups found');
+            return;
+          }
+
+          const groups = filteredGroups.map((g: any) => {
             const email = (g.email || '').padEnd(40);
             const name = (g.name || '').padEnd(30);
             const members = (g.directMembersCount || 0).toString().padStart(7);
             return `${email} ${name} ${members}`;
           }).join('\n');
           addOutput('success', `\nEMAIL${' '.repeat(35)}NAME${' '.repeat(26)}MEMBERS\n${'='.repeat(85)}\n${groups}`);
+          if (filter) {
+            addOutput('info', `\nFiltered: ${filteredGroups.length} of ${data.data.groups.length} groups`);
+          }
         }
         break;
       }
@@ -852,6 +2908,10 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
       }
 
       case 'create': {
+        // Show deprecation notice for verb-first pattern
+        addOutput('info', '💡 Tip: Prefer "create group <email> --gw" for the new verb-first syntax');
+        addOutput('info', '');
+
         if (args.length < 2) {
           addOutput('error', 'Usage: helios gw groups create <email> --name="Group Name" [--description="..."]');
           return;
@@ -871,6 +2931,10 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
       }
 
       case 'update': {
+        // Show deprecation notice for verb-first pattern
+        addOutput('info', '💡 Tip: Prefer "update group <email> ..." for the new verb-first syntax');
+        addOutput('info', '');
+
         if (args.length < 2) {
           addOutput('error', 'Usage: helios gw groups update <group-email> --name="New Name" [--description="..."]');
           return;
@@ -888,8 +2952,101 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
       }
 
       case 'delete': {
-        if (args.length === 0) {
+        // Show deprecation notice for verb-first pattern
+        addOutput('info', '💡 Tip: Prefer "delete group <email> --gw" for the new verb-first syntax');
+        addOutput('info', '');
+
+        const params = parseArgs(args);
+        const filter = params.filter;
+        const confirmed = params.confirm === 'true' || params.confirm === '';
+        const dryRun = params['dry-run'] === 'true' || params['dry-run'] === '';
+
+        // Batch delete with filter
+        if (filter) {
+          const data = await apiRequest('GET', `/api/google-workspace/groups/${orgId}`);
+          if (!data.success || !data.data?.groups) {
+            addOutput('error', 'Failed to fetch groups');
+            return;
+          }
+
+          // Apply same filter logic as list
+          const filterLower = filter.toLowerCase();
+          let filterField = 'email';
+          let filterValue = filterLower;
+
+          if (filter.includes(':')) {
+            const [field, ...valueParts] = filter.split(':');
+            filterField = field.toLowerCase();
+            filterValue = valueParts.join(':').toLowerCase();
+          }
+
+          const pattern = filterValue.replace(/\*/g, '.*');
+          const regex = new RegExp(`^${pattern}`, 'i');
+
+          const matchingGroups = data.data.groups.filter((g: any) => {
+            const email = (g.email || '').toLowerCase();
+            const name = (g.name || '').toLowerCase();
+
+            switch (filterField) {
+              case 'email': return regex.test(email);
+              case 'name': return regex.test(name) || name.includes(filterValue);
+              default: return regex.test(email);
+            }
+          });
+
+          if (matchingGroups.length === 0) {
+            addOutput('info', `No groups match filter: ${filter}`);
+            return;
+          }
+
+          // Show preview
+          addOutput('info', `\nBatch Delete Preview - ${matchingGroups.length} group(s) matching: ${filter}`);
+          addOutput('info', '='.repeat(60));
+          matchingGroups.forEach((g: any) => {
+            const email = g.email || '';
+            const name = g.name || '';
+            addOutput('info', `  ${email} (${name || 'No name'})`);
+          });
+          addOutput('info', '='.repeat(60));
+
+          if (dryRun) {
+            addOutput('info', '\n[DRY RUN] No groups were deleted. Remove --dry-run to execute.');
+            return;
+          }
+
+          if (!confirmed) {
+            addOutput('error', `\n⚠️  This will PERMANENTLY DELETE ${matchingGroups.length} group(s)!`);
+            addOutput('info', 'To proceed, run the same command with --confirm:');
+            addOutput('info', `  helios gw groups delete --filter="${filter}" --confirm`);
+            addOutput('info', '\nOr preview first with --dry-run');
+            return;
+          }
+
+          // Execute batch delete
+          addOutput('info', `\nDeleting ${matchingGroups.length} groups...`);
+          let successCount = 0;
+          let errorCount = 0;
+
+          for (const g of matchingGroups) {
+            const email = g.email;
+            try {
+              await apiRequest('DELETE', `/api/google/admin/directory/v1/groups/${email}`);
+              addOutput('success', `  ✓ Deleted: ${email}`);
+              successCount++;
+            } catch (err: any) {
+              addOutput('error', `  ✗ Failed: ${email} - ${err.message}`);
+              errorCount++;
+            }
+          }
+
+          addOutput('info', `\nBatch delete complete: ${successCount} deleted, ${errorCount} failed`);
+          return;
+        }
+
+        // Single group delete (original behavior)
+        if (args.length === 0 || args[0].startsWith('--')) {
           addOutput('error', 'Usage: helios gw groups delete <group-email>');
+          addOutput('info', '       helios gw groups delete --filter="email:test*" [--dry-run] [--confirm]');
           return;
         }
         const groupEmail = args[0];
@@ -920,14 +3077,112 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
       }
 
       case 'add-member': {
-        if (args.length < 2) {
+        if (args.length === 0) {
           addOutput('error', 'Usage: helios gw groups add-member <group-email> <user-email> [--role=MEMBER|MANAGER|OWNER]');
+          addOutput('info', '       helios gw groups add-member <group-email> --filter="email:*@sales.*" [--role=MEMBER] [--dry-run]');
           return;
         }
         const groupEmail = args[0];
-        const userEmail = args[1];
-        const params = parseArgs(args.slice(2));
+        const params = parseArgs(args.slice(1));
         const role = params.role || 'MEMBER';
+        const filter = params.filter;
+        const dryRun = params['dry-run'] === 'true' || params['dry-run'] === '';
+
+        // Batch add with filter
+        if (filter) {
+          const userData = await apiRequest('GET', `/api/google-workspace/cached-users/${orgId}`);
+          if (!userData.success || !userData.data?.users) {
+            addOutput('error', 'Failed to fetch users');
+            return;
+          }
+
+          // Apply filter
+          const filterLower = filter.toLowerCase();
+          let filterField = 'email';
+          let filterValue = filterLower;
+
+          if (filter.includes(':')) {
+            const [field, ...valueParts] = filter.split(':');
+            filterField = field.toLowerCase();
+            filterValue = valueParts.join(':').toLowerCase();
+          }
+
+          const pattern = filterValue.replace(/\*/g, '.*');
+          const regex = new RegExp(`^${pattern}`, 'i');
+
+          const matchingUsers = userData.data.users.filter((u: any) => {
+            const email = (u.email || u.primaryEmail || '').toLowerCase();
+            const ouPath = (u.orgUnitPath || u.org_unit_path || '/').toLowerCase();
+            const status = (u.isSuspended || u.is_suspended) ? 'suspended' : 'active';
+            const firstName = (u.givenName || u.given_name || u.firstName || '').toLowerCase();
+            const lastName = (u.familyName || u.family_name || u.lastName || '').toLowerCase();
+
+            switch (filterField) {
+              case 'email': return regex.test(email);
+              case 'orgunit': case 'ou': return ouPath.includes(filterValue) || regex.test(ouPath);
+              case 'status': return status === filterValue;
+              case 'firstname': return regex.test(firstName);
+              case 'lastname': return regex.test(lastName);
+              default: return regex.test(email);
+            }
+          });
+
+          if (matchingUsers.length === 0) {
+            addOutput('info', `No users match filter: ${filter}`);
+            return;
+          }
+
+          addOutput('info', `\nBatch Add to ${groupEmail} - ${matchingUsers.length} user(s) matching: ${filter}`);
+          addOutput('info', '='.repeat(60));
+          matchingUsers.slice(0, 10).forEach((u: any) => {
+            addOutput('info', `  ${u.email || u.primaryEmail}`);
+          });
+          if (matchingUsers.length > 10) {
+            addOutput('info', `  ... and ${matchingUsers.length - 10} more`);
+          }
+          addOutput('info', '='.repeat(60));
+
+          if (dryRun) {
+            addOutput('info', `\n[DRY RUN] No changes made. Remove --dry-run to execute.`);
+            return;
+          }
+
+          addOutput('info', `\nAdding ${matchingUsers.length} users to ${groupEmail} as ${role}...`);
+          let successCount = 0;
+          let errorCount = 0;
+          let skipCount = 0;
+
+          for (const u of matchingUsers) {
+            const email = u.email || u.primaryEmail;
+            try {
+              await apiRequest('POST', `/api/google-workspace/groups/${groupEmail}/members`, {
+                organizationId: orgId,
+                email,
+                role
+              });
+              addOutput('success', `  ✓ Added: ${email}`);
+              successCount++;
+            } catch (err: any) {
+              if (err.message?.includes('already a member') || err.message?.includes('409')) {
+                addOutput('info', `  ○ Already member: ${email}`);
+                skipCount++;
+              } else {
+                addOutput('error', `  ✗ Failed: ${email} - ${err.message}`);
+                errorCount++;
+              }
+            }
+          }
+
+          addOutput('info', `\nBatch complete: ${successCount} added, ${skipCount} already members, ${errorCount} failed`);
+          return;
+        }
+
+        // Single user add (original behavior)
+        if (args.length < 2 || args[1].startsWith('--')) {
+          addOutput('error', 'Usage: helios gw groups add-member <group-email> <user-email> [--role=MEMBER|MANAGER|OWNER]');
+          return;
+        }
+        const userEmail = args[1];
 
         await apiRequest('POST', `/api/google-workspace/groups/${groupEmail}/members`, {
           organizationId: orgId,
@@ -939,11 +3194,100 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
       }
 
       case 'remove-member': {
-        if (args.length < 2) {
+        if (args.length === 0) {
           addOutput('error', 'Usage: helios gw groups remove-member <group-email> <user-email>');
+          addOutput('info', '       helios gw groups remove-member <group-email> --filter="email:*@contractors.*" [--dry-run] [--confirm]');
           return;
         }
         const groupEmail = args[0];
+        const params = parseArgs(args.slice(1));
+        const filter = params.filter;
+        const dryRun = params['dry-run'] === 'true' || params['dry-run'] === '';
+        const confirmed = params.confirm === 'true' || params.confirm === '';
+
+        // Batch remove with filter
+        if (filter) {
+          // First get current group members
+          const membersData = await apiRequest('GET', `/api/google-workspace/groups/${groupEmail}/members?organizationId=${orgId}`);
+          if (!membersData.success || !membersData.data?.members) {
+            addOutput('error', 'Failed to fetch group members');
+            return;
+          }
+
+          // Apply filter to members
+          const filterLower = filter.toLowerCase();
+          let filterField = 'email';
+          let filterValue = filterLower;
+
+          if (filter.includes(':')) {
+            const [field, ...valueParts] = filter.split(':');
+            filterField = field.toLowerCase();
+            filterValue = valueParts.join(':').toLowerCase();
+          }
+
+          const pattern = filterValue.replace(/\*/g, '.*');
+          const regex = new RegExp(`^${pattern}`, 'i');
+
+          const matchingMembers = membersData.data.members.filter((m: any) => {
+            const email = (m.email || '').toLowerCase();
+            const memberRole = (m.role || 'MEMBER').toLowerCase();
+
+            switch (filterField) {
+              case 'email': return regex.test(email);
+              case 'role': return memberRole === filterValue.toLowerCase();
+              default: return regex.test(email);
+            }
+          });
+
+          if (matchingMembers.length === 0) {
+            addOutput('info', `No members match filter: ${filter}`);
+            return;
+          }
+
+          addOutput('info', `\nBatch Remove from ${groupEmail} - ${matchingMembers.length} member(s) matching: ${filter}`);
+          addOutput('info', '='.repeat(60));
+          matchingMembers.forEach((m: any) => {
+            addOutput('info', `  ${m.email} (${m.role || 'MEMBER'})`);
+          });
+          addOutput('info', '='.repeat(60));
+
+          if (dryRun) {
+            addOutput('info', `\n[DRY RUN] No changes made. Remove --dry-run to execute.`);
+            return;
+          }
+
+          if (!confirmed) {
+            addOutput('error', `\n⚠️  This will remove ${matchingMembers.length} member(s) from ${groupEmail}!`);
+            addOutput('info', 'To proceed, run the same command with --confirm:');
+            addOutput('info', `  helios gw groups remove-member ${groupEmail} --filter="${filter}" --confirm`);
+            return;
+          }
+
+          addOutput('info', `\nRemoving ${matchingMembers.length} members from ${groupEmail}...`);
+          let successCount = 0;
+          let errorCount = 0;
+
+          for (const m of matchingMembers) {
+            const email = m.email;
+            try {
+              await apiRequest('DELETE', `/api/google-workspace/groups/${groupEmail}/members/${email}?organizationId=${orgId}`);
+              addOutput('success', `  ✓ Removed: ${email}`);
+              successCount++;
+            } catch (err: any) {
+              addOutput('error', `  ✗ Failed: ${email} - ${err.message}`);
+              errorCount++;
+            }
+          }
+
+          addOutput('info', `\nBatch complete: ${successCount} removed, ${errorCount} failed`);
+          return;
+        }
+
+        // Single user remove (original behavior)
+        if (args.length < 2 || args[1].startsWith('--')) {
+          addOutput('error', 'Usage: helios gw groups remove-member <group-email> <user-email>');
+          return;
+        }
         const userEmail = args[1];
 
         await apiRequest('DELETE', `/api/google-workspace/groups/${groupEmail}/members/${userEmail}?organizationId=${orgId}`);
@@ -1040,6 +3384,40 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
 
   // ----- Google Workspace: Email Delegation -----
   const handleGWDelegates = async (action: string, args: string[]) => {
+    const orgId = getOrganizationId();
+
+    // Helper to filter users
+    const filterUsers = async (filter: string) => {
+      const userData = await apiRequest('GET', `/api/google-workspace/cached-users/${orgId}`);
+      if (!userData.success || !userData.data?.users) return null;
+
+      const filterLower = filter.toLowerCase();
+      let filterField = 'email';
+      let filterValue = filterLower;
+
+      if (filter.includes(':')) {
+        const [field, ...valueParts] = filter.split(':');
+        filterField = field.toLowerCase();
+        filterValue = valueParts.join(':').toLowerCase();
+      }
+
+      const pattern = filterValue.replace(/\*/g, '.*');
+      const regex = new RegExp(`^${pattern}`, 'i');
+
+      return userData.data.users.filter((u: any) => {
+        const email = (u.email || u.primaryEmail || '').toLowerCase();
+        const ouPath = (u.orgUnitPath || u.org_unit_path || '/').toLowerCase();
+        const status = (u.isSuspended || u.is_suspended) ? 'suspended' : 'active';
+
+        switch (filterField) {
+          case 'email': return regex.test(email);
+          case 'orgunit': case 'ou': return ouPath.includes(filterValue) || regex.test(ouPath);
+          case 'status': return status === filterValue;
+          default: return regex.test(email);
+        }
+      });
+    };
+
     switch (action) {
       case 'list': {
         if (args.length === 0) {
@@ -1058,8 +3436,80 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
       }
 
       case 'add': {
+        const params = parseArgs(args);
+        const filter = params.filter;
+        const dryRun = params['dry-run'] === 'true' || params['dry-run'] === '';
+
+        // Batch add with filter
+        if (filter) {
+          // The delegate email should be provided with --delegate or as first arg before --filter
+          const delegateEmail = params.delegate || (args[0] && !args[0].startsWith('--') ? args[0] : null);
+
+          if (!delegateEmail) {
+            addOutput('error', 'Usage: gw delegates add <delegate-email> --filter="orgunit:/Executives" [--dry-run]');
+            addOutput('info', '       gw delegates add --delegate=assistant@company.com --filter="orgunit:/Executives"');
+            return;
+          }
+
+          const matchingUsers = await filterUsers(filter);
+          if (!matchingUsers) {
+            addOutput('error', 'Failed to fetch users');
+            return;
+          }
+
+          if (matchingUsers.length === 0) {
+            addOutput('info', `No users match filter: ${filter}`);
+            return;
+          }
+
+          addOutput('info', `\nBatch Add Delegate - ${matchingUsers.length} user(s) matching: ${filter}`);
+          addOutput('info', `Delegate: ${delegateEmail}`);
+          addOutput('info', '='.repeat(60));
+          matchingUsers.slice(0, 10).forEach((u: any) => {
+            addOutput('info', `  ${u.email || u.primaryEmail}`);
+          });
+          if (matchingUsers.length > 10) {
+            addOutput('info', `  ... and ${matchingUsers.length - 10} more`);
+          }
+          addOutput('info', '='.repeat(60));
+
+          if (dryRun) {
+            addOutput('info', `\n[DRY RUN] No changes made. Remove --dry-run to execute.`);
+            return;
+          }
+
+          addOutput('info', `\nAdding ${delegateEmail} as delegate for ${matchingUsers.length} users...`);
+          let successCount = 0;
+          let errorCount = 0;
+          let skipCount = 0;
+
+          for (const u of matchingUsers) {
+            const email = u.email || u.primaryEmail;
+            try {
+              await apiRequest('POST', `/api/google/gmail/v1/users/${email}/settings/delegates`, {
+                delegateEmail: delegateEmail
+              });
+              addOutput('success', `  ✓ ${email}`);
+              successCount++;
+            } catch (err: any) {
+              if (err.message?.includes('already') || err.message?.includes('409')) {
+                addOutput('info', `  ○ Already delegated: ${email}`);
+                skipCount++;
+              } else {
+                addOutput('error', `  ✗ ${email} - ${err.message}`);
+                errorCount++;
+              }
+            }
+          }
+
+          addOutput('info', `\nBatch complete: ${successCount} added, ${skipCount} already delegated, ${errorCount} failed`);
+          return;
+        }
+
+        // Single user add (original behavior)
         if (args.length < 2) {
           addOutput('error', 'Usage: helios gw delegates add <user-email> <delegate-email>');
+          addOutput('info', '       helios gw delegates add <delegate-email> --filter="orgunit:/Executives" [--dry-run]');
           return;
         }
         const userEmail = args[0];
@@ -1075,8 +3525,77 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
       }
 
       case 'remove': {
+        const params = parseArgs(args);
+        const filter = params.filter;
+        const dryRun = params['dry-run'] === 'true' || params['dry-run'] === '';
+        const confirmed = params.confirm === 'true' || params.confirm === '';
+
+        // Batch remove with filter
+        if (filter) {
+          const delegateEmail = params.delegate || (args[0] && !args[0].startsWith('--') ? args[0] : null);
+
+          if (!delegateEmail) {
+            addOutput('error', 'Usage: gw delegates remove <delegate-email> --filter="orgunit:/Executives" [--dry-run] [--confirm]');
+            return;
+          }
+
+          const matchingUsers = await filterUsers(filter);
+          if (!matchingUsers) {
+            addOutput('error', 'Failed to fetch users');
+            return;
+          }
+
+          if (matchingUsers.length === 0) {
+            addOutput('info', `No users match filter: ${filter}`);
+            return;
+          }
+
+          addOutput('info', `\nBatch Remove Delegate - ${matchingUsers.length} user(s) matching: ${filter}`);
+          addOutput('info', `Delegate to remove: ${delegateEmail}`);
+          addOutput('info', '='.repeat(60));
+          matchingUsers.slice(0, 10).forEach((u: any) => {
+            addOutput('info', `  ${u.email || u.primaryEmail}`);
+          });
+          if (matchingUsers.length > 10) {
+            addOutput('info', `  ... and ${matchingUsers.length - 10} more`);
+          }
+          addOutput('info', '='.repeat(60));
+
+          if (dryRun) {
+            addOutput('info', `\n[DRY RUN] No changes made. Remove --dry-run to execute.`);
+            return;
+          }
+
+          if (!confirmed) {
+            addOutput('error', `\n⚠️  This will remove ${delegateEmail} as delegate from ${matchingUsers.length} user(s)!`);
+            addOutput('info', 'To proceed, run the same command with --confirm');
+            return;
+          }
+
+          addOutput('info', `\nRemoving ${delegateEmail} as delegate from ${matchingUsers.length} users...`);
+          let successCount = 0;
+          let errorCount = 0;
+
+          for (const u of matchingUsers) {
+            const email = u.email || u.primaryEmail;
+            try {
+              await apiRequest('DELETE', `/api/google/gmail/v1/users/${email}/settings/delegates/${delegateEmail}`);
+              addOutput('success', `  ✓ ${email}`);
+              successCount++;
+            } catch (err: any) {
+              addOutput('error', `  ✗ ${email} - ${err.message}`);
+              errorCount++;
+            }
+          }
+
+          addOutput('info', `\nBatch complete: ${successCount} removed, ${errorCount} failed`);
+          return;
+        }
+
+        // Single user remove (original behavior)
         if (args.length < 2) {
           addOutput('error', 'Usage: helios gw delegates remove <user-email> <delegate-email>');
+          addOutput('info', '       helios gw delegates remove <delegate-email> --filter="..." [--dry-run] [--confirm]');
           return;
         }
         const userEmail = args[0];
@@ -1126,6 +3645,55 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
 
       default:
         addOutput('error', `Unknown sync target: ${action}. Use: users, groups, orgunits, all`);
+    }
+  };
+
+  // ----- Google Workspace: Domains -----
+  const handleGWDomains = async (action: string, _args: string[]) => {
+    const orgId = getOrganizationId();
+
+    switch (action) {
+      case 'list':
+      default: {
+        addOutput('info', 'Fetching domain information...');
+
+        try {
+          const status = await apiRequest('GET', `/api/google-workspace/module-status/${orgId}`);
+
+          if (!status.success || !status.data?.isEnabled) {
+            addOutput('error', 'Google Workspace module is not enabled');
+            addOutput('info', 'Enable the module in Settings > Modules > Google Workspace');
+            return;
+          }
+
+          const config = status.data.configuration;
+          if (!config?.adminEmail) {
+            addOutput('error', 'No domain configuration found');
+            return;
+          }
+
+          // Extract domain from admin email
+          const domain = config.adminEmail.split('@')[1];
+
+          addOutput('success', 'Google Workspace Domain Configuration');
+          addOutput('info', '─'.repeat(50));
+          addOutput('info', `Primary Domain:    ${domain}`);
+          addOutput('info', `Admin Email:       ${config.adminEmail}`);
+          addOutput('info', `Project ID:        ${config.projectId || 'Not available'}`);
+          addOutput('info', `Service Account:   ${config.clientEmail || 'Not available'}`);
+          addOutput('info', '─'.repeat(50));
+          addOutput('info', `Last Sync:         ${status.data.lastSync ? new Date(status.data.lastSync).toLocaleString() : 'Never'}`);
+          addOutput('info', `Synced Users:      ${status.data.userCount || 0}`);
+
+          if (status.data.userCount === 0) {
+            addOutput('info', '');
+            addOutput('info', 'Tip: Run "gw sync all" to sync users from Google Workspace');
+          }
+        } catch (error: any) {
+          addOutput('error', `Failed to fetch domain info: ${error.message}`);
+        }
+        break;
+      }
     }
   };
 
@@ -1534,6 +4102,40 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
 
   // ----- Google Workspace: Email Forwarding -----
   const handleGWForwarding = async (action: string, args: string[]) => {
+    const orgId = getOrganizationId();
+
+    // Helper to filter users
+    const filterUsers = async (filter: string) => {
+      const userData = await apiRequest('GET', `/api/google-workspace/cached-users/${orgId}`);
+      if (!userData.success || !userData.data?.users) return null;
+
+      const filterLower = filter.toLowerCase();
+      let filterField = 'email';
+      let filterValue = filterLower;
+
+      if (filter.includes(':')) {
+        const [field, ...valueParts] = filter.split(':');
+        filterField = field.toLowerCase();
+        filterValue = valueParts.join(':').toLowerCase();
+      }
+
+      const pattern = filterValue.replace(/\*/g, '.*');
+      const regex = new RegExp(`^${pattern}`, 'i');
+
+      return userData.data.users.filter((u: any) => {
+        const email = (u.email || u.primaryEmail || '').toLowerCase();
+        const ouPath = (u.orgUnitPath || u.org_unit_path || '/').toLowerCase();
+        const status = (u.isSuspended || u.is_suspended) ? 'suspended' : 'active';
+
+        switch (filterField) {
+          case 'email': return regex.test(email);
+          case 'orgunit': case 'ou': return ouPath.includes(filterValue) || regex.test(ouPath);
+          case 'status': return status === filterValue;
+          default: return regex.test(email);
+        }
+      });
+    };
+
     switch (action) {
       case 'get': {
         if (args.length === 0) {
@@ -1574,20 +4176,91 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
       }
 
       case 'set': {
-        if (args.length < 2) {
-          addOutput('error', 'Usage: gw forwarding set <user-email> --to=<forward-to-email> [--disposition=leaveInInbox|archive|trash|markRead]');
-          addOutput('info', 'Enable email forwarding for a user');
+        const params = parseArgs(args);
+        const filter = params.filter;
+        const forwardTo = params.to;
+        const disposition = params.disposition || 'leaveInInbox';
+        const dryRun = params['dry-run'] === 'true' || params['dry-run'] === '';
+
+        if (!forwardTo) {
+          addOutput('error', 'Usage: gw forwarding set <user-email> --to=<forward-to-email> [--disposition=...]');
+          addOutput('info', '       gw forwarding set --filter="orgunit:/Departed" --to=<email> [--dry-run]');
+          return;
+        }
+
+        // Batch set with filter
+        if (filter) {
+          const matchingUsers = await filterUsers(filter);
+          if (!matchingUsers) {
+            addOutput('error', 'Failed to fetch users');
+            return;
+          }
+
+          if (matchingUsers.length === 0) {
+            addOutput('info', `No users match filter: ${filter}`);
+            return;
+          }
+
+          addOutput('info', `\nBatch Set Forwarding - ${matchingUsers.length} user(s) matching: ${filter}`);
+          addOutput('info', `Forward to: ${forwardTo}`);
+          addOutput('info', '='.repeat(60));
+          matchingUsers.slice(0, 10).forEach((u: any) => {
+            addOutput('info', `  ${u.email || u.primaryEmail}`);
+          });
+          if (matchingUsers.length > 10) {
+            addOutput('info', `  ... and ${matchingUsers.length - 10} more`);
+          }
+          addOutput('info', '='.repeat(60));
+
+          if (dryRun) {
+            addOutput('info', `\n[DRY RUN] No changes made. Remove --dry-run to execute.`);
+            return;
+          }
+
+          addOutput('info', `\nSetting forwarding for ${matchingUsers.length} users...`);
+          let successCount = 0;
+          let errorCount = 0;
+
+          for (const u of matchingUsers) {
+            const email = u.email || u.primaryEmail;
+            try {
+              // Add forwarding address
+              try {
+                await apiRequest('POST', `/api/google/gmail/v1/users/${email}/settings/forwardingAddresses`, {
+                  forwardingEmail: forwardTo
+                });
+              } catch (e: any) {
+                // May already exist, which is fine
+                if (!e.message?.includes('already exists') && !e.message?.includes('409')) {
+                  throw e;
+                }
+              }
+
+              // Enable forwarding
+              await apiRequest('PUT', `/api/google/gmail/v1/users/${email}/settings/autoForwarding`, {
+                enabled: true,
+                emailAddress: forwardTo,
+                disposition: disposition
+              });
+
+              addOutput('success', `  ✓ ${email}`);
+              successCount++;
+            } catch (err: any) {
+              addOutput('error', `  ✗ ${email} - ${err.message}`);
+              errorCount++;
+            }
+          }
+
+          addOutput('info', `\nBatch complete: ${successCount} set, ${errorCount} failed`);
+          return;
+        }
+
+        // Single user set (original behavior)
+        if (args.length === 0 || args[0].startsWith('--')) {
+          addOutput('error', 'Usage: gw forwarding set <user-email> --to=<forward-to-email>');
           return;
         }
         const userEmail = args[0];
-        const params = parseArgs(args.slice(1));
-        const forwardTo = params.to;
-        const disposition = params.disposition || 'leaveInInbox';
-
-        if (!forwardTo) {
-          addOutput('error', 'Missing --to parameter. Usage: gw forwarding set <user> --to=<email>');
-          return;
-        }
 
         try {
           // First, create a forwarding address
@@ -1626,9 +4299,64 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
       }
 
       case 'disable': {
-        if (args.length === 0) {
+        const params = parseArgs(args);
+        const filter = params.filter;
+        const dryRun = params['dry-run'] === 'true' || params['dry-run'] === '';
+
+        // Batch disable with filter
+        if (filter) {
+          const matchingUsers = await filterUsers(filter);
+          if (!matchingUsers) {
+            addOutput('error', 'Failed to fetch users');
+            return;
+          }
+
+          if (matchingUsers.length === 0) {
+            addOutput('info', `No users match filter: ${filter}`);
+            return;
+          }
+
+          addOutput('info', `\nBatch Disable Forwarding - ${matchingUsers.length} user(s) matching: ${filter}`);
+          addOutput('info', '='.repeat(60));
+          matchingUsers.slice(0, 10).forEach((u: any) => {
+            addOutput('info', `  ${u.email || u.primaryEmail}`);
+          });
+          if (matchingUsers.length > 10) {
+            addOutput('info', `  ... and ${matchingUsers.length - 10} more`);
+          }
+          addOutput('info', '='.repeat(60));
+
+          if (dryRun) {
+            addOutput('info', `\n[DRY RUN] No changes made. Remove --dry-run to execute.`);
+            return;
+          }
+
+          addOutput('info', `\nDisabling forwarding for ${matchingUsers.length} users...`);
+          let successCount = 0;
+          let errorCount = 0;
+
+          for (const u of matchingUsers) {
+            const email = u.email || u.primaryEmail;
+            try {
+              await apiRequest('PUT', `/api/google/gmail/v1/users/${email}/settings/autoForwarding`, {
+                enabled: false
+              });
+              addOutput('success', `  ✓ ${email}`);
+              successCount++;
+            } catch (err: any) {
+              addOutput('error', `  ✗ ${email} - ${err.message}`);
+              errorCount++;
+            }
+          }
+
+          addOutput('info', `\nBatch complete: ${successCount} disabled, ${errorCount} failed`);
+          return;
+        }
+
+        // Single user disable (original behavior)
+        if (args.length === 0 || args[0].startsWith('--')) {
           addOutput('error', 'Usage: gw forwarding disable <user-email>');
-          addOutput('info', 'Disable email forwarding for a user');
+          addOutput('info', '       gw forwarding disable --filter="status:suspended" [--dry-run]');
           return;
         }
         const userEmail = args[0];
@@ -1652,6 +4380,38 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
 
   // ----- Google Workspace: Vacation/Out-of-Office -----
   const handleGWVacation = async (action: string, args: string[]) => {
+    const orgId = getOrganizationId();
+
+    // Helper to filter users
+    const filterUsers = async (filter: string) => {
+      const userData = await apiRequest('GET', `/api/google-workspace/cached-users/${orgId}`);
+      if (!userData.success || !userData.data?.users) return null;
+
+      const filterLower = filter.toLowerCase();
+      let filterField = 'email';
+      let filterValue = filterLower;
+
+      if (filter.includes(':')) {
+        const [field, ...valueParts] = filter.split(':');
+        filterField = field.toLowerCase();
+        filterValue = valueParts.join(':').toLowerCase();
+      }
+
+      const pattern = filterValue.replace(/\*/g, '.*');
+      const regex = new RegExp(`^${pattern}`, 'i');
+
+      return userData.data.users.filter((u: any) => {
+        const email = (u.email || u.primaryEmail || '').toLowerCase();
+        const ouPath = (u.orgUnitPath || u.org_unit_path || '/').toLowerCase();
+
+        switch (filterField) {
+          case 'email': return regex.test(email);
+          case 'orgunit': case 'ou': return ouPath.includes(filterValue) || regex.test(ouPath);
+          default: return regex.test(email);
+        }
+      });
+    };
+
     switch (action) {
       case 'get': {
         if (args.length === 0) {
@@ -1689,44 +4449,89 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
       }
 
       case 'set': {
-        if (args.length < 2) {
-          addOutput('error', 'Usage: gw vacation set <user-email> --message="I am out of office" [--subject="Out of Office"] [--start=YYYY-MM-DD] [--end=YYYY-MM-DD]');
-          addOutput('info', 'Enable vacation responder for a user');
+        const params = parseArgs(args);
+        const filter = params.filter;
+        const message = params.message;
+        const dryRun = params['dry-run'] === 'true' || params['dry-run'] === '';
+
+        if (!message) {
+          addOutput('error', 'Usage: gw vacation set <user-email> --message="I am out of office" [--subject="..."]');
+          addOutput('info', '       gw vacation set --filter="orgunit:/HR" --message="..." [--dry-run]');
+          return;
+        }
+
+        const buildBody = () => {
+          const body: any = {
+            enableAutoReply: true,
+            responseBodyPlainText: message,
+            responseBodyHtml: `<p>${message.replace(/\n/g, '<br>')}</p>`
+          };
+          if (params.subject) body.responseSubject = params.subject;
+          if (params.start) body.startTime = new Date(params.start).getTime().toString();
+          if (params.end) body.endTime = new Date(params.end).getTime().toString();
+          if (params.contactsOnly) body.restrictToContacts = true;
+          if (params.domainOnly) body.restrictToDomain = true;
+          return body;
+        };
+
+        // Batch set with filter
+        if (filter) {
+          const matchingUsers = await filterUsers(filter);
+          if (!matchingUsers) {
+            addOutput('error', 'Failed to fetch users');
+            return;
+          }
+
+          if (matchingUsers.length === 0) {
+            addOutput('info', `No users match filter: ${filter}`);
+            return;
+          }
+
+          addOutput('info', `\nBatch Set Vacation - ${matchingUsers.length} user(s) matching: ${filter}`);
+          addOutput('info', '='.repeat(60));
+          matchingUsers.slice(0, 10).forEach((u: any) => {
+            addOutput('info', `  ${u.email || u.primaryEmail}`);
+          });
+          if (matchingUsers.length > 10) {
+            addOutput('info', `  ... and ${matchingUsers.length - 10} more`);
+          }
+          addOutput('info', '='.repeat(60));
+
+          if (dryRun) {
+            addOutput('info', `\n[DRY RUN] No changes made. Remove --dry-run to execute.`);
+            return;
+          }
+
+          addOutput('info', `\nSetting vacation for ${matchingUsers.length} users...`);
+          let successCount = 0;
+          let errorCount = 0;
+          const body = buildBody();
+
+          for (const u of matchingUsers) {
+            const email = u.email || u.primaryEmail;
+            try {
+              await apiRequest('PUT', `/api/google/gmail/v1/users/${email}/settings/vacation`, body);
+              addOutput('success', `  ✓ ${email}`);
+              successCount++;
+            } catch (err: any) {
+              addOutput('error', `  ✗ ${email} - ${err.message}`);
+              errorCount++;
+            }
+          }
+
+          addOutput('info', `\nBatch complete: ${successCount} set, ${errorCount} failed`);
+          return;
+        }
+
+        // Single user set (original behavior)
+        if (args.length === 0 || args[0].startsWith('--')) {
+          addOutput('error', 'Usage: gw vacation set <user-email> --message="..."');
           return;
         }
         const userEmail = args[0];
-        const params = parseArgs(args.slice(1));
-        const message = params.message;
-
-        if (!message) {
-          addOutput('error', 'Missing --message parameter');
-          return;
-        }
-
-        const body: any = {
-          enableAutoReply: true,
-          responseBodyPlainText: message,
-          responseBodyHtml: `<p>${message.replace(/\n/g, '<br>')}</p>`
-        };
-
-        if (params.subject) {
-          body.responseSubject = params.subject;
-        }
-        if (params.start) {
-          body.startTime = new Date(params.start).getTime().toString();
-        }
-        if (params.end) {
-          body.endTime = new Date(params.end).getTime().toString();
-        }
-        if (params.contactsOnly) {
-          body.restrictToContacts = true;
-        }
-        if (params.domainOnly) {
-          body.restrictToDomain = true;
-        }
 
         try {
-          await apiRequest('PUT', `/api/google/gmail/v1/users/${userEmail}/settings/vacation`, body);
+          await apiRequest('PUT', `/api/google/gmail/v1/users/${userEmail}/settings/vacation`, buildBody());
 
           addOutput('success', `[OK]Vacation responder enabled for ${userEmail}`);
           if (params.subject) addOutput('info', `   Subject: ${params.subject}`);
@@ -1739,9 +4544,57 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
       }
 
       case 'disable': {
-        if (args.length === 0) {
+        const params = parseArgs(args);
+        const filter = params.filter;
+        const dryRun = params['dry-run'] === 'true' || params['dry-run'] === '';
+
+        // Batch disable with filter
+        if (filter) {
+          const matchingUsers = await filterUsers(filter);
+          if (!matchingUsers) {
+            addOutput('error', 'Failed to fetch users');
+            return;
+          }
+
+          if (matchingUsers.length === 0) {
+            addOutput('info', `No users match filter: ${filter}`);
+            return;
+          }
+
+          addOutput('info', `\nBatch Disable Vacation - ${matchingUsers.length} user(s) matching: ${filter}`);
+          addOutput('info', '='.repeat(60));
+
+          if (dryRun) {
+            addOutput('info', `\n[DRY RUN] No changes made. Remove --dry-run to execute.`);
+            return;
+          }
+
+          addOutput('info', `\nDisabling vacation for ${matchingUsers.length} users...`);
+          let successCount = 0;
+          let errorCount = 0;
+
+          for (const u of matchingUsers) {
+            const email = u.email || u.primaryEmail;
+            try {
+              await apiRequest('PUT', `/api/google/gmail/v1/users/${email}/settings/vacation`, {
+                enableAutoReply: false
+              });
+              addOutput('success', `  ✓ ${email}`);
+              successCount++;
+            } catch (err: any) {
+              addOutput('error', `  ✗ ${email} - ${err.message}`);
+              errorCount++;
+            }
+          }
+
+          addOutput('info', `\nBatch complete: ${successCount} disabled, ${errorCount} failed`);
+          return;
+        }
+
+        // Single user disable (original behavior)
+        if (args.length === 0 || args[0].startsWith('--')) {
           addOutput('error', 'Usage: gw vacation disable <user-email>');
-          addOutput('info', 'Disable vacation responder for a user');
+          addOutput('info', '       gw vacation disable --filter="status:suspended" [--dry-run]');
           return;
         }
         const userEmail = args[0];
@@ -1760,6 +4613,425 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
 
       default:
         addOutput('error', `Unknown action: ${action}. Use: get, set, disable`);
+    }
+  };
+
+  // ----- Google Workspace: Email Signature -----
+  const handleGWSignature = async (action: string, args: string[]) => {
+    const orgId = getOrganizationId();
+
+    // Helper to filter users
+    const filterUsers = async (filter: string) => {
+      const userData = await apiRequest('GET', `/api/google-workspace/cached-users/${orgId}`);
+      if (!userData.success || !userData.data?.users) return null;
+
+      const filterLower = filter.toLowerCase();
+      let filterField = 'email';
+      let filterValue = filterLower;
+
+      if (filter.includes(':')) {
+        const [field, ...valueParts] = filter.split(':');
+        filterField = field.toLowerCase();
+        filterValue = valueParts.join(':').toLowerCase();
+      }
+
+      const pattern = filterValue.replace(/\*/g, '.*');
+      const regex = new RegExp(`^${pattern}`, 'i');
+
+      return userData.data.users.filter((u: any) => {
+        const email = (u.email || u.primaryEmail || '').toLowerCase();
+        const ouPath = (u.orgUnitPath || u.org_unit_path || '/').toLowerCase();
+
+        switch (filterField) {
+          case 'email': return regex.test(email);
+          case 'orgunit': case 'ou': return ouPath.includes(filterValue) || regex.test(ouPath);
+          default: return regex.test(email);
+        }
+      });
+    };
+
+    switch (action) {
+      case 'get': {
+        if (args.length === 0) {
+          addOutput('error', 'Usage: gw signature get <user-email>');
+          addOutput('info', 'Get email signature for a user');
+          return;
+        }
+        const userEmail = args[0];
+
+        try {
+          const sendAsData = await apiRequest('GET', `/api/google/gmail/v1/users/${userEmail}/settings/sendAs/${userEmail}`);
+
+          addOutput('success', `\nSignature for ${userEmail}:`);
+          addOutput('info', '='.repeat(60));
+          if (sendAsData.signature) {
+            // Strip HTML tags for display
+            const plainText = sendAsData.signature.replace(/<[^>]*>/g, '').trim();
+            addOutput('info', plainText || '(empty signature)');
+          } else {
+            addOutput('info', '(no signature set)');
+          }
+          addOutput('info', '='.repeat(60));
+        } catch (error: any) {
+          addOutput('error', `Failed to get signature: ${error.message}`);
+        }
+        break;
+      }
+
+      case 'set': {
+        const params = parseArgs(args);
+        const filter = params.filter;
+        const signature = params.signature || params.sig;
+        const dryRun = params['dry-run'] === 'true' || params['dry-run'] === '';
+
+        if (!signature) {
+          addOutput('error', 'Usage: gw signature set <user-email> --signature="Your signature"');
+          addOutput('info', '       gw signature set --filter="orgunit:/Sales" --signature="..." [--dry-run]');
+          return;
+        }
+
+        // Batch set with filter
+        if (filter) {
+          const matchingUsers = await filterUsers(filter);
+          if (!matchingUsers) {
+            addOutput('error', 'Failed to fetch users');
+            return;
+          }
+
+          if (matchingUsers.length === 0) {
+            addOutput('info', `No users match filter: ${filter}`);
+            return;
+          }
+
+          addOutput('info', `\nBatch Set Signature - ${matchingUsers.length} user(s) matching: ${filter}`);
+          addOutput('info', '='.repeat(60));
+          matchingUsers.slice(0, 10).forEach((u: any) => {
+            addOutput('info', `  ${u.email || u.primaryEmail}`);
+          });
+          if (matchingUsers.length > 10) {
+            addOutput('info', `  ... and ${matchingUsers.length - 10} more`);
+          }
+          addOutput('info', '='.repeat(60));
+
+          if (dryRun) {
+            addOutput('info', `\n[DRY RUN] No changes made. Remove --dry-run to execute.`);
+            return;
+          }
+
+          addOutput('info', `\nSetting signature for ${matchingUsers.length} users...`);
+          let successCount = 0;
+          let errorCount = 0;
+
+          for (const u of matchingUsers) {
+            const email = u.email || u.primaryEmail;
+            try {
+              await apiRequest('PATCH', `/api/google/gmail/v1/users/${email}/settings/sendAs/${email}`, {
+                signature: signature
+              });
+              addOutput('success', `  ✓ ${email}`);
+              successCount++;
+            } catch (err: any) {
+              addOutput('error', `  ✗ ${email} - ${err.message}`);
+              errorCount++;
+            }
+          }
+
+          addOutput('info', `\nBatch complete: ${successCount} set, ${errorCount} failed`);
+          return;
+        }
+
+        // Single user set
+        if (args.length === 0 || args[0].startsWith('--')) {
+          addOutput('error', 'Usage: gw signature set <user-email> --signature="..."');
+          return;
+        }
+        const userEmail = args[0];
+
+        try {
+          await apiRequest('PATCH', `/api/google/gmail/v1/users/${userEmail}/settings/sendAs/${userEmail}`, {
+            signature: signature
+          });
+
+          addOutput('success', `[OK]Signature updated for ${userEmail}`);
+        } catch (error: any) {
+          addOutput('error', `Failed to set signature: ${error.message}`);
+        }
+        break;
+      }
+
+      case 'clear': {
+        const params = parseArgs(args);
+        const filter = params.filter;
+        const dryRun = params['dry-run'] === 'true' || params['dry-run'] === '';
+
+        // Batch clear with filter
+        if (filter) {
+          const matchingUsers = await filterUsers(filter);
+          if (!matchingUsers) {
+            addOutput('error', 'Failed to fetch users');
+            return;
+          }
+
+          if (matchingUsers.length === 0) {
+            addOutput('info', `No users match filter: ${filter}`);
+            return;
+          }
+
+          addOutput('info', `\nBatch Clear Signature - ${matchingUsers.length} user(s) matching: ${filter}`);
+          addOutput('info', '='.repeat(60));
+
+          if (dryRun) {
+            addOutput('info', `\n[DRY RUN] No changes made. Remove --dry-run to execute.`);
+            return;
+          }
+
+          let successCount = 0;
+          let errorCount = 0;
+
+          for (const u of matchingUsers) {
+            const email = u.email || u.primaryEmail;
+            try {
+              await apiRequest('PATCH', `/api/google/gmail/v1/users/${email}/settings/sendAs/${email}`, {
+                signature: ''
+              });
+              addOutput('success', `  ✓ ${email}`);
+              successCount++;
+            } catch (err: any) {
+              addOutput('error', `  ✗ ${email} - ${err.message}`);
+              errorCount++;
+            }
+          }
+
+          addOutput('info', `\nBatch complete: ${successCount} cleared, ${errorCount} failed`);
+          return;
+        }
+
+        // Single user clear
+        if (args.length === 0) {
+          addOutput('error', 'Usage: gw signature clear <user-email>');
+          return;
+        }
+        const userEmail = args[0];
+
+        try {
+          await apiRequest('PATCH', `/api/google/gmail/v1/users/${userEmail}/settings/sendAs/${userEmail}`, {
+            signature: ''
+          });
+
+          addOutput('success', `[OK]Signature cleared for ${userEmail}`);
+        } catch (error: any) {
+          addOutput('error', `Failed to clear signature: ${error.message}`);
+        }
+        break;
+      }
+
+      default:
+        addOutput('error', `Unknown action: ${action}. Use: get, set, clear`);
+    }
+  };
+
+  // ----- Google Workspace: Send-As -----
+  const handleGWSendAs = async (action: string, args: string[]) => {
+    switch (action) {
+      case 'list': {
+        if (args.length === 0) {
+          addOutput('error', 'Usage: gw sendas list <user-email>');
+          addOutput('info', 'List all send-as addresses for a user');
+          return;
+        }
+        const userEmail = args[0];
+
+        try {
+          const data = await apiRequest('GET', `/api/google/gmail/v1/users/${userEmail}/settings/sendAs`);
+
+          addOutput('success', `\nSend-As Addresses for ${userEmail}:`);
+          addOutput('info', '='.repeat(70));
+          if (data.sendAs && data.sendAs.length > 0) {
+            data.sendAs.forEach((sa: any) => {
+              const email = (sa.sendAsEmail || '').padEnd(35);
+              const name = (sa.displayName || '').padEnd(20);
+              const isPrimary = sa.isPrimary ? '[PRIMARY]' : '';
+              const isDefault = sa.isDefault ? '[DEFAULT]' : '';
+              addOutput('info', `  ${email} ${name} ${isPrimary}${isDefault}`);
+            });
+          } else {
+            addOutput('info', '  (no send-as addresses)');
+          }
+          addOutput('info', '='.repeat(70));
+        } catch (error: any) {
+          addOutput('error', `Failed to list send-as: ${error.message}`);
+        }
+        break;
+      }
+
+      case 'add': {
+        if (args.length < 2) {
+          addOutput('error', 'Usage: gw sendas add <user-email> <send-as-email> [--name="Display Name"]');
+          addOutput('info', 'Add a send-as address for a user');
+          return;
+        }
+        const userEmail = args[0];
+        const sendAsEmail = args[1];
+        const params = parseArgs(args.slice(2));
+        const displayName = params.name || sendAsEmail.split('@')[0];
+
+        try {
+          await apiRequest('POST', `/api/google/gmail/v1/users/${userEmail}/settings/sendAs`, {
+            sendAsEmail: sendAsEmail,
+            displayName: displayName
+          });
+
+          addOutput('success', `[OK]Added send-as address ${sendAsEmail} for ${userEmail}`);
+          addOutput('info', `   Display name: ${displayName}`);
+          addOutput('info', '   Note: Verification may be required for external addresses');
+        } catch (error: any) {
+          addOutput('error', `Failed to add send-as: ${error.message}`);
+        }
+        break;
+      }
+
+      case 'remove': {
+        if (args.length < 2) {
+          addOutput('error', 'Usage: gw sendas remove <user-email> <send-as-email>');
+          addOutput('info', 'Remove a send-as address from a user');
+          return;
+        }
+        const userEmail = args[0];
+        const sendAsEmail = args[1];
+
+        try {
+          await apiRequest('DELETE', `/api/google/gmail/v1/users/${userEmail}/settings/sendAs/${sendAsEmail}`);
+
+          addOutput('success', `[OK]Removed send-as address ${sendAsEmail} from ${userEmail}`);
+        } catch (error: any) {
+          addOutput('error', `Failed to remove send-as: ${error.message}`);
+        }
+        break;
+      }
+
+      default:
+        addOutput('error', `Unknown action: ${action}. Use: list, add, remove`);
+    }
+  };
+
+  // ----- Google Workspace: Calendar Sharing -----
+  const handleGWCalendar = async (action: string, args: string[]) => {
+    switch (action) {
+      case 'list': {
+        if (args.length === 0) {
+          addOutput('error', 'Usage: gw calendar list <user-email>');
+          addOutput('info', 'List all calendars for a user');
+          return;
+        }
+        const userEmail = args[0];
+
+        try {
+          const data = await apiRequest('GET', `/api/google/calendar/v3/users/${userEmail}/calendarList`);
+
+          addOutput('success', `\nCalendars for ${userEmail}:`);
+          addOutput('info', '='.repeat(80));
+          if (data.items && data.items.length > 0) {
+            data.items.forEach((cal: any) => {
+              const id = (cal.id || '').substring(0, 40).padEnd(42);
+              const summary = (cal.summary || 'Untitled').substring(0, 25).padEnd(27);
+              const role = (cal.accessRole || 'unknown').padEnd(10);
+              addOutput('info', `  ${id} ${summary} ${role}`);
+            });
+          } else {
+            addOutput('info', '  (no calendars)');
+          }
+          addOutput('info', '='.repeat(80));
+        } catch (error: any) {
+          addOutput('error', `Failed to list calendars: ${error.message}`);
+        }
+        break;
+      }
+
+      case 'acl':
+      case 'showacl': {
+        if (args.length === 0) {
+          addOutput('error', 'Usage: gw calendar acl <calendar-id>');
+          addOutput('info', 'Show access control list for a calendar');
+          addOutput('info', 'Calendar ID is usually the user email or a group calendar ID');
+          return;
+        }
+        const calendarId = args[0];
+
+        try {
+          const data = await apiRequest('GET', `/api/google/calendar/v3/calendars/${encodeURIComponent(calendarId)}/acl`);
+
+          addOutput('success', `\nCalendar ACL for ${calendarId}:`);
+          addOutput('info', '='.repeat(70));
+          addOutput('info', `${'USER/GROUP'.padEnd(40)} ${'ROLE'.padEnd(15)} SCOPE`);
+          addOutput('info', '-'.repeat(70));
+          if (data.items && data.items.length > 0) {
+            data.items.forEach((acl: any) => {
+              const scopeValue = (acl.scope?.value || acl.scope?.type || '').padEnd(40);
+              const role = (acl.role || '').padEnd(15);
+              const scopeType = acl.scope?.type || '';
+              addOutput('info', `  ${scopeValue} ${role} ${scopeType}`);
+            });
+          } else {
+            addOutput('info', '  (no ACL entries)');
+          }
+          addOutput('info', '='.repeat(70));
+        } catch (error: any) {
+          addOutput('error', `Failed to get calendar ACL: ${error.message}`);
+        }
+        break;
+      }
+
+      case 'share': {
+        if (args.length < 2) {
+          addOutput('error', 'Usage: gw calendar share <calendar-id> <user-email> [--role=reader|writer|owner]');
+          addOutput('info', 'Share a calendar with another user');
+          addOutput('info', 'Roles: freeBusyReader, reader, writer, owner');
+          return;
+        }
+        const calendarId = args[0];
+        const shareWith = args[1];
+        const params = parseArgs(args.slice(2));
+        const role = params.role || 'reader';
+
+        try {
+          await apiRequest('POST', `/api/google/calendar/v3/calendars/${encodeURIComponent(calendarId)}/acl`, {
+            role: role,
+            scope: {
+              type: 'user',
+              value: shareWith
+            }
+          });
+
+          addOutput('success', `[OK]Shared calendar with ${shareWith} as ${role}`);
+        } catch (error: any) {
+          addOutput('error', `Failed to share calendar: ${error.message}`);
+        }
+        break;
+      }
+
+      case 'unshare': {
+        if (args.length < 2) {
+          addOutput('error', 'Usage: gw calendar unshare <calendar-id> <user-email>');
+          addOutput('info', 'Remove calendar sharing for a user');
+          return;
+        }
+        const calendarId = args[0];
+        const removeUser = args[1];
+
+        try {
+          // ACL rule ID format is typically "user:email"
+          const ruleId = `user:${removeUser}`;
+          await apiRequest('DELETE', `/api/google/calendar/v3/calendars/${encodeURIComponent(calendarId)}/acl/${encodeURIComponent(ruleId)}`);
+
+          addOutput('success', `[OK]Removed ${removeUser} from calendar`);
+        } catch (error: any) {
+          addOutput('error', `Failed to unshare calendar: ${error.message}`);
+        }
+        break;
+      }
+
+      default:
+        addOutput('error', `Unknown action: ${action}. Use: list, acl, share, unshare`);
     }
   };
 
@@ -2197,9 +5469,12 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
       case 'list': {
         const params = parseArgs(restArgs);
         const status = params.status || 'all';
-        const userType = params.type || 'staff';
+        // Don't filter by userType by default - show all users
+        const userType = params.type || '';
 
-        const data = await apiRequest('GET', `/api/organization/users?status=${status}&userType=${userType}`);
+        let url = `/api/v1/organization/users?status=${status}`;
+        if (userType) url += `&userType=${userType}`;
+        const data = await apiRequest('GET', url);
         if (data.success) {
           const users = data.data.map((u: any) => {
             const email = (u.email || '').padEnd(30);
@@ -2229,8 +5504,217 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
         break;
       }
 
+      case 'create': {
+        // helios users create <email> --firstName=X --lastName=Y [--password=auto|<password>] [--google] [--m365] [--ou=/Path]
+        if (restArgs.length < 1) {
+          addOutput('error', 'Usage: helios users create <email> --firstName=<name> --lastName=<name> [options]');
+          addOutput('info', '');
+          addOutput('info', 'Options:');
+          addOutput('info', '  --firstName=X       First name (required)');
+          addOutput('info', '  --lastName=Y        Last name (required)');
+          addOutput('info', '  --password=auto     Auto-generate memorable password (AdjectiveNoun#XXX)');
+          addOutput('info', '  --password=<pwd>    Set specific password');
+          addOutput('info', '  --department=X      Department name');
+          addOutput('info', '  --jobTitle=X        Job title');
+          addOutput('info', '  --role=user|manager|admin  Role (default: user)');
+          addOutput('info', '  --google            Also create in Google Workspace');
+          addOutput('info', '  --m365              Also create in Microsoft 365');
+          addOutput('info', '  --ou=/Path          Organizational unit (for Google/M365)');
+          addOutput('info', '');
+          addOutput('info', 'Examples:');
+          addOutput('info', '  helios users create john@company.com --firstName=John --lastName=Doe --password=auto');
+          addOutput('info', '  helios users create john@company.com --firstName=John --lastName=Doe --password=auto --google --ou=/Staff');
+          return;
+        }
+
+        const email = restArgs[0];
+        const params = parseArgs(restArgs.slice(1));
+
+        // Validate required fields
+        if (!params.firstName || !params.lastName) {
+          addOutput('error', 'Required: --firstName and --lastName');
+          return;
+        }
+
+        // Handle password
+        let password = params.password;
+        let isAutoGenerated = false;
+        if (password === 'auto' || password === '') {
+          password = generateMemorablePassword();
+          isAutoGenerated = true;
+        }
+
+        const createInGoogle = params.google !== undefined || params.gw !== undefined;
+        const createInM365 = params.m365 !== undefined || params.microsoft !== undefined;
+
+        // Step 1: Create user in Helios
+        addOutput('info', `Creating user in Helios: ${email}`);
+
+        const heliosBody: any = {
+          email,
+          firstName: params.firstName,
+          lastName: params.lastName,
+          department: params.department || null,
+          jobTitle: params.jobTitle || null,
+          role: params.role || 'user',
+          userType: 'local'
+        };
+
+        if (password) {
+          heliosBody.password = password;
+        }
+
+        try {
+          const heliosResult = await apiRequest('POST', '/api/v1/organization/users', heliosBody);
+
+          if (heliosResult.success) {
+            addOutput('success', `  ✓ Created in Helios`);
+
+            // Store initial password if auto-generated
+            if (isAutoGenerated && password) {
+              await storeInitialPassword(email, password);
+            }
+
+            // Step 2: Create in Google Workspace if requested
+            if (createInGoogle) {
+              addOutput('info', `Creating user in Google Workspace...`);
+              try {
+                const gwBody = {
+                  primaryEmail: email,
+                  name: {
+                    givenName: params.firstName,
+                    familyName: params.lastName
+                  },
+                  password: password || generateMemorablePassword(),
+                  orgUnitPath: params.ou || '/',
+                  changePasswordAtNextLogin: true
+                };
+
+                await apiRequest('POST', '/api/google/admin/directory/v1/users', gwBody);
+                addOutput('success', `  ✓ Created in Google Workspace`);
+
+                // Update Helios user to mark as synced to Google
+                // This would typically be done by linking the Google ID
+              } catch (gwError: any) {
+                addOutput('error', `  ✗ Google Workspace: ${gwError.message}`);
+              }
+            }
+
+            // Step 3: Create in M365 if requested
+            if (createInM365) {
+              addOutput('info', `Creating user in Microsoft 365...`);
+              addOutput('info', `  (M365 provisioning not yet implemented)`);
+              // TODO: Implement M365 user creation
+            }
+
+            // Summary
+            addOutput('info', '');
+            addOutput('success', `User created: ${email}`);
+
+            if (isAutoGenerated && password) {
+              addOutput('info', '');
+              addOutput('info', 'Initial Password (auto-generated):');
+              addOutput('info', '='.repeat(50));
+              addOutput('success', `  ${password}`);
+              addOutput('info', '='.repeat(50));
+              addOutput('info', '');
+              addOutput('info', 'To retrieve later: helios users initial-password ' + email);
+              addOutput('info', 'Or view in User Slideout > Settings > Password');
+            }
+
+            const platforms = ['Helios'];
+            if (createInGoogle) platforms.push('Google Workspace');
+            if (createInM365) platforms.push('Microsoft 365');
+            addOutput('info', `Platforms: ${platforms.join(', ')}`);
+
+          } else {
+            addOutput('error', `Failed to create user: ${heliosResult.error || 'Unknown error'}`);
+          }
+        } catch (error: any) {
+          addOutput('error', `Failed to create user: ${error.message}`);
+        }
+        break;
+      }
+
+      case 'get': {
+        if (restArgs.length === 0) {
+          addOutput('error', 'Usage: helios users get <email>');
+          return;
+        }
+        const email = restArgs[0];
+        try {
+          const data = await apiRequest('GET', `/api/v1/organization/users?email=${encodeURIComponent(email)}`);
+          if (data.success && data.data && data.data.length > 0) {
+            const user = data.data[0];
+            addOutput('info', '');
+            addOutput('info', `User: ${user.email}`);
+            addOutput('info', '='.repeat(60));
+            addOutput('info', `  Name: ${user.firstName || ''} ${user.lastName || ''}`);
+            addOutput('info', `  Role: ${user.role || 'user'}`);
+            addOutput('info', `  Status: ${user.status || 'active'}`);
+            addOutput('info', `  Department: ${user.department || '-'}`);
+            addOutput('info', `  Job Title: ${user.jobTitle || '-'}`);
+            addOutput('info', `  Platforms: ${(user.platforms || ['Local']).join(', ')}`);
+            addOutput('info', `  Created: ${user.createdAt ? new Date(user.createdAt).toLocaleString() : '-'}`);
+            addOutput('info', '='.repeat(60));
+          } else {
+            addOutput('error', `User not found: ${email}`);
+          }
+        } catch (error: any) {
+          addOutput('error', `Failed to get user: ${error.message}`);
+        }
+        break;
+      }
+
+      case 'initial-password': {
+        // Redirect to the same command we have in gw users
+        if (restArgs.length === 0) {
+          addOutput('error', 'Usage: helios users initial-password <email>');
+          addOutput('info', 'Reveals the auto-generated initial password for a newly created user.');
+          return;
+        }
+        const email = restArgs[0];
+
+        // Try local state first
+        let entry = revealInitialPassword(email);
+
+        // If not in local state, try fetching from backend API
+        if (!entry) {
+          try {
+            const response = await authFetch(`/api/v1/initial-passwords/${encodeURIComponent(email)}`);
+            if (response.ok) {
+              const data = await response.json();
+              if (data.success && data.data) {
+                entry = {
+                  password: data.data.password,
+                  createdAt: new Date(data.data.createdAt)
+                };
+                setInitialPasswords(prev => ({
+                  ...prev,
+                  [email.toLowerCase()]: { ...entry!, revealed: true }
+                }));
+              }
+            }
+          } catch (err) {
+            // Silent fail
+          }
+        }
+
+        if (entry) {
+          addOutput('info', '');
+          addOutput('info', `Initial Password for ${email}`);
+          addOutput('info', '='.repeat(50));
+          addOutput('success', `  ${entry.password}`);
+          addOutput('info', '='.repeat(50));
+          addOutput('info', `Created: ${entry.createdAt.toLocaleString()}`);
+        } else {
+          addOutput('error', `No initial password stored for ${email}`);
+        }
+        break;
+      }
+
       case 'debug': {
-        const data = await apiRequest('GET', '/api/organization/users?status=all&userType=staff');
+        const data = await apiRequest('GET', '/api/v1/organization/users?status=all');
         addOutput('info', 'API Response:');
         addOutput('info', JSON.stringify(data, null, 2));
 
@@ -2248,7 +5732,7 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
       }
 
       default:
-        addOutput('error', `Unknown action: ${action}. Use: list, debug`);
+        addOutput('error', `Unknown action: ${action}. Available: list, create, get, initial-password`);
     }
   };
 
@@ -2404,6 +5888,22 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
               >
                 <Trash2 size={16} />
               </button>
+              <button
+                onClick={handleCopyConsole}
+                className="btn-console-action"
+                title={copied ? "Copied!" : "Copy console output"}
+                disabled={output.length === 0}
+              >
+                {copied ? <Check size={16} /> : <Copy size={16} />}
+              </button>
+              <button
+                onClick={handleDownloadConsole}
+                className="btn-console-action"
+                title="Download console output"
+                disabled={output.length === 0}
+              >
+                <Download size={16} />
+              </button>
               <div className="toolbar-separator" />
               {isPopupMode ? (
                 <button
@@ -2473,7 +5973,7 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
             <div className="modal-body">
               {/* Note about syntax */}
               <div className="help-note" style={{ marginBottom: '16px', padding: '12px', background: '#2d2d2d', borderRadius: '4px', fontSize: '13px', color: '#9ca3af' }}>
-                <strong>Note:</strong> The "helios" prefix is optional. Type <code style={{ background: '#1e1e1e', padding: '2px 6px', borderRadius: '3px' }}>gw users list</code> or <code style={{ background: '#1e1e1e', padding: '2px 6px', borderRadius: '3px' }}>helios gw users list</code> - both work!
+                <strong>Command Pattern:</strong> Use natural verb-first commands like <code style={{ background: '#1e1e1e', padding: '2px 6px', borderRadius: '3px' }}>create user</code>, <code style={{ background: '#1e1e1e', padding: '2px 6px', borderRadius: '3px' }}>list users</code>, <code style={{ background: '#1e1e1e', padding: '2px 6px', borderRadius: '3px' }}>delete group</code>. The "helios" prefix is optional.
               </div>
 
               {/* Built-in Commands */}
@@ -2493,26 +5993,113 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
                       <td className="command-name">clear</td>
                       <td className="command-desc">Clear all console output and start fresh</td>
                     </tr>
+                    <tr>
+                      <td className="command-name">password generate [--style=memorable|random]</td>
+                      <td className="command-desc">Generate secure passwords. Default: AdjectiveNoun#XXX format</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* User Management (Verb-First Pattern) */}
+              <div className="help-section">
+                <h3>User Management</h3>
+                <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '12px' }}>
+                  Helios is the source of truth for identity management. Use --gw or --m365 flags to sync with external platforms.
+                </p>
+                <table className="command-table">
+                  <tbody>
+                    <tr>
+                      <td className="command-name">create user &lt;email&gt; --firstName=X --lastName=Y [options]</td>
+                      <td className="command-desc">Create user in Helios. Add --gw and/or --m365 to also provision externally</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">list users [--status=all|active|deleted] [--filter="..."]</td>
+                      <td className="command-desc">List all users in Helios across all platforms</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">get user &lt;email&gt;</td>
+                      <td className="command-desc">Get detailed information about a user</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">update user &lt;email&gt; --firstName=X --jobTitle=Y</td>
+                      <td className="command-desc">Update user properties (firstName, lastName, department, jobTitle, role)</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">delete user &lt;email&gt; [--gw] [--confirm]</td>
+                      <td className="command-desc">Delete user from Helios. Add --gw to also delete from Google Workspace</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">export users [--format=csv|json]</td>
+                      <td className="command-desc">Export all users to CSV or JSON file</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">show initial-password &lt;email&gt;</td>
+                      <td className="command-desc">Reveal auto-generated initial password for a newly created user</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Group Management (Verb-First Pattern) */}
+              <div className="help-section">
+                <h3>Group Management</h3>
+                <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '12px' }}>
+                  Manage groups across Helios and external platforms.
+                </p>
+                <table className="command-table">
+                  <tbody>
+                    <tr>
+                      <td className="command-name">create group &lt;email&gt; --name="Name" [--gw]</td>
+                      <td className="command-desc">Create group in Helios. Add --gw to also create in Google Workspace</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">list groups</td>
+                      <td className="command-desc">List all groups in Helios</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">get group &lt;email&gt;</td>
+                      <td className="command-desc">Get detailed information about a group</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">update group &lt;email&gt; --name="New Name" [--description="..."]</td>
+                      <td className="command-desc">Update group properties</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">delete group &lt;email&gt; [--gw] [--confirm]</td>
+                      <td className="command-desc">Delete group from Helios. Add --gw to also delete from Google Workspace</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">export groups [--format=csv|json]</td>
+                      <td className="command-desc">Export all groups to CSV or JSON file</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
 
               {/* Google Workspace Users */}
               <div className="help-section">
-                <h3>Google Workspace Users</h3>
+                <h3>Google Workspace Commands</h3>
+                <p style={{ fontSize: '13px', color: '#f59e0b', marginBottom: '12px' }}>
+                  Platform-specific commands for Google Workspace. For CRUD operations, prefer verb-first commands (create user --gw).
+                </p>
                 <table className="command-table">
                   <tbody>
                     <tr>
                       <td className="command-name">gw users list</td>
-                      <td className="command-desc">List all Google Workspace users in a table</td>
+                      <td className="command-desc">List users synced from Google Workspace only</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">gw users list --filter="field:pattern"</td>
+                      <td className="command-desc">Filter users by field (email, orgunit, status, firstname, lastname). Supports * wildcard.</td>
                     </tr>
                     <tr>
                       <td className="command-name">gw users get &lt;email&gt;</td>
                       <td className="command-desc">Get detailed information about a specific user</td>
                     </tr>
                     <tr>
-                      <td className="command-name">gw users create &lt;email&gt; --firstName=X --lastName=Y --password=Z</td>
-                      <td className="command-desc">Create a new Google Workspace user with specified details</td>
+                      <td className="command-name">gw users create &lt;email&gt; --firstName=X --lastName=Y --password=Z|auto</td>
+                      <td className="command-desc">Create user in Google Workspace AND Helios. --password=auto generates memorable password</td>
                     </tr>
                     <tr>
                       <td className="command-name">gw users suspend &lt;email&gt;</td>
@@ -2527,12 +6114,28 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
                       <td className="command-desc">Permanently delete a user (cannot be undone)</td>
                     </tr>
                     <tr>
+                      <td className="command-name">gw users delete --filter="..." [--dry-run] [--confirm]</td>
+                      <td className="command-desc">Batch delete users matching filter. Use --dry-run to preview, --confirm to execute.</td>
+                    </tr>
+                    <tr>
                       <td className="command-name">gw users move &lt;email&gt; --ou=/Path</td>
                       <td className="command-desc">Move user to a different organizational unit</td>
                     </tr>
                     <tr>
                       <td className="command-name">gw users groups &lt;email&gt;</td>
                       <td className="command-desc">List all groups that this user belongs to</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">gw users initial-password &lt;email&gt;</td>
+                      <td className="command-desc">Reveal the auto-generated initial password for a newly created user</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">gw users list-initial-passwords</td>
+                      <td className="command-desc">List all stored initial passwords (session only)</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">gw users clear-initial-password &lt;email|--all&gt;</td>
+                      <td className="command-desc">Clear stored initial password after user sets their own</td>
                     </tr>
                   </tbody>
                 </table>
@@ -2546,6 +6149,10 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
                     <tr>
                       <td className="command-name">gw groups list</td>
                       <td className="command-desc">List all Google Workspace groups</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">gw groups list --filter="field:pattern"</td>
+                      <td className="command-desc">Filter groups by field (email, name). Supports * wildcard.</td>
                     </tr>
                     <tr>
                       <td className="command-name">gw groups get &lt;email&gt;</td>
@@ -2564,6 +6171,10 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
                       <td className="command-desc">Delete a group permanently</td>
                     </tr>
                     <tr>
+                      <td className="command-name">gw groups delete --filter="..." [--dry-run] [--confirm]</td>
+                      <td className="command-desc">Batch delete groups matching filter. Use --dry-run to preview, --confirm to execute.</td>
+                    </tr>
+                    <tr>
                       <td className="command-name">gw groups members &lt;email&gt;</td>
                       <td className="command-desc">List all members of a group</td>
                     </tr>
@@ -2572,8 +6183,16 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
                       <td className="command-desc">Add a user to a group (optionally specify --role=OWNER)</td>
                     </tr>
                     <tr>
+                      <td className="command-name">gw groups add-member &lt;group&gt; --filter="..." [--dry-run]</td>
+                      <td className="command-desc">Batch add users matching filter to a group</td>
+                    </tr>
+                    <tr>
                       <td className="command-name">gw groups remove-member &lt;group&gt; &lt;user&gt;</td>
                       <td className="command-desc">Remove a user from a group</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">gw groups remove-member &lt;group&gt; --filter="..." [--confirm]</td>
+                      <td className="command-desc">Batch remove members matching filter from a group</td>
                     </tr>
                   </tbody>
                 </table>
@@ -2614,8 +6233,16 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
                       <td className="command-desc">Grant email delegation access to another user</td>
                     </tr>
                     <tr>
+                      <td className="command-name">gw delegates add &lt;delegate&gt; --filter="..." [--dry-run]</td>
+                      <td className="command-desc">Batch add delegate to all users matching filter</td>
+                    </tr>
+                    <tr>
                       <td className="command-name">gw delegates remove &lt;user&gt; &lt;delegate&gt;</td>
                       <td className="command-desc">Revoke email delegation access</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">gw delegates remove &lt;delegate&gt; --filter="..." [--confirm]</td>
+                      <td className="command-desc">Batch remove delegate from all users matching filter</td>
                     </tr>
                   </tbody>
                 </table>
@@ -2689,8 +6316,16 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
                       <td className="command-desc">Enable email forwarding for a user</td>
                     </tr>
                     <tr>
+                      <td className="command-name">gw forwarding set --filter="..." --to=&lt;email&gt; [--dry-run]</td>
+                      <td className="command-desc">Batch set forwarding for all users matching filter</td>
+                    </tr>
+                    <tr>
                       <td className="command-name">gw forwarding disable &lt;email&gt;</td>
                       <td className="command-desc">Disable email forwarding</td>
+                    </tr>
+                    <tr>
+                      <td className="command-name">gw forwarding disable --filter="..." [--dry-run]</td>
+                      <td className="command-desc">Batch disable forwarding for all users matching filter</td>
                     </tr>
                     <tr>
                       <td className="command-name">gw vacation get &lt;email&gt;</td>
@@ -2744,7 +6379,7 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
                   <tbody>
                     <tr>
                       <td className="command-name">m365 users list</td>
-                      <td className="command-desc">List all Microsoft 365 users with status and license count</td>
+                      <td className="command-desc">List ONLY users from Microsoft 365 (not GW or local-only users)</td>
                     </tr>
                     <tr>
                       <td className="command-name">m365 users get &lt;email&gt;</td>
@@ -2836,8 +6471,8 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
                     <tr>
                       <td className="command-name">users list</td>
                       <td className="command-desc">
-                        List all Helios platform administrator users with platform membership
-                        <div className="command-example">Shows which external platforms each user exists in (GW, M365, Local)</div>
+                        List ALL users in Helios (the central source of truth)
+                        <div className="command-example">Shows platform membership: GW (Google), M365 (Microsoft), or Local (Helios only)</div>
                       </td>
                     </tr>
                     <tr>
@@ -2877,6 +6512,78 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
                     </tr>
                   </tbody>
                 </table>
+              </div>
+
+              {/* Batch Operations */}
+              <div className="help-section">
+                <h3>Batch Operations</h3>
+                <p style={{ color: '#9ca3af', fontSize: '13px', marginBottom: '12px' }}>
+                  Use <code style={{ background: '#1e1e1e', padding: '2px 6px', borderRadius: '3px' }}>--filter</code> to select multiple items for batch operations. Supported for <strong>users</strong> and <strong>groups</strong>.
+                </p>
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ color: '#9ca3af', fontSize: '12px', marginBottom: '8px' }}>User Filter Fields:</div>
+                  <table className="command-table">
+                    <thead>
+                      <tr>
+                        <th style={{ color: '#9ca3af', fontWeight: 500 }}>Filter Field</th>
+                        <th style={{ color: '#9ca3af', fontWeight: 500 }}>Example</th>
+                        <th style={{ color: '#9ca3af', fontWeight: 500 }}>Description</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="command-name">email:</td>
+                        <td className="command-desc"><code>--filter="email:test*"</code></td>
+                        <td className="command-desc">Match emails starting with "test"</td>
+                      </tr>
+                      <tr>
+                        <td className="command-name">orgunit:</td>
+                        <td className="command-desc"><code>--filter="orgunit:/Contractors"</code></td>
+                        <td className="command-desc">Match users in organizational unit</td>
+                      </tr>
+                      <tr>
+                        <td className="command-name">status:</td>
+                        <td className="command-desc"><code>--filter="status:suspended"</code></td>
+                        <td className="command-desc">Match by status (active, suspended, archived)</td>
+                      </tr>
+                      <tr>
+                        <td className="command-name">firstname:</td>
+                        <td className="command-desc"><code>--filter="firstname:John*"</code></td>
+                        <td className="command-desc">Match by first name</td>
+                      </tr>
+                      <tr>
+                        <td className="command-name">lastname:</td>
+                        <td className="command-desc"><code>--filter="lastname:Smith"</code></td>
+                        <td className="command-desc">Match by last name</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ color: '#9ca3af', fontSize: '12px', marginBottom: '8px' }}>Group Filter Fields:</div>
+                  <table className="command-table">
+                    <tbody>
+                      <tr>
+                        <td className="command-name">email:</td>
+                        <td className="command-desc"><code>--filter="email:test-*"</code></td>
+                        <td className="command-desc">Match group emails</td>
+                      </tr>
+                      <tr>
+                        <td className="command-name">name:</td>
+                        <td className="command-desc"><code>--filter="name:Test*"</code></td>
+                        <td className="command-desc">Match group names</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div style={{ marginTop: '12px', padding: '12px', background: '#2d2d2d', borderRadius: '4px', fontSize: '13px' }}>
+                  <div style={{ color: '#f59e0b', marginBottom: '8px' }}>Batch Delete Safety:</div>
+                  <ul style={{ color: '#9ca3af', margin: 0, paddingLeft: '20px' }}>
+                    <li><code>--dry-run</code> - Preview what would be deleted without making changes</li>
+                    <li><code>--confirm</code> - Required to actually execute the batch delete</li>
+                    <li>Always use <code>--dry-run</code> first to verify the filter matches expected users</li>
+                  </ul>
+                </div>
               </div>
 
               {/* Tips */}
@@ -3020,8 +6727,51 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
               </div>
 
               <div className="example-section">
-                <h4>List Helios platform users</h4>
+                <h4>List ALL users in Helios (central source)</h4>
                 <code className="example-code">users list</code>
+              </div>
+              <div className="example-section">
+                <h4>Compare: GW users vs all Helios users</h4>
+                <code className="example-code"># GW only: gw users list{'\n'}# All users: users list</code>
+              </div>
+
+              <div className="example-section" style={{ marginTop: '24px', borderTop: '1px solid #374151', paddingTop: '16px' }}>
+                <h4 style={{ color: '#f59e0b' }}>Batch Operations</h4>
+              </div>
+
+              <div className="example-section">
+                <h4>Filter users by email pattern</h4>
+                <code className="example-code">gw users list --filter="email:test*"</code>
+              </div>
+
+              <div className="example-section">
+                <h4>Filter users by organizational unit</h4>
+                <code className="example-code">gw users list --filter="orgunit:/Contractors"</code>
+              </div>
+
+              <div className="example-section">
+                <h4>Filter suspended users</h4>
+                <code className="example-code">gw users list --filter="status:suspended"</code>
+              </div>
+
+              <div className="example-section">
+                <h4>Preview batch delete (dry run)</h4>
+                <code className="example-code">gw users delete --filter="email:test*" --dry-run</code>
+              </div>
+
+              <div className="example-section">
+                <h4>Execute batch delete (with confirmation)</h4>
+                <code className="example-code">gw users delete --filter="email:test*" --confirm</code>
+              </div>
+
+              <div className="example-section">
+                <h4>Filter groups by email pattern</h4>
+                <code className="example-code">gw groups list --filter="email:test-*"</code>
+              </div>
+
+              <div className="example-section">
+                <h4>Batch delete groups (with dry run)</h4>
+                <code className="example-code">gw groups delete --filter="name:Test*" --dry-run</code>
               </div>
             </div>
           </div>

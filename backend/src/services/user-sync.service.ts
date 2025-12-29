@@ -97,8 +97,8 @@ export class UserSyncService {
                 organization_id, email, first_name, last_name,
                 role, job_title, department, manager_id,
                 organizational_unit, mobile_phone, work_phone,
-                google_workspace_id, is_active, created_at
-              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
+                google_workspace_id, is_active, user_type, created_at
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'staff', NOW())
               RETURNING id
             `, [
               organizationId,

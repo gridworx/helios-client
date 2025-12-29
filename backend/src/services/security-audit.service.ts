@@ -83,6 +83,8 @@ export const AuditActions = {
   SECURITY_IP_BLOCK: 'security.ip.block',
   SECURITY_SUSPICIOUS: 'security.suspicious.activity',
   SECURITY_ANOMALY: 'security.anomaly.detected',
+  SECURITY_TOKEN_REVOKE: 'security.token.revoke',
+  SECURITY_BULK_REVOKE: 'security.bulk.revoke',
 
   // Settings
   SETTINGS_UPDATE: 'settings.update',

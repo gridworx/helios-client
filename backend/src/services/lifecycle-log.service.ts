@@ -178,6 +178,32 @@ class LifecycleLogService {
   }
 
   /**
+   * Simple log method for lifecycle events
+   * Used for request/task status changes
+   */
+  async log(options: {
+    organizationId: string;
+    userId?: string | null;
+    action: string;
+    details?: Record<string, unknown>;
+    performedBy?: string | null;
+  }): Promise<void> {
+    try {
+      await this.createLog(options.organizationId, {
+        actionType: 'manual' as ActionType,
+        actionStep: options.action,
+        status: 'success',
+        userId: options.userId || undefined,
+        details: options.details,
+        triggeredByUserId: options.performedBy || undefined,
+      });
+    } catch (error) {
+      // Don't throw - logging failures shouldn't break the main operation
+      console.error('Failed to create lifecycle log:', error);
+    }
+  }
+
+  /**
    * Get logs for a specific action
    */
   async getLogsForAction(actionId: string): Promise<UserLifecycleLog[]> {

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Terminal, Key, Users, Lock, Settings as SettingsIcon, LogOut, Book, ChevronDown, User } from 'lucide-react';
 import { useView } from '../contexts/ViewContext';
+import { ConfirmDialog } from './ui/ConfirmDialog';
 import './ClientUserMenu.css';
 
 interface ClientUserMenuProps {
@@ -19,6 +20,7 @@ interface ClientUserMenuProps {
 export function ClientUserMenu({ userName, userEmail, userRole, onLogout, onChangePassword, onNavigateToSettings, onNavigateToUserSettings, onNavigateToAdministrators, onNavigateToConsole, onNavigateToMyProfile }: ClientUserMenuProps) {
   const { currentView } = useView();
   const [isOpen, setIsOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,9 +40,12 @@ export function ClientUserMenu({ userName, userEmail, userRole, onLogout, onChan
   }, [isOpen]);
 
   const handleLogout = () => {
-    if (confirm('Are you sure you want to sign out?')) {
-      onLogout();
-    }
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = () => {
+    setShowLogoutConfirm(false);
+    onLogout();
   };
 
   const getInitials = () => {
@@ -162,6 +167,16 @@ export function ClientUserMenu({ userName, userEmail, userRole, onLogout, onChan
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={showLogoutConfirm}
+        title="Sign Out"
+        message="Are you sure you want to sign out?"
+        variant="info"
+        confirmText="Sign Out"
+        onConfirm={confirmLogout}
+        onCancel={() => setShowLogoutConfirm(false)}
+      />
     </div>
   );
 }

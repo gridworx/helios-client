@@ -21,6 +21,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { authFetch } from '../../config/api';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import './DeploymentStatus.css';
 
 interface SyncSummary {
@@ -57,6 +58,7 @@ const DeploymentStatus: React.FC<DeploymentStatusProps> = ({
   const [summary, setSummary] = useState<SyncSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lastDeployResult, setLastDeployResult] = useState<DeployResult | null>(null);
+  const [showForceResyncConfirm, setShowForceResyncConfirm] = useState(false);
 
   const fetchSummary = useCallback(async () => {
     try {
@@ -113,11 +115,12 @@ const DeploymentStatus: React.FC<DeploymentStatusProps> = ({
     }
   };
 
-  const handleForceResync = async () => {
-    if (!confirm('This will re-sync signatures for ALL users. This may take several minutes. Continue?')) {
-      return;
-    }
+  const handleForceResync = () => {
+    setShowForceResyncConfirm(true);
+  };
 
+  const confirmForceResync = async () => {
+    setShowForceResyncConfirm(false);
     setForceSyncing(true);
     setError(null);
     setLastDeployResult(null);
@@ -389,6 +392,16 @@ const DeploymentStatus: React.FC<DeploymentStatusProps> = ({
           </button>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={showForceResyncConfirm}
+        title="Force Resync All Signatures"
+        message="This will re-sync signatures for ALL users. This may take several minutes. Continue?"
+        variant="warning"
+        confirmText="Resync All"
+        onConfirm={confirmForceResync}
+        onCancel={() => setShowForceResyncConfirm(false)}
+      />
     </div>
   );
 };

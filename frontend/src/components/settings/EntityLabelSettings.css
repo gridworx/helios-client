@@ -1,8 +1,5 @@
 .entity-label-settings {
-  padding: 24px;
-  background: #fff;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  /* Inherits from .settings-section - no duplicate wrapper */
 }
 
 .entity-label-settings .settings-header {

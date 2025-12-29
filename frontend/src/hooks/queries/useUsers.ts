@@ -134,7 +134,7 @@ async function fetchUsers(filters: UserFilters): Promise<User[]> {
     microsoft365Id: user.microsoft365Id || user.microsoft_365_id,
     createdAt: user.createdAt || user.created_at,
     updatedAt: user.updatedAt || user.updated_at,
-    status: user.userStatus || (user.isActive ? 'active' : 'inactive'),
+    status: user.status || user.userStatus || (user.isActive ? 'active' : 'inactive'),
     source: user.source,
     userType: user.userType || user.user_type,
     company: user.company,
@@ -163,14 +163,22 @@ async function fetchAllUsersForCounts(userType: string): Promise<{ users: User[]
   const data = await safeParseJson(response, 'Failed to fetch users');
   const users = data.success ? data.data : [];
 
+  // Helper to normalize status (handle null/undefined and different naming conventions)
+  const getStatus = (user: any): string => {
+    const status = user.userStatus || user.status || 'active';
+    // Normalize status values
+    if (status === 'invited' || status === 'staged' || status === 'pending') return 'staged';
+    return status;
+  };
+
   // Calculate status counts
   const statusCounts: StatusCounts = {
-    all: users.filter((u: any) => u.userStatus !== 'deleted').length,
-    active: users.filter((u: any) => u.userStatus === 'active').length,
-    pending: users.filter((u: any) => u.userStatus === 'staged').length,
-    suspended: users.filter((u: any) => u.userStatus === 'suspended').length,
-    expired: users.filter((u: any) => u.userStatus === 'expired').length,
-    deleted: users.filter((u: any) => u.userStatus === 'deleted').length,
+    all: users.filter((u: any) => getStatus(u) !== 'deleted').length,
+    active: users.filter((u: any) => getStatus(u) === 'active').length,
+    pending: users.filter((u: any) => getStatus(u) === 'staged').length,
+    suspended: users.filter((u: any) => getStatus(u) === 'suspended').length,
+    expired: users.filter((u: any) => getStatus(u) === 'expired').length,
+    deleted: users.filter((u: any) => getStatus(u) === 'deleted').length,
   };
 
   // Extract unique departments

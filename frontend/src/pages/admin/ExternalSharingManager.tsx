@@ -17,6 +17,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { authFetch } from '../../config/api';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import './ExternalSharingManager.css';
 
 // Types
@@ -62,6 +63,10 @@ export const ExternalSharingManager: React.FC = () => {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [revoking, setRevoking] = useState(false);
   const [exporting, setExporting] = useState(false);
+
+  // Confirmation dialog state
+  const [showBulkRevokeConfirm, setShowBulkRevokeConfirm] = useState(false);
+  const [shareToRevoke, setShareToRevoke] = useState<ExternalShare | null>(null);
 
   // Fetch summary on mount
   useEffect(() => {
@@ -110,14 +115,13 @@ export const ExternalSharingManager: React.FC = () => {
     }
   };
 
-  const revokeSelected = async () => {
+  const handleBulkRevokeClick = () => {
     if (selectedShares.size === 0) return;
+    setShowBulkRevokeConfirm(true);
+  };
 
-    const confirmed = window.confirm(
-      `Are you sure you want to revoke access for ${selectedShares.size} share(s)? This action cannot be undone.`
-    );
-    if (!confirmed) return;
-
+  const revokeSelected = async () => {
+    setShowBulkRevokeConfirm(false);
     setRevoking(true);
     setError(null);
 
@@ -154,6 +158,36 @@ export const ExternalSharingManager: React.FC = () => {
       setError(err.message || 'Failed to revoke access');
     } finally {
       setRevoking(false);
+    }
+  };
+
+  const revokeSingleShare = async () => {
+    if (!shareToRevoke) return;
+
+    try {
+      const response = await authFetch('/api/v1/external-sharing/revoke', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileId: shareToRevoke.fileId,
+          permissionId: shareToRevoke.permissionId
+        })
+      });
+      const data = await response.json();
+      if (data.success) {
+        setShares(prev =>
+          prev.filter(s =>
+            !(s.fileId === shareToRevoke.fileId && s.permissionId === shareToRevoke.permissionId)
+          )
+        );
+        fetchSummary();
+      } else {
+        setError(data.error || 'Failed to revoke access');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to revoke access');
+    } finally {
+      setShareToRevoke(null);
     }
   };
 
@@ -388,7 +422,7 @@ export const ExternalSharingManager: React.FC = () => {
               {selectedShares.size > 0 && (
                 <button
                   className="btn btn-danger"
-                  onClick={revokeSelected}
+                  onClick={handleBulkRevokeClick}
                   disabled={revoking}
                 >
                   <Trash2 size={16} />
@@ -488,36 +522,7 @@ export const ExternalSharingManager: React.FC = () => {
                       <button
                         className="btn btn-sm btn-icon"
                         title="Revoke access"
-                        onClick={async () => {
-                          const confirmed = window.confirm(
-                            `Revoke external access for "${share.fileName}"?`
-                          );
-                          if (!confirmed) return;
-
-                          try {
-                            const response = await authFetch('/api/v1/external-sharing/revoke', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                fileId: share.fileId,
-                                permissionId: share.permissionId
-                              })
-                            });
-                            const data = await response.json();
-                            if (data.success) {
-                              setShares(prev =>
-                                prev.filter(s =>
-                                  !(s.fileId === share.fileId && s.permissionId === share.permissionId)
-                                )
-                              );
-                              fetchSummary();
-                            } else {
-                              setError(data.error || 'Failed to revoke access');
-                            }
-                          } catch (err: any) {
-                            setError(err.message || 'Failed to revoke access');
-                          }
-                        }}
+                        onClick={() => setShareToRevoke(share)}
                       >
                         <Trash2 size={14} />
                       </button>
@@ -547,6 +552,28 @@ export const ExternalSharingManager: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Bulk Revoke Confirmation */}
+      <ConfirmDialog
+        isOpen={showBulkRevokeConfirm}
+        title="Revoke External Access"
+        message={`Are you sure you want to revoke access for ${selectedShares.size} share(s)? This action cannot be undone.`}
+        variant="danger"
+        confirmText="Revoke Access"
+        onConfirm={revokeSelected}
+        onCancel={() => setShowBulkRevokeConfirm(false)}
+      />
+
+      {/* Single Share Revoke Confirmation */}
+      <ConfirmDialog
+        isOpen={shareToRevoke !== null}
+        title="Revoke External Access"
+        message={`Revoke external access for "${shareToRevoke?.fileName}"? This action cannot be undone.`}
+        variant="danger"
+        confirmText="Revoke"
+        onConfirm={revokeSingleShare}
+        onCancel={() => setShareToRevoke(null)}
+      />
     </div>
   );
 };

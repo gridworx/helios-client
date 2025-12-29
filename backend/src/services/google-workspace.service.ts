@@ -183,7 +183,7 @@ export class GoogleWorkspaceService {
 
       // Get the Google Workspace module ID
       const moduleResult = await db.query(
-        `SELECT id FROM modules WHERE slug = 'google_workspace' LIMIT 1`
+        `SELECT id FROM modules WHERE slug = 'google-workspace' LIMIT 1`
       );
 
       if (moduleResult.rows.length > 0) {
@@ -601,7 +601,7 @@ export class GoogleWorkspaceService {
 
         // Get module ID for Google Workspace
         const moduleResult = await db.query(
-          `SELECT id FROM modules WHERE slug = 'google_workspace' LIMIT 1`
+          `SELECT id FROM modules WHERE slug = 'google-workspace' LIMIT 1`
         );
 
         if (moduleResult.rows.length > 0) {
@@ -1152,7 +1152,7 @@ export class GoogleWorkspaceService {
 
         // Update module sync timestamp
         const moduleResult = await db.query(
-          `SELECT id FROM modules WHERE slug = 'google_workspace' LIMIT 1`
+          `SELECT id FROM modules WHERE slug = 'google-workspace' LIMIT 1`
         );
 
         if (moduleResult.rows.length > 0) {
@@ -2872,6 +2872,623 @@ export class GoogleWorkspaceService {
       success: results.every((r) => !r.error),
       results,
     };
+  }
+
+  /**
+   * Create authenticated Google Reports API client with Domain-Wide Delegation
+   */
+  private createReportsClient(credentials: ServiceAccountCredentials, adminEmail: string) {
+    const jwtClient = new JWT({
+      email: credentials.client_email,
+      key: credentials.private_key,
+      scopes: [
+        'https://www.googleapis.com/auth/admin.reports.audit.readonly'
+      ],
+      subject: adminEmail
+    });
+
+    return google.admin({ version: 'reports_v1', auth: jwtClient });
+  }
+
+  /**
+   * Fetch login activity from Google Workspace Reports API
+   * Returns login events from the last 24 hours by default
+   */
+  async fetchLoginActivity(
+    organizationId: string,
+    options: {
+      startTime?: Date;
+      endTime?: Date;
+      maxResults?: number;
+    } = {}
+  ): Promise<{ success: boolean; events: any[]; error?: string }> {
+    try {
+      // Get credentials and admin email
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        return { success: false, events: [], error: 'No credentials found' };
+      }
+
+      const adminEmail = await this.getAdminEmail(organizationId);
+      if (!adminEmail) {
+        return { success: false, events: [], error: 'No admin email configured' };
+      }
+
+      // Default to last 24 hours
+      const endTime = options.endTime || new Date();
+      const startTime = options.startTime || new Date(endTime.getTime() - 24 * 60 * 60 * 1000);
+      const maxResults = options.maxResults || 1000;
+
+      // Create Reports API client
+      const reportsClient = this.createReportsClient(credentials, adminEmail);
+
+      // Fetch login events
+      const response = await reportsClient.activities.list({
+        userKey: 'all',
+        applicationName: 'login',
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        maxResults
+      });
+
+      const events = (response.data.items || []).map((item: any) => ({
+        eventId: item.id?.uniqueQualifier,
+        userEmail: item.actor?.email,
+        userId: item.actor?.profileId,
+        timestamp: item.id?.time,
+        ipAddress: item.ipAddress,
+        loginType: this.extractLoginType(item.events),
+        isSuccessful: this.isLoginSuccessful(item.events),
+        isSuspicious: this.isLoginSuspicious(item.events),
+        failureReason: this.extractFailureReason(item.events),
+        rawEvent: item
+      }));
+
+      logger.info('Fetched login activity from Google Workspace', {
+        organizationId,
+        eventCount: events.length,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString()
+      });
+
+      return { success: true, events };
+    } catch (error: any) {
+      logger.error('Failed to fetch login activity', {
+        organizationId,
+        error: error.message
+      });
+      return { success: false, events: [], error: error.message };
+    }
+  }
+
+  /**
+   * Extract login type from event parameters
+   */
+  private extractLoginType(events: any[]): string {
+    if (!events || events.length === 0) return 'unknown';
+    const event = events[0];
+    const params = event.parameters || [];
+    const loginType = params.find((p: any) => p.name === 'login_type');
+    return loginType?.value || 'web';
+  }
+
+  /**
+   * Check if login was successful
+   */
+  private isLoginSuccessful(events: any[]): boolean {
+    if (!events || events.length === 0) return true;
+    const event = events[0];
+    // 'login_failure' type means failed, 'login_success' means succeeded
+    return event.type !== 'login_failure';
+  }
+
+  /**
+   * Check if login was marked as suspicious by Google
+   */
+  private isLoginSuspicious(events: any[]): boolean {
+    if (!events || events.length === 0) return false;
+    const event = events[0];
+    const params = event.parameters || [];
+    const suspicious = params.find((p: any) => p.name === 'is_suspicious');
+    return suspicious?.boolValue === true;
+  }
+
+  /**
+   * Extract failure reason if login failed
+   */
+  private extractFailureReason(events: any[]): string | null {
+    if (!events || events.length === 0) return null;
+    const event = events[0];
+    if (event.type !== 'login_failure') return null;
+    const params = event.parameters || [];
+    const reason = params.find((p: any) => p.name === 'login_failure_type');
+    return reason?.value || 'unknown';
+  }
+
+  /**
+   * Store login events in the database
+   */
+  async storeLoginEvents(
+    organizationId: string,
+    events: any[]
+  ): Promise<{ stored: number; errors: number }> {
+    let stored = 0;
+    let errors = 0;
+
+    for (const event of events) {
+      try {
+        // Skip if no IP address (can't geolocate)
+        if (!event.ipAddress) {
+          continue;
+        }
+
+        // Check for duplicate (same user, timestamp, IP)
+        const existing = await db.query(
+          `SELECT id FROM login_activity
+           WHERE organization_id = $1
+           AND user_email = $2
+           AND login_timestamp = $3
+           AND ip_address = $4`,
+          [organizationId, event.userEmail, event.timestamp, event.ipAddress]
+        );
+
+        if (existing.rows.length > 0) {
+          continue; // Skip duplicate
+        }
+
+        await db.query(
+          `INSERT INTO login_activity (
+            organization_id, user_email, user_id, login_timestamp,
+            login_type, ip_address, is_suspicious, is_successful,
+            failure_reason, source, raw_event
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+          [
+            organizationId,
+            event.userEmail,
+            event.userId,
+            event.timestamp,
+            event.loginType,
+            event.ipAddress,
+            event.isSuspicious,
+            event.isSuccessful,
+            event.failureReason,
+            'google',
+            JSON.stringify(event.rawEvent)
+          ]
+        );
+        stored++;
+      } catch (error: any) {
+        logger.error('Failed to store login event', {
+          organizationId,
+          event,
+          error: error.message
+        });
+        errors++;
+      }
+    }
+
+    return { stored, errors };
+  }
+
+  /**
+   * Sync login activity - fetch from Google and store in database
+   */
+  async syncLoginActivity(
+    organizationId: string,
+    options: { startTime?: Date; endTime?: Date } = {}
+  ): Promise<{ success: boolean; fetched: number; stored: number; errors: number }> {
+    // Fetch login events
+    const fetchResult = await this.fetchLoginActivity(organizationId, options);
+    if (!fetchResult.success) {
+      return { success: false, fetched: 0, stored: 0, errors: 1 };
+    }
+
+    // Store events
+    const storeResult = await this.storeLoginEvents(organizationId, fetchResult.events);
+
+    logger.info('Synced login activity', {
+      organizationId,
+      fetched: fetchResult.events.length,
+      stored: storeResult.stored,
+      errors: storeResult.errors
+    });
+
+    return {
+      success: true,
+      fetched: fetchResult.events.length,
+      stored: storeResult.stored,
+      errors: storeResult.errors
+    };
+  }
+
+  // ============================================================
+  // BUILDINGS AND CALENDAR RESOURCES
+  // ============================================================
+
+  /**
+   * List all buildings in Google Workspace
+   */
+  async listBuildings(organizationId: string): Promise<{
+    success: boolean;
+    buildings?: any[];
+    error?: string;
+  }> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        return { success: false, error: 'No credentials found' };
+      }
+
+      const adminEmail = await this.getAdminEmail(organizationId);
+      if (!adminEmail) {
+        return { success: false, error: 'No admin email configured' };
+      }
+
+      const admin = this.createAdminClient(credentials, adminEmail);
+
+      const response = await admin.resources.buildings.list({
+        customer: 'my_customer'
+      });
+
+      const buildings = (response.data.buildings || []).map((building: any) => ({
+        buildingId: building.buildingId,
+        buildingName: building.buildingName,
+        description: building.description,
+        floorNames: building.floorNames,
+        address: building.address,
+        coordinates: building.coordinates
+      }));
+
+      logger.info('Listed buildings', { organizationId, count: buildings.length });
+      return { success: true, buildings };
+    } catch (error: any) {
+      logger.error('Failed to list buildings', { organizationId, error: error.message });
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * List calendar resources (rooms, equipment)
+   */
+  async listCalendarResources(
+    organizationId: string,
+    options: { buildingId?: string; resourceType?: string } = {}
+  ): Promise<{
+    success: boolean;
+    resources?: any[];
+    error?: string;
+  }> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        return { success: false, error: 'No credentials found' };
+      }
+
+      const adminEmail = await this.getAdminEmail(organizationId);
+      if (!adminEmail) {
+        return { success: false, error: 'No admin email configured' };
+      }
+
+      const admin = this.createAdminClient(credentials, adminEmail);
+
+      // Build query filter
+      let query = '';
+      if (options.buildingId) {
+        query = `buildingId=${options.buildingId}`;
+      }
+
+      const response = await admin.resources.calendars.list({
+        customer: 'my_customer',
+        query: query || undefined,
+        maxResults: 500
+      });
+
+      let resources = (response.data.items || []).map((resource: any) => ({
+        resourceId: resource.resourceId,
+        resourceName: resource.resourceName,
+        generatedResourceName: resource.generatedResourceName,
+        resourceEmail: resource.resourceEmail,
+        resourceType: resource.resourceType,
+        resourceCategory: resource.resourceCategory,
+        capacity: resource.capacity,
+        buildingId: resource.buildingId,
+        floorName: resource.floorName,
+        floorSection: resource.floorSection,
+        userVisibleDescription: resource.userVisibleDescription,
+        featureInstances: resource.featureInstances
+      }));
+
+      // Filter by resource type if specified
+      if (options.resourceType) {
+        const typeFilter = options.resourceType.toLowerCase();
+        resources = resources.filter((r: any) =>
+          (r.resourceType || '').toLowerCase().includes(typeFilter) ||
+          (r.resourceCategory || '').toLowerCase().includes(typeFilter)
+        );
+      }
+
+      logger.info('Listed calendar resources', { organizationId, count: resources.length });
+      return { success: true, resources };
+    } catch (error: any) {
+      logger.error('Failed to list calendar resources', { organizationId, error: error.message });
+      return { success: false, error: error.message };
+    }
+  }
+
+  // ============================================================
+  // LICENSING API
+  // ============================================================
+
+  /**
+   * Create a Licensing API client
+   */
+  private async createLicensingClient(organizationId: string) {
+    const credentials = await this.getCredentials(organizationId);
+    if (!credentials) return null;
+
+    const adminEmail = await this.getAdminEmail(organizationId);
+    if (!adminEmail) return null;
+
+    const jwtClient = new JWT({
+      email: credentials.client_email,
+      key: credentials.private_key,
+      scopes: ['https://www.googleapis.com/auth/apps.licensing'],
+      subject: adminEmail
+    });
+
+    return google.licensing({ version: 'v1', auth: jwtClient });
+  }
+
+  /**
+   * List all license assignments for a product
+   * Returns actual usage counts
+   */
+  async listLicenseAssignments(
+    organizationId: string,
+    productId: string,
+    skuId?: string
+  ): Promise<{
+    success: boolean;
+    assignments?: any[];
+    totalCount?: number;
+    error?: string;
+  }> {
+    try {
+      const licensing = await this.createLicensingClient(organizationId);
+      if (!licensing) {
+        return { success: false, error: 'Failed to create Licensing client' };
+      }
+
+      // Get domain from credentials
+      const domainResult = await db.query(
+        'SELECT domain FROM gw_credentials WHERE organization_id = $1',
+        [organizationId]
+      );
+      const domain = domainResult.rows[0]?.domain;
+      if (!domain) {
+        return { success: false, error: 'No domain configured' };
+      }
+
+      let allAssignments: any[] = [];
+      let pageToken: string | undefined;
+
+      // Paginate through all assignments
+      do {
+        const params: any = {
+          productId,
+          customerId: domain,
+          maxResults: 1000,
+          pageToken
+        };
+        if (skuId) params.skuId = skuId;
+
+        const response = skuId
+          ? await licensing.licenseAssignments.listForProductAndSku(params)
+          : await licensing.licenseAssignments.listForProduct(params);
+
+        if (response.data.items) {
+          allAssignments = allAssignments.concat(response.data.items);
+        }
+        pageToken = response.data.nextPageToken || undefined;
+      } while (pageToken);
+
+      return {
+        success: true,
+        assignments: allAssignments,
+        totalCount: allAssignments.length
+      };
+    } catch (error: any) {
+      // Handle common errors gracefully
+      if (error.code === 403) {
+        return { success: false, error: 'Licensing API access denied. Ensure apps.licensing scope is delegated.' };
+      }
+      if (error.code === 404) {
+        return { success: true, assignments: [], totalCount: 0 };
+      }
+      logger.error('Failed to list license assignments', { organizationId, productId, error: error.message });
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get license inventory with real counts from Google Licensing API
+   */
+  async getLicenseInventory(organizationId: string): Promise<{
+    success: boolean;
+    licenses?: Array<{
+      productId: string;
+      skuId: string;
+      skuName: string;
+      productName: string;
+      assignedCount: number;
+    }>;
+    error?: string;
+  }> {
+    try {
+      const licensing = await this.createLicensingClient(organizationId);
+      if (!licensing) {
+        return { success: false, error: 'Failed to create Licensing client - check API delegation' };
+      }
+
+      // Google Workspace product IDs and their SKUs
+      const products = [
+        {
+          productId: 'Google-Apps',
+          productName: 'Google Workspace',
+          skus: [
+            { id: 'Google-Apps-For-Business', name: 'Business Starter' },
+            { id: 'Google-Apps-Unlimited', name: 'Business Standard' },
+            { id: 'Google-Apps-For-Postini', name: 'Business Plus' },
+            { id: '1010020020', name: 'Enterprise Standard' },
+            { id: '1010020025', name: 'Enterprise Plus' },
+            { id: '1010060003', name: 'Frontline Starter' },
+            { id: '1010060001', name: 'Frontline Standard' },
+          ]
+        },
+        {
+          productId: '101031',
+          productName: 'Google Vault',
+          skus: [
+            { id: 'Google-Vault', name: 'Vault' },
+            { id: 'Google-Vault-Former-Employee', name: 'Vault Former Employee' }
+          ]
+        },
+        {
+          productId: '101034',
+          productName: 'Google Meet',
+          skus: [
+            { id: 'Google-Meet-Global-Dialing', name: 'Global Dialing' }
+          ]
+        }
+      ];
+
+      const licenses: Array<{
+        productId: string;
+        skuId: string;
+        skuName: string;
+        productName: string;
+        assignedCount: number;
+      }> = [];
+
+      // Query each product for assignments
+      for (const product of products) {
+        try {
+          const result = await this.listLicenseAssignments(organizationId, product.productId);
+
+          if (result.success && result.assignments) {
+            // Group by SKU
+            const skuCounts = new Map<string, number>();
+            for (const assignment of result.assignments) {
+              const skuId = assignment.skuId || 'unknown';
+              skuCounts.set(skuId, (skuCounts.get(skuId) || 0) + 1);
+            }
+
+            // Add to licenses array
+            for (const [skuId, count] of skuCounts) {
+              const skuInfo = product.skus.find(s => s.id === skuId);
+              licenses.push({
+                productId: product.productId,
+                skuId,
+                skuName: skuInfo?.name || skuId,
+                productName: product.productName,
+                assignedCount: count
+              });
+            }
+          }
+        } catch (err: any) {
+          // Continue with other products if one fails
+          logger.debug(`Skipping product ${product.productId}: ${err.message}`);
+        }
+      }
+
+      logger.info('Retrieved license inventory', { organizationId, licenseCount: licenses.length });
+      return { success: true, licenses };
+    } catch (error: any) {
+      logger.error('Failed to get license inventory', { organizationId, error: error.message });
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get users assigned to a specific license
+   */
+  async getLicenseUsers(
+    organizationId: string,
+    productId: string,
+    skuId: string
+  ): Promise<{
+    success: boolean;
+    users?: Array<{ email: string; userId: string }>;
+    error?: string;
+  }> {
+    try {
+      const result = await this.listLicenseAssignments(organizationId, productId, skuId);
+
+      if (!result.success) {
+        return { success: false, error: result.error };
+      }
+
+      const users = (result.assignments || []).map((a: any) => ({
+        email: a.userId, // userId is the email in Licensing API
+        userId: a.userId
+      }));
+
+      return { success: true, users };
+    } catch (error: any) {
+      logger.error('Failed to get license users', { organizationId, productId, skuId, error: error.message });
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * List calendar ACLs for a user's calendar
+   */
+  async listCalendarAcl(
+    organizationId: string,
+    calendarId: string
+  ): Promise<{
+    success: boolean;
+    acl?: any[];
+    error?: string;
+  }> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+      if (!credentials) {
+        return { success: false, error: 'No credentials found' };
+      }
+
+      const adminEmail = await this.getAdminEmail(organizationId);
+      if (!adminEmail) {
+        return { success: false, error: 'No admin email configured' };
+      }
+
+      // Create calendar client impersonating the user
+      const jwtClient = new JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: ['https://www.googleapis.com/auth/calendar'],
+        subject: calendarId === 'primary' ? adminEmail : calendarId
+      });
+
+      const calendar = google.calendar({ version: 'v3', auth: jwtClient });
+
+      const response = await calendar.acl.list({
+        calendarId: calendarId === 'primary' ? 'primary' : calendarId
+      });
+
+      const acl = (response.data.items || []).map((entry: any) => ({
+        id: entry.id,
+        scope: entry.scope,
+        role: entry.role,
+        etag: entry.etag
+      }));
+
+      logger.info('Listed calendar ACL', { organizationId, calendarId, count: acl.length });
+      return { success: true, acl };
+    } catch (error: any) {
+      logger.error('Failed to list calendar ACL', { organizationId, calendarId, error: error.message });
+      return { success: false, error: error.message };
+    }
   }
 }
 

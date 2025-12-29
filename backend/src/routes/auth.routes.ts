@@ -404,13 +404,29 @@ router.get('/verify', asyncHandler(async (req: Request, res: Response) => {
  */
 router.post('/logout', asyncHandler(async (req: Request, res: Response) => {
   const userId = req.body.userId;
+  const userEmail = req.body.email || (req as any).user?.email;
+  const organizationId = req.body.organizationId || (req as any).user?.organizationId;
 
   if (userId) {
+    // Legacy audit log
     await db.query(
       `INSERT INTO audit_logs (user_id, action, resource, ip_address, user_agent)
        VALUES ($1, 'logout', 'auth', $2, $3)`,
       [userId, req.ip, req.get('User-Agent') || 'Unknown']
     );
+
+    // Security audit log
+    if (organizationId) {
+      await securityAudit.logAuth({
+        organizationId,
+        action: AuditActions.AUTH_LOGOUT,
+        userId,
+        email: userEmail,
+        ip: req.ip || undefined,
+        userAgent: req.get('User-Agent') || undefined,
+        outcome: 'success',
+      });
+    }
 
     logger.info('User logged out', { userId });
   }

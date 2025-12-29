@@ -92,7 +92,9 @@ export const api = apiPath;
  * Authenticated fetch wrapper
  *
  * Automatically includes credentials for session-based authentication.
- * Uses httpOnly session cookies - no tokens stored in localStorage.
+ * Supports both:
+ * 1. httpOnly session cookies (from better-auth login)
+ * 2. JWT Bearer tokens (from setup flow auto-login)
  *
  * @param url - The URL to fetch (can use api() helper)
  * @param options - Standard fetch options
@@ -112,10 +114,20 @@ export const api = apiPath;
 export async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
   const { headers = {}, ...restOptions } = options;
 
+  // Build headers object
+  const authHeaders: Record<string, string> = {};
+
+  // Include JWT token if available (from setup flow or API keys)
+  const token = localStorage.getItem('helios_token');
+  if (token) {
+    authHeaders['Authorization'] = `Bearer ${token}`;
+  }
+
   return fetch(url, {
     ...restOptions,
-    credentials: 'include', // Always send session cookies
+    credentials: 'include', // Also send session cookies
     headers: {
+      ...authHeaders,
       ...headers,
     },
   });
@@ -137,11 +149,22 @@ export async function authFetch(url: string, options: RequestInit = {}): Promise
 export async function authFetchJson<T = any>(url: string, options: RequestInit = {}): Promise<T> {
   const { headers = {}, ...restOptions } = options;
 
+  // Build headers object
+  const authHeaders: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  // Include JWT token if available (from setup flow or API keys)
+  const token = localStorage.getItem('helios_token');
+  if (token) {
+    authHeaders['Authorization'] = `Bearer ${token}`;
+  }
+
   const response = await fetch(url, {
     ...restOptions,
     credentials: 'include',
     headers: {
-      'Content-Type': 'application/json',
+      ...authHeaders,
       ...headers,
     },
   });

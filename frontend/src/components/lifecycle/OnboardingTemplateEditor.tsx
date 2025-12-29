@@ -17,8 +17,10 @@ import {
   ChevronDown,
   ChevronUp,
   Info,
+  Clock,
 } from 'lucide-react';
 import { authFetch } from '../../config/api';
+import TimelineEditor, { type TimelineEntry } from './TimelineEditor';
 import './OnboardingTemplateEditor.css';
 
 interface GoogleServices {
@@ -57,6 +59,7 @@ interface OnboardingTemplate {
   welcomeEmailBody: string;
   isActive: boolean;
   isDefault: boolean;
+  timeline: TimelineEntry[];
 }
 
 interface Department {
@@ -114,6 +117,7 @@ Best regards,
 The IT Team`,
   isActive: true,
   isDefault: false,
+  timeline: [],
 };
 
 const OnboardingTemplateEditor: React.FC<OnboardingTemplateEditorProps> = ({
@@ -133,6 +137,7 @@ const OnboardingTemplateEditor: React.FC<OnboardingTemplateEditorProps> = ({
     google: false,
     groups: false,
     email: true,
+    timeline: false,
     options: false,
   });
 
@@ -167,6 +172,7 @@ const OnboardingTemplateEditor: React.FC<OnboardingTemplateEditorProps> = ({
           ...defaultTemplate,
           ...data.data,
           googleServices: data.data.googleServices || defaultTemplate.googleServices,
+          timeline: data.data.timeline || [],
         });
       }
     } catch (err: any) {
@@ -564,6 +570,33 @@ const OnboardingTemplateEditor: React.FC<OnboardingTemplateEditorProps> = ({
                   </div>
                 </>
               )}
+            </div>
+          )}
+        </div>
+
+        {/* Timeline Actions */}
+        <div className="form-section">
+          <button
+            className="section-header"
+            onClick={() => toggleSection('timeline')}
+          >
+            <div className="section-title">
+              <Clock size={18} />
+              <span>Timeline Actions</span>
+              {template.timeline.length > 0 && (
+                <span className="badge">{template.timeline.length}</span>
+              )}
+            </div>
+            {expandedSections.timeline ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </button>
+
+          {expandedSections.timeline && (
+            <div className="section-content">
+              <TimelineEditor
+                timeline={template.timeline}
+                onChange={(timeline) => setTemplate((prev) => ({ ...prev, timeline }))}
+                requestType="onboard"
+              />
             </div>
           )}
         </div>

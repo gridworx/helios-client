@@ -39,6 +39,7 @@ import {
   UserMinus,
   CheckCircle,
 } from 'lucide-react';
+import { ConfirmDialog } from './ui/ConfirmDialog';
 import './UserTable.css';
 
 // Column helper for type-safe column definitions
@@ -74,6 +75,9 @@ export function UserTable({
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [googleAction, setGoogleAction] = useState<'keep' | 'suspend' | 'delete'>('delete');
   const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
+
+  // Bulk action confirmation state
+  const [bulkConfirmAction, setBulkConfirmAction] = useState<'activate' | 'suspend' | 'delete' | null>(null);
 
   // Column visibility (persisted in localStorage)
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() => {
@@ -178,26 +182,36 @@ export function UserTable({
     setUserToDelete(null);
   };
 
-  // Bulk actions
-  const handleBulkActivate = async () => {
+  // Bulk actions - show confirmation dialog
+  const handleBulkActivate = () => {
     if (selectedUserIds.length === 0) return;
-    if (!confirm(`Activate ${selectedUserIds.length} user(s)?`)) return;
-    await bulkUpdateMutation.mutateAsync({ userIds: selectedUserIds, status: 'active' });
-    setRowSelection({});
+    setBulkConfirmAction('activate');
   };
 
-  const handleBulkSuspend = async () => {
+  const handleBulkSuspend = () => {
     if (selectedUserIds.length === 0) return;
-    if (!confirm(`Suspend ${selectedUserIds.length} user(s)?`)) return;
-    await bulkUpdateMutation.mutateAsync({ userIds: selectedUserIds, status: 'suspended' });
-    setRowSelection({});
+    setBulkConfirmAction('suspend');
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selectedUserIds.length === 0) return;
-    if (!confirm(`Delete ${selectedUserIds.length} user(s)?`)) return;
-    await bulkDeleteMutation.mutateAsync({ userIds: selectedUserIds });
+    setBulkConfirmAction('delete');
+  };
+
+  // Execute bulk action after confirmation
+  const executeBulkAction = async () => {
+    if (!bulkConfirmAction) return;
+
+    if (bulkConfirmAction === 'activate') {
+      await bulkUpdateMutation.mutateAsync({ userIds: selectedUserIds, status: 'active' });
+    } else if (bulkConfirmAction === 'suspend') {
+      await bulkUpdateMutation.mutateAsync({ userIds: selectedUserIds, status: 'suspended' });
+    } else if (bulkConfirmAction === 'delete') {
+      await bulkDeleteMutation.mutateAsync({ userIds: selectedUserIds });
+    }
+
     setRowSelection({});
+    setBulkConfirmAction(null);
   };
 
   // Role badge renderer
@@ -632,6 +646,35 @@ export function UserTable({
           </div>
         </div>
       )}
+
+      {/* Bulk Action Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={bulkConfirmAction !== null}
+        title={
+          bulkConfirmAction === 'activate'
+            ? 'Activate Users'
+            : bulkConfirmAction === 'suspend'
+            ? 'Suspend Users'
+            : 'Delete Users'
+        }
+        message={
+          bulkConfirmAction === 'activate'
+            ? `Are you sure you want to activate ${selectedUserIds.length} user(s)? They will regain access to the platform.`
+            : bulkConfirmAction === 'suspend'
+            ? `Are you sure you want to suspend ${selectedUserIds.length} user(s)? They will lose access until restored.`
+            : `Are you sure you want to delete ${selectedUserIds.length} user(s)? This action can be reversed within 30 days.`
+        }
+        variant={bulkConfirmAction === 'delete' ? 'danger' : bulkConfirmAction === 'suspend' ? 'warning' : 'info'}
+        confirmText={
+          bulkConfirmAction === 'activate'
+            ? 'Activate'
+            : bulkConfirmAction === 'suspend'
+            ? 'Suspend'
+            : 'Delete'
+        }
+        onConfirm={executeBulkAction}
+        onCancel={() => setBulkConfirmAction(null)}
+      />
     </div>
   );
 }

@@ -6,7 +6,6 @@ import {
   Package,
   PenTool,
   AlertCircle,
-  Zap,
   Settings as SettingsIcon,
   Network,
   MessageSquare,
@@ -18,6 +17,13 @@ import {
   Clock,
   Share2,
   Search,
+  CheckSquare,
+  GraduationCap,
+  LayoutDashboard,
+  BarChart3,
+  Zap,
+  AppWindow,
+  Key,
 } from 'lucide-react';
 import { useLabels } from '../../contexts/LabelsContext';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
@@ -36,7 +42,9 @@ interface AdminNavigationProps {
  * Shows admin-only features:
  * - Dashboard (admin stats)
  * - Directory (Users, Groups, Org Chart)
- * - Automation (Onboarding, Offboarding, Signatures, Scheduled Actions)
+ * - Journeys (Onboarding, Offboarding, Training, Requests, Tasks)
+ * - Automation (Signatures, Scheduled Actions, Rules Engine)
+ * - Insights (HR Dashboard, Manager Dashboard, Analytics)
  * - Assets (IT Assets, Media Files)
  * - Security (Mail Search, Security Events, Audit Logs, External Sharing)
  * - Settings
@@ -51,9 +59,17 @@ export const AdminNavigation: React.FC<AdminNavigationProps> = ({
   const { isEnabled, anyEnabled } = useFeatureFlags();
 
   // Check if any items in a section are enabled
-  const hasAutomationItems = anyEnabled('nav.onboarding', 'nav.offboarding', 'nav.scheduled_actions', 'nav.workflows', 'nav.signatures');
+  const hasJourneysItems = anyEnabled(
+    'nav.onboarding', 'nav.offboarding', 'nav.training', 'nav.requests', 'nav.tasks'
+  );
+  const hasAutomationItems = anyEnabled(
+    'nav.signatures', 'nav.scheduled_actions', 'nav.rules_engine'
+  );
+  const hasInsightsItems = anyEnabled(
+    'nav.hr_dashboard', 'nav.manager_dashboard', 'nav.lifecycle_analytics'
+  );
   const hasAssetItems = anyEnabled('nav.it_assets', 'nav.media_files');
-  const hasSecurityItems = anyEnabled('nav.mail_search', 'nav.security_events', 'nav.audit_logs', 'nav.external_sharing');
+  const hasSecurityItems = anyEnabled('nav.mail_search', 'nav.security_events', 'nav.oauth_apps', 'nav.audit_logs', 'nav.licenses', 'nav.external_sharing');
 
   return (
     <nav className="nav">
@@ -114,10 +130,10 @@ export const AdminNavigation: React.FC<AdminNavigationProps> = ({
         </button>
       </div>
 
-      {/* Automation Section - Show if section flag enabled AND has any items */}
-      {isEnabled('nav.section.automation') && hasAutomationItems && (
+      {/* Journeys Section - Employee lifecycle journeys */}
+      {isEnabled('nav.section.journeys') && hasJourneysItems && (
         <div className="nav-section">
-          <div className="nav-section-title">Automation</div>
+          <div className="nav-section-title">Journeys</div>
           {isEnabled('nav.onboarding') && (
             <button
               className={`nav-item ${currentPage === 'onboarding-templates' ? 'active' : ''}`}
@@ -138,6 +154,43 @@ export const AdminNavigation: React.FC<AdminNavigationProps> = ({
               <span>Offboarding</span>
             </button>
           )}
+          {isEnabled('nav.training') && (
+            <button
+              className={`nav-item ${currentPage === 'training' ? 'active' : ''}`}
+              onClick={() => onNavigate('training')}
+              data-testid="nav-training"
+            >
+              <GraduationCap size={16} className="nav-icon" />
+              <span>Training</span>
+            </button>
+          )}
+          {isEnabled('nav.requests') && (
+            <button
+              className={`nav-item ${currentPage === 'requests' ? 'active' : ''}`}
+              onClick={() => onNavigate('requests')}
+              data-testid="nav-requests"
+            >
+              <FileText size={16} className="nav-icon" />
+              <span>Requests</span>
+            </button>
+          )}
+          {isEnabled('nav.tasks') && (
+            <button
+              className={`nav-item ${currentPage === 'tasks' ? 'active' : ''}`}
+              onClick={() => onNavigate('tasks')}
+              data-testid="nav-tasks"
+            >
+              <CheckSquare size={16} className="nav-icon" />
+              <span>My Tasks</span>
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Automation Section - Configure-once tools */}
+      {isEnabled('nav.section.automation') && hasAutomationItems && (
+        <div className="nav-section">
+          <div className="nav-section-title">Automation</div>
           {isEnabled('nav.signatures') && (
             <button
               className={`nav-item ${currentPage === 'signatures' ? 'active' : ''}`}
@@ -158,24 +211,53 @@ export const AdminNavigation: React.FC<AdminNavigationProps> = ({
               <span>Scheduled Actions</span>
             </button>
           )}
-          {isEnabled('nav.workflows') && (
+          {isEnabled('nav.rules_engine') && (
             <button
-              className={`nav-item ${currentPage === 'workflow-builder' ? 'active' : ''}`}
-              onClick={() => onNavigate('workflow-builder')}
-              data-testid="nav-workflows"
+              className={`nav-item ${currentPage === 'rules-engine' ? 'active' : ''}`}
+              onClick={() => onNavigate('rules-engine')}
+              data-testid="nav-rules-engine"
             >
               <Zap size={16} className="nav-icon" />
-              <span>Workflows</span>
+              <span>Rules Engine</span>
             </button>
           )}
-          <button
-            className={`nav-item ${currentPage === 'requests' ? 'active' : ''}`}
-            onClick={() => onNavigate('requests')}
-            data-testid="nav-requests"
-          >
-            <FileText size={16} className="nav-icon" />
-            <span>Requests</span>
-          </button>
+        </div>
+      )}
+
+      {/* Insights Section - Dashboards and analytics */}
+      {isEnabled('nav.section.insights') && hasInsightsItems && (
+        <div className="nav-section">
+          <div className="nav-section-title">Insights</div>
+          {isEnabled('nav.hr_dashboard') && (
+            <button
+              className={`nav-item ${currentPage === 'hr-dashboard' ? 'active' : ''}`}
+              onClick={() => onNavigate('hr-dashboard')}
+              data-testid="nav-hr-dashboard"
+            >
+              <LayoutDashboard size={16} className="nav-icon" />
+              <span>HR Dashboard</span>
+            </button>
+          )}
+          {isEnabled('nav.manager_dashboard') && (
+            <button
+              className={`nav-item ${currentPage === 'manager-dashboard' ? 'active' : ''}`}
+              onClick={() => onNavigate('manager-dashboard')}
+              data-testid="nav-manager-dashboard"
+            >
+              <UsersIcon size={16} className="nav-icon" />
+              <span>Manager Dashboard</span>
+            </button>
+          )}
+          {isEnabled('nav.lifecycle_analytics') && (
+            <button
+              className={`nav-item ${currentPage === 'lifecycle-analytics' ? 'active' : ''}`}
+              onClick={() => onNavigate('lifecycle-analytics')}
+              data-testid="nav-lifecycle-analytics"
+            >
+              <BarChart3 size={16} className="nav-icon" />
+              <span>Analytics</span>
+            </button>
+          )}
         </div>
       )}
 
@@ -206,10 +288,10 @@ export const AdminNavigation: React.FC<AdminNavigationProps> = ({
         </div>
       )}
 
-      {/* Security & Insights Section - Show if section flag enabled AND has any items */}
+      {/* Security Section - Show if section flag enabled AND has any items */}
       {isEnabled('nav.section.security') && hasSecurityItems && (
         <div className="nav-section">
-          <div className="nav-section-title">Security & Insights</div>
+          <div className="nav-section-title">Security</div>
           {isEnabled('nav.mail_search') && (
             <button
               className={`nav-item ${currentPage === 'email-security' ? 'active' : ''}`}
@@ -230,6 +312,16 @@ export const AdminNavigation: React.FC<AdminNavigationProps> = ({
               <span>Security Events</span>
             </button>
           )}
+          {isEnabled('nav.oauth_apps') && (
+            <button
+              className={`nav-item ${currentPage === 'oauth-apps' ? 'active' : ''}`}
+              onClick={() => onNavigate('oauth-apps')}
+              data-testid="nav-oauth-apps"
+            >
+              <AppWindow size={16} className="nav-icon" />
+              <span>OAuth Apps</span>
+            </button>
+          )}
           {isEnabled('nav.audit_logs') && (
             <button
               className={`nav-item ${currentPage === 'audit-logs' ? 'active' : ''}`}
@@ -238,6 +330,16 @@ export const AdminNavigation: React.FC<AdminNavigationProps> = ({
             >
               <ClipboardList size={16} className="nav-icon" />
               <span>Audit Logs</span>
+            </button>
+          )}
+          {isEnabled('nav.licenses') && (
+            <button
+              className={`nav-item ${currentPage === 'licenses' ? 'active' : ''}`}
+              onClick={() => onNavigate('licenses')}
+              data-testid="nav-licenses"
+            >
+              <Key size={16} className="nav-icon" />
+              <span>Licenses</span>
             </button>
           )}
           {isEnabled('nav.external_sharing') && (

@@ -271,7 +271,7 @@ class TelemetryService {
       });
 
       if (response.ok) {
-        const data: HeartbeatResponse = await response.json();
+        const data = await response.json() as HeartbeatResponse;
         console.log(`[Telemetry] Heartbeat sent successfully: ${data.message || 'OK'}`);
 
         // Reset counters after successful send

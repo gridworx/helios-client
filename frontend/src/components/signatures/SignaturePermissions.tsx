@@ -21,6 +21,7 @@ import {
   Crown,
 } from 'lucide-react';
 import { authFetch } from '../../config/api';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import './SignaturePermissions.css';
 
 // Permission level type
@@ -100,6 +101,7 @@ const SignaturePermissions: React.FC = () => {
   // View state
   const [activeTab, setActiveTab] = useState<'users' | 'audit'>('users');
   const [showLevelInfo, setShowLevelInfo] = useState(false);
+  const [userToRevoke, setUserToRevoke] = useState<string | null>(null);
 
   // Fetch data
   const fetchData = useCallback(async () => {
@@ -190,16 +192,18 @@ const SignaturePermissions: React.FC = () => {
   };
 
   // Revoke permission
-  const handleRevokePermission = async (userId: string) => {
-    if (!confirm('Are you sure you want to revoke this permission? The user will have viewer access only.')) {
-      return;
-    }
+  const handleRevokePermission = (userId: string) => {
+    setUserToRevoke(userId);
+  };
+
+  const confirmRevokePermission = async () => {
+    if (!userToRevoke) return;
 
     setSaving(true);
     setError(null);
 
     try {
-      const res = await authFetch(`/api/signatures/permissions/users/${userId}`, {
+      const res = await authFetch(`/api/signatures/permissions/users/${userToRevoke}`, {
         method: 'DELETE',
       });
 
@@ -213,6 +217,7 @@ const SignaturePermissions: React.FC = () => {
       setError(err instanceof Error ? err.message : 'Failed to revoke permission');
     } finally {
       setSaving(false);
+      setUserToRevoke(null);
     }
   };
 
@@ -695,6 +700,16 @@ const SignaturePermissions: React.FC = () => {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={userToRevoke !== null}
+        title="Revoke Permission"
+        message="Are you sure you want to revoke this permission? The user will have viewer access only."
+        variant="warning"
+        confirmText="Revoke"
+        onConfirm={confirmRevokePermission}
+        onCancel={() => setUserToRevoke(null)}
+      />
     </div>
   );
 };

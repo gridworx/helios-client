@@ -1,8 +1,8 @@
 import React from 'react';
-import { Users, UserX, Shield, Package, RefreshCw, AlertCircle, Activity, UserPlus, Trash2, Clock, UserMinus, Key, Calendar } from 'lucide-react';
+import { Users, UserX, Shield, Package, RefreshCw, AlertCircle, Activity, UserPlus, Trash2, Clock, UserMinus, Key, Calendar, ShieldCheck, AppWindow, AlertTriangle } from 'lucide-react';
 
 export type WidgetId = string;
-export type WidgetCategory = 'google' | 'microsoft' | 'helios' | 'system';
+export type WidgetCategory = 'google' | 'microsoft' | 'helios' | 'system' | 'security';
 
 export interface WidgetDefinition {
   id: WidgetId;
@@ -219,6 +219,35 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
     gridColumn: 3,
     enabled: false,
     platformColor: '#ef4444',
+  },
+
+  // Security Widgets
+  {
+    id: 'security-2fa-adoption',
+    category: 'security',
+    title: '2FA Adoption',
+    icon: <ShieldCheck size={16} />,
+    gridColumn: 3,
+    enabled: true,
+    platformColor: '#10b981', // green
+  },
+  {
+    id: 'security-connected-apps',
+    category: 'security',
+    title: 'Connected Apps',
+    icon: <AppWindow size={16} />,
+    gridColumn: 3,
+    enabled: true,
+    platformColor: '#8b5cf6', // purple
+  },
+  {
+    id: 'security-users-without-2fa',
+    category: 'security',
+    title: 'Users Without 2FA',
+    icon: <AlertTriangle size={16} />,
+    gridColumn: 3,
+    enabled: false, // Hidden by default
+    platformColor: '#ef4444', // red
   },
 
   // TODO: Future system stats widgets

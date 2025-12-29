@@ -13,8 +13,9 @@ import { TrackingSettings } from './settings/TrackingSettings';
 import { FeatureFlagsSettings } from './settings/FeatureFlagsSettings';
 import { EntityLabelSettings } from './settings/EntityLabelSettings';
 import { useTabPersistence } from '../hooks/useTabPersistence';
-import { Package, Building2, Shield, Lock, Palette, Settings as SettingsIcon, Key, Search as SearchIcon, RefreshCw, BarChart3, Info, MoreVertical, Power, Database, Bot, ToggleLeft } from 'lucide-react';
+import { Package, Building2, Shield, Lock, Palette, Settings as SettingsIcon, Key, Search as SearchIcon, RefreshCw, BarChart3, Info, MoreVertical, Power, Database, Bot, ToggleLeft, Link } from 'lucide-react';
 import { authFetch } from '../config/api';
+import { ConfirmDialog } from './ui/ConfirmDialog';
 
 interface SettingsProps {
   organizationName: string;
@@ -23,6 +24,7 @@ interface SettingsProps {
   showPasswordModal?: boolean;
   onPasswordModalChange?: (show: boolean) => void;
   currentUser?: any;
+  onAIConfigChange?: () => void;
 }
 
 interface ModuleStatus {
@@ -33,7 +35,7 @@ interface ModuleStatus {
   updatedAt?: string;
 }
 
-export function Settings({ organizationName, domain, organizationId, showPasswordModal: externalShowPasswordModal, onPasswordModalChange, currentUser }: SettingsProps) {
+export function Settings({ organizationName, domain, organizationId, showPasswordModal: externalShowPasswordModal, onPasswordModalChange, currentUser, onAIConfigChange }: SettingsProps) {
   const [activeTab, setActiveTab] = useTabPersistence<'modules' | 'organization' | 'roles' | 'security' | 'customization' | 'integrations' | 'masterdata' | 'ai' | 'features' | 'advanced'>('helios_settings_tab', 'modules');
   const [showModuleConfig, setShowModuleConfig] = useState(false);
   const [configuringModule, setConfiguringModule] = useState<string | null>(null);
@@ -100,6 +102,7 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
   const [showApiKeyWizard, setShowApiKeyWizard] = useState(false);
   const [newApiKeyData, setNewApiKeyData] = useState<any>(null);
   const [showModuleMenu, setShowModuleMenu] = useState(false);
+  const [showDisableGoogleConfirm, setShowDisableGoogleConfirm] = useState(false);
 
   // Fetch module status on component mount
   useEffect(() => {
@@ -399,26 +402,9 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                                   <div className="module-more-dropdown">
                                     <button
                                       className="danger"
-                                      onClick={async () => {
+                                      onClick={() => {
                                         setShowModuleMenu(false);
-                                        if (confirm('Are you sure you want to disable Google Workspace? This will stop all synchronization.')) {
-                                          try {
-                                            const response = await authFetch(`/api/v1/google-workspace/disable/${organizationId}`, {
-                                              method: 'POST'
-                                            });
-
-                                            const data = await response.json();
-                                            if (data.success) {
-                                              alert('Google Workspace has been disabled');
-                                              fetchModuleStatus();
-                                            } else {
-                                              alert(`Failed to disable: ${data.message}`);
-                                            }
-                                          } catch (error) {
-                                            alert('Error disabling Google Workspace');
-                                            console.error(error);
-                                          }
-                                        }
+                                        setShowDisableGoogleConfirm(true);
                                       }}
                                     >
                                       <Power size={14} /> Disable Module
@@ -767,23 +753,24 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                     <div className="policy-row">
                       <label className="checkbox-label">
                         <input type="checkbox" disabled />
-                        <span style={{ color: '#9ca3af' }}>Require Two-Factor Authentication for all users - Coming Soon</span>
+                        <span style={{ color: '#9ca3af' }}>Require Two-Factor Authentication for all users</span>
                       </label>
                     </div>
                     <div className="policy-row">
                       <label className="checkbox-label">
                         <input type="checkbox" disabled />
-                        <span style={{ color: '#9ca3af' }}>Require SSO for all users - Coming Soon</span>
+                        <span style={{ color: '#9ca3af' }}>Require SSO for all users</span>
                       </label>
                     </div>
                   </div>
+                  <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '8px' }}>Contact your administrator to enable these features.</p>
                 </div>
 
                 <div className="security-card">
                   <h3><Shield size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />Single Sign-On (SSO)</h3>
                   <p>Configure SAML or OAuth for your organization</p>
                   <div style={{ padding: '16px', background: '#f9fafb', borderRadius: '8px', color: '#6b7280', fontSize: '13px' }}>
-                    SSO configuration is coming soon. Contact support if you need early access.
+                    SSO configuration requires enterprise setup. Contact support for assistance.
                   </div>
                 </div>
               </div>
@@ -816,6 +803,58 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                 <EntityLabelSettings
                   isAdmin={currentUser?.role === 'admin'}
                 />
+
+                {/* Branding & Support Settings - Admin Only */}
+                {currentUser?.role === 'admin' && (
+                  <div className="customization-card">
+                    <h3><Link size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />Branding & Support</h3>
+                    <p>Configure navigation and support links</p>
+                    <div className="branding-settings">
+                      <div className="setting-row">
+                        <label>
+                          <span className="setting-label">Logo Click URL</span>
+                          <span className="setting-hint">Where clicking the logo/company name navigates to</span>
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="/admin/dashboard (default)"
+                          className="setting-input"
+                          defaultValue=""
+                          disabled
+                        />
+                      </div>
+                      <div className="setting-row">
+                        <label>
+                          <span className="setting-label">Support Portal URL</span>
+                          <span className="setting-hint">Link to your organization's support/helpdesk portal</span>
+                        </label>
+                        <input
+                          type="url"
+                          placeholder="https://support.yourcompany.com"
+                          className="setting-input"
+                          defaultValue=""
+                          disabled
+                        />
+                      </div>
+                      <div className="setting-row">
+                        <label>
+                          <span className="setting-label">Support Email</span>
+                          <span className="setting-hint">Email address for support inquiries</span>
+                        </label>
+                        <input
+                          type="email"
+                          placeholder="support@yourcompany.com"
+                          className="setting-input"
+                          defaultValue=""
+                          disabled
+                        />
+                      </div>
+                      <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '12px' }}>
+                        These settings are stored in organization configuration. Contact your system administrator to update.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -837,11 +876,23 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
           )}
 
           {activeTab === 'masterdata' && (
-            <MasterDataSection organizationId={organizationId} />
+            <div className="settings-section">
+              <div className="section-header">
+                <h2>Master Data</h2>
+                <p>Manage departments, locations, cost centers, job titles and licenses</p>
+              </div>
+              <MasterDataSection organizationId={organizationId} />
+            </div>
           )}
 
           {activeTab === 'ai' && (
-            <AISettings organizationId={organizationId} />
+            <div className="settings-section">
+              <div className="section-header">
+                <h2>AI Assistant</h2>
+                <p>Configure the AI-powered help and command assistant</p>
+              </div>
+              <AISettings organizationId={organizationId} onConfigSaved={onAIConfigChange} />
+            </div>
           )}
 
           {activeTab === 'features' && (
@@ -1122,6 +1173,34 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
           onClose={() => setNewApiKeyData(null)}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={showDisableGoogleConfirm}
+        title="Disable Google Workspace"
+        message="Are you sure you want to disable Google Workspace? This will stop all synchronization."
+        variant="danger"
+        confirmText="Disable"
+        onConfirm={async () => {
+          try {
+            const response = await authFetch(`/api/v1/google-workspace/disable/${organizationId}`, {
+              method: 'POST'
+            });
+
+            const data = await response.json();
+            if (data.success) {
+              alert('Google Workspace has been disabled');
+              fetchModuleStatus();
+            } else {
+              alert(`Failed to disable: ${data.message}`);
+            }
+          } catch (error) {
+            alert('Error disabling Google Workspace');
+            console.error(error);
+          }
+          setShowDisableGoogleConfirm(false);
+        }}
+        onCancel={() => setShowDisableGoogleConfirm(false)}
+      />
     </div>
   );
 }

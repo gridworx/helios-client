@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import './FilesAssets.css';
 import { authFetch } from '../config/api';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 
 interface FilesAssetsProps {
   organizationId: string;
@@ -109,6 +110,9 @@ export function FilesAssets({ organizationId: _organizationId }: FilesAssetsProp
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [creatingFolder, setCreatingFolder] = useState(false);
+
+  // Delete confirmation state
+  const [assetToDelete, setAssetToDelete] = useState<MediaAsset | null>(null);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -270,13 +274,15 @@ export function FilesAssets({ organizationId: _organizationId }: FilesAssetsProp
     }
   };
 
-  const handleDeleteAsset = async (asset: MediaAsset) => {
-    if (!confirm(`Delete "${asset.name}"? This action cannot be undone.`)) {
-      return;
-    }
+  const handleDeleteAsset = (asset: MediaAsset) => {
+    setAssetToDelete(asset);
+  };
+
+  const confirmDeleteAsset = async () => {
+    if (!assetToDelete) return;
 
     try {
-      const response = await authFetch(`/api/v1/assets/${asset.id}?deleteFile=true`, {
+      const response = await authFetch(`/api/v1/assets/${assetToDelete.id}?deleteFile=true`, {
         method: 'DELETE',
       });
 
@@ -289,6 +295,8 @@ export function FilesAssets({ organizationId: _organizationId }: FilesAssetsProp
       setSelectedAsset(null);
     } catch (err: any) {
       alert(`Error: ${err.message}`);
+    } finally {
+      setAssetToDelete(null);
     }
   };
 
@@ -911,6 +919,17 @@ export function FilesAssets({ organizationId: _organizationId }: FilesAssetsProp
           selectedFolder={selectedFolder}
         />
       )}
+
+      {/* Delete Asset Confirmation */}
+      <ConfirmDialog
+        isOpen={assetToDelete !== null}
+        title="Delete Asset"
+        message={`Are you sure you want to delete "${assetToDelete?.name}"? This action cannot be undone.`}
+        variant="danger"
+        confirmText="Delete"
+        onConfirm={confirmDeleteAsset}
+        onCancel={() => setAssetToDelete(null)}
+      />
     </div>
   );
 }

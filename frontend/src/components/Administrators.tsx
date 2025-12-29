@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { authFetch } from '../config/api';
+import { ConfirmDialog } from './ui/ConfirmDialog';
 import './Administrators.css';
 
 interface Admin {
@@ -29,6 +30,7 @@ export function Administrators() {
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [adminToDemote, setAdminToDemote] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAdmins();
@@ -94,13 +96,15 @@ export function Administrators() {
     }
   };
 
-  const demoteAdmin = async (adminId: string) => {
-    if (!confirm('Are you sure you want to demote this administrator to a regular user?')) {
-      return;
-    }
+  const demoteAdmin = (adminId: string) => {
+    setAdminToDemote(adminId);
+  };
+
+  const confirmDemoteAdmin = async () => {
+    if (!adminToDemote) return;
 
     try {
-      const response = await authFetch(`/api/v1/organization/admins/demote/${adminId}`, {
+      const response = await authFetch(`/api/v1/organization/admins/demote/${adminToDemote}`, {
         method: 'POST'
       });
 
@@ -116,6 +120,7 @@ export function Administrators() {
       console.error('Failed to demote admin:', err);
       alert('Failed to demote administrator');
     }
+    setAdminToDemote(null);
   };
 
   const formatDate = (dateString?: string) => {
@@ -256,6 +261,16 @@ export function Administrators() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={adminToDemote !== null}
+        title="Demote Administrator"
+        message="Are you sure you want to demote this administrator to a regular user?"
+        variant="warning"
+        confirmText="Demote"
+        onConfirm={confirmDemoteAdmin}
+        onCancel={() => setAdminToDemote(null)}
+      />
     </div>
   );
 }

@@ -215,6 +215,8 @@
   white-space: pre-wrap;
   word-break: break-word;
   flex: 1;
+  user-select: text;
+  cursor: text;
 }
 
 /* Line Types */

@@ -94,6 +94,20 @@ const COMMAND_SECTIONS: CommandSection[] = [
     ]
   },
   {
+    title: 'Security & 2FA',
+    commands: [
+      { command: 'list 2fa', description: 'List 2FA status for all users', example: 'list 2fa' },
+      { command: 'list 2fa --enrolled', description: 'List users enrolled in 2FA', example: 'list 2fa --enrolled' },
+      { command: 'list 2fa --not-enrolled', description: 'List users NOT enrolled in 2FA', example: 'list 2fa --not-enrolled' },
+      { command: 'list 2fa --enforced', description: 'List users with 2FA enforced', example: 'list 2fa --enforced' },
+      { command: 'get 2fa <email>', description: 'Get 2FA status for a user', example: 'get 2fa john@example.com' },
+      { command: 'list tokens', description: 'List all OAuth apps in organization', example: 'list tokens' },
+      { command: 'list tokens --high-risk', description: 'List only high-risk OAuth apps', example: 'list tokens --high-risk' },
+      { command: 'list tokens --user <email>', description: 'List OAuth tokens for a user', example: 'list tokens --user john@example.com' },
+      { command: 'revoke token <email> <clientId>', description: 'Revoke OAuth token from user', example: 'revoke token john@example.com 123456.apps.googleusercontent.com' }
+    ]
+  },
+  {
     title: 'Email Settings',
     commands: [
       { command: 'gw forwarding get <email>', description: 'Get forwarding settings', example: 'gw forwarding get john@example.com' },

@@ -1,5 +1,5 @@
 .ai-settings {
-  max-width: 800px;
+  /* Uses standard settings layout from Settings.css */
 }
 
 .ai-settings-loading {
@@ -125,10 +125,10 @@
 
 .ai-settings-section {
   background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
 }
 
 .section-title {
@@ -791,11 +791,40 @@
   gap: 8px;
 }
 
-.model-selector-row .model-input {
+.model-selector-row .model-input,
+.model-selector-row .model-select {
   flex: 1;
+  min-width: 0;
+}
+
+.model-selector-row select.model-select {
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #1e293b;
+  background: white;
+  cursor: pointer;
+}
+
+.model-selector-row select.model-select:focus {
+  outline: none;
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
 }
 
 .model-selector-row .discover-btn {
+  flex-shrink: 0;
+}
+
+.form-hint.success {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #16a34a;
+}
+
+.form-hint.success svg {
   flex-shrink: 0;
 }
 

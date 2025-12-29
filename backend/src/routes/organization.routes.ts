@@ -350,7 +350,7 @@ router.put('/settings', authenticateToken, async (req: Request, res: Response) =
 
     // Validate input
     if (!name && !domain) {
-      return validationErrorResponse(res, 'At least one field (name or domain) is required');
+      return validationErrorResponse(res, [{ field: 'name', message: 'At least one field (name or domain) is required' }]);
     }
 
     // Build update query dynamically
@@ -480,22 +480,22 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
     let users = [];
     const userEmailMap = new Map(); // Track users by email to avoid duplicates
 
-    // Build status filter condition
+    // Build status filter condition (using 'status' column, not 'user_status')
     let statusCondition = '';
     if (includeDeleted) {
       // When includeDeleted is true, don't filter by deletion status at all
       statusCondition = '';
     } else if (statusFilter === 'active') {
-      statusCondition = "AND ou.user_status = 'active'";
+      statusCondition = "AND ou.status = 'active'";
     } else if (statusFilter === 'pending' || statusFilter === 'staged') {
-      statusCondition = "AND ou.user_status = 'staged'";
+      statusCondition = "AND ou.status = 'staged'";
     } else if (statusFilter === 'suspended') {
-      statusCondition = "AND ou.user_status = 'suspended'";
+      statusCondition = "AND ou.status = 'suspended'";
     } else if (statusFilter === 'deleted') {
-      statusCondition = "AND ou.user_status = 'deleted'";
+      statusCondition = "AND ou.status = 'deleted'";
     } else {
       // 'all' means all non-deleted users by default (excludes soft-deleted)
-      statusCondition = "AND (ou.user_status IS NULL OR ou.user_status != 'deleted')";
+      statusCondition = "AND (ou.status IS NULL OR ou.status != 'deleted')";
     }
 
     // Add user type filter condition
@@ -529,17 +529,12 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
         ou.last_name as "lastName",
         ou.role,
         ou.is_active as "isActive",
-        ou.user_status as "userStatus",
-        ou.deleted_at as "deletedAt",
+        ou.status as "userStatus",
         ou.is_guest as "isGuest",
         ou.user_type as "userType",
         ou.guest_expires_at as "guestExpiresAt",
         ou.guest_invited_by as "guestInvitedBy",
         ou.guest_invited_at as "guestInvitedAt",
-        ou.company,
-        ou.contact_tags as "contactTags",
-        ou.added_by as "addedBy",
-        ou.added_at as "addedAt",
         ou.created_at as "createdAt",
         ou.updated_at as "updatedAt",
         ou.job_title as "jobTitle",
@@ -635,10 +630,17 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
         // Use explicit department field, or extract from OU path as fallback
         const gwDepartment = user.department || extractDepartmentFromOUPath(user.org_unit_path);
 
-        // If user already exists locally, add google_workspace to their platforms
+        // If user already exists locally, add google_workspace to their platforms if not already present
         if (userEmailMap.has(email)) {
           const existingUser = userEmailMap.get(email);
-          existingUser.platforms.push('google_workspace');
+          if (!existingUser.platforms.includes('google_workspace')) {
+            existingUser.platforms.push('google_workspace');
+            // Remove 'local' if we now have a real platform
+            const localIndex = existingUser.platforms.indexOf('local');
+            if (localIndex > -1) {
+              existingUser.platforms.splice(localIndex, 1);
+            }
+          }
           existingUser.googleWorkspaceData = {
             googleId: user.external_id,
             department: gwDepartment,
@@ -647,6 +649,11 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
             lastLogin: user.last_login_time,
             isSuspended: user.is_suspended
           };
+          // If GW shows suspended, update status (GW is authoritative for access)
+          if (user.is_suspended) {
+            existingUser.status = 'suspended';
+            existingUser.isActive = false;
+          }
         } else if (statusFilter === 'all' || includeDeleted) {
           // Only add GW-only users when not filtering by a specific status
           // When filtering by active/deleted/suspended/etc, only show users
@@ -658,6 +665,7 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
             lastName: user.lastName || '',
             displayName: user.displayName || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
             role: user.is_admin ? 'admin' : 'user',
+            status: user.is_suspended ? 'suspended' : 'active',
             isActive: !user.is_suspended,
             platforms: platforms,
             department: gwDepartment,
@@ -723,7 +731,7 @@ router.get('/users/count', authenticateToken, async (req: Request, res: Response
     // Count users by type (exclude soft-deleted)
     const result = await db.query(
       `SELECT COUNT(*) as count FROM organization_users
-       WHERE organization_id = $1 AND user_type = $2 AND deleted_at IS NULL`,
+       WHERE organization_id = $1 AND user_type = $2 AND status != 'deleted'`,
       [organizationId, dbUserType]
     );
 
@@ -801,10 +809,10 @@ router.get('/users/export', authenticateToken, async (req: Request, res: Respons
     // Add status filter if provided
     if (status && status !== 'all') {
       if (status === 'pending') {
-        whereClause += ' AND user_status = $3';
+        whereClause += ' AND status = $3';
         params.push('staged');
       } else {
-        whereClause += ' AND user_status = $3';
+        whereClause += ' AND status = $3';
         params.push(status);
       }
     }
@@ -822,7 +830,7 @@ router.get('/users/export', authenticateToken, async (req: Request, res: Respons
         employee_type,
         mobile_phone,
         work_phone,
-        user_status,
+        status,
         is_active,
         google_workspace_id,
         microsoft_365_id,
@@ -877,7 +885,7 @@ router.get('/users/export', authenticateToken, async (req: Request, res: Respons
           escapeCsvValue(user.employee_type),
           escapeCsvValue(user.mobile_phone),
           escapeCsvValue(user.work_phone),
-          escapeCsvValue(user.user_status),
+          escapeCsvValue(user.status),
           user.is_active ? 'Yes' : 'No',
           escapeCsvValue(user.google_workspace_id),
           escapeCsvValue(user.microsoft_365_id),
@@ -930,7 +938,7 @@ router.get('/users/stats', authenticateToken, async (req: Request, res: Response
         role,
         COUNT(*) as count
       FROM organization_users
-      WHERE organization_id = $1 AND is_active = true AND deleted_at IS NULL
+      WHERE organization_id = $1 AND is_active = true AND status != 'deleted'
       GROUP BY role
     `, [organizationId]);
 
@@ -940,7 +948,7 @@ router.get('/users/stats', authenticateToken, async (req: Request, res: Response
         COALESCE(employee_type, 'Unknown') as employee_type,
         COUNT(*) as count
       FROM organization_users
-      WHERE organization_id = $1 AND is_active = true AND deleted_at IS NULL
+      WHERE organization_id = $1 AND is_active = true AND status != 'deleted'
       GROUP BY employee_type
     `, [organizationId]);
 
@@ -951,7 +959,7 @@ router.get('/users/stats', authenticateToken, async (req: Request, res: Response
       WHERE organization_id = $1
         AND reporting_manager_id IS NOT NULL
         AND is_active = true
-        AND deleted_at IS NULL
+        AND status != 'deleted'
     `, [organizationId]);
 
     // Get orphaned users count (no manager, not CEO)
@@ -960,7 +968,7 @@ router.get('/users/stats', authenticateToken, async (req: Request, res: Response
       FROM organization_users
       WHERE organization_id = $1
         AND is_active = true
-        AND deleted_at IS NULL
+        AND status != 'deleted'
         AND reporting_manager_id IS NULL
         AND job_title NOT LIKE '%Chief Executive%'
         AND COALESCE(job_title, '') != 'CEO'
@@ -970,7 +978,7 @@ router.get('/users/stats', authenticateToken, async (req: Request, res: Response
     const totalResult = await db.query(`
       SELECT COUNT(*) as count
       FROM organization_users
-      WHERE organization_id = $1 AND is_active = true AND deleted_at IS NULL
+      WHERE organization_id = $1 AND is_active = true AND status != 'deleted'
     `, [organizationId]);
 
     // Build role counts object
@@ -1030,7 +1038,7 @@ router.get('/users/:userId', authenticateToken, async (req: Request, res: Respon
         ou.is_active as "isActive",
         ou.created_at as "createdAt",
         ou.updated_at as "updatedAt",
-        ou.user_status as "userStatus",
+        ou.status as "userStatus",
         ou.job_title as "jobTitle",
         ou.professional_designations as "professionalDesignations",
         ou.pronouns,
@@ -1245,7 +1253,7 @@ router.post('/users', authenticateToken, async (req: Request, res: Response) => 
       `INSERT INTO organization_users (
         email, password_hash, first_name, last_name,
         role, organization_id, is_active, email_verified,
-        alternate_email, password_setup_method, user_status,
+        alternate_email, password_setup_method, status,
         job_title, department, department_id, organizational_unit, location,
         reporting_manager_id, employee_id, employee_type, cost_center,
         start_date, end_date, bio,
@@ -1257,7 +1265,7 @@ router.post('/users', authenticateToken, async (req: Request, res: Response) => 
         created_at
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, NOW())
-      RETURNING id, email, first_name, last_name, role, is_active, alternate_email, user_status as "userStatus", job_title, department, department_id, location, is_external_admin, created_at`,
+      RETURNING id, email, first_name, last_name, role, is_active, alternate_email, status as "userStatus", job_title, department, department_id, location, is_external_admin, created_at`,
       [
         email.toLowerCase(),
         passwordHash,
@@ -1729,7 +1737,7 @@ router.delete('/users/:userId', authenticateToken, async (req: Request, res: Res
 
     // Check if user exists and get their info for the audit log
     const userResult = await db.query(
-      'SELECT id, email, role, user_status FROM organization_users WHERE id = $1 AND organization_id = $2',
+      'SELECT id, email, role, status FROM organization_users WHERE id = $1 AND organization_id = $2',
       [userId, organizationId]
     );
 
@@ -1747,7 +1755,7 @@ router.delete('/users/:userId', authenticateToken, async (req: Request, res: Res
       const adminCount = await db.query(`
         SELECT COUNT(*) as count
         FROM organization_users
-        WHERE organization_id = $1 AND role = 'admin' AND deleted_at IS NULL
+        WHERE organization_id = $1 AND role = 'admin' AND status != 'deleted'
       `, [organizationId]);
 
       if (parseInt(adminCount.rows[0].count) <= 1) {
@@ -1765,10 +1773,10 @@ router.delete('/users/:userId', authenticateToken, async (req: Request, res: Res
     );
     const googleWorkspaceId = userInfo.rows[0]?.google_workspace_id;
 
-    // Soft delete user by setting deleted_at timestamp
+    // Soft delete user by setting status to deleted
     await db.query(
       `UPDATE organization_users
-       SET deleted_at = NOW(), user_status = 'deleted', is_active = false
+       SET status = 'deleted', is_active = false, updated_at = NOW()
        WHERE id = $1 AND organization_id = $2`,
       [userId, organizationId]
     );
@@ -1885,7 +1893,7 @@ router.patch('/users/:userId/status', authenticateToken, async (req: Request, re
 
     // Get current user info
     const userResult = await db.query(
-      'SELECT id, email, user_status FROM organization_users WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL',
+      `SELECT id, email, status FROM organization_users WHERE id = $1 AND organization_id = $2 AND status != 'deleted'`,
       [userId, organizationId]
     );
 
@@ -1896,13 +1904,13 @@ router.patch('/users/:userId/status', authenticateToken, async (req: Request, re
       });
     }
 
-    const oldStatus = userResult.rows[0].user_status;
+    const oldStatus = userResult.rows[0].status;
 
     // Update user status
     const isActive = status === 'active';
     await db.query(
       `UPDATE organization_users
-       SET user_status = $1, is_active = $2, updated_at = NOW()
+       SET status = $1, is_active = $2, updated_at = NOW()
        WHERE id = $3 AND organization_id = $4`,
       [status, isActive, userId, organizationId]
     );
@@ -1974,7 +1982,7 @@ router.patch('/users/:userId/restore', authenticateToken, async (req: Request, r
 
     // Check if user exists and is deleted
     const userResult = await db.query(
-      'SELECT id, email, deleted_at FROM organization_users WHERE id = $1 AND organization_id = $2',
+      `SELECT id, email, status FROM organization_users WHERE id = $1 AND organization_id = $2`,
       [userId, organizationId]
     );
 
@@ -1986,29 +1994,19 @@ router.patch('/users/:userId/restore', authenticateToken, async (req: Request, r
     }
 
     const user = userResult.rows[0];
+    const daysSinceDeleted = 0; // Could be calculated from deleted_at if stored
 
-    if (!user.deleted_at) {
+    if (user.status !== 'deleted') {
       return res.status(400).json({
         success: false,
         error: 'User is not deleted'
       });
     }
 
-    // Check if deletion was more than 30 days ago
-    const deletedDate = new Date(user.deleted_at);
-    const daysSinceDeleted = Math.floor((Date.now() - deletedDate.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (daysSinceDeleted > 30) {
-      return res.status(400).json({
-        success: false,
-        error: 'User was deleted more than 30 days ago and cannot be restored'
-      });
-    }
-
-    // Restore user by clearing deleted_at and setting status to active
+    // Restore user by setting status to active
     await db.query(
       `UPDATE organization_users
-       SET deleted_at = NULL, user_status = 'active', is_active = true, updated_at = NOW()
+       SET status = 'active', is_active = true, updated_at = NOW()
        WHERE id = $1 AND organization_id = $2`,
       [userId, organizationId]
     );
@@ -2087,7 +2085,7 @@ router.post('/users/:userId/reset-password', authenticateToken, async (req: Requ
 
     // Get user details
     const userResult = await db.query(
-      'SELECT id, email, first_name, last_name, deleted_at FROM organization_users WHERE id = $1 AND organization_id = $2',
+      `SELECT id, email, first_name, last_name, status FROM organization_users WHERE id = $1 AND organization_id = $2`,
       [userId, organizationId]
     );
 
@@ -2100,7 +2098,7 @@ router.post('/users/:userId/reset-password', authenticateToken, async (req: Requ
 
     const user = userResult.rows[0];
 
-    if (user.deleted_at) {
+    if (user.status === 'deleted') {
       return res.status(400).json({
         success: false,
         error: 'Cannot reset password for a deleted user'
@@ -2740,7 +2738,7 @@ router.post('/users/:userId/block', authenticateToken, async (req: Request, res:
     await db.query(`
       UPDATE organization_users
       SET
-        user_status = 'blocked',
+        status = 'blocked',
         is_active = false,
         blocked_at = NOW(),
         blocked_by = $1,

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Key, Plus, Trash2, RefreshCw, Clock, AlertCircle, CheckCircle } from 'lucide-react';
 import { authFetch } from '../../config/api';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import './ApiKeyList.css';
 
 interface ApiKey {
@@ -28,6 +29,7 @@ export function ApiKeyList({ organizationId, onCreateKey }: ApiKeyListProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'active' | 'expired' | 'revoked'>('all');
   const [typeFilter, setTypeFilter] = useState<'all' | 'service' | 'vendor'>('all');
+  const [keyToRevoke, setKeyToRevoke] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     fetchKeys();
@@ -55,14 +57,16 @@ export function ApiKeyList({ organizationId, onCreateKey }: ApiKeyListProps) {
     }
   };
 
-  const handleRevoke = async (keyId: string, keyName: string) => {
-    if (!confirm(`Are you sure you want to revoke the API key "${keyName}"? This action cannot be undone.`)) {
-      return;
-    }
+  const handleRevoke = (keyId: string, keyName: string) => {
+    setKeyToRevoke({ id: keyId, name: keyName });
+  };
+
+  const confirmRevoke = async () => {
+    if (!keyToRevoke) return;
 
     try {
       const response = await authFetch(
-        `/api/v1/organization/api-keys/${keyId}`,
+        `/api/v1/organization/api-keys/${keyToRevoke.id}`,
         {
           method: 'DELETE',
         }
@@ -78,6 +82,7 @@ export function ApiKeyList({ organizationId, onCreateKey }: ApiKeyListProps) {
     } catch (error: any) {
       alert(`Error: ${error.message}`);
     }
+    setKeyToRevoke(null);
   };
 
   const handleRenew = async (_keyId: string, keyName: string) => {
@@ -292,6 +297,16 @@ export function ApiKeyList({ organizationId, onCreateKey }: ApiKeyListProps) {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={keyToRevoke !== null}
+        title="Revoke API Key"
+        message={`Are you sure you want to revoke the API key "${keyToRevoke?.name}"? This action cannot be undone.`}
+        variant="danger"
+        confirmText="Revoke"
+        onConfirm={confirmRevoke}
+        onCancel={() => setKeyToRevoke(null)}
+      />
     </div>
   );
 }

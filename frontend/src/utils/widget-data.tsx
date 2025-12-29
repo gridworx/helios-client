@@ -45,6 +45,27 @@ interface OrganizationStats {
     totalUsers: number;
     guestUsers: number;
   };
+  security?: {
+    twoFactor: {
+      total: number;
+      enrolled: number;
+      notEnrolled: number;
+      percentage: number;
+      bySource?: {
+        helios: { total: number; enrolled: number };
+        google: { total: number; enrolled: number };
+        m365: { total: number; enrolled: number };
+      };
+    };
+    oauthApps: {
+      totalApps: number;
+      totalGrants: number;
+      topApps: Array<{
+        displayName: string;
+        userCount: number;
+      }>;
+    };
+  };
 }
 
 const formatLastSync = (syncTime: string | null): string => {
@@ -251,6 +272,88 @@ export const getWidgetData = (
       value: allSynced ? 'Synced' : 'Needs Sync',
       label: 'all platforms',
       state: allSynced ? 'success' : 'warning',
+    };
+  }
+
+  // Security Widgets
+  if (widgetId === 'security-2fa-adoption') {
+    const twoFactor = stats?.security?.twoFactor;
+    if (!twoFactor) {
+      return {
+        ...baseData,
+        value: 'N/A',
+        label: 'sync required',
+        footer: 'Enable integrations to see 2FA status',
+        state: 'default',
+      };
+    }
+
+    // Build footer with per-source breakdown if available
+    let footer = twoFactor.percentage >= 90 ? 'Excellent adoption' : twoFactor.percentage >= 70 ? 'Good progress' : 'Needs improvement';
+
+    if (twoFactor.bySource) {
+      const parts: string[] = [];
+      if (twoFactor.bySource.helios.total > 0) {
+        parts.push(`H: ${twoFactor.bySource.helios.enrolled}/${twoFactor.bySource.helios.total}`);
+      }
+      if (twoFactor.bySource.google.total > 0) {
+        parts.push(`G: ${twoFactor.bySource.google.enrolled}/${twoFactor.bySource.google.total}`);
+      }
+      if (twoFactor.bySource.m365.total > 0) {
+        parts.push(`M: ${twoFactor.bySource.m365.enrolled}/${twoFactor.bySource.m365.total}`);
+      }
+      if (parts.length > 0) {
+        footer = parts.join(' | ');
+      }
+    }
+
+    return {
+      ...baseData,
+      value: `${twoFactor.percentage}%`,
+      label: `${twoFactor.enrolled} of ${twoFactor.total} users`,
+      footer,
+      state: twoFactor.percentage >= 90 ? 'success' : twoFactor.percentage >= 70 ? 'default' : 'warning',
+    };
+  }
+
+  if (widgetId === 'security-connected-apps') {
+    const oauthApps = stats?.security?.oauthApps;
+    if (!oauthApps) {
+      return {
+        ...baseData,
+        value: 'N/A',
+        label: 'sync required',
+        footer: 'Run OAuth sync',
+        state: 'default',
+      };
+    }
+
+    return {
+      ...baseData,
+      value: oauthApps.totalApps,
+      label: 'apps',
+      footer: `${oauthApps.totalGrants} total grants`,
+      state: 'default',
+    };
+  }
+
+  if (widgetId === 'security-users-without-2fa') {
+    const twoFactor = stats?.security?.twoFactor;
+    if (!twoFactor) {
+      return {
+        ...baseData,
+        value: 'N/A',
+        label: 'sync required',
+        state: 'default',
+      };
+    }
+
+    return {
+      ...baseData,
+      value: twoFactor.notEnrolled,
+      label: 'users without 2FA',
+      footer: twoFactor.notEnrolled > 0 ? 'Requires attention' : 'All users protected',
+      state: twoFactor.notEnrolled > 0 ? 'warning' : 'success',
     };
   }
 

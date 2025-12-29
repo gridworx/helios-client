@@ -105,6 +105,7 @@ interface ToolTestResult {
 interface AISettingsProps {
   organizationId: string;
   onViewUsage?: () => void;
+  onConfigSaved?: () => void;
 }
 
 const COMMON_ENDPOINTS = [
@@ -133,7 +134,7 @@ const COMMON_MODELS = [
   'mixtral:8x7b'
 ];
 
-export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
+export function AISettings({ organizationId, onViewUsage, onConfigSaved }: AISettingsProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState<'primary' | 'fallback' | null>(null);
@@ -353,6 +354,8 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
         if (enableFallback) {
           setHasFallbackApiKey(true);
         }
+        // Notify parent that config was saved (to refresh AI status)
+        onConfigSaved?.();
         setTimeout(() => setSuccessMessage(null), 3000);
       } else {
         setError(data.message || 'Failed to save configuration');
@@ -365,10 +368,16 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
   };
 
   const discoverModels = async () => {
+    if (!primaryEndpointUrl) {
+      setModelsError('Please enter an endpoint URL first');
+      return;
+    }
+
     setLoadingModels(true);
     setModelsError(null);
     try {
-      const response = await authFetch('/api/v1/ai/models');
+      // Pass the endpoint URL from the form, not the saved config
+      const response = await authFetch(`/api/v1/ai/models?endpoint=${encodeURIComponent(primaryEndpointUrl)}`);
 
       const data = await response.json();
       if (data.success) {
@@ -535,7 +544,24 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
         <div className="form-group">
           <label>Model Name</label>
           <div className="model-selector-row">
-            <div className="input-with-suggestions model-input">
+            {/* When models are discovered, show dropdown. Otherwise show text input */}
+            {availableModels.length > 0 ? (
+              <select
+                className="form-input model-select"
+                value={primaryModel}
+                onChange={(e) => {
+                  setPrimaryModel(e.target.value);
+                  setToolTestResult(null);
+                }}
+              >
+                <option value="">Select a model...</option>
+                {availableModels.map(m => (
+                  <option key={m.name} value={m.name}>
+                    {m.name} ({m.sizeFormatted}) {m.estimatedToolSupport === 'likely' ? '✓ Tools' : m.estimatedToolSupport === 'unlikely' ? '✗ No Tools' : ''}
+                  </option>
+                ))}
+              </select>
+            ) : (
               <input
                 type="text"
                 value={primaryModel}
@@ -543,66 +569,52 @@ export function AISettings({ organizationId, onViewUsage }: AISettingsProps) {
                   setPrimaryModel(e.target.value);
                   setToolTestResult(null);
                 }}
-                placeholder="gpt-4o"
+                placeholder="gpt-4o, llama3.1:8b, etc."
+                className="model-input"
                 list="primary-models"
               />
-              <datalist id="primary-models">
-                {COMMON_MODELS.map(m => <option key={m} value={m} />)}
-                {availableModels.map(m => <option key={m.name} value={m.name} />)}
-              </datalist>
-            </div>
+            )}
+            <datalist id="primary-models">
+              {COMMON_MODELS.map(m => <option key={m} value={m} />)}
+            </datalist>
             <button
               type="button"
               onClick={discoverModels}
               disabled={loadingModels || !primaryEndpointUrl}
               className="btn-secondary discover-btn"
-              title="Discover available models from Ollama"
+              title="Discover available models from Ollama/vLLM"
             >
               {loadingModels ? (
                 <Loader2 className="spin" size={16} />
               ) : (
                 <RefreshCw size={16} />
               )}
-              Discover
+              {availableModels.length > 0 ? 'Refresh' : 'Discover'}
             </button>
           </div>
-          <span className="form-hint">Model identifier (e.g., gpt-4o, claude-3-opus, llama3.1:70b)</span>
+          {availableModels.length > 0 ? (
+            <span className="form-hint success">
+              <CheckCircle size={12} /> {availableModels.length} models discovered from server
+            </span>
+          ) : (
+            <span className="form-hint">
+              Model identifier (e.g., gpt-4o, llama3.1:70b). Click Discover for Ollama/vLLM servers.
+            </span>
+          )}
 
-          {/* Show discovered models as clean dropdown */}
-          {availableModels.length > 0 && (
-            <div className="discovered-models">
-              <div className="models-dropdown-row">
-                <select
-                  className="form-input models-select"
-                  value={primaryModel}
-                  onChange={(e) => {
-                    setPrimaryModel(e.target.value);
-                    setToolTestResult(null);
-                  }}
-                >
-                  <option value="">Select a model...</option>
-                  {availableModels.map(m => (
-                    <option key={m.name} value={m.name}>
-                      {m.name} ({m.sizeFormatted}) {m.estimatedToolSupport === 'likely' ? '- Tools OK' : m.estimatedToolSupport === 'unlikely' ? '- No Tools' : ''}
-                    </option>
-                  ))}
-                </select>
-                <span className="models-count">{availableModels.length} models found</span>
-              </div>
-              {primaryModel && availableModels.find(m => m.name === primaryModel) && (
-                <div className="selected-model-info">
-                  {(() => {
-                    const selected = availableModels.find(m => m.name === primaryModel);
-                    if (!selected) return null;
-                    return (
-                      <>
-                        <span className="model-detail"><strong>Size:</strong> {selected.sizeFormatted}</span>
-                        <span className="model-detail"><strong>Tools:</strong> {getToolSupportBadge(selected.estimatedToolSupport)}</span>
-                      </>
-                    );
-                  })()}
-                </div>
-              )}
+          {/* Show selected model info when using discovered models */}
+          {primaryModel && availableModels.find(m => m.name === primaryModel) && (
+            <div className="selected-model-info">
+              {(() => {
+                const selected = availableModels.find(m => m.name === primaryModel);
+                if (!selected) return null;
+                return (
+                  <>
+                    <span className="model-detail"><strong>Size:</strong> {selected.sizeFormatted}</span>
+                    <span className="model-detail">{getToolSupportBadge(selected.estimatedToolSupport)}</span>
+                  </>
+                );
+              })()}
             </div>
           )}
 

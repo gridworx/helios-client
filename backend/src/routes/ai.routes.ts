@@ -367,12 +367,16 @@ router.get('/models', requireAdmin, async (req: Request, res: Response): Promise
       return;
     }
 
-    // Get configured endpoint or use default
-    const config = await llmGatewayService.getConfig(organizationId);
+    // Use endpoint from query param if provided, otherwise use saved config
+    let endpoint: string;
+    if (req.query.endpoint && typeof req.query.endpoint === 'string') {
+      endpoint = req.query.endpoint;
+    } else {
+      const config = await llmGatewayService.getConfig(organizationId);
+      endpoint = config?.primaryEndpointUrl || 'http://localhost:11434/v1';
+    }
 
-    // Extract base URL from endpoint (remove /v1/chat/completions)
-    let endpoint = config?.primaryEndpointUrl || 'http://localhost:11434/v1';
-    // Clean up the endpoint to get the base Ollama URL
+    // Clean up the endpoint to get the base Ollama URL (remove /v1/chat/completions)
     endpoint = endpoint.replace(/\/v1(\/chat\/completions)?\/?$/, '');
 
     const models = await llmGatewayService.listModels(endpoint);
@@ -572,8 +576,11 @@ router.post('/chat', async (req: Request, res: Response): Promise<void> => {
     // Save user message to history
     await llmGatewayService.saveChatMessage(organizationId, userId, sessionId, userMessage, pageContext);
 
-    // Build AI tools if MCP is enabled (knowledge + data query tools)
-    const tools: Tool[] = config?.mcpEnabled ? getAllAITools() : [];
+    // Build AI tools based on role and MCP settings
+    // - MCP disabled = no tools at all (admin override to disable AI capabilities)
+    // - Viewer role = knowledge/documentation tools only
+    // - Operator/Admin role = knowledge tools + data query tools
+    const tools: Tool[] = config?.mcpEnabled ? getToolsForRole(aiRole) : [];
 
     // Send to LLM with optional tools
     let response = await llmGatewayService.complete(organizationId, userId, {
@@ -639,11 +646,10 @@ router.post('/chat', async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
- * Get all AI tools (knowledge base + data query)
+ * Get knowledge tools (documentation search) - available to all roles
  */
-function getAllAITools(): Tool[] {
-  // Knowledge tools (documentation search)
-  const knowledgeToolDefs: Tool[] = [
+function getKnowledgeTools(): Tool[] {
+  return [
     {
       type: 'function',
       function: searchKnowledgeToolDefinition
@@ -657,14 +663,48 @@ function getAllAITools(): Tool[] {
       function: listCommandsToolDefinition
     }
   ];
+}
 
-  // Data query tools (read-only access to actual data)
-  const dataToolDefs: Tool[] = dataQueryTools.map(def => ({
+/**
+ * Get data query tools (read-only data access) - available to operator/admin roles
+ */
+function getDataQueryTools(): Tool[] {
+  return dataQueryTools.map(def => ({
     type: 'function',
     function: def
   }));
+}
 
-  return [...knowledgeToolDefs, ...dataToolDefs];
+/**
+ * Get AI tools based on user role
+ * - viewer: knowledge/documentation only (can ask "how do I...")
+ * - operator: knowledge + data queries (can ask "how many users do I have")
+ * - admin: knowledge + data queries + future action tools
+ */
+function getToolsForRole(role: AIRole): Tool[] {
+  const tools: Tool[] = [];
+
+  // All roles get knowledge/documentation tools
+  tools.push(...getKnowledgeTools());
+
+  // Operator and Admin get data query tools
+  if (role === 'operator' || role === 'admin') {
+    tools.push(...getDataQueryTools());
+  }
+
+  // Future: Admin could get action tools here
+  // if (role === 'admin') {
+  //   tools.push(...getActionTools());
+  // }
+
+  return tools;
+}
+
+/**
+ * Get all AI tools (knowledge base + data query) - legacy function for backwards compatibility
+ */
+function getAllAITools(): Tool[] {
+  return getToolsForRole('admin');
 }
 
 // List of data query tool names (these need organizationId)
@@ -843,54 +883,56 @@ function getSystemPrompt(pageContext?: string): string {
 
 ## Developer Console Commands (Available in Settings > Developer Console):
 
-### Google Workspace Users (\`helios gw users\`)
-- \`helios gw users list\` - List all Google Workspace users
-- \`helios gw users get <email>\` - Get detailed user information
-- \`helios gw users create <email> --firstName=X --lastName=Y --password=Z\` - Create new user
-- \`helios gw users update <email> --firstName=X --lastName=Y\` - Update user properties
-- \`helios gw users suspend <email>\` - Suspend user account
-- \`helios gw users restore <email>\` - Restore suspended user
-- \`helios gw users delete <email>\` - Permanently delete user
-- \`helios gw users move <email> --ou=/Staff/Sales\` - Move user to different OU
-- \`helios gw users groups <email>\` - List all groups user belongs to
+**NOTE: The "helios" prefix is optional. Use \`gw users list\` or \`users list\` directly.**
 
-### Google Workspace Groups (\`helios gw groups\`)
-- \`helios gw groups list\` - List all groups
-- \`helios gw groups get <group-email>\` - Get group details
-- \`helios gw groups create <email> --name="Name" --description="Desc"\` - Create new group
-- \`helios gw groups update <group-email> --name="New Name"\` - Update group
-- \`helios gw groups delete <group-email>\` - Delete group
-- \`helios gw groups members <group-email>\` - List group members
-- \`helios gw groups add-member <group> <user> --role=MEMBER\` - Add user to group
-- \`helios gw groups remove-member <group> <user>\` - Remove user from group
+### Helios Users (\`users\`) - All organization users
+- \`users list\` - List ALL users in Helios (the central source of truth)
+- \`users debug\` - Show raw API response for debugging
 
-### Organizational Units (\`helios gw orgunits\`)
-- \`helios gw orgunits list\` - List all OUs with user counts
-- \`helios gw orgunits get </Staff/Sales>\` - Get OU details
-- \`helios gw orgunits create <parent> --name="Name"\` - Create new OU
-- \`helios gw orgunits update </Staff/Sales> --name="New Name"\` - Update OU
-- \`helios gw orgunits delete </Staff/Sales>\` - Delete OU
+### Google Workspace Users (\`gw users\`) - Users synced from Google
+- \`gw users list\` - List users synced from Google Workspace
+- \`gw users get <email>\` - Get detailed user information
+- \`gw users create <email> --firstName=X --lastName=Y --password=Z\` - Create new user
+- \`gw users update <email> --firstName=X --lastName=Y\` - Update user properties
+- \`gw users suspend <email>\` - Suspend user account
+- \`gw users restore <email>\` - Restore suspended user
+- \`gw users delete <email>\` - Permanently delete user
+- \`gw users move <email> --ou=/Staff/Sales\` - Move user to different OU
+- \`gw users groups <email>\` - List all groups user belongs to
 
-### Email Delegation (\`helios gw delegates\`)
-- \`helios gw delegates list <user-email>\` - List all delegates for user
-- \`helios gw delegates add <user> <delegate>\` - Grant email delegation access
-- \`helios gw delegates remove <user> <delegate>\` - Revoke delegation access
+### Google Workspace Groups (\`gw groups\`)
+- \`gw groups list\` - List all groups
+- \`gw groups get <group-email>\` - Get group details
+- \`gw groups create <email> --name="Name" --description="Desc"\` - Create new group
+- \`gw groups update <group-email> --name="New Name"\` - Update group
+- \`gw groups delete <group-email>\` - Delete group
+- \`gw groups members <group-email>\` - List group members
+- \`gw groups add-member <group> <user> --role=MEMBER\` - Add user to group
+- \`gw groups remove-member <group> <user>\` - Remove user from group
 
-### Sync Operations (\`helios gw sync\`)
-- \`helios gw sync users\` - Manual sync users from Google
-- \`helios gw sync groups\` - Manual sync groups
-- \`helios gw sync orgunits\` - Manual sync OUs
-- \`helios gw sync all\` - Sync everything at once
+### Organizational Units (\`gw orgunits\`)
+- \`gw orgunits list\` - List all OUs with user counts
+- \`gw orgunits get </Staff/Sales>\` - Get OU details
+- \`gw orgunits create <parent> --name="Name"\` - Create new OU
+- \`gw orgunits update </Staff/Sales> --name="New Name"\` - Update OU
+- \`gw orgunits delete </Staff/Sales>\` - Delete OU
 
-### Helios Platform Users (\`helios users\`)
-- \`helios users list\` - List all Helios platform users
-- \`helios users debug\` - Show raw API response for debugging
+### Email Delegation (\`gw delegates\`)
+- \`gw delegates list <user-email>\` - List all delegates for user
+- \`gw delegates add <user> <delegate>\` - Grant email delegation access
+- \`gw delegates remove <user> <delegate>\` - Revoke delegation access
 
-### Direct API Access (\`helios api\`)
-- \`helios api GET <path>\` - Make GET requests
-- \`helios api POST <path> '{json}'\` - Make POST requests
-- \`helios api PATCH <path> '{json}'\` - Make PATCH requests
-- \`helios api DELETE <path>\` - Make DELETE requests
+### Sync Operations (\`gw sync\`)
+- \`gw sync users\` - Manual sync users from Google
+- \`gw sync groups\` - Manual sync groups
+- \`gw sync orgunits\` - Manual sync OUs
+- \`gw sync all\` - Sync everything at once
+
+### Direct API Access (\`api\`)
+- \`api GET <path>\` - Make GET requests
+- \`api POST <path> '{json}'\` - Make POST requests
+- \`api PATCH <path> '{json}'\` - Make PATCH requests
+- \`api DELETE <path>\` - Make DELETE requests
 
 ### Console Help
 - \`help\` - Show all available commands
@@ -926,41 +968,40 @@ function getRoleBasedSystemPrompt(role: AIRole, pageContext?: string): string {
   const roleConfig = {
     viewer: {
       name: 'Viewer',
-      canQuery: true,
+      canQuery: false,
       canExecuteCommands: false,
       capabilities: [
-        '**Query actual data** from Google Workspace and Microsoft 365',
-        'Answer questions like "how many admins?" or "who is in the Sales group?" with real data',
-        'Answer questions about the Helios platform features',
-        'Help users understand integrations and concepts',
-        'Provide Developer Console command syntax (but cannot execute them)'
+        'Answer questions about the Helios platform features and how to use them',
+        'Search documentation and help content',
+        'Explain integrations, concepts, and best practices',
+        'Provide Developer Console command syntax (but cannot execute them or query data)'
       ],
       limitations: [
-        'You CAN query and read data (user counts, lists, group memberships, etc.)',
+        'You CANNOT query actual data - you do not have access to data query tools',
         'You CANNOT execute any commands - only TELL users what commands to run',
         'You CANNOT create, modify, or delete users, groups, or licenses',
-        'You CANNOT trigger syncs or make configuration changes'
+        'For questions like "how many users do I have?", tell the user to use the console command or check the UI'
       ],
-      instruction: 'For any write operation, provide the command syntax and explain what it does, but the user must run it themselves.'
+      instruction: 'You are in documentation-only mode. Answer how-to questions, but for data queries, tell users to run console commands or check the UI.'
     },
     operator: {
       name: 'Operator',
       canQuery: true,
-      canExecuteCommands: true,
+      canExecuteCommands: false,
       capabilities: [
-        '**Query actual data** from Google Workspace and Microsoft 365',
-        'Answer questions with real data from your organization',
-        '**Execute safe read operations** and sync commands',
+        '**Query actual organization data** using your data query tools',
+        'Answer questions like "how many users?" or "who is in the Sales group?" with REAL data',
+        'Answer questions about the Helios platform features',
         'Help users understand integrations and concepts',
-        'Trigger data synchronization when requested'
+        'Provide Developer Console command syntax'
       ],
       limitations: [
-        'You CAN query data and execute safe read/sync operations',
-        'You CANNOT create or delete users, groups, or licenses',
-        'You CANNOT modify user properties or group memberships',
-        'For create/delete/modify operations, tell users what commands to run'
+        'You CAN query and read data using your tools (query_gw_users, query_gw_groups, etc.)',
+        'You CANNOT execute commands - only TELL users what commands to run',
+        'You CANNOT create, modify, or delete users, groups, or licenses',
+        'You CANNOT trigger syncs or make configuration changes'
       ],
-      instruction: 'You can execute read operations and syncs. For create/modify/delete, provide the command but let users run it.'
+      instruction: 'You have READ access to organization data. Use your query tools to answer data questions. For write operations, tell users the command to run.'
     },
     admin: {
       name: 'Administrator',

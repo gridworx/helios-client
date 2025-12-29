@@ -50,7 +50,7 @@ const GoogleWorkspaceWizard: React.FC<GoogleWorkspaceWizardProps> = ({
         }
 
         if (organizationId) {
-          const response = await fetch(`/api/v1/google-workspace/module-status/${organizationId}`);
+          const response = await authFetch(`/api/v1/google-workspace/module-status/${organizationId}`);
           const result = await response.json();
 
           if (result.success && result.data.isEnabled && result.data.configuration) {

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Upload, Download, FileSpreadsheet, Clock, CheckCircle2, XCircle, AlertCircle, Save, Trash2, FolderOpen, Wifi, WifiOff, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Edit2, X, Check, Square, CheckSquare, MinusSquare } from 'lucide-react';
 import { bulkOperationsService, type BulkOperation, type ValidationError } from '../services/bulk-operations.service';
 import { bulkOperationsSocket, type BulkOperationProgressEvent, type BulkOperationFailureEvent } from '../services/bulk-operations-socket.service';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import './BulkOperations.css';
 
 interface BulkOperationsProps {
@@ -40,6 +41,12 @@ export function BulkOperations({ organizationId }: BulkOperationsProps) {
   const [editingCell, setEditingCell] = useState<{ rowIndex: number; column: string } | null>(null);
   const [editingValue, setEditingValue] = useState('');
   const [pendingEdits, setPendingEdits] = useState<Map<string, string>>(new Map()); // key: `${rowIndex}-${column}`
+
+  // Confirmation dialog state
+  const [showDeleteRowsConfirm, setShowDeleteRowsConfirm] = useState(false);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
+  const [showExecuteConfirm, setShowExecuteConfirm] = useState(false);
 
   // Track if we're currently subscribed to prevent duplicate subscriptions
   const activeSubscriptionRef = useRef<string | null>(null);
@@ -123,7 +130,12 @@ export function BulkOperations({ organizationId }: BulkOperationsProps) {
 
   const handleDeleteSelected = () => {
     if (!previewData || selectedRows.size === 0) return;
-    if (!confirm(`Delete ${selectedRows.size} selected row(s)? This cannot be undone.`)) return;
+    setShowDeleteRowsConfirm(true);
+  };
+
+  const confirmDeleteSelected = () => {
+    if (!previewData) return;
+    setShowDeleteRowsConfirm(false);
 
     const sortedIndices = Array.from(selectedRows).sort((a, b) => b - a);
     const newData = [...previewData];
@@ -196,7 +208,11 @@ export function BulkOperations({ organizationId }: BulkOperationsProps) {
 
   const handleDiscardPendingEdits = () => {
     if (pendingEdits.size === 0) return;
-    if (!confirm('Discard all pending changes?')) return;
+    setShowDiscardConfirm(true);
+  };
+
+  const confirmDiscardPendingEdits = () => {
+    setShowDiscardConfirm(false);
     setPendingEdits(new Map());
   };
 
@@ -306,17 +322,21 @@ export function BulkOperations({ organizationId }: BulkOperationsProps) {
     }
   };
 
-  const handleDeleteTemplate = async (templateId: string) => {
-    if (!confirm('Are you sure you want to delete this template?')) {
-      return;
-    }
+  const handleDeleteTemplate = (templateId: string) => {
+    setTemplateToDelete(templateId);
+  };
+
+  const confirmDeleteTemplate = async () => {
+    if (!templateToDelete) return;
 
     try {
-      await bulkOperationsService.deleteTemplate(templateId);
+      await bulkOperationsService.deleteTemplate(templateToDelete);
       alert('Template deleted successfully!');
       await loadTemplates();
     } catch (error: any) {
       alert(`Error deleting template: ${error.message}`);
+    } finally {
+      setTemplateToDelete(null);
     }
   };
 
@@ -450,16 +470,17 @@ export function BulkOperations({ organizationId }: BulkOperationsProps) {
     alert(`Bulk operation failed: ${data.error}`);
   }, [selectedOperation]);
 
-  const handleExecute = async () => {
+  const handleExecute = () => {
     if (!validatedData || validatedData.length === 0) {
       alert('No valid data to execute. Please upload and validate a CSV first.');
       return;
     }
+    setShowExecuteConfirm(true);
+  };
 
-    if (!confirm(`Execute bulk operation on ${validatedData.length} items?`)) {
-      return;
-    }
-
+  const confirmExecute = async () => {
+    if (!validatedData) return;
+    setShowExecuteConfirm(false);
     setIsExecuting(true);
 
     try {
@@ -1102,6 +1123,50 @@ export function BulkOperations({ organizationId }: BulkOperationsProps) {
           </div>
         )}
       </div>
+
+      {/* Delete Rows Confirmation */}
+      <ConfirmDialog
+        isOpen={showDeleteRowsConfirm}
+        title="Delete Selected Rows"
+        message={`Delete ${selectedRows.size} selected row(s)? This cannot be undone.`}
+        variant="danger"
+        confirmText="Delete"
+        onConfirm={confirmDeleteSelected}
+        onCancel={() => setShowDeleteRowsConfirm(false)}
+      />
+
+      {/* Discard Changes Confirmation */}
+      <ConfirmDialog
+        isOpen={showDiscardConfirm}
+        title="Discard Changes"
+        message="Discard all pending changes? This cannot be undone."
+        variant="warning"
+        confirmText="Discard"
+        onConfirm={confirmDiscardPendingEdits}
+        onCancel={() => setShowDiscardConfirm(false)}
+      />
+
+      {/* Delete Template Confirmation */}
+      <ConfirmDialog
+        isOpen={templateToDelete !== null}
+        title="Delete Template"
+        message="Are you sure you want to delete this template?"
+        variant="danger"
+        confirmText="Delete"
+        onConfirm={confirmDeleteTemplate}
+        onCancel={() => setTemplateToDelete(null)}
+      />
+
+      {/* Execute Operation Confirmation */}
+      <ConfirmDialog
+        isOpen={showExecuteConfirm}
+        title="Execute Bulk Operation"
+        message={`Execute bulk operation on ${validatedData?.length || 0} items? This will modify data in your connected platforms.`}
+        variant="warning"
+        confirmText="Execute"
+        onConfirm={confirmExecute}
+        onCancel={() => setShowExecuteConfirm(false)}
+      />
     </div>
   );
 }

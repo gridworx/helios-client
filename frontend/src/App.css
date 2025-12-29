@@ -312,6 +312,22 @@
   gap: 1rem;
 }
 
+.org-branding-link {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 8px;
+  padding: 4px;
+  margin: -4px;
+  transition: background-color 0.15s ease;
+}
+
+.org-branding-link:hover {
+  background-color: var(--color-gray-50);
+}
+
 .org-logo {
   font-size: 2rem;
   width: 40px;
@@ -344,6 +360,7 @@
 .header-center {
   display: flex;
   justify-content: center;
+  align-items: center;
 }
 
 .search-container {
@@ -354,7 +371,8 @@
 
 .universal-search {
   width: 100%;
-  padding: 0.625rem 1rem 0.625rem 2.75rem;
+  height: 36px;
+  padding: 0 1rem 0 2.75rem;
   border: 1px solid var(--color-border);
   border-radius: 6px;
   font-size: 0.875rem;
@@ -776,25 +794,31 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  background: white;
-  border: 1px solid var(--color-gray-200);
-  border-radius: 6px;
+  padding: 0.75rem 1.5rem;
+  background: var(--theme-primary);
+  border: none;
+  border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--color-gray-700);
+  color: white;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 0 2px 4px var(--theme-primary-shadow, rgba(139, 92, 246, 0.3));
 }
 
 .empty-action-btn:hover {
-  background: var(--color-gray-50);
-  border-color: var(--color-gray-300);
+  background: var(--theme-primary-hover);
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--theme-primary-shadow, rgba(139, 92, 246, 0.4));
+}
+
+.empty-action-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--theme-primary-light, rgba(139, 92, 246, 0.2));
 }
 
 .empty-action-btn svg {
-  color: var(--theme-primary);
+  color: white;
 }
 
 .empty-state h3 {
@@ -1149,31 +1173,6 @@
   padding: 0.125rem 0.5rem;
   border-radius: 10px;
   font-weight: 500;
-}
-
-.quick-action-btn {
-  display: block;
-  width: 100%;
-  padding: 0.75rem;
-  margin-bottom: 0.5rem;
-  border: 1px solid var(--color-gray-200);
-  border-radius: 6px;
-  background: white;
-  color: var(--color-gray-700);
-  cursor: pointer;
-  transition: all 0.2s;
-  text-align: left;
-  font-size: 0.9375rem;
-}
-
-.quick-action-btn:hover {
-  border-color: var(--theme-primary);
-  background: #f8faff;
-  color: var(--theme-primary);
-}
-
-.quick-action-btn:last-child {
-  margin-bottom: 0;
 }
 
 /* Page Loader (for lazy-loaded components) */
@@ -1857,8 +1856,15 @@
 
 .quick-actions-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
+  max-width: 600px;
+}
+
+@media (max-width: 640px) {
+  .quick-actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .quick-action-btn {
@@ -1866,22 +1872,34 @@
   align-items: center;
   justify-content: center;
   gap: 0.625rem;
-  padding: 1rem 1.25rem;
+  padding: 0.875rem 1.25rem;
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-  border: none;
+  /* Default style: outline/secondary */
+  background: white;
+  color: var(--color-gray-700);
+  border: 1px solid var(--color-gray-200);
+}
+
+.quick-action-btn:hover:not(:disabled) {
+  background: var(--color-gray-50);
+  border-color: var(--theme-primary);
+  color: var(--theme-primary);
+  transform: translateY(-1px);
 }
 
 .quick-action-btn svg {
   flex-shrink: 0;
 }
 
+/* Primary variant - filled purple button */
 .quick-action-btn.primary {
   background: var(--theme-primary);
   color: white;
+  border: none;
 }
 
 .quick-action-btn.primary:hover:not(:disabled) {
@@ -1890,6 +1908,7 @@
   box-shadow: 0 4px 12px var(--helios-purple-shadow);
 }
 
+/* Secondary variant - explicit outline */
 .quick-action-btn.secondary {
   background: white;
   color: var(--color-gray-700);
@@ -2106,6 +2125,23 @@
 }
 
 .dashboard-engagement-section .email-engagement-widget {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Dashboard Security Section */
+.dashboard-security-section {
+  margin-top: 1.5rem;
+  max-width: 600px;
+}
+
+.dashboard-security-section .section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-gray-800);
+  margin-bottom: 1rem;
+}
+
+.dashboard-security-section .login-map-widget {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 

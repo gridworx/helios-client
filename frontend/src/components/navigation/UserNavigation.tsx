@@ -7,6 +7,7 @@ import {
   Settings as SettingsIcon,
   Users as UsersIcon,
   Network,
+  GraduationCap,
 } from 'lucide-react';
 
 interface UserNavigationProps {
@@ -97,6 +98,16 @@ export const UserNavigation: React.FC<UserNavigationProps> = ({
         >
           <User size={16} className="nav-icon" />
           <span>My Profile</span>
+        </button>
+
+        {/* My Onboarding - Onboarding tasks and training */}
+        <button
+          className={`nav-item ${currentPage === 'my-onboarding' ? 'active' : ''}`}
+          onClick={() => onNavigate('my-onboarding')}
+          data-testid="nav-my-onboarding"
+        >
+          <GraduationCap size={16} className="nav-icon" />
+          <span>My Onboarding</span>
         </button>
       </div>
 

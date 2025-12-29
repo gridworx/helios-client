@@ -1,4 +1,4 @@
-import { UserList } from '../components/UserList';
+import { UserTable } from '../components/UserTable';
 import { Groups } from './Groups';
 import { OrgUnits } from './OrgUnits';
 import { useTabPersistence } from '../hooks/useTabPersistence';
@@ -54,7 +54,7 @@ export function Directory({ organizationId }: DirectoryProps) {
 
       <div className="directory-content">
         {activeTab === 'users' && (
-          <UserList organizationId={organizationId} userType="staff" />
+          <UserTable organizationId={organizationId} userType="staff" />
         )}
 
         {activeTab === 'groups' && (
@@ -70,7 +70,7 @@ export function Directory({ organizationId }: DirectoryProps) {
             <div className="coming-soon-icon"><Monitor size={48} /></div>
             <h2>Device Management</h2>
             <p>Manage devices enrolled in your organization's platforms.</p>
-            <p className="coming-soon-label">Coming Soon</p>
+            <p className="coming-soon-label">Requires Google Workspace or Microsoft 365 integration</p>
           </div>
         )}
       </div>

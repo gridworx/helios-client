@@ -4,6 +4,7 @@ import { useLabels } from '../../contexts/LabelsContext';
 import { ENTITIES, ENTITY_METADATA, DEFAULT_LABELS } from '../../config/entities';
 import type { EntityName } from '../../config/entities';
 import { authFetch } from '../../config/api';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import './EntityLabelSettings.css';
 
 interface EntityLabelSettingsProps {
@@ -25,6 +26,7 @@ export function EntityLabelSettings({ isAdmin }: EntityLabelSettingsProps) {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [hasChanges, setHasChanges] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // Initialize edited labels from context
   useEffect(() => {
@@ -101,11 +103,13 @@ export function EntityLabelSettings({ isAdmin }: EntityLabelSettingsProps) {
     }
   };
 
-  const handleReset = async () => {
+  const handleReset = () => {
     if (!isAdmin) return;
+    setShowResetConfirm(true);
+  };
 
-    if (!confirm('Reset all labels to their default values?')) return;
-
+  const confirmReset = async () => {
+    setShowResetConfirm(false);
     setIsResetting(true);
     setSaveStatus('idle');
     setErrorMessage('');
@@ -272,6 +276,16 @@ export function EntityLabelSettings({ isAdmin }: EntityLabelSettingsProps) {
           Only administrators can modify entity labels.
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={showResetConfirm}
+        title="Reset Entity Labels"
+        message="Reset all labels to their default values? This will undo any customizations you've made."
+        variant="warning"
+        confirmText="Reset to Defaults"
+        onConfirm={confirmReset}
+        onCancel={() => setShowResetConfirm(false)}
+      />
     </div>
   );
 }

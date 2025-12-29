@@ -22,6 +22,7 @@ import {
   X
 } from 'lucide-react';
 import { authFetch } from '../../config/api';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import './AssignmentManager.css';
 
 type AssignmentType = 'user' | 'group' | 'dynamic_group' | 'department' | 'ou' | 'organization';
@@ -135,6 +136,7 @@ const AssignmentManager: React.FC<AssignmentManagerProps> = ({
   const [previewUsers, setPreviewUsers] = useState<{userId: string; email: string; firstName: string; lastName: string; department?: string}[]>([]);
   const [showPreview, setShowPreview] = useState(false);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [assignmentToDelete, setAssignmentToDelete] = useState<string | null>(null);
 
   const fetchAssignments = useCallback(async () => {
     setLoading(true);
@@ -269,11 +271,15 @@ const AssignmentManager: React.FC<AssignmentManagerProps> = ({
     }
   };
 
-  const handleDeleteAssignment = async (assignmentId: string) => {
-    if (!confirm('Are you sure you want to remove this assignment?')) return;
+  const handleDeleteAssignment = (assignmentId: string) => {
+    setAssignmentToDelete(assignmentId);
+  };
+
+  const confirmDeleteAssignment = async () => {
+    if (!assignmentToDelete) return;
 
     try {
-      const response = await authFetch(`/api/signatures/v2/assignments/${assignmentId}`, {
+      const response = await authFetch(`/api/signatures/v2/assignments/${assignmentToDelete}`, {
         method: 'DELETE',
       });
       const data = await response.json();
@@ -287,6 +293,7 @@ const AssignmentManager: React.FC<AssignmentManagerProps> = ({
       console.error('Error deleting assignment:', err);
       setError('Failed to delete assignment');
     }
+    setAssignmentToDelete(null);
   };
 
   const handleToggleActive = async (assignment: Assignment) => {
@@ -578,6 +585,16 @@ const AssignmentManager: React.FC<AssignmentManagerProps> = ({
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={assignmentToDelete !== null}
+        title="Remove Assignment"
+        message="Are you sure you want to remove this assignment?"
+        variant="warning"
+        confirmText="Remove"
+        onConfirm={confirmDeleteAssignment}
+        onCancel={() => setAssignmentToDelete(null)}
+      />
     </div>
   );
 };

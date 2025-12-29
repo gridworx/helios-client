@@ -23,8 +23,10 @@ import {
   ChevronUp,
   Info,
   FileSignature,
+  Clock,
 } from 'lucide-react';
 import { authFetch } from '../../config/api';
+import TimelineEditor, { type TimelineEntry } from './TimelineEditor';
 import './OnboardingTemplateEditor.css'; // Reuse the same styles
 
 type DriveAction = 'transfer_manager' | 'transfer_user' | 'archive' | 'keep' | 'delete';
@@ -98,6 +100,9 @@ interface OffboardingTemplate {
   // Status
   isActive: boolean;
   isDefault: boolean;
+
+  // Timeline
+  timeline: TimelineEntry[];
 }
 
 interface OffboardingTemplateEditorProps {
@@ -165,6 +170,9 @@ const defaultTemplate: OffboardingTemplate = {
   // Status
   isActive: true,
   isDefault: false,
+
+  // Timeline
+  timeline: [],
 };
 
 const driveActionLabels: Record<DriveAction, { label: string; description: string }> = {
@@ -216,6 +224,7 @@ const OffboardingTemplateEditor: React.FC<OffboardingTemplateEditorProps> = ({
     mobile: false,
     account: true,
     notifications: false,
+    timeline: false,
   });
   const [newEmailAddress, setNewEmailAddress] = useState('');
 
@@ -249,6 +258,7 @@ const OffboardingTemplateEditor: React.FC<OffboardingTemplateEditorProps> = ({
           ...defaultTemplate,
           ...data.data,
           notificationEmailAddresses: data.data.notificationEmailAddresses || [],
+          timeline: data.data.timeline || [],
         });
       }
     } catch (err: any) {
@@ -1047,6 +1057,33 @@ const OffboardingTemplateEditor: React.FC<OffboardingTemplateEditorProps> = ({
                   rows={3}
                 />
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* Timeline Actions */}
+        <div className="form-section">
+          <button
+            className="section-header"
+            onClick={() => toggleSection('timeline')}
+          >
+            <div className="section-title">
+              <Clock size={18} />
+              <span>Timeline Actions</span>
+              {template.timeline.length > 0 && (
+                <span className="badge">{template.timeline.length}</span>
+              )}
+            </div>
+            {expandedSections.timeline ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </button>
+
+          {expandedSections.timeline && (
+            <div className="section-content">
+              <TimelineEditor
+                timeline={template.timeline}
+                onChange={(timeline) => setTemplate((prev) => ({ ...prev, timeline }))}
+                requestType="offboard"
+              />
             </div>
           )}
         </div>

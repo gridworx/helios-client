@@ -3,6 +3,7 @@ import { X, Users, Info, Settings, Shield, Trash2, RefreshCw, UserPlus, UserMinu
 import { useTabPersistence } from '../hooks/useTabPersistence';
 import { PlatformIcon } from './ui/PlatformIcon';
 import { TreeSelect } from './ui/TreeSelect';
+import { ConfirmDialog } from './ui/ConfirmDialog';
 import { authFetch } from '../config/api';
 import './GroupSlideOut.css';
 
@@ -149,6 +150,12 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
 
   // Departments for dropdown
   const [departments, setDepartments] = useState<Department[]>([]);
+
+  // Confirm dialogs state
+  const [memberToRemove, setMemberToRemove] = useState<{ userId: string; name: string } | null>(null);
+  const [ruleToDelete, setRuleToDelete] = useState<string | null>(null);
+  const [showApplyRulesConfirm, setShowApplyRulesConfirm] = useState(false);
+  const [membershipTypeConfirm, setMembershipTypeConfirm] = useState<{ newType: 'static' | 'dynamic'; message: string } | null>(null);
 
   useEffect(() => {
     fetchGroupDetails();
@@ -307,12 +314,16 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
     }
   };
 
-  const handleRemoveMember = async (userId: string, memberName: string) => {
-    if (!confirm(`Remove ${memberName} from this group?`)) return;
+  const handleRemoveMember = (userId: string, memberName: string) => {
+    setMemberToRemove({ userId, name: memberName });
+  };
+
+  const confirmRemoveMember = async () => {
+    if (!memberToRemove) return;
 
     try {
       const response = await authFetch(
-        `/api/v1/organization/access-groups/${groupId}/members/${userId}`,
+        `/api/v1/organization/access-groups/${groupId}/members/${memberToRemove.userId}`,
         {
           method: 'DELETE'
         }
@@ -328,6 +339,7 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
     } catch (err: any) {
       alert(`Error: ${err.message}`);
     }
+    setMemberToRemove(null);
   };
 
   const handleDeleteGroup = async () => {
@@ -415,12 +427,16 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
     }
   };
 
-  const handleDeleteRule = async (ruleId: string) => {
-    if (!confirm('Delete this rule?')) return;
+  const handleDeleteRule = (ruleId: string) => {
+    setRuleToDelete(ruleId);
+  };
+
+  const confirmDeleteRule = async () => {
+    if (!ruleToDelete) return;
 
     try {
       const response = await authFetch(
-        `/api/v1/organization/access-groups/${groupId}/rules/${ruleId}`,
+        `/api/v1/organization/access-groups/${groupId}/rules/${ruleToDelete}`,
         {
           method: 'DELETE'
         }
@@ -436,6 +452,7 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
     } catch (err: any) {
       alert(`Error: ${err.message}`);
     }
+    setRuleToDelete(null);
   };
 
   const handlePreviewRules = async () => {
@@ -468,9 +485,12 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
     }
   };
 
-  const handleApplyRules = async () => {
-    if (!confirm('Apply these rules? This will update group membership based on the rules.')) return;
+  const handleApplyRules = () => {
+    setShowApplyRulesConfirm(true);
+  };
 
+  const confirmApplyRules = async () => {
+    setShowApplyRulesConfirm(false);
     setIsApplyingRules(true);
     try {
       const response = await authFetch(
@@ -495,13 +515,19 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
     }
   };
 
-  const handleToggleMembershipType = async () => {
+  const handleToggleMembershipType = () => {
     const newType = group?.membership_type === 'dynamic' ? 'static' : 'dynamic';
-    const confirmMsg = newType === 'dynamic'
+    const message = newType === 'dynamic'
       ? 'Convert to dynamic group? You will be able to set membership rules.'
       : 'Convert to static group? Existing members will be kept but rules will no longer apply.';
 
-    if (!confirm(confirmMsg)) return;
+    setMembershipTypeConfirm({ newType, message });
+  };
+
+  const confirmMembershipTypeChange = async () => {
+    if (!membershipTypeConfirm) return;
+    const newType = membershipTypeConfirm.newType;
+    setMembershipTypeConfirm(null);
 
     setIsMembershipTypeChanging(true);
     try {
@@ -1068,10 +1094,10 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
                   <div className="sync-platform-header">
                     <PlatformIcon platform="microsoft" size={24} />
                     <span>Microsoft 365</span>
-                    <span className="coming-soon-badge">Coming Soon</span>
+                    <span className="coming-soon-badge">Not Configured</span>
                   </div>
                   <div className="sync-status disabled">
-                    <p className="text-muted">Microsoft 365 group sync is not yet available.</p>
+                    <p className="text-muted">Enable Microsoft 365 integration in Settings to sync groups.</p>
                   </div>
                 </div>
               </div>
@@ -1242,6 +1268,46 @@ export function GroupSlideOut({ groupId, organizationId: _organizationId, onClos
             </div>
           </div>
         )}
+
+        <ConfirmDialog
+          isOpen={memberToRemove !== null}
+          title="Remove Member"
+          message={`Remove ${memberToRemove?.name} from this group?`}
+          variant="warning"
+          confirmText="Remove"
+          onConfirm={confirmRemoveMember}
+          onCancel={() => setMemberToRemove(null)}
+        />
+
+        <ConfirmDialog
+          isOpen={ruleToDelete !== null}
+          title="Delete Rule"
+          message="Are you sure you want to delete this rule?"
+          variant="danger"
+          confirmText="Delete"
+          onConfirm={confirmDeleteRule}
+          onCancel={() => setRuleToDelete(null)}
+        />
+
+        <ConfirmDialog
+          isOpen={showApplyRulesConfirm}
+          title="Apply Rules"
+          message="Apply these rules? This will update group membership based on the rules."
+          variant="info"
+          confirmText="Apply Rules"
+          onConfirm={confirmApplyRules}
+          onCancel={() => setShowApplyRulesConfirm(false)}
+        />
+
+        <ConfirmDialog
+          isOpen={membershipTypeConfirm !== null}
+          title="Change Membership Type"
+          message={membershipTypeConfirm?.message || ''}
+          variant="info"
+          confirmText="Convert"
+          onConfirm={confirmMembershipTypeChange}
+          onCancel={() => setMembershipTypeConfirm(null)}
+        />
       </div>
     </div>
   );

@@ -429,8 +429,9 @@ export class BulkOperationsService {
         organizational_unit,
         role,
         is_active,
-        user_status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        user_status,
+        user_type
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING id, email
     `, [
       organizationId,
@@ -443,6 +444,7 @@ export class BulkOperationsService {
       item.role || 'user',
       true,
       'active',
+      item.userType || 'staff',
     ]);
 
     return result.rows[0];

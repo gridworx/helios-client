@@ -266,9 +266,9 @@ export function AccountSetup({ onComplete }: AccountSetupProps) {
                     type="button"
                   >
                     <div className={`theme-preview theme-preview-${theme.id}`}>
-                      <div className="theme-preview-sidebar"></div>
+                      <div className="theme-preview-header"></div>
                       <div className="theme-preview-content">
-                        <div className="theme-preview-header"></div>
+                        <div className="theme-preview-sidebar"></div>
                         <div className="theme-preview-card"></div>
                       </div>
                     </div>

@@ -17,6 +17,8 @@
  */
 
 import { betterAuth } from 'better-auth';
+import { twoFactor } from 'better-auth/plugins';
+import { passkey } from '@better-auth/passkey';
 import { Pool } from 'pg';
 import bcrypt from 'bcryptjs';
 
@@ -168,6 +170,22 @@ export const auth = betterAuth({
       enabled: false,
     },
   },
+
+  // Plugins
+  plugins: [
+    twoFactor({
+      issuer: 'Helios',
+      totpOptions: {
+        period: 30,
+        digits: 6,
+      },
+    }),
+    passkey({
+      rpName: 'Helios',
+      rpID: process.env['PASSKEY_RP_ID'] || 'localhost',
+      origin: process.env['PASSKEY_ORIGIN'] || process.env['FRONTEND_URL'] || 'http://localhost:3000',
+    }),
+  ],
 
   // Trusted origins for CORS
   // Build trusted origins list from environment and defaults

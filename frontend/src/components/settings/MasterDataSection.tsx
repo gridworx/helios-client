@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Building, MapPin, DollarSign, AlertTriangle, ChevronRight, ChevronDown, Plus, Edit2, Trash2, Users, RefreshCw, X } from 'lucide-react';
 import { authFetch } from '../../config/api';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import './MasterDataSection.css';
 
 interface MasterDataSectionProps {
@@ -119,6 +120,7 @@ export function MasterDataSection({ organizationId }: MasterDataSectionProps) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [modalError, setModalError] = useState<string | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string; type: 'department' | 'location' | 'costcenter' } | null>(null);
 
   // Form states
   const [departmentForm, setDepartmentForm] = useState<DepartmentForm>({
@@ -324,10 +326,12 @@ export function MasterDataSection({ organizationId }: MasterDataSectionProps) {
     );
   };
 
-  const handleDelete = async (id: string, type: 'department' | 'location' | 'costcenter') => {
-    if (!confirm('Are you sure you want to delete this item? Users assigned to it will need to be reassigned.')) {
-      return;
-    }
+  const handleDelete = (id: string, type: 'department' | 'location' | 'costcenter') => {
+    setItemToDelete({ id, type });
+  };
+
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
 
     const endpoints: Record<string, string> = {
       department: 'departments',
@@ -337,7 +341,7 @@ export function MasterDataSection({ organizationId }: MasterDataSectionProps) {
 
     try {
       const response = await authFetch(
-        `/api/v1/organization/${endpoints[type]}/${id}`,
+        `/api/v1/organization/${endpoints[itemToDelete.type]}/${itemToDelete.id}`,
         {
           method: 'DELETE'
         }
@@ -352,6 +356,7 @@ export function MasterDataSection({ organizationId }: MasterDataSectionProps) {
       console.error('Delete failed:', error);
       alert('Failed to delete item');
     }
+    setItemToDelete(null);
   };
 
   // Reset forms and close modal
@@ -1124,6 +1129,16 @@ export function MasterDataSection({ organizationId }: MasterDataSectionProps) {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={itemToDelete !== null}
+        title="Delete Item"
+        message="Are you sure you want to delete this item? Users assigned to it will need to be reassigned."
+        variant="danger"
+        confirmText="Delete"
+        onConfirm={confirmDelete}
+        onCancel={() => setItemToDelete(null)}
+      />
     </div>
   );
 }

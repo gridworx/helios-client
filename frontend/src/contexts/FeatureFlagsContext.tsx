@@ -41,20 +41,33 @@ const FeatureFlagsContext = createContext<FeatureFlagsContextValue>(defaultValue
 
 /**
  * Fetch feature flags from the API
+ * Returns empty flags if not authenticated (401) - this is expected on initial load
  */
 async function fetchFeatureFlags(): Promise<FeatureFlags> {
-  const response = await authFetch(apiPath('/organization/feature-flags'));
+  try {
+    const response = await authFetch(apiPath('/organization/feature-flags'));
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch feature flags: ${response.status}`);
+    // 401 is expected when not logged in - return empty flags silently
+    if (response.status === 401 || response.status === 403) {
+      return {};
+    }
+
+    if (!response.ok) {
+      console.warn(`Feature flags fetch failed: ${response.status}`);
+      return {};
+    }
+
+    const data = await response.json();
+    if (data.success && data.data) {
+      return data.data;
+    }
+
+    return {};
+  } catch (err) {
+    // Network errors or other issues - return empty flags
+    console.warn('Feature flags fetch error:', err);
+    return {};
   }
-
-  const data = await response.json();
-  if (data.success && data.data) {
-    return data.data;
-  }
-
-  throw new Error('Invalid response format');
 }
 
 interface FeatureFlagsProviderProps {
@@ -89,10 +102,11 @@ export function FeatureFlagsProvider({ children }: FeatureFlagsProviderProps): R
       setError(null);
       const loadedFlags = await fetchFeatureFlags();
       setFlags(loadedFlags);
+      // Only clear error, don't set it - fetchFeatureFlags handles errors gracefully
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load feature flags';
-      console.error('Feature flags error:', message);
-      setError(message);
+      // This shouldn't happen since fetchFeatureFlags catches its own errors
+      console.warn('Unexpected feature flags error:', err);
+      // Don't set error state - just use empty flags
     } finally {
       setIsLoading(false);
     }
