@@ -564,7 +564,7 @@ router.get('/templates', requireAuth, async (req: Request, res: Response) => {
         u.first_name || ' ' || u.last_name as created_by_name,
         pa.public_url as thumbnail_url,
         (SELECT COUNT(*) FROM signature_assignments sa WHERE sa.template_id = st.id AND sa.is_active = true) as assignment_count,
-        (SELECT COUNT(*) FROM user_signatures us WHERE us.current_template_id = st.id) as usage_count
+        (SELECT COUNT(*) FROM user_signature_status us WHERE us.current_template_id = st.id) as usage_count
       FROM signature_templates st
       LEFT JOIN organization_users u ON u.id = st.created_by
       LEFT JOIN public_assets pa ON pa.id = st.thumbnail_asset_id
@@ -674,7 +674,7 @@ router.get('/templates/:templateId', requireAuth, async (req: Request, res: Resp
         u.first_name || ' ' || u.last_name as created_by_name,
         pa.public_url as thumbnail_url,
         (SELECT COUNT(*) FROM signature_assignments sa WHERE sa.template_id = st.id AND sa.is_active = true) as assignment_count,
-        (SELECT COUNT(*) FROM user_signatures us WHERE us.current_template_id = st.id) as usage_count
+        (SELECT COUNT(*) FROM user_signature_status us WHERE us.current_template_id = st.id) as usage_count
       FROM signature_templates st
       LEFT JOIN organization_users u ON u.id = st.created_by
       LEFT JOIN public_assets pa ON pa.id = st.thumbnail_asset_id
@@ -967,7 +967,7 @@ router.delete('/templates/:templateId', requireAuth, requirePermission('admin'),
 
     // Check if template is in use
     const usageCheck = await db.query(
-      `SELECT COUNT(*) as count FROM user_signatures WHERE current_template_id = $1`,
+      `SELECT COUNT(*) as count FROM user_signature_status WHERE current_template_id = $1`,
       [templateId]
     );
 
@@ -2035,7 +2035,7 @@ router.get('/users/:userId', requireAuth, async (req: Request, res: Response) =>
         st.html_content as template_html,
         ou.email as user_email,
         ou.first_name || ' ' || ou.last_name as user_name
-      FROM user_signatures us
+      FROM user_signature_status us
       LEFT JOIN signature_templates st ON st.id = us.current_template_id
       LEFT JOIN organization_users ou ON ou.id = us.user_id
       WHERE us.user_id = $1 AND us.organization_id = $2`,

@@ -132,6 +132,10 @@
   height: 18px;
   cursor: pointer;
   accent-color: var(--theme-primary, #8b5cf6);
+  /* Override Tailwind reset that removes checkbox appearance */
+  -webkit-appearance: checkbox;
+  -moz-appearance: checkbox;
+  appearance: checkbox;
 }
 
 /* Loading state */

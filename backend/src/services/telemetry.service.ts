@@ -10,17 +10,21 @@
 import { db } from '../database/connection.js';
 import crypto from 'crypto';
 
-interface TelemetryPayload {
-  instance_id: string;
-  version: string;
-  license_key?: string;
+interface TelemetryMetrics {
   user_count_range: string;
   modules_enabled: string[];
   uptime_hours: number;
   last_sync_status: 'success' | 'error' | 'none';
-  api_usage: Record<string, number>;
-  command_usage: Record<string, number>;
-  ui_actions: Record<string, number>;
+  api_usage?: Record<string, number>;
+  command_usage?: Record<string, number>;
+  ui_actions?: Record<string, number>;
+}
+
+interface TelemetryPayload {
+  instance_id: string;
+  version: string;
+  license_key?: string;
+  metrics: TelemetryMetrics;
 }
 
 interface HeartbeatResponse {
@@ -99,14 +103,14 @@ class TelemetryService {
 
   /**
    * Get or create a unique instance ID
-   * Stored in organization_settings table
+   * Stored in system_settings table (global, not per-organization)
    */
   private async getOrCreateInstanceId(): Promise<string> {
     const client = await db.getClient();
     try {
       // Check for existing instance ID
       const result = await client.query(`
-        SELECT value FROM organization_settings
+        SELECT value FROM system_settings
         WHERE key = 'instance_id'
         LIMIT 1
       `);
@@ -120,7 +124,7 @@ class TelemetryService {
 
       // Store it
       await client.query(`
-        INSERT INTO organization_settings (key, value, created_at, updated_at)
+        INSERT INTO system_settings (key, value, created_at, updated_at)
         VALUES ('instance_id', $1, NOW(), NOW())
         ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()
       `, [instanceId]);
@@ -251,13 +255,15 @@ class TelemetryService {
         instance_id: this.instanceId,
         version: this.getVersion(),
         license_key: process.env.HELIOS_LICENSE_KEY || undefined,
-        user_count_range: await this.getUserCountRange(),
-        modules_enabled: await this.getEnabledModules(),
-        uptime_hours: this.getUptimeHours(),
-        last_sync_status: await this.getLastSyncStatus(),
-        api_usage: Object.fromEntries(this.apiUsage),
-        command_usage: Object.fromEntries(this.commandUsage),
-        ui_actions: Object.fromEntries(this.uiActions),
+        metrics: {
+          user_count_range: await this.getUserCountRange(),
+          modules_enabled: await this.getEnabledModules(),
+          uptime_hours: this.getUptimeHours(),
+          last_sync_status: await this.getLastSyncStatus(),
+          api_usage: Object.fromEntries(this.apiUsage),
+          command_usage: Object.fromEntries(this.commandUsage),
+          ui_actions: Object.fromEntries(this.uiActions),
+        },
       };
 
       const response = await fetch(this.TELEMETRY_ENDPOINT, {
@@ -265,6 +271,7 @@ class TelemetryService {
         headers: {
           'Content-Type': 'application/json',
           'User-Agent': `helios-client/${payload.version}`,
+          'X-Helios-API-Version': '1',
         },
         body: JSON.stringify(payload),
         signal: AbortSignal.timeout(10000), // 10 second timeout

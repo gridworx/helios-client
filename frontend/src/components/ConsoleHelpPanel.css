@@ -149,6 +149,55 @@
   background: #4b5563;
 }
 
+/* Loading state */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+  gap: 12px;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.loading-state .spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Error state */
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+  gap: 12px;
+  color: #ef4444;
+  font-size: 13px;
+  text-align: center;
+}
+
+.error-state button {
+  padding: 6px 12px;
+  background: #3c3c3c;
+  border: 1px solid #4b5563;
+  border-radius: 4px;
+  color: #e0e0e0;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.error-state button:hover {
+  background: #4b5563;
+}
+
 /* No results */
 .no-results {
   padding: 24px 16px;

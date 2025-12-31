@@ -3490,6 +3490,56 @@ export class GoogleWorkspaceService {
       return { success: false, error: error.message };
     }
   }
+
+  /**
+   * List domains from Google Workspace
+   * Used for domain verification
+   */
+  async listGoogleWorkspaceDomains(
+    organizationId: string
+  ): Promise<{
+    success: boolean;
+    domains?: any[];
+    error?: string;
+  }> {
+    try {
+      // Get credentials
+      const credResult = await db.query(
+        'SELECT service_account_key, admin_email, domain FROM gw_credentials WHERE organization_id = $1',
+        [organizationId]
+      );
+
+      if (!credResult.rows[0]) {
+        return { success: false, error: 'No Google Workspace credentials configured' };
+      }
+
+      const { service_account_key, admin_email, domain } = credResult.rows[0];
+      const credentials = typeof service_account_key === 'string'
+        ? JSON.parse(service_account_key)
+        : service_account_key;
+
+      // Create admin client with DWD
+      const adminEmail = admin_email || `admin@${domain}`;
+      const adminClient = this.createAdminClient(credentials, adminEmail);
+
+      // List domains
+      const response = await adminClient.domains.list({ customer: 'my_customer' });
+      const domains = response.data.domains || [];
+
+      logger.info('Listed Google Workspace domains', {
+        organizationId,
+        domainCount: domains.length
+      });
+
+      return { success: true, domains };
+    } catch (error: any) {
+      logger.error('Failed to list Google Workspace domains', {
+        organizationId,
+        error: error.message
+      });
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 export const googleWorkspaceService = new GoogleWorkspaceService();

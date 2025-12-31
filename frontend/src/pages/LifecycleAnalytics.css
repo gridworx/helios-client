@@ -29,6 +29,29 @@
   to { transform: rotate(360deg); }
 }
 
+/* Empty Chart States */
+.empty-chart-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px 24px;
+  text-align: center;
+  color: #6b7280;
+  min-height: 150px;
+}
+
+.empty-chart-state svg {
+  color: #9ca3af;
+}
+
+.empty-chart-state p {
+  font-size: 13px;
+  max-width: 250px;
+  line-height: 1.5;
+}
+
 .analytics-error {
   color: var(--color-error);
 }

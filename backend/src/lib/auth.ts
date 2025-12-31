@@ -161,8 +161,9 @@ export const auth = betterAuth({
 
   // Advanced options
   advanced: {
-    // Use secure cookies in production
-    useSecureCookies: process.env['NODE_ENV'] === 'production',
+    // Only use secure cookies if explicitly configured (requires HTTPS)
+    // Default to false since many internal deployments use HTTP
+    useSecureCookies: process.env['USE_SECURE_COOKIES'] === 'true',
     // Cookie prefix
     cookiePrefix: 'helios',
     // Allow cross-origin requests with credentials
@@ -179,6 +180,23 @@ export const auth = betterAuth({
         period: 30,
         digits: 6,
       },
+      schema: {
+        twoFactor: {
+          modelName: 'two_factor',
+          fields: {
+            userId: 'user_id',
+            secret: 'secret',
+            backupCodes: 'backup_codes',
+            createdAt: 'created_at',
+            updatedAt: 'updated_at',
+          },
+        },
+        user: {
+          fields: {
+            twoFactorEnabled: 'two_factor_enabled',
+          },
+        },
+      },
     }),
     passkey({
       rpName: 'Helios',
@@ -187,54 +205,56 @@ export const auth = betterAuth({
     }),
   ],
 
-  // Trusted origins for CORS
-  // Build trusted origins list from environment and defaults
-  trustedOrigins: (() => {
-    const origins = new Set<string>([
+  // Trusted origins for CORS - dynamically build list including local network patterns
+  // Note: better-auth expects string[] or (req) => string[], not a validation callback
+  trustedOrigins: (req) => {
+    const origins: string[] = [
       'http://localhost:3000',
       'http://localhost:3001',
       'http://localhost',
       'http://localhost:80',
-    ]);
+    ];
 
     // Add FRONTEND_URL if set
     const frontendUrl = process.env['FRONTEND_URL'];
     if (frontendUrl) {
-      origins.add(frontendUrl);
-      // Also add without explicit port 80
+      origins.push(frontendUrl);
       if (frontendUrl.endsWith(':80')) {
-        origins.add(frontendUrl.replace(':80', ''));
+        origins.push(frontendUrl.replace(':80', ''));
       }
     }
 
-    // Add APP_URL if set (backend URL)
-    const appUrl = process.env['APP_URL'];
-    if (appUrl) {
-      origins.add(appUrl);
+    // Add PUBLIC_URL if set
+    const publicUrl = process.env['PUBLIC_URL'];
+    if (publicUrl) {
+      origins.push(publicUrl);
+      if (publicUrl.endsWith(':80')) {
+        origins.push(publicUrl.replace(':80', ''));
+      }
     }
 
-    // Add additional trusted origins from TRUSTED_ORIGINS env var (comma-separated)
+    // Add additional trusted origins from TRUSTED_ORIGINS env var
     const additionalOrigins = process.env['TRUSTED_ORIGINS'];
     if (additionalOrigins) {
       additionalOrigins.split(',').forEach(origin => {
         const trimmed = origin.trim();
-        if (trimmed) origins.add(trimmed);
+        if (trimmed) origins.push(trimmed);
       });
     }
 
-    // In development, dynamically allow local network IPs
-    // This is safe because it's only for non-production environments
-    if (process.env['NODE_ENV'] !== 'production') {
-      // Get the host IP from common env vars or use a broad pattern
-      const hostIp = process.env['HOST_IP'] || process.env['SERVER_IP'];
-      if (hostIp) {
-        origins.add(`http://${hostIp}`);
-        origins.add(`http://${hostIp}:80`);
+    // Dynamically add the request origin if it's from a local network IP
+    if (req) {
+      const origin = req.headers.get('origin');
+      if (origin) {
+        const localNetworkPattern = /^https?:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)(:\d+)?$/;
+        if (localNetworkPattern.test(origin) && !origins.includes(origin)) {
+          origins.push(origin);
+        }
       }
     }
 
-    return Array.from(origins);
-  })(),
+    return origins;
+  },
 
 });
 

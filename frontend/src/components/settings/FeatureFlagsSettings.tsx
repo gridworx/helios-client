@@ -21,7 +21,7 @@ interface GroupedFlags {
 const CATEGORY_LABELS: Record<string, string> = {
   navigation: 'Navigation & Menus',
   automation: 'Automation Features',
-  files: 'Files & Sharing',
+  files: 'Assets',
   signatures: 'Email Signatures',
   insights: 'Insights & Reports',
   integrations: 'Integrations',
@@ -35,7 +35,7 @@ const CATEGORY_ORDER = ['navigation', 'automation', 'files', 'signatures', 'insi
 // Define navigation hierarchy for clear display
 const NAV_HIERARCHY: Record<string, string[]> = {
   'nav.section.journeys': ['nav.onboarding', 'nav.offboarding', 'nav.training', 'nav.requests', 'nav.tasks'],
-  'nav.section.automation': ['nav.signatures', 'nav.scheduled_actions', 'nav.rules_engine'],
+  'nav.section.automation': ['nav.template_studio', 'nav.scheduled_actions', 'nav.rules_engine'],
   'nav.section.insights': ['nav.hr_dashboard', 'nav.manager_dashboard', 'nav.lifecycle_analytics'],
   'nav.section.files': ['nav.shared_files', 'nav.my_files'],
   'nav.section.security': ['nav.mail_search', 'nav.security_events', 'nav.oauth_apps', 'nav.audit_logs', 'nav.licenses', 'nav.external_sharing'],

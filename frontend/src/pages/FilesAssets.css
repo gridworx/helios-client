@@ -1,4 +1,4 @@
-/* Files & Assets Page Styles */
+/* Assets Page Styles */
 
 .files-assets {
   display: flex;
@@ -1107,4 +1107,76 @@
   .stat-item {
     min-width: 100px;
   }
+}
+
+/* Visibility Badge Styles */
+.visibility-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.visibility-badge.public {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.visibility-badge.private {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Visibility Options in Upload Modal */
+.visibility-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.visibility-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.visibility-option:hover {
+  border-color: #8b5cf6;
+  background: #faf5ff;
+}
+
+.visibility-option.selected {
+  border-color: #8b5cf6;
+  background: #f3e8ff;
+}
+
+.visibility-option input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #8b5cf6;
+}
+
+.visibility-option div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.visibility-option strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.visibility-option span {
+  font-size: 12px;
+  color: #6b7280;
 }

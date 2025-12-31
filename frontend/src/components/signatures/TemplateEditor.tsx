@@ -18,17 +18,22 @@ import {
   Table,
   ChevronDown,
   Code,
+  FileCode,
+  Eye,
   X
 } from 'lucide-react';
 import MergeFieldPicker from './MergeFieldPicker';
 import type { MergeField } from './MergeFieldPicker';
 import './TemplateEditor.css';
 
+type EditorMode = 'wysiwyg' | 'html' | 'markdown';
+
 interface TemplateEditorProps {
   value: string;
   onChange: (html: string) => void;
   className?: string;
   placeholder?: string;
+  onPreview?: () => void;
 }
 
 const fontSizes = [
@@ -61,6 +66,7 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
   onChange,
   className,
   placeholder = 'Start typing your signature...',
+  onPreview,
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const [showMergeFields, setShowMergeFields] = useState(false);
@@ -74,17 +80,18 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
   const [imageUrl, setImageUrl] = useState('');
   const [imageAlt, setImageAlt] = useState('');
   const [savedRange, setSavedRange] = useState<Range | null>(null);
-  const [isSourceMode, setIsSourceMode] = useState(false);
+  const [editorMode, setEditorMode] = useState<EditorMode>('wysiwyg');
   const [sourceCode, setSourceCode] = useState('');
+  const [markdownCode, setMarkdownCode] = useState('');
 
   useEffect(() => {
-    if (editorRef.current && !isSourceMode) {
+    if (editorRef.current && editorMode === 'wysiwyg') {
       // Only update if content actually differs
       if (editorRef.current.innerHTML !== value) {
         editorRef.current.innerHTML = value;
       }
     }
-  }, [value, isSourceMode]);
+  }, [value, editorMode]);
 
   const execCommand = useCallback((command: string, value?: string) => {
     document.execCommand(command, false, value);
@@ -187,24 +194,118 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
     setShowColorPicker(false);
   }, [execCommand]);
 
-  const toggleSourceMode = useCallback(() => {
-    if (isSourceMode) {
-      // Switching from source to visual
-      if (editorRef.current) {
-        editorRef.current.innerHTML = sourceCode;
-        handleContentChange();
-      }
-    } else {
-      // Switching from visual to source
-      setSourceCode(value);
+  // Convert HTML to simplified Markdown
+  const htmlToMarkdown = useCallback((html: string): string => {
+    let md = html;
+    // Basic conversions
+    md = md.replace(/<br\s*\/?>/gi, '\n');
+    md = md.replace(/<\/p>\s*<p[^>]*>/gi, '\n\n');
+    md = md.replace(/<\/?p[^>]*>/gi, '\n');
+    md = md.replace(/<strong[^>]*>([^<]*)<\/strong>/gi, '**$1**');
+    md = md.replace(/<b[^>]*>([^<]*)<\/b>/gi, '**$1**');
+    md = md.replace(/<em[^>]*>([^<]*)<\/em>/gi, '*$1*');
+    md = md.replace(/<i[^>]*>([^<]*)<\/i>/gi, '*$1*');
+    md = md.replace(/<u[^>]*>([^<]*)<\/u>/gi, '_$1_');
+    md = md.replace(/<a[^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>/gi, '[$2]($1)');
+    md = md.replace(/<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*\/?>/gi, '![$2]($1)');
+    md = md.replace(/<img[^>]*src="([^"]*)"[^>]*\/?>/gi, '![]($1)');
+    md = md.replace(/<h1[^>]*>([^<]*)<\/h1>/gi, '# $1\n');
+    md = md.replace(/<h2[^>]*>([^<]*)<\/h2>/gi, '## $1\n');
+    md = md.replace(/<h3[^>]*>([^<]*)<\/h3>/gi, '### $1\n');
+    md = md.replace(/<li[^>]*>([^<]*)<\/li>/gi, '- $1\n');
+    md = md.replace(/<hr[^>]*\/?>/gi, '\n---\n');
+    md = md.replace(/<span[^>]*class="merge-field"[^>]*data-field="([^"]*)"[^>]*>[^<]*<\/span>/gi, '{{$1}}');
+    // Remove remaining HTML tags
+    md = md.replace(/<[^>]+>/g, '');
+    // Decode HTML entities
+    md = md.replace(/&nbsp;/g, ' ');
+    md = md.replace(/&amp;/g, '&');
+    md = md.replace(/&lt;/g, '<');
+    md = md.replace(/&gt;/g, '>');
+    md = md.replace(/&quot;/g, '"');
+    // Clean up excessive whitespace
+    md = md.replace(/\n{3,}/g, '\n\n');
+    return md.trim();
+  }, []);
+
+  // Convert Markdown to HTML
+  const markdownToHtml = useCallback((md: string): string => {
+    let html = md;
+    // Preserve merge fields
+    html = html.replace(/\{\{([^}]+)\}\}/g, '<span class="merge-field" contenteditable="false" data-field="$1">{{$1}}</span>');
+    // Basic conversions
+    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    html = html.replace(/_([^_]+)_/g, '<u>$1</u>');
+    html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width: 100%; height: auto;" />');
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+    html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+    html = html.replace(/^---$/gm, '<hr />');
+    html = html.replace(/\n\n/g, '</p><p>');
+    html = html.replace(/\n/g, '<br />');
+    // Wrap in paragraph if not already structured
+    if (!html.startsWith('<') && html.trim()) {
+      html = '<p>' + html + '</p>';
     }
-    setIsSourceMode(!isSourceMode);
-  }, [isSourceMode, sourceCode, value, handleContentChange]);
+    return html;
+  }, []);
+
+  const switchEditorMode = useCallback((newMode: EditorMode) => {
+    if (newMode === editorMode) return;
+
+    // Save current content before switching
+    if (editorMode === 'wysiwyg') {
+      const currentHtml = editorRef.current?.innerHTML || value;
+      setSourceCode(currentHtml);
+      setMarkdownCode(htmlToMarkdown(currentHtml));
+    } else if (editorMode === 'html') {
+      // HTML is the source of truth when switching from HTML mode
+      setMarkdownCode(htmlToMarkdown(sourceCode));
+    } else if (editorMode === 'markdown') {
+      // Convert markdown to HTML when switching from markdown mode
+      const convertedHtml = markdownToHtml(markdownCode);
+      setSourceCode(convertedHtml);
+    }
+
+    // Apply content to new mode
+    if (newMode === 'wysiwyg') {
+      if (editorMode === 'html') {
+        onChange(sourceCode);
+      } else if (editorMode === 'markdown') {
+        onChange(markdownToHtml(markdownCode));
+      }
+    } else if (newMode === 'html') {
+      if (editorMode === 'wysiwyg') {
+        setSourceCode(editorRef.current?.innerHTML || value);
+      } else if (editorMode === 'markdown') {
+        setSourceCode(markdownToHtml(markdownCode));
+      }
+    } else if (newMode === 'markdown') {
+      if (editorMode === 'wysiwyg') {
+        setMarkdownCode(htmlToMarkdown(editorRef.current?.innerHTML || value));
+      } else if (editorMode === 'html') {
+        setMarkdownCode(htmlToMarkdown(sourceCode));
+      }
+    }
+
+    setEditorMode(newMode);
+  }, [editorMode, value, sourceCode, markdownCode, htmlToMarkdown, markdownToHtml, onChange]);
 
   const handleSourceChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setSourceCode(e.target.value);
-    onChange(e.target.value);
+    const newValue = e.target.value;
+    setSourceCode(newValue);
+    onChange(newValue);
   }, [onChange]);
+
+  const handleMarkdownChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    setMarkdownCode(newValue);
+    // Convert to HTML and update parent
+    onChange(markdownToHtml(newValue));
+  }, [onChange, markdownToHtml]);
 
   const insertTable = useCallback(() => {
     restoreSelection();
@@ -486,16 +587,47 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
 
         <div className="toolbar-spacer" />
 
-        <div className="toolbar-group">
-          <button
-            type="button"
-            className={`toolbar-button ${isSourceMode ? 'active' : ''}`}
-            onClick={toggleSourceMode}
-            title={isSourceMode ? 'Visual Mode' : 'HTML Source'}
-          >
-            <Code size={16} />
-          </button>
-        </div>
+        {onPreview && (
+          <div className="toolbar-group">
+            <button
+              type="button"
+              className="toolbar-button preview-button"
+              onClick={onPreview}
+              title="Preview with user data"
+            >
+              <Eye size={16} />
+              <span>Preview</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Editor Mode Tabs */}
+      <div className="editor-mode-tabs">
+        <button
+          type="button"
+          className={`mode-tab ${editorMode === 'wysiwyg' ? 'active' : ''}`}
+          onClick={() => switchEditorMode('wysiwyg')}
+        >
+          <Type size={14} />
+          Visual
+        </button>
+        <button
+          type="button"
+          className={`mode-tab ${editorMode === 'html' ? 'active' : ''}`}
+          onClick={() => switchEditorMode('html')}
+        >
+          <Code size={14} />
+          HTML
+        </button>
+        <button
+          type="button"
+          className={`mode-tab ${editorMode === 'markdown' ? 'active' : ''}`}
+          onClick={() => switchEditorMode('markdown')}
+        >
+          <FileCode size={14} />
+          Markdown
+        </button>
       </div>
 
       {showMergeFields && (
@@ -505,15 +637,7 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
       )}
 
       <div className="editor-content-wrapper">
-        {isSourceMode ? (
-          <textarea
-            className="editor-source"
-            value={sourceCode}
-            onChange={handleSourceChange}
-            placeholder="Enter HTML code..."
-            spellCheck={false}
-          />
-        ) : (
+        {editorMode === 'wysiwyg' && (
           <div
             ref={editorRef}
             className="editor-content"
@@ -522,6 +646,29 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
             onBlur={handleContentChange}
             data-placeholder={placeholder}
             suppressContentEditableWarning
+          />
+        )}
+        {editorMode === 'html' && (
+          <textarea
+            className="editor-source"
+            value={sourceCode}
+            onChange={handleSourceChange}
+            placeholder="Enter HTML code..."
+            spellCheck={false}
+          />
+        )}
+        {editorMode === 'markdown' && (
+          <textarea
+            className="editor-source editor-markdown"
+            value={markdownCode}
+            onChange={handleMarkdownChange}
+            placeholder="Enter Markdown...
+
+Use **bold**, *italic*, _underline_
+Insert merge fields: {{first_name}}, {{job_title}}
+Add links: [text](url)
+Add images: ![alt](url)"
+            spellCheck={false}
           />
         )}
       </div>

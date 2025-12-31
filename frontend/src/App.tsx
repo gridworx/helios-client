@@ -38,9 +38,8 @@ import OffboardingTemplateEditor from './components/lifecycle/OffboardingTemplat
 // Lazy-loaded large page components for better initial bundle size
 const DeveloperConsole = lazy(() => import('./pages/DeveloperConsole').then(m => ({ default: m.DeveloperConsole })))
 const AddUser = lazy(() => import('./pages/AddUser').then(m => ({ default: m.AddUser })))
-const FilesAssets = lazy(() => import('./pages/FilesAssets').then(m => ({ default: m.FilesAssets })))
-const PublicAssets = lazy(() => import('./pages/PublicAssets').then(m => ({ default: m.PublicAssets })))
-const Signatures = lazy(() => import('./pages/Signatures'))
+const Assets = lazy(() => import('./pages/Assets').then(m => ({ default: m.Assets })))
+const TemplateStudio = lazy(() => import('./pages/TemplateStudio'))
 const NewUserOnboarding = lazy(() => import('./pages/NewUserOnboarding'))
 const UserOffboarding = lazy(() => import('./pages/UserOffboarding'))
 const ScheduledActions = lazy(() => import('./pages/admin/ScheduledActions'))
@@ -139,10 +138,9 @@ function getPageFromPath(pathname: string): string {
   if (pathname.startsWith('/admin/groups')) return 'groups';
   if (pathname.startsWith('/admin/org-chart')) return 'orgChart';
   if (pathname.startsWith('/admin/workspaces')) return 'workspaces';
-  if (pathname.startsWith('/admin/shared-files')) return 'shared-files';
-  if (pathname.startsWith('/admin/my-files')) return 'my-files';
+  if (pathname.startsWith('/admin/assets')) return 'assets';
   if (pathname.startsWith('/admin/email-security')) return 'email-security';
-  if (pathname.startsWith('/admin/signatures')) return 'signatures';
+  if (pathname.startsWith('/admin/template-studio')) return 'template-studio';
   if (pathname.startsWith('/admin/security-events')) return 'security-events';
   if (pathname.startsWith('/admin/security/oauth-apps')) return 'oauth-apps';
   if (pathname.startsWith('/admin/audit-logs')) return 'audit-logs';
@@ -151,8 +149,12 @@ function getPageFromPath(pathname: string): string {
   if (pathname.startsWith('/admin/settings')) return 'settings';
   if (pathname.startsWith('/admin/administrators')) return 'administrators';
   if (pathname.startsWith('/admin/console')) return 'console';
-  // Automation routes
+  // Automation routes - order matters (more specific first)
+  if (pathname === '/admin/onboarding-templates/new') return 'new-onboarding-template';
+  if (pathname.startsWith('/admin/onboarding-templates/edit')) return 'edit-onboarding-template';
   if (pathname.startsWith('/admin/onboarding-templates')) return 'onboarding-templates';
+  if (pathname === '/admin/offboarding-templates/new') return 'new-offboarding-template';
+  if (pathname.startsWith('/admin/offboarding-templates/edit')) return 'edit-offboarding-template';
   if (pathname.startsWith('/admin/offboarding-templates')) return 'offboarding-templates';
   if (pathname.startsWith('/admin/scheduled-actions')) return 'scheduled-actions';
   if (pathname.startsWith('/admin/training')) return 'training';
@@ -225,10 +227,9 @@ function AppContent() {
       'groups': '/admin/groups',
       'orgChart': '/admin/org-chart',
       'workspaces': '/admin/workspaces',
-      'shared-files': '/admin/shared-files',
-      'my-files': '/admin/my-files',
+      'assets': '/admin/assets',
       'email-security': '/admin/email-security',
-      'signatures': '/admin/signatures',
+      'template-studio': '/admin/template-studio',
       'security-events': '/admin/security-events',
       'oauth-apps': '/admin/security/oauth-apps',
       'audit-logs': '/admin/audit-logs',
@@ -239,7 +240,11 @@ function AppContent() {
       'console': '/admin/console',
       // Automation routes
       'onboarding-templates': '/admin/onboarding-templates',
+      'new-onboarding-template': '/admin/onboarding-templates/new',
+      'edit-onboarding-template': '/admin/onboarding-templates/edit',
       'offboarding-templates': '/admin/offboarding-templates',
+      'new-offboarding-template': '/admin/offboarding-templates/new',
+      'edit-offboarding-template': '/admin/offboarding-templates/edit',
       'scheduled-actions': '/admin/scheduled-actions',
       'tasks': '/admin/tasks',
       'training': '/admin/training',
@@ -311,7 +316,7 @@ function AppContent() {
     { id: 'groups-page', label: 'Groups Management', path: '/admin/groups' },
     { id: 'org-chart', label: 'Org Chart', path: '/admin/org-chart' },
     { id: 'audit-logs', label: 'Audit Logs', path: '/admin/audit-logs' },
-    { id: 'signatures', label: 'Email Signatures', path: '/admin/signatures' },
+    { id: 'template-studio', label: 'Template Studio', path: '/admin/template-studio' },
   ];
 
   // Universal search effect
@@ -1466,15 +1471,9 @@ function AppContent() {
             <OrgChart />
           )}
 
-          {currentPage === 'shared-files' && (
+          {currentPage === 'assets' && (
             <Suspense fallback={<PageLoader />}>
-              <PublicAssets organizationId={config?.organizationId || ''} />
-            </Suspense>
-          )}
-
-          {currentPage === 'my-files' && (
-            <Suspense fallback={<PageLoader />}>
-              <FilesAssets organizationId={config?.organizationId || ''} />
+              <Assets organizationId={config?.organizationId || ''} />
             </Suspense>
           )}
 
@@ -1482,9 +1481,9 @@ function AppContent() {
             <EmailSecurity />
           )}
 
-          {currentPage === 'signatures' && (
+          {currentPage === 'template-studio' && (
             <Suspense fallback={<PageLoader />}>
-              <Signatures />
+              <TemplateStudio />
             </Suspense>
           )}
 
@@ -1682,7 +1681,7 @@ function AppContent() {
             </Suspense>
           )}
 
-          {currentPage !== 'dashboard' && currentPage !== 'settings' && currentPage !== 'users' && currentPage !== 'groups' && currentPage !== 'workspaces' && currentPage !== 'orgUnits' && currentPage !== 'assets' && currentPage !== 'files-assets' && currentPage !== 'email-security' && currentPage !== 'signatures' && currentPage !== 'security-events' && currentPage !== 'audit-logs' && currentPage !== 'licenses' && currentPage !== 'console' && currentPage !== 'administrators' && currentPage !== 'my-profile' && currentPage !== 'people' && currentPage !== 'my-team' && currentPage !== 'my-groups' && currentPage !== 'user-settings' && currentPage !== 'orgChart' && currentPage !== 'add-user' && currentPage !== 'onboarding-templates' && currentPage !== 'new-onboarding-template' && currentPage !== 'edit-onboarding-template' && currentPage !== 'offboarding-templates' && currentPage !== 'new-offboarding-template' && currentPage !== 'edit-offboarding-template' && currentPage !== 'scheduled-actions' && currentPage !== 'new-user-onboarding' && currentPage !== 'user-offboarding' && currentPage !== 'requests' && (
+          {currentPage !== 'dashboard' && currentPage !== 'home' && currentPage !== 'settings' && currentPage !== 'users' && currentPage !== 'groups' && currentPage !== 'workspaces' && currentPage !== 'orgUnits' && currentPage !== 'assets' && currentPage !== 'public-assets' && currentPage !== 'private-assets' && currentPage !== 'email-security' && currentPage !== 'template-studio' && currentPage !== 'signatures' && currentPage !== 'security-events' && currentPage !== 'oauth-apps' && currentPage !== 'audit-logs' && currentPage !== 'licenses' && currentPage !== 'external-sharing' && currentPage !== 'console' && currentPage !== 'administrators' && currentPage !== 'my-profile' && currentPage !== 'people' && currentPage !== 'my-team' && currentPage !== 'my-groups' && currentPage !== 'user-settings' && currentPage !== 'orgChart' && currentPage !== 'add-user' && currentPage !== 'onboarding-templates' && currentPage !== 'new-onboarding-template' && currentPage !== 'edit-onboarding-template' && currentPage !== 'offboarding-templates' && currentPage !== 'new-offboarding-template' && currentPage !== 'edit-offboarding-template' && currentPage !== 'scheduled-actions' && currentPage !== 'new-user-onboarding' && currentPage !== 'user-offboarding' && currentPage !== 'requests' && currentPage !== 'tasks' && currentPage !== 'training' && currentPage !== 'my-onboarding' && currentPage !== 'team-analytics' && currentPage !== 'hr-dashboard' && currentPage !== 'manager-dashboard' && currentPage !== 'lifecycle-analytics' && currentPage !== 'rules-engine' && (
             <div className="page-placeholder">
               <div className="placeholder-content">
                 <h2>Page Not Found</h2>

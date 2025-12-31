@@ -3,8 +3,11 @@ import { X, UserPlus, Loader2, CheckCircle, AlertCircle, ChevronDown, ChevronRig
 import { authFetch } from '../config/api';
 import './QuickAddUserSlideOut.css';
 
+type UserTypeValue = 'staff' | 'guest' | 'contact';
+
 interface QuickAddUserSlideOutProps {
     organizationId?: string;
+    userType?: UserTypeValue;
     onClose: () => void;
     onUserCreated?: () => void;
 }
@@ -43,7 +46,7 @@ interface ValidationErrors {
     alternateEmail?: string;
 }
 
-export function QuickAddUserSlideOut({ organizationId: _organizationId, onClose, onUserCreated }: QuickAddUserSlideOutProps) {
+export function QuickAddUserSlideOut({ organizationId: _organizationId, userType = 'staff', onClose, onUserCreated }: QuickAddUserSlideOutProps) {
     const [formData, setFormData] = useState<FormData>({
         firstName: '',
         lastName: '',
@@ -189,9 +192,9 @@ export function QuickAddUserSlideOut({ organizationId: _organizationId, onClose,
                 email: formData.email,
                 firstName: formData.firstName,
                 lastName: formData.lastName,
-                role: formData.role,
-                userType: 'staff',
-                status: 'pending',
+                role: userType === 'staff' ? formData.role : 'user', // Guests/contacts are always regular users
+                userType: userType,
+                status: userType === 'contact' ? 'active' : 'pending', // Contacts don't need activation
             };
 
             // Add optional fields
@@ -275,7 +278,9 @@ export function QuickAddUserSlideOut({ organizationId: _organizationId, onClose,
                 <div className="quick-add-header">
                     <div className="header-title">
                         <UserPlus size={20} />
-                        <h2>Add New User</h2>
+                        <h2>
+                            {userType === 'guest' ? 'Add Guest' : userType === 'contact' ? 'Add Contact' : 'Add New User'}
+                        </h2>
                     </div>
                     <button className="close-btn" onClick={onClose} title="Close">
                         <X size={20} />
@@ -372,66 +377,100 @@ export function QuickAddUserSlideOut({ organizationId: _organizationId, onClose,
                         </div>
                     </div>
 
-                    {/* Work Information Section */}
-                    <div className="form-section">
-                        <h3>Work Information</h3>
-                        <div className="form-row two-col">
-                            <div className="form-group">
-                                <label>Job Title</label>
-                                <select
-                                    value={formData.jobTitle}
-                                    onChange={(e) => handleInputChange('jobTitle', e.target.value)}
-                                >
-                                    <option value="">Select job title...</option>
-                                    {jobTitles.filter((jt: any) => jt.isActive !== false).map((jt: any) => (
-                                        <option key={jt.id} value={jt.name}>{jt.name}</option>
-                                    ))}
-                                </select>
+                    {/* Work Information Section - Staff only shows full version */}
+                    {userType === 'staff' && (
+                        <div className="form-section">
+                            <h3>Work Information</h3>
+                            <div className="form-row two-col">
+                                <div className="form-group">
+                                    <label>Job Title</label>
+                                    <select
+                                        value={formData.jobTitle}
+                                        onChange={(e) => handleInputChange('jobTitle', e.target.value)}
+                                    >
+                                        <option value="">Select job title...</option>
+                                        {jobTitles.filter((jt: any) => jt.isActive !== false).map((jt: any) => (
+                                            <option key={jt.id} value={jt.name}>{jt.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label>Department</label>
+                                    <select
+                                        value={formData.department}
+                                        onChange={(e) => handleInputChange('department', e.target.value)}
+                                    >
+                                        <option value="">Select department...</option>
+                                        {departments.filter((d: any) => d.isActive !== false).map((d: any) => (
+                                            <option key={d.id} value={d.name}>{d.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
-                            <div className="form-group">
-                                <label>Department</label>
-                                <select
-                                    value={formData.department}
-                                    onChange={(e) => handleInputChange('department', e.target.value)}
-                                >
-                                    <option value="">Select department...</option>
-                                    {departments.filter((d: any) => d.isActive !== false).map((d: any) => (
-                                        <option key={d.id} value={d.name}>{d.name}</option>
-                                    ))}
-                                </select>
+                            <div className="form-row two-col">
+                                <div className="form-group">
+                                    <label>Reports To</label>
+                                    <select
+                                        value={formData.managerId}
+                                        onChange={(e) => handleInputChange('managerId', e.target.value)}
+                                    >
+                                        <option value="">Select manager...</option>
+                                        {managers.map((m: any) => (
+                                            <option key={m.id} value={m.id}>
+                                                {m.firstName || m.first_name} {m.lastName || m.last_name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label>Access Level</label>
+                                    <select
+                                        value={formData.role}
+                                        onChange={(e) => handleInputChange('role', e.target.value)}
+                                    >
+                                        <option value="user">User</option>
+                                        <option value="manager">Manager</option>
+                                        <option value="admin">Admin</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
-                        <div className="form-row two-col">
-                            <div className="form-group">
-                                <label>Reports To</label>
-                                <select
-                                    value={formData.managerId}
-                                    onChange={(e) => handleInputChange('managerId', e.target.value)}
-                                >
-                                    <option value="">Select manager...</option>
-                                    {managers.map((m: any) => (
-                                        <option key={m.id} value={m.id}>
-                                            {m.firstName || m.first_name} {m.lastName || m.last_name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="form-group">
-                                <label>Access Level</label>
-                                <select
-                                    value={formData.role}
-                                    onChange={(e) => handleInputChange('role', e.target.value)}
-                                >
-                                    <option value="user">User</option>
-                                    <option value="manager">Manager</option>
-                                    <option value="admin">Admin</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
+                    )}
 
-                    {/* Linked Accounts Section - Compact */}
-                    {(googleEnabled || microsoftEnabled) && (
+                    {/* Guest/Contact - Simplified work info */}
+                    {(userType === 'guest' || userType === 'contact') && (
+                        <div className="form-section">
+                            <h3>{userType === 'guest' ? 'Guest Details' : 'Contact Details'}</h3>
+                            <div className="form-row two-col">
+                                <div className="form-group">
+                                    <label>{userType === 'guest' ? 'Role/Purpose' : 'Job Title'}</label>
+                                    <input
+                                        type="text"
+                                        value={formData.jobTitle}
+                                        onChange={(e) => handleInputChange('jobTitle', e.target.value)}
+                                        placeholder={userType === 'guest' ? 'e.g., Contractor, Consultant' : 'e.g., Account Manager'}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>{userType === 'guest' ? 'Company' : 'Organization'}</label>
+                                    <input
+                                        type="text"
+                                        value={formData.department}
+                                        onChange={(e) => handleInputChange('department', e.target.value)}
+                                        placeholder={userType === 'guest' ? 'External company name' : 'Company or organization'}
+                                    />
+                                </div>
+                            </div>
+                            {userType === 'contact' && (
+                                <p className="form-hint" style={{ marginTop: '0.5rem', fontSize: '13px', color: '#6b7280' }}>
+                                    Contacts are directory entries for reference only. They won't have login access.
+                                </p>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Linked Accounts Section - Staff only */}
+                    {userType === 'staff' && (googleEnabled || microsoftEnabled) && (
                         <div className="form-section">
                             <h3>Linked Accounts</h3>
                             <div className="linked-accounts">
@@ -461,79 +500,81 @@ export function QuickAddUserSlideOut({ organizationId: _organizationId, onClose,
                         </div>
                     )}
 
-                    {/* Password Setup */}
-                    <div className="form-section">
-                        <h3>Password Setup</h3>
-                        <div className="password-options">
-                            <label className="radio-option">
-                                <input
-                                    type="radio"
-                                    name="passwordMethod"
-                                    checked={formData.passwordMethod === 'email'}
-                                    onChange={() => handleInputChange('passwordMethod', 'email')}
-                                />
-                                <span>Send password setup link via email</span>
-                            </label>
-                            <label className="radio-option">
-                                <input
-                                    type="radio"
-                                    name="passwordMethod"
-                                    checked={formData.passwordMethod === 'manual'}
-                                    onChange={() => handleInputChange('passwordMethod', 'manual')}
-                                />
-                                <span>Set password now</span>
-                            </label>
+                    {/* Password Setup - Staff and Guests only (Contacts don't need passwords) */}
+                    {userType !== 'contact' && (
+                        <div className="form-section">
+                            <h3>Password Setup</h3>
+                            <div className="password-options-inline">
+                                <label className="radio-option-inline">
+                                    <input
+                                        type="radio"
+                                        name="passwordMethod"
+                                        checked={formData.passwordMethod === 'email'}
+                                        onChange={() => handleInputChange('passwordMethod', 'email')}
+                                    />
+                                    <span>Send setup link via email</span>
+                                </label>
+                                <label className="radio-option-inline">
+                                    <input
+                                        type="radio"
+                                        name="passwordMethod"
+                                        checked={formData.passwordMethod === 'manual'}
+                                        onChange={() => handleInputChange('passwordMethod', 'manual')}
+                                    />
+                                    <span>Set password now</span>
+                                </label>
+                            </div>
+
+                            {formData.passwordMethod === 'email' && (
+                                <div className="form-row" style={{ marginTop: '1rem' }}>
+                                    <div className="form-group">
+                                        <label>Link Expires In</label>
+                                        <select
+                                            value={formData.expiresIn}
+                                            onChange={(e) => handleInputChange('expiresIn', e.target.value)}
+                                            style={{ maxWidth: '200px' }}
+                                        >
+                                            <option value="1">1 day</option>
+                                            <option value="3">3 days</option>
+                                            <option value="7">7 days</option>
+                                            <option value="14">14 days</option>
+                                            <option value="30">30 days</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            )}
+
+                            {formData.passwordMethod === 'manual' && (
+                                <div className="form-row two-col" style={{ marginTop: '1rem' }}>
+                                    <div className="form-group">
+                                        <label>Password <span className="required">*</span></label>
+                                        <input
+                                            type="password"
+                                            value={formData.password}
+                                            onChange={(e) => handleInputChange('password', e.target.value)}
+                                            placeholder="Min 8 characters"
+                                            className={errors.password ? 'error' : ''}
+                                        />
+                                        {errors.password && <span className="error-text">{errors.password}</span>}
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Confirm Password <span className="required">*</span></label>
+                                        <input
+                                            type="password"
+                                            value={formData.confirmPassword}
+                                            onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                                            placeholder="Confirm password"
+                                            className={errors.confirmPassword ? 'error' : ''}
+                                        />
+                                        {errors.confirmPassword && <span className="error-text">{errors.confirmPassword}</span>}
+                                    </div>
+                                </div>
+                            )}
                         </div>
+                    )}
 
-                        {formData.passwordMethod === 'email' && (
-                            <div className="form-row" style={{ marginTop: '1rem' }}>
-                                <div className="form-group">
-                                    <label>Link Expires In</label>
-                                    <select
-                                        value={formData.expiresIn}
-                                        onChange={(e) => handleInputChange('expiresIn', e.target.value)}
-                                        style={{ maxWidth: '200px' }}
-                                    >
-                                        <option value="1">1 day</option>
-                                        <option value="3">3 days</option>
-                                        <option value="7">7 days</option>
-                                        <option value="14">14 days</option>
-                                        <option value="30">30 days</option>
-                                    </select>
-                                </div>
-                            </div>
-                        )}
-
-                        {formData.passwordMethod === 'manual' && (
-                            <div className="form-row two-col" style={{ marginTop: '1rem' }}>
-                                <div className="form-group">
-                                    <label>Password <span className="required">*</span></label>
-                                    <input
-                                        type="password"
-                                        value={formData.password}
-                                        onChange={(e) => handleInputChange('password', e.target.value)}
-                                        placeholder="Min 8 characters"
-                                        className={errors.password ? 'error' : ''}
-                                    />
-                                    {errors.password && <span className="error-text">{errors.password}</span>}
-                                </div>
-                                <div className="form-group">
-                                    <label>Confirm Password <span className="required">*</span></label>
-                                    <input
-                                        type="password"
-                                        value={formData.confirmPassword}
-                                        onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                                        placeholder="Confirm password"
-                                        className={errors.confirmPassword ? 'error' : ''}
-                                    />
-                                    {errors.confirmPassword && <span className="error-text">{errors.confirmPassword}</span>}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Advanced Options (Collapsible) */}
-                    {licenses.length > 0 && (
+                    {/* Advanced Options (Collapsible) - Staff only */}
+                    {userType === 'staff' && licenses.length > 0 && (
                         <div className="form-section">
                             <button
                                 className="advanced-toggle"

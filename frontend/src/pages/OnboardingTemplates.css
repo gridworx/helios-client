@@ -35,20 +35,22 @@
   color: #6b7280;
 }
 
-/* Buttons */
+/* Buttons - Consistent 32px height */
 .btn-primary {
+  height: 32px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
+  gap: 6px;
+  padding: 0 14px;
   background: #8b5cf6;
   color: white;
   border: none;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s ease;
+  white-space: nowrap;
 }
 
 .btn-primary:hover {
@@ -56,10 +58,11 @@
 }
 
 .btn-secondary {
+  height: 32px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 12px;
+  padding: 0 12px;
   background: white;
   color: #374151;
   border: 1px solid #d1d5db;
@@ -68,6 +71,7 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .btn-secondary:hover {

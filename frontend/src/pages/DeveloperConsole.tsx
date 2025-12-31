@@ -6616,23 +6616,72 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
               </button>
             </div>
             <div className="modal-body">
+              <div className="example-section" style={{ marginBottom: '16px', borderBottom: '1px solid #374151', paddingBottom: '16px' }}>
+                <h4 style={{ color: '#8b5cf6' }}>Helios Unified Commands</h4>
+                <p style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '12px' }}>Use --gw or --m365 to extend actions to connected platforms</p>
+              </div>
+
+              <div className="example-section">
+                <h4>Create user (Helios + optional platforms)</h4>
+                <code className="example-code">create user --gw</code>
+              </div>
+
+              <div className="example-section">
+                <h4>List all users in Helios</h4>
+                <code className="example-code">list users</code>
+              </div>
+
+              <div className="example-section">
+                <h4>Suspend user in Helios and Google Workspace</h4>
+                <code className="example-code">suspend user john@company.com --gw</code>
+              </div>
+
+              <div className="example-section">
+                <h4>Activate user in Helios and Google Workspace</h4>
+                <code className="example-code">activate user john@company.com --gw</code>
+              </div>
+
+              <div className="example-section">
+                <h4>Delete user from Helios and Google Workspace</h4>
+                <code className="example-code">delete user john@company.com --gw</code>
+              </div>
+
+              <div className="example-section">
+                <h4>Delete with data transfer before deletion</h4>
+                <code className="example-code">delete user john@company.com --gw --transfer-to=manager@company.com</code>
+              </div>
+
+              <div className="example-section">
+                <h4>Export all users to CSV</h4>
+                <code className="example-code">export users</code>
+              </div>
+
+              <div className="example-section">
+                <h4>Generate secure password</h4>
+                <code className="example-code">generate password</code>
+              </div>
+
+              <div className="example-section" style={{ marginTop: '24px', borderTop: '1px solid #374151', paddingTop: '16px' }}>
+                <h4 style={{ color: '#22c55e' }}>Google Workspace Direct Commands</h4>
+              </div>
+
               <div className="example-section">
                 <h4>List all Google Workspace users</h4>
                 <code className="example-code">gw users list</code>
               </div>
 
               <div className="example-section">
-                <h4>Create a new user</h4>
+                <h4>Create a new GW user directly</h4>
                 <code className="example-code">gw users create john.doe@company.com --firstName="John" --lastName="Doe" --password="TempPass123!" --ou="/Staff"</code>
               </div>
 
               <div className="example-section">
-                <h4>Suspend a user account</h4>
+                <h4>Suspend a GW user</h4>
                 <code className="example-code">gw users suspend john.doe@company.com</code>
               </div>
 
               <div className="example-section">
-                <h4>Restore a suspended user</h4>
+                <h4>Restore a suspended GW user</h4>
                 <code className="example-code">gw users restore john.doe@company.com</code>
               </div>
 
@@ -6724,15 +6773,6 @@ export function DeveloperConsole({ organizationId, isPopup = false }: DeveloperC
               <div className="example-section">
                 <h4>Create resource via API</h4>
                 <code className="example-code">api POST /api/google/admin/directory/v1/users '&#123;"primaryEmail":"new.user@company.com","name":&#123;"givenName":"New","familyName":"User"&#125;,"password":"TempPass123!"&#125;'</code>
-              </div>
-
-              <div className="example-section">
-                <h4>List ALL users in Helios (central source)</h4>
-                <code className="example-code">users list</code>
-              </div>
-              <div className="example-section">
-                <h4>Compare: GW users vs all Helios users</h4>
-                <code className="example-code"># GW only: gw users list{'\n'}# All users: users list</code>
               </div>
 
               <div className="example-section" style={{ marginTop: '24px', borderTop: '1px solid #374151', paddingTop: '16px' }}>

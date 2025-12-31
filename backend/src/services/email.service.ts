@@ -203,13 +203,12 @@ export class EmailService {
       );
       const organizationName = orgResult.rows[0]?.name || 'Helios';
 
-      // Get email template
+      // Get email template from email_templates table
       const templateResult = await db.query(
-        `SELECT subject, body FROM email_templates
-         WHERE (organization_id = $1 OR organization_id IS NULL)
-         AND template_type = 'password_setup'
-         AND is_default = true
-         ORDER BY organization_id NULLS LAST
+        `SELECT subject, body_html, body_text FROM email_templates
+         WHERE organization_id = $1
+         AND template_key = 'password_setup'
+         AND is_active = true
          LIMIT 1`,
         [this.organizationId]
       );
@@ -219,7 +218,8 @@ export class EmailService {
 
       if (templateResult.rows.length > 0) {
         subject = templateResult.rows[0].subject;
-        body = templateResult.rows[0].body;
+        // Use body_text if available, otherwise strip HTML from body_html
+        body = templateResult.rows[0].body_text || this.htmlToText(templateResult.rows[0].body_html);
       }
 
       // Replace template variables

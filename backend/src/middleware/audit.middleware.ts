@@ -236,6 +236,7 @@ export async function auditMiddleware(req: Request, res: Response, next: NextFun
       : null;
 
     try {
+      // 1. Write to security_audit_logs (tamper-evident compliance log)
       const previousHash = await getLastHash();
 
       const logData = {
@@ -298,6 +299,37 @@ export async function auditMiddleware(req: Request, res: Response, next: NextFun
         previousHash,
         recordHash,
       ]);
+
+      // 2. Also write to activity_logs (user-facing activity feed)
+      // This populates the UI's audit logs view
+      if (organizationId) {
+        const description = `${req.method} ${req.path}` + (outcome === 'failure' ? ` - ${errorMessage || 'Failed'}` : '');
+        await db.query(`
+          INSERT INTO activity_logs (
+            organization_id, user_id, actor_id, action, resource_type, resource_id,
+            description, metadata, ip_address, user_agent, actor_type, result
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::inet, $10, $11, $12)
+        `, [
+          organizationId,
+          actorId, // user_id
+          actorId, // actor_id
+          action,
+          targetType,
+          targetId,
+          description,
+          JSON.stringify({
+            http_method: req.method,
+            endpoint: req.path,
+            response_status: res.statusCode,
+            duration_ms: duration,
+            request_id: requestId,
+          }),
+          req.ip || req.socket.remoteAddress || null,
+          req.get('User-Agent'),
+          actorType === 'user' ? 'internal' : actorType,
+          outcome === 'success' ? 'success' : 'failure',
+        ]);
+      }
     } catch (err) {
       // Never let audit logging break the application
       console.error('[Audit] Failed to log request:', err);

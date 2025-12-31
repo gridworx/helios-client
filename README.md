@@ -182,6 +182,14 @@ If you find Helios useful, consider [sponsoring the project](https://github.com/
 
 ---
 
+## Credits and Contributors
+
+Want to support Helios or see who helped make it happen?
+
+Visit the [Credits Page](https://helios.gridworx.io/credits) for donation options and contributor acknowledgments.
+
+---
+
 ## The Story Behind Helios
 
 Helios has been 8 months in the making, with multiple complete restarts along the way.

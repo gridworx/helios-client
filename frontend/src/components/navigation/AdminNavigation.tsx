@@ -3,7 +3,7 @@ import {
   Home,
   Users as UsersIcon,
   UsersRound,
-  PenTool,
+  Palette,
   AlertCircle,
   Settings as SettingsIcon,
   Network,
@@ -44,7 +44,7 @@ interface AdminNavigationProps {
  * - Journeys (Onboarding, Offboarding, Training, Requests, Tasks)
  * - Automation (Signatures, Scheduled Actions, Rules Engine)
  * - Insights (HR Dashboard, Manager Dashboard, Analytics)
- * - Files (Shared, My Files)
+ * - Assets (Public, Private)
  * - Security (Mail Search, Security Events, Audit Logs, External Sharing)
  * - Settings
  */
@@ -62,12 +62,12 @@ export const AdminNavigation: React.FC<AdminNavigationProps> = ({
     'nav.onboarding', 'nav.offboarding', 'nav.training', 'nav.requests', 'nav.tasks'
   );
   const hasAutomationItems = anyEnabled(
-    'nav.signatures', 'nav.scheduled_actions', 'nav.rules_engine'
+    'nav.template_studio', 'nav.scheduled_actions', 'nav.rules_engine'
   );
   const hasInsightsItems = anyEnabled(
     'nav.hr_dashboard', 'nav.manager_dashboard', 'nav.lifecycle_analytics'
   );
-  const hasFilesItems = anyEnabled('nav.shared_files', 'nav.my_files');
+  // Assets section always available if section is enabled (no individual item flags needed)
   const hasSecurityItems = anyEnabled('nav.mail_search', 'nav.security_events', 'nav.oauth_apps', 'nav.audit_logs', 'nav.licenses', 'nav.external_sharing');
 
   return (
@@ -190,14 +190,14 @@ export const AdminNavigation: React.FC<AdminNavigationProps> = ({
       {isEnabled('nav.section.automation') && hasAutomationItems && (
         <div className="nav-section">
           <div className="nav-section-title">Automation</div>
-          {isEnabled('nav.signatures') && (
+          {isEnabled('nav.template_studio') && (
             <button
-              className={`nav-item ${currentPage === 'signatures' ? 'active' : ''}`}
-              onClick={() => onNavigate('signatures')}
-              data-testid="nav-signatures"
+              className={`nav-item ${currentPage === 'template-studio' ? 'active' : ''}`}
+              onClick={() => onNavigate('template-studio')}
+              data-testid="nav-template-studio"
             >
-              <PenTool size={16} className="nav-icon" />
-              <span>Signatures</span>
+              <Palette size={16} className="nav-icon" />
+              <span>Template Studio</span>
             </button>
           )}
           {isEnabled('nav.scheduled_actions') && (
@@ -260,30 +260,18 @@ export const AdminNavigation: React.FC<AdminNavigationProps> = ({
         </div>
       )}
 
-      {/* Files Section - Show if section flag enabled AND has any items */}
-      {isEnabled('nav.section.files') && hasFilesItems && (
+      {/* Assets Section */}
+      {isEnabled('nav.section.files') && (
         <div className="nav-section">
-          <div className="nav-section-title">Files</div>
-          {isEnabled('nav.shared_files') && (
-            <button
-              className={`nav-item ${currentPage === 'shared-files' ? 'active' : ''}`}
-              onClick={() => onNavigate('shared-files')}
-              data-testid="nav-shared-files"
-            >
-              <Share2 size={16} className="nav-icon" />
-              <span>Shared</span>
-            </button>
-          )}
-          {isEnabled('nav.my_files') && (
-            <button
-              className={`nav-item ${currentPage === 'my-files' ? 'active' : ''}`}
-              onClick={() => onNavigate('my-files')}
-              data-testid="nav-my-files"
-            >
-              <FolderOpen size={16} className="nav-icon" />
-              <span>My Files</span>
-            </button>
-          )}
+          <div className="nav-section-title">Assets</div>
+          <button
+            className={`nav-item ${currentPage === 'assets' ? 'active' : ''}`}
+            onClick={() => onNavigate('assets')}
+            data-testid="nav-assets"
+          >
+            <FolderOpen size={16} className="nav-icon" />
+            <span>Assets</span>
+          </button>
         </div>
       )}
 

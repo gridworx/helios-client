@@ -252,6 +252,67 @@ router.get('/article/:id', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/v1/help/commands
+ * Get all commands grouped by category (for ConsoleHelpPanel)
+ */
+router.get('/commands', async (req: Request, res: Response) => {
+  try {
+    const allEntries = loadKnowledgeBase();
+
+    // Filter to only commands
+    const commands = allEntries.filter(e => e.type === 'command');
+
+    // Group by subcategory
+    const groupedBySubcategory: Record<string, KnowledgeEntry[]> = {};
+
+    for (const cmd of commands) {
+      const subcategory = cmd.subcategory || 'other';
+      if (!groupedBySubcategory[subcategory]) {
+        groupedBySubcategory[subcategory] = [];
+      }
+      groupedBySubcategory[subcategory].push(cmd);
+    }
+
+    // Define section order and display names
+    const sectionConfig: Record<string, string> = {
+      'system': 'Built-in Commands',
+      'helios': 'Helios Local Commands',
+      'google-workspace': 'Google Workspace',
+      'microsoft-365': 'Microsoft 365',
+      'security': 'Security & 2FA',
+      'api': 'API Commands',
+      'other': 'Other Commands'
+    };
+
+    // Convert to array format for frontend
+    const sections = Object.entries(sectionConfig)
+      .filter(([key]) => groupedBySubcategory[key])
+      .map(([key, title]) => ({
+        title,
+        commands: groupedBySubcategory[key].map(cmd => ({
+          command: cmd.title,
+          description: cmd.summary,
+          example: cmd.examples?.[0]?.code || cmd.title
+        }))
+      }));
+
+    res.json({
+      success: true,
+      data: {
+        sections,
+        totalCommands: commands.length
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching commands:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch commands'
+    });
+  }
+});
+
+/**
  * GET /api/v1/help/quick-tips/:page
  * Get quick tips for a page (shorter format for tooltips)
  */

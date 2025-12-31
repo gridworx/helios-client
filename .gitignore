@@ -54,6 +54,18 @@ Desktop.ini
 # Sensitive files
 token.txt
 *.token
+
+# Ad-hoc scripts and SQL files (development artifacts)
+**/fix-*.sql
+**/reset-*.sql
+**/update-*.sql
+**/enable-*.sql
+**/*-jack-*.sql
+**/*-jack-*.js
+**/test-*.js
+**/reset_password.js
+**/set-*-password.js
+scripts/*.sql
 # Test artifacts
 test-results/
 playwright-report/

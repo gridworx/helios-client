@@ -477,7 +477,6 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
 
     const googleWorkspaceEnabled = moduleCheckResult.rows.length > 0 && moduleCheckResult.rows[0].is_enabled;
 
-    let users = [];
     const userEmailMap = new Map(); // Track users by email to avoid duplicates
 
     // Build status filter condition (using 'status' column, not 'user_status')
@@ -655,7 +654,14 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
             existingUser.isActive = false;
           }
         } else if (statusFilter === 'all' || includeDeleted) {
-          // Only add GW-only users when not filtering by a specific status
+          // Only add GW-only users when not filtering by a specific user type
+          // GW users are assumed to be 'staff' - don't add them when filtering for guests or contacts
+          const dbUserType = userType === 'guests' ? 'guest' : userType === 'contacts' ? 'contact' : userType;
+          if (dbUserType && dbUserType !== 'staff') {
+            // Skip GW-only users when filtering for non-staff user types
+            return;
+          }
+
           // When filtering by active/deleted/suspended/etc, only show users
           // that match the filter from organization_users
           userEmailMap.set(email, {
@@ -673,14 +679,27 @@ router.get('/users', authenticateToken, async (req: Request, res: Response) => {
             jobTitle: user.job_title,
             lastLogin: user.last_login_time,
             createdAt: user.creation_time,
-            source: 'google_workspace'
+            source: 'google_workspace',
+            userType: 'staff' // GW users are always staff
           });
         }
       });
     }
 
     // Convert map to array
-    users = Array.from(userEmailMap.values());
+    let users = Array.from(userEmailMap.values());
+
+    // Apply status filter AFTER merging GW data (since GW suspended status may override local status)
+    if (statusFilter && statusFilter !== 'all' && !includeDeleted) {
+      users = users.filter((user: any) => {
+        const userStatus = user.status || user.userStatus || 'active';
+        if (statusFilter === 'active') return userStatus === 'active';
+        if (statusFilter === 'suspended') return userStatus === 'suspended';
+        if (statusFilter === 'pending' || statusFilter === 'staged') return userStatus === 'staged';
+        if (statusFilter === 'deleted') return userStatus === 'deleted';
+        return true;
+      });
+    }
 
     logger.info('Users fetched', {
       organizationId,
@@ -3616,6 +3635,206 @@ router.post('/users/:userId/email-settings', authenticateToken, async (req: Requ
   } catch (error: any) {
     logger.error('Error updating email settings', { error: error.message });
     res.status(500).json({ success: false, error: 'Failed to update email settings' });
+  }
+});
+
+/**
+ * @openapi
+ * /organization/security-policies:
+ *   get:
+ *     summary: Get security policies
+ *     description: Get current security policy settings for the organization
+ *     tags: [Organization]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Security policies retrieved
+ */
+router.get('/security-policies', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      return errorResponse(res, ErrorCode.UNAUTHORIZED, 'Organization not found');
+    }
+
+    // Get security policy settings
+    const result = await db.query(`
+      SELECT key, value FROM organization_settings
+      WHERE organization_id = $1
+      AND key IN ('require_2fa', 'require_sso', 'password_min_length', 'password_require_uppercase',
+                  'password_require_lowercase', 'password_require_number', 'password_require_special',
+                  'password_expiration_days', 'max_failed_attempts', 'lockout_duration_minutes',
+                  'session_timeout_minutes', 'max_concurrent_sessions')
+    `, [organizationId]);
+
+    // Build policy object from key-value pairs
+    const policies: Record<string, any> = {
+      require2FA: false,
+      requireSSO: false,
+      passwordMinLength: 8,
+      passwordRequireUppercase: true,
+      passwordRequireLowercase: true,
+      passwordRequireNumber: true,
+      passwordRequireSpecial: false,
+      passwordExpirationDays: 0,
+      maxFailedAttempts: 5,
+      lockoutDurationMinutes: 15,
+      sessionTimeoutMinutes: 60,
+      maxConcurrentSessions: 0
+    };
+
+    for (const row of result.rows) {
+      const key = row.key;
+      const value = row.value;
+
+      switch (key) {
+        case 'require_2fa':
+          policies.require2FA = value === 'true';
+          break;
+        case 'require_sso':
+          policies.requireSSO = value === 'true';
+          break;
+        case 'password_min_length':
+          policies.passwordMinLength = parseInt(value) || 8;
+          break;
+        case 'password_require_uppercase':
+          policies.passwordRequireUppercase = value === 'true';
+          break;
+        case 'password_require_lowercase':
+          policies.passwordRequireLowercase = value === 'true';
+          break;
+        case 'password_require_number':
+          policies.passwordRequireNumber = value === 'true';
+          break;
+        case 'password_require_special':
+          policies.passwordRequireSpecial = value === 'true';
+          break;
+        case 'password_expiration_days':
+          policies.passwordExpirationDays = parseInt(value) || 0;
+          break;
+        case 'max_failed_attempts':
+          policies.maxFailedAttempts = parseInt(value) || 5;
+          break;
+        case 'lockout_duration_minutes':
+          policies.lockoutDurationMinutes = parseInt(value) || 15;
+          break;
+        case 'session_timeout_minutes':
+          policies.sessionTimeoutMinutes = parseInt(value) || 60;
+          break;
+        case 'max_concurrent_sessions':
+          policies.maxConcurrentSessions = parseInt(value) || 0;
+          break;
+      }
+    }
+
+    // Check if SSO providers are configured
+    const ssoResult = await db.query(`
+      SELECT COUNT(*) as count FROM sso_providers
+      WHERE organization_id = $1 AND is_enabled = true
+    `, [organizationId]);
+    policies.hasSSOConfigured = parseInt(ssoResult.rows[0].count) > 0;
+
+    successResponse(res, policies);
+  } catch (error) {
+    logger.error('Failed to get security policies', error);
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to get security policies');
+  }
+});
+
+/**
+ * @openapi
+ * /organization/security-policies:
+ *   put:
+ *     summary: Update security policies
+ *     description: Update security policy settings for the organization (admin only)
+ *     tags: [Organization]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               require2FA:
+ *                 type: boolean
+ *               requireSSO:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Security policies updated
+ */
+router.put('/security-policies', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const organizationId = req.user?.organizationId;
+    const userRole = req.user?.role;
+
+    if (!organizationId) {
+      return errorResponse(res, ErrorCode.UNAUTHORIZED, 'Organization not found');
+    }
+
+    // Only admins can update security policies
+    if (userRole !== 'admin') {
+      return forbiddenResponse(res, 'Only administrators can update security policies');
+    }
+
+    const {
+      require2FA,
+      requireSSO,
+      passwordMinLength,
+      passwordRequireUppercase,
+      passwordRequireLowercase,
+      passwordRequireNumber,
+      passwordRequireSpecial,
+      passwordExpirationDays,
+      maxFailedAttempts,
+      lockoutDurationMinutes,
+      sessionTimeoutMinutes,
+      maxConcurrentSessions
+    } = req.body;
+
+    // Upsert each setting
+    const settings = [
+      { key: 'require_2fa', value: require2FA !== undefined ? String(require2FA) : undefined },
+      { key: 'require_sso', value: requireSSO !== undefined ? String(requireSSO) : undefined },
+      { key: 'password_min_length', value: passwordMinLength !== undefined ? String(passwordMinLength) : undefined },
+      { key: 'password_require_uppercase', value: passwordRequireUppercase !== undefined ? String(passwordRequireUppercase) : undefined },
+      { key: 'password_require_lowercase', value: passwordRequireLowercase !== undefined ? String(passwordRequireLowercase) : undefined },
+      { key: 'password_require_number', value: passwordRequireNumber !== undefined ? String(passwordRequireNumber) : undefined },
+      { key: 'password_require_special', value: passwordRequireSpecial !== undefined ? String(passwordRequireSpecial) : undefined },
+      { key: 'password_expiration_days', value: passwordExpirationDays !== undefined ? String(passwordExpirationDays) : undefined },
+      { key: 'max_failed_attempts', value: maxFailedAttempts !== undefined ? String(maxFailedAttempts) : undefined },
+      { key: 'lockout_duration_minutes', value: lockoutDurationMinutes !== undefined ? String(lockoutDurationMinutes) : undefined },
+      { key: 'session_timeout_minutes', value: sessionTimeoutMinutes !== undefined ? String(sessionTimeoutMinutes) : undefined },
+      { key: 'max_concurrent_sessions', value: maxConcurrentSessions !== undefined ? String(maxConcurrentSessions) : undefined }
+    ].filter(s => s.value !== undefined);
+
+    for (const setting of settings) {
+      await db.query(`
+        INSERT INTO organization_settings (organization_id, key, value, updated_at)
+        VALUES ($1, $2, $3, NOW())
+        ON CONFLICT (organization_id, key)
+        DO UPDATE SET value = $3, updated_at = NOW()
+      `, [organizationId, setting.key, setting.value]);
+    }
+
+    // Audit log the change
+    await securityAudit.log({
+      organizationId,
+      action: AuditActions.SETTINGS_UPDATE,
+      actorId: req.user?.userId,
+      actorEmail: req.user?.email || 'unknown',
+      outcome: 'success',
+      changesAfter: { settings: settings.map(s => s.key) }
+    });
+
+    logger.info('Security policies updated', { organizationId, settings: settings.map(s => s.key) });
+    successResponse(res, { message: 'Security policies updated', updated: settings.length });
+  } catch (error) {
+    logger.error('Failed to update security policies', error);
+    errorResponse(res, ErrorCode.INTERNAL_ERROR, 'Failed to update security policies');
   }
 });
 

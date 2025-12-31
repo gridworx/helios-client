@@ -333,16 +333,17 @@
 
 /* Secondary Buttons */
 .btn-secondary {
-  padding: 7px 12px;
+  height: 32px;
+  padding: 0 12px;
   border: 1px solid #d1d5db;
   background: white;
   color: #374151;
   font-size: 13px;
   font-weight: 500;
-  border-radius: 5px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.15s;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
   white-space: nowrap;

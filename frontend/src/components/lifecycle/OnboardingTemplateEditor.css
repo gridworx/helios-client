@@ -409,6 +409,52 @@
   cursor: not-allowed;
 }
 
+/* Workflow Mode Toggle */
+.workflow-mode-toggle {
+  display: flex;
+  gap: 8px;
+  padding: 4px;
+  background: #f3f4f6;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  width: fit-content;
+}
+
+.workflow-mode-toggle .mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.workflow-mode-toggle .mode-btn:hover {
+  color: #374151;
+}
+
+.workflow-mode-toggle .mode-btn.active {
+  background: white;
+  color: #8b5cf6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.workflow-section .section-content {
+  padding: 16px 0 0 0;
+}
+
+.workflow-builder-container {
+  margin: 0 -16px -16px -16px;
+  border-radius: 0 0 8px 8px;
+  overflow: hidden;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .template-editor {
@@ -417,5 +463,14 @@
 
   .section-content {
     padding: 16px;
+  }
+
+  .workflow-mode-toggle {
+    width: 100%;
+  }
+
+  .workflow-mode-toggle .mode-btn {
+    flex: 1;
+    justify-content: center;
   }
 }
