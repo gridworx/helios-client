@@ -193,6 +193,34 @@ const AuditLogs: React.FC = () => {
       },
       size: 100,
     }),
+    columnHelper.accessor('description', {
+      header: 'Description',
+      cell: ({ getValue, row }) => {
+        const description = getValue();
+        const metadata = row.original.metadata;
+        const hasMetadata = metadata && Object.keys(metadata).length > 0;
+        const tooltip = hasMetadata
+          ? `Details:\n${JSON.stringify(metadata, null, 2)}`
+          : undefined;
+        return (
+          <span
+            className="description-text"
+            title={tooltip}
+            style={{
+              maxWidth: '300px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              display: 'block',
+              cursor: hasMetadata ? 'help' : 'default'
+            }}
+          >
+            {description || '-'}
+          </span>
+        );
+      },
+      size: 300,
+    }),
     columnHelper.display({
       id: 'resource',
       header: 'Resource',
@@ -397,6 +425,33 @@ const AuditLogs: React.FC = () => {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Info box explaining Audit Logs */}
+      <div className="info-box" style={{
+        background: 'var(--color-surface-2, #f3f4f6)',
+        border: '1px solid var(--color-border, #e5e7eb)',
+        borderRadius: '8px',
+        padding: '16px',
+        marginBottom: '20px'
+      }}>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+          <Activity size={20} style={{ color: 'var(--color-primary, #8b5cf6)', flexShrink: 0, marginTop: '2px' }} />
+          <div>
+            <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 600 }}>Understanding Audit Logs</h4>
+            <p style={{ margin: 0, fontSize: '13px', color: 'var(--color-text-secondary, #6b7280)' }}>
+              Audit logs track all actions taken in your organization. Hover over the Description column to see full details.
+              Common actions include:
+            </p>
+            <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px', fontSize: '13px', color: 'var(--color-text-secondary, #6b7280)' }}>
+              <li><strong>auth.*</strong> - Login, logout, password changes</li>
+              <li><strong>user.*</strong> - User creation, updates, suspensions</li>
+              <li><strong>group.*</strong> - Group and membership changes</li>
+              <li><strong>module.*</strong> - Module enable/disable, sync operations</li>
+              <li><strong>settings.*</strong> - Configuration changes</li>
+            </ul>
+          </div>
+        </div>
       </div>
 
       {(error || exportError) && (
