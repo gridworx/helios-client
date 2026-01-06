@@ -12,17 +12,10 @@ import {
   Eye,
   Trash2,
   PlayCircle,
-  Zap,
 } from 'lucide-react';
 import { authFetchJson } from '../config/api';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
-import type { WorkflowBlock, WorkflowTrigger } from '../components/workflow/types';
-
-interface WorkflowData {
-  trigger: WorkflowTrigger;
-  blocks: WorkflowBlock[];
-}
 
 type RequestType = 'onboard' | 'offboard' | 'transfer';
 type RequestStatus = 'pending' | 'approved' | 'rejected' | 'in_progress' | 'completed' | 'cancelled';
@@ -41,7 +34,6 @@ interface LifecycleRequest {
   end_date?: string;
   template_id?: string;
   template_name?: string;
-  template_timeline?: WorkflowData | null;
   job_title?: string;
   department_id?: string;
   department_name?: string;
@@ -581,31 +573,24 @@ const NewRequestModal = ({
     template_id: '',
   });
   const [departments, setDepartments] = useState<Array<{ id: string; name: string }>>([]);
-  const [jobTitles, setJobTitles] = useState<Array<{ id: string; name: string; isActive?: boolean }>>([]);
   const [managers, setManagers] = useState<Array<{ id: string; first_name: string; last_name: string }>>([]);
   const [templates, setTemplates] = useState<Array<{ id: string; name: string }>>([]);
-  const [orgDomain, setOrgDomain] = useState('');
-  const [emailError, setEmailError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { showToast } = useToast();
 
   useEffect(() => {
-    // Fetch departments, job titles, managers, templates, and organization domain
+    // Fetch departments, managers, and templates
     const fetchData = async () => {
       try {
-        const [deptRes, jtRes, mgrRes, tplRes, orgRes] = await Promise.all([
+        const [deptRes, mgrRes, tplRes] = await Promise.all([
           authFetchJson<{ success: boolean; data: Array<{ id: string; name: string }> }>('/api/v1/departments'),
-          authFetchJson<{ success: boolean; data: Array<{ id: string; name: string; isActive?: boolean }> }>('/api/v1/organization/job-titles'),
           authFetchJson<{ success: boolean; data: Array<{ id: string; first_name: string; last_name: string }> }>('/api/v1/users?role=admin,manager'),
           authFetchJson<{ success: boolean; data: Array<{ id: string; name: string }> }>('/api/v1/lifecycle/onboarding-templates?isActive=true'),
-          authFetchJson<{ success: boolean; data: { domain?: string } }>('/api/v1/organization/current'),
         ]);
 
         if (deptRes.success) setDepartments(deptRes.data);
-        if (jtRes.success) setJobTitles(jtRes.data);
         if (mgrRes.success) setManagers(mgrRes.data);
         if (tplRes.success) setTemplates(tplRes.data);
-        if (orgRes.success && orgRes.data?.domain) setOrgDomain(orgRes.data.domain);
       } catch (error) {
         console.error('Error fetching form data:', error);
       }
@@ -613,41 +598,8 @@ const NewRequestModal = ({
     fetchData();
   }, []);
 
-  // Validate email domain against organization's configured domain
-  const validateEmailDomain = (email: string): boolean => {
-    if (!email || !orgDomain) return true; // Skip validation if no domain configured
-    const emailDomain = email.split('@')[1];
-    if (!emailDomain) return true; // Let standard email validation handle this
-    if (emailDomain.toLowerCase() !== orgDomain.toLowerCase()) {
-      setEmailError(`Email must use the organization domain: @${orgDomain}`);
-      return false;
-    }
-    setEmailError('');
-    return true;
-  };
-
-  const handleEmailChange = (email: string) => {
-    setFormData({ ...formData, email });
-    // Clear error when user starts typing
-    if (emailError) {
-      setEmailError('');
-    }
-  };
-
-  const handleEmailBlur = () => {
-    if (formData.email) {
-      validateEmailDomain(formData.email);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Validate email domain before submission
-    if (!validateEmailDomain(formData.email)) {
-      return;
-    }
-
     setSubmitting(true);
 
     try {
@@ -722,16 +674,10 @@ const NewRequestModal = ({
               type="email"
               required
               value={formData.email}
-              onChange={(e) => handleEmailChange(e.target.value)}
-              onBlur={handleEmailBlur}
-              className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 ${
-                emailError ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder={orgDomain ? `user@${orgDomain}` : 'will.be.created@company.com'}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              placeholder="will.be.created@company.com"
             />
-            {emailError && (
-              <p className="mt-1 text-xs text-red-600">{emailError}</p>
-            )}
           </div>
 
           <div>
@@ -759,16 +705,12 @@ const NewRequestModal = ({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Job Title</label>
-            <select
+            <input
+              type="text"
               value={formData.job_title}
               onChange={(e) => setFormData({ ...formData, job_title: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-            >
-              <option value="">Select job title...</option>
-              {jobTitles.filter((jt) => jt.isActive !== false).map((jt) => (
-                <option key={jt.id} value={jt.name}>{jt.name}</option>
-              ))}
-            </select>
+            />
           </div>
 
           <div>
@@ -956,40 +898,6 @@ const RequestDetailModal = ({
                   <p className="text-sm text-red-700 mt-1">{request.rejection_reason}</p>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Workflow Summary */}
-          {request.template_timeline && request.template_timeline.blocks && request.template_timeline.blocks.length > 0 && (
-            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Zap className="text-purple-600" size={16} />
-                <h4 className="text-sm font-semibold text-purple-800">
-                  Workflow Automation ({request.template_timeline.blocks.length} steps)
-                </h4>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {request.template_timeline.blocks.slice(0, 6).map((block, idx) => (
-                  <span
-                    key={block.id || idx}
-                    className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-                      block.enabled ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500 line-through'
-                    }`}
-                  >
-                    {block.type.replace(/_/g, ' ')}
-                  </span>
-                ))}
-                {request.template_timeline.blocks.length > 6 && (
-                  <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-500">
-                    +{request.template_timeline.blocks.length - 6} more
-                  </span>
-                )}
-              </div>
-              <p className="mt-2 text-xs text-purple-600">
-                Trigger: {request.template_timeline.trigger.type.replace(/_/g, ' ')}
-                {request.template_timeline.trigger.offsetDays &&
-                  ` (${request.template_timeline.trigger.offsetDays} days)`}
-              </p>
             </div>
           )}
 

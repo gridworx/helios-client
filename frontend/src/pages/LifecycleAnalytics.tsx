@@ -22,7 +22,6 @@ import {
   Building,
   Target,
   Activity,
-  Info,
 } from 'lucide-react';
 import { API_URL } from '../config/api';
 import './LifecycleAnalytics.css';
@@ -111,11 +110,32 @@ export default function LifecycleAnalytics({ onNavigate: _onNavigate }: Lifecycl
         }
       }
 
-      // Analytics breakdown data - requires completed onboardings to populate
-      // These will show empty states until real workflow data exists
-      setDepartmentStats([]);
-      setTaskTypeStats([]);
-      setMonthlyTrends([]);
+      // Mock department stats (would come from analytics API)
+      setDepartmentStats([
+        { department: 'Engineering', department_id: '1', totalOnboardings: 12, avgCompletionDays: 12, taskCompletionRate: 92, overdueRate: 5 },
+        { department: 'Sales', department_id: '2', totalOnboardings: 8, avgCompletionDays: 10, taskCompletionRate: 88, overdueRate: 8 },
+        { department: 'Marketing', department_id: '3', totalOnboardings: 5, avgCompletionDays: 14, taskCompletionRate: 85, overdueRate: 12 },
+        { department: 'Operations', department_id: '4', totalOnboardings: 4, avgCompletionDays: 16, taskCompletionRate: 80, overdueRate: 15 },
+        { department: 'HR', department_id: '5', totalOnboardings: 3, avgCompletionDays: 8, taskCompletionRate: 95, overdueRate: 2 },
+      ]);
+
+      // Mock task type stats
+      setTaskTypeStats([
+        { category: 'IT Setup', totalTasks: 156, completedOnTime: 140, avgCompletionDays: 2, bottleneckScore: 15 },
+        { category: 'HR Paperwork', totalTasks: 124, completedOnTime: 118, avgCompletionDays: 1, bottleneckScore: 5 },
+        { category: 'Training', totalTasks: 98, completedOnTime: 72, avgCompletionDays: 5, bottleneckScore: 35 },
+        { category: 'Manager Tasks', totalTasks: 87, completedOnTime: 68, avgCompletionDays: 4, bottleneckScore: 28 },
+        { category: 'Security', totalTasks: 65, completedOnTime: 60, avgCompletionDays: 2, bottleneckScore: 8 },
+      ]);
+
+      // Mock monthly trends
+      const months = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      setMonthlyTrends(months.map((month) => ({
+        month,
+        onboardings: 4 + Math.floor(Math.random() * 8),
+        avgDays: 12 + Math.floor(Math.random() * 6),
+        completionRate: 75 + Math.floor(Math.random() * 20),
+      })));
 
     } catch (err: any) {
       setError(err.message);
@@ -309,35 +329,26 @@ export default function LifecycleAnalytics({ onNavigate: _onNavigate }: Lifecycl
             </h3>
           </div>
           <div className="chart-content">
-            {monthlyTrends.length > 0 ? (
-              <>
-                <div className="simple-bar-chart">
-                  {monthlyTrends.map((trend, index) => (
-                    <div key={index} className="bar-group">
-                      <div
-                        className="bar"
-                        style={{ height: `${(trend.onboardings / 12) * 100}%` }}
-                        title={`${trend.onboardings} onboardings`}
-                      >
-                        <span className="bar-value">{trend.onboardings}</span>
-                      </div>
-                      <span className="bar-label">{trend.month}</span>
-                    </div>
-                  ))}
+            <div className="simple-bar-chart">
+              {monthlyTrends.map((trend, index) => (
+                <div key={index} className="bar-group">
+                  <div
+                    className="bar"
+                    style={{ height: `${(trend.onboardings / 12) * 100}%` }}
+                    title={`${trend.onboardings} onboardings`}
+                  >
+                    <span className="bar-value">{trend.onboardings}</span>
+                  </div>
+                  <span className="bar-label">{trend.month}</span>
                 </div>
-                <div className="chart-legend">
-                  <span className="legend-item">
-                    <span className="legend-dot"></span>
-                    Onboardings per month
-                  </span>
-                </div>
-              </>
-            ) : (
-              <div className="empty-chart-state">
-                <Info size={24} />
-                <p>Monthly trends will appear as onboardings are completed</p>
-              </div>
-            )}
+              ))}
+            </div>
+            <div className="chart-legend">
+              <span className="legend-item">
+                <span className="legend-dot"></span>
+                Onboardings per month
+              </span>
+            </div>
           </div>
         </div>
 
@@ -350,43 +361,36 @@ export default function LifecycleAnalytics({ onNavigate: _onNavigate }: Lifecycl
             </h3>
           </div>
           <div className="chart-content">
-            {departmentStats.length > 0 ? (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Department</th>
-                    <th>Onboardings</th>
-                    <th>Avg Days</th>
-                    <th>Completion</th>
-                    <th>Overdue</th>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Department</th>
+                  <th>Onboardings</th>
+                  <th>Avg Days</th>
+                  <th>Completion</th>
+                  <th>Overdue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {departmentStats.map((dept) => (
+                  <tr key={dept.department_id}>
+                    <td className="dept-name">{dept.department}</td>
+                    <td>{dept.totalOnboardings}</td>
+                    <td>{dept.avgCompletionDays} days</td>
+                    <td>
+                      <span className={`rate-badge ${dept.taskCompletionRate >= 90 ? 'excellent' : dept.taskCompletionRate >= 80 ? 'good' : 'needs-improvement'}`}>
+                        {dept.taskCompletionRate}%
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`rate-badge ${dept.overdueRate <= 5 ? 'excellent' : dept.overdueRate <= 10 ? 'good' : 'needs-improvement'}`}>
+                        {dept.overdueRate}%
+                      </span>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {departmentStats.map((dept) => (
-                    <tr key={dept.department_id}>
-                      <td className="dept-name">{dept.department}</td>
-                      <td>{dept.totalOnboardings}</td>
-                      <td>{dept.avgCompletionDays} days</td>
-                      <td>
-                        <span className={`rate-badge ${dept.taskCompletionRate >= 90 ? 'excellent' : dept.taskCompletionRate >= 80 ? 'good' : 'needs-improvement'}`}>
-                          {dept.taskCompletionRate}%
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`rate-badge ${dept.overdueRate <= 5 ? 'excellent' : dept.overdueRate <= 10 ? 'good' : 'needs-improvement'}`}>
-                          {dept.overdueRate}%
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <div className="empty-chart-state">
-                <Info size={24} />
-                <p>Department stats will appear when onboardings are completed across teams</p>
-              </div>
-            )}
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -400,52 +404,43 @@ export default function LifecycleAnalytics({ onNavigate: _onNavigate }: Lifecycl
             <span className="chart-subtitle">Tasks most likely to cause delays</span>
           </div>
           <div className="chart-content">
-            {taskTypeStats.length > 0 ? (
-              <>
-                <div className="bottleneck-list">
-                  {taskTypeStats
-                    .sort((a, b) => b.bottleneckScore - a.bottleneckScore)
-                    .map((task) => {
-                      const severity = getBottleneckSeverity(task.bottleneckScore);
-                      return (
-                        <div key={task.category} className={`bottleneck-item severity-${severity}`}>
-                          <div className="bottleneck-info">
-                            <span className="bottleneck-category">{task.category}</span>
-                            <span className="bottleneck-stats">
-                              {task.completedOnTime}/{task.totalTasks} on time ({Math.round((task.completedOnTime / task.totalTasks) * 100)}%)
-                            </span>
-                          </div>
-                          <div className="bottleneck-bar-container">
-                            <div
-                              className="bottleneck-bar"
-                              style={{ width: `${task.bottleneckScore}%` }}
-                            />
-                          </div>
-                          <span className={`bottleneck-score severity-${severity}`}>
-                            {task.bottleneckScore}%
-                          </span>
-                        </div>
-                      );
-                    })}
-                </div>
-                <div className="bottleneck-legend">
-                  <span className="legend-item">
-                    <span className="legend-dot low"></span> Low Risk (0-14%)
-                  </span>
-                  <span className="legend-item">
-                    <span className="legend-dot medium"></span> Medium Risk (15-29%)
-                  </span>
-                  <span className="legend-item">
-                    <span className="legend-dot high"></span> High Risk (30%+)
-                  </span>
-                </div>
-              </>
-            ) : (
-              <div className="empty-chart-state">
-                <Info size={24} />
-                <p>Bottleneck analysis will appear as tasks are tracked and completed</p>
-              </div>
-            )}
+            <div className="bottleneck-list">
+              {taskTypeStats
+                .sort((a, b) => b.bottleneckScore - a.bottleneckScore)
+                .map((task) => {
+                  const severity = getBottleneckSeverity(task.bottleneckScore);
+                  return (
+                    <div key={task.category} className={`bottleneck-item severity-${severity}`}>
+                      <div className="bottleneck-info">
+                        <span className="bottleneck-category">{task.category}</span>
+                        <span className="bottleneck-stats">
+                          {task.completedOnTime}/{task.totalTasks} on time ({Math.round((task.completedOnTime / task.totalTasks) * 100)}%)
+                        </span>
+                      </div>
+                      <div className="bottleneck-bar-container">
+                        <div
+                          className="bottleneck-bar"
+                          style={{ width: `${task.bottleneckScore}%` }}
+                        />
+                      </div>
+                      <span className={`bottleneck-score severity-${severity}`}>
+                        {task.bottleneckScore}%
+                      </span>
+                    </div>
+                  );
+                })}
+            </div>
+            <div className="bottleneck-legend">
+              <span className="legend-item">
+                <span className="legend-dot low"></span> Low Risk (0-14%)
+              </span>
+              <span className="legend-item">
+                <span className="legend-dot medium"></span> Medium Risk (15-29%)
+              </span>
+              <span className="legend-item">
+                <span className="legend-dot high"></span> High Risk (30%+)
+              </span>
+            </div>
           </div>
         </div>
 

@@ -204,71 +204,41 @@ router.get('/org-chart', requireAuth, async (req: Request, res: Response) => {
 
     const orphansResult = await db.query(orphansQuery, [organizationId]);
 
-    // Get organization statistics - use fallback if function doesn't exist
-    let statsResult;
-    if (functionExists) {
-      const statsQuery = `
-        WITH hierarchy_stats AS (
-          SELECT
-            COUNT(DISTINCT user_id) as total_users,
-            MAX(level) as max_depth
-          FROM get_org_hierarchy(NULL)
-          WHERE user_id IN (
-            SELECT id FROM organization_users
-            WHERE organization_id = $1
-          )
-        ),
-        direct_reports_stats AS (
-          SELECT
-            AVG(report_count) as avg_span
-          FROM (
-            SELECT
-              reporting_manager_id,
-              COUNT(*) as report_count
-            FROM organization_users
-            WHERE organization_id = $1
-              AND is_active = true
-              AND reporting_manager_id IS NOT NULL
-            GROUP BY reporting_manager_id
-          ) as reports
-        )
+    // Get organization statistics
+    const statsQuery = `
+      WITH hierarchy_stats AS (
         SELECT
-          h.total_users,
-          h.max_depth,
-          COALESCE(d.avg_span, 0) as avg_span
-        FROM hierarchy_stats h
-        CROSS JOIN direct_reports_stats d
-      `;
-      statsResult = await db.query(statsQuery, [organizationId]);
-    } else {
-      // Fallback stats query without the function
-      const fallbackStatsQuery = `
-        WITH RECURSIVE org_depth AS (
-          SELECT id, 0 AS level
+          COUNT(DISTINCT user_id) as total_users,
+          MAX(level) as max_depth
+        FROM get_org_hierarchy(NULL)
+        WHERE user_id IN (
+          SELECT id FROM organization_users
+          WHERE organization_id = $1
+        )
+      ),
+      direct_reports_stats AS (
+        SELECT
+          AVG(report_count) as avg_span
+        FROM (
+          SELECT
+            reporting_manager_id,
+            COUNT(*) as report_count
           FROM organization_users
-          WHERE organization_id = $1 AND is_active = true AND reporting_manager_id IS NULL
-          UNION ALL
-          SELECT ou.id, od.level + 1
-          FROM organization_users ou
-          JOIN org_depth od ON ou.reporting_manager_id = od.id
-          WHERE ou.organization_id = $1 AND ou.is_active = true
-        ),
-        direct_reports_stats AS (
-          SELECT AVG(report_count) as avg_span
-          FROM (
-            SELECT reporting_manager_id, COUNT(*) as report_count
-            FROM organization_users
-            WHERE organization_id = $1 AND is_active = true AND reporting_manager_id IS NOT NULL
-            GROUP BY reporting_manager_id
-          ) as reports
-        )
-        SELECT
-          (SELECT COUNT(*) FROM organization_users WHERE organization_id = $1 AND is_active = true) as total_users,
-          COALESCE((SELECT MAX(level) FROM org_depth), 0) as max_depth,
-          COALESCE((SELECT avg_span FROM direct_reports_stats), 0) as avg_span
-      `;
-      statsResult = await db.query(fallbackStatsQuery, [organizationId]);
-    }
+          WHERE organization_id = $1
+            AND is_active = true
+            AND reporting_manager_id IS NOT NULL
+          GROUP BY reporting_manager_id
+        ) as reports
+      )
+      SELECT
+        h.total_users,
+        h.max_depth,
+        COALESCE(d.avg_span, 0) as avg_span
+      FROM hierarchy_stats h
+      CROSS JOIN direct_reports_stats d
+    `;
+
+    const statsResult = await db.query(statsQuery, [organizationId]);
     const stats = statsResult.rows[0] || { total_users: 0, max_depth: 0, avg_span: 0 };
 
     // Build the tree structure
@@ -541,62 +511,24 @@ router.get('/users/:userId/direct-reports', requireAuth, async (req: Request, re
       });
     }
 
-    // Check if the function exists
-    const functionCheckQuery = `
-      SELECT EXISTS (
-        SELECT 1 FROM pg_proc p
-        JOIN pg_namespace n ON p.pronamespace = n.oid
-        WHERE n.nspname = 'public' AND p.proname = 'get_direct_reports_count'
-      ) as exists
+    const query = `
+      SELECT
+        id as user_id,
+        email,
+        first_name,
+        last_name,
+        job_title,
+        department,
+        photo_data,
+        get_direct_reports_count(id) as direct_reports_count
+      FROM organization_users
+      WHERE organization_id = $1
+        AND reporting_manager_id = $2
+        AND is_active = true
+      ORDER BY last_name, first_name
     `;
-    const funcResult = await db.query(functionCheckQuery);
-    const funcExists = funcResult.rows[0]?.exists;
 
-    let result;
-    if (funcExists) {
-      const query = `
-        SELECT
-          id as user_id,
-          email,
-          first_name,
-          last_name,
-          job_title,
-          department,
-          photo_data,
-          get_direct_reports_count(id) as direct_reports_count
-        FROM organization_users
-        WHERE organization_id = $1
-          AND reporting_manager_id = $2
-          AND is_active = true
-        ORDER BY last_name, first_name
-      `;
-      result = await db.query(query, [organizationId, userId]);
-    } else {
-      // Fallback without the function
-      const fallbackQuery = `
-        SELECT
-          ou.id as user_id,
-          ou.email,
-          ou.first_name,
-          ou.last_name,
-          ou.job_title,
-          ou.department,
-          ou.photo_data,
-          COALESCE(dr.report_count, 0) as direct_reports_count
-        FROM organization_users ou
-        LEFT JOIN (
-          SELECT reporting_manager_id, COUNT(*) as report_count
-          FROM organization_users
-          WHERE organization_id = $1 AND is_active = true AND reporting_manager_id IS NOT NULL
-          GROUP BY reporting_manager_id
-        ) dr ON ou.id = dr.reporting_manager_id
-        WHERE ou.organization_id = $1
-          AND ou.reporting_manager_id = $2
-          AND ou.is_active = true
-        ORDER BY ou.last_name, ou.first_name
-      `;
-      result = await db.query(fallbackQuery, [organizationId, userId]);
-    }
+    const result = await db.query(query, [organizationId, userId]);
 
     const directReports = result.rows.map((user: any) => ({
       userId: user.user_id,

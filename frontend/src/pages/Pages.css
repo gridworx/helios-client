@@ -206,42 +206,35 @@
   gap: 8px;
 }
 
-/* Buttons - Consistent 32px height */
+/* Buttons */
 .btn-primary,
 .btn-secondary {
-  height: 32px;
-  padding: 0 16px;
+  padding: 10px 20px;
   border-radius: 6px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
   border: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
 }
 
 .btn-primary {
-  background: var(--theme-primary, #8b5cf6);
+  background: #1976d2;
   color: white;
 }
 
 .btn-primary:hover {
-  background: var(--theme-primary-hover, #7c3aed);
+  background: #1565c0;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .btn-secondary {
-  background: white;
-  color: #374151;
-  border: 1px solid #d1d5db;
+  background: #f5f5f5;
+  color: #333;
 }
 
 .btn-secondary:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
+  background: #e0e0e0;
 }
 
 .btn-icon {

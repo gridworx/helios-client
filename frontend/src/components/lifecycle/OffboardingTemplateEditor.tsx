@@ -23,13 +23,10 @@ import {
   ChevronUp,
   Info,
   FileSignature,
-  Zap,
-  List,
+  Clock,
 } from 'lucide-react';
 import { authFetch } from '../../config/api';
 import TimelineEditor, { type TimelineEntry } from './TimelineEditor';
-import { WorkflowBuilder } from '../workflow';
-import type { WorkflowBlock, WorkflowTrigger } from '../workflow/types';
 import './OnboardingTemplateEditor.css'; // Reuse the same styles
 
 type DriveAction = 'transfer_manager' | 'transfer_user' | 'archive' | 'keep' | 'delete';
@@ -42,11 +39,6 @@ interface User {
   email: string;
   firstName?: string;
   lastName?: string;
-}
-
-interface WorkflowData {
-  trigger: WorkflowTrigger;
-  blocks: WorkflowBlock[];
 }
 
 interface OffboardingTemplate {
@@ -110,7 +102,7 @@ interface OffboardingTemplate {
   isDefault: boolean;
 
   // Timeline
-  timeline: TimelineEntry[] | WorkflowData | null;
+  timeline: TimelineEntry[];
 }
 
 interface OffboardingTemplateEditorProps {
@@ -180,7 +172,7 @@ const defaultTemplate: OffboardingTemplate = {
   isDefault: false,
 
   // Timeline
-  timeline: null,
+  timeline: [],
 };
 
 const driveActionLabels: Record<DriveAction, { label: string; description: string }> = {
@@ -224,20 +216,17 @@ const OffboardingTemplateEditor: React.FC<OffboardingTemplateEditorProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     basic: true,
-    drive: false,
+    drive: true,
     email: false,
     calendar: false,
-    access: false,
+    access: true,
     signature: false,
     mobile: false,
-    account: false,
+    account: true,
     notifications: false,
-    timeline: true,  // Workflow section expanded by default to show scratch-like builder
+    timeline: false,
   });
   const [newEmailAddress, setNewEmailAddress] = useState('');
-  const [workflowMode, setWorkflowMode] = useState<'timeline' | 'visual'>('visual');
-  const [workflowBlocks, setWorkflowBlocks] = useState<WorkflowBlock[]>([]);
-  const [workflowTrigger, setWorkflowTrigger] = useState<WorkflowTrigger>({ type: 'on_last_day' });
 
   const isEditing = !!templateId;
 
@@ -265,25 +254,11 @@ const OffboardingTemplateEditor: React.FC<OffboardingTemplateEditorProps> = ({
 
       const data = await response.json();
       if (data.success && data.data) {
-        const templateData = data.data;
-
-        // Parse timeline - check if it's WorkflowData format or legacy TimelineEntry[] format
-        const timeline = templateData.timeline;
-        if (timeline && typeof timeline === 'object' && 'blocks' in timeline && 'trigger' in timeline) {
-          // New WorkflowData format
-          setWorkflowBlocks(timeline.blocks || []);
-          setWorkflowTrigger(timeline.trigger || { type: 'on_last_day' });
-          setWorkflowMode('visual');
-        } else if (Array.isArray(timeline) && timeline.length > 0) {
-          // Legacy TimelineEntry[] format - keep for backwards compatibility
-          setWorkflowMode('timeline');
-        }
-
         setTemplate({
           ...defaultTemplate,
-          ...templateData,
-          notificationEmailAddresses: templateData.notificationEmailAddresses || [],
-          timeline: timeline || null,
+          ...data.data,
+          notificationEmailAddresses: data.data.notificationEmailAddresses || [],
+          timeline: data.data.timeline || [],
         });
       }
     } catch (err: any) {
@@ -322,28 +297,12 @@ const OffboardingTemplateEditor: React.FC<OffboardingTemplateEditorProps> = ({
         ? `/api/v1/lifecycle/offboarding-templates/${templateId}`
         : '/api/v1/lifecycle/offboarding-templates';
 
-      // Build the timeline based on current mode
-      let timelineData: WorkflowData | TimelineEntry[] | null = null;
-      if (workflowMode === 'visual' && workflowBlocks.length > 0) {
-        timelineData = {
-          trigger: workflowTrigger,
-          blocks: workflowBlocks,
-        };
-      } else if (workflowMode === 'timeline' && Array.isArray(template.timeline)) {
-        timelineData = template.timeline;
-      }
-
-      const payload = {
-        ...template,
-        timeline: timelineData,
-      };
-
       const response = await authFetch(url, {
         method: isEditing ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(template),
       });
 
       if (!response.ok) {
@@ -1102,17 +1061,17 @@ const OffboardingTemplateEditor: React.FC<OffboardingTemplateEditorProps> = ({
           )}
         </div>
 
-        {/* Workflow Automation */}
-        <div className="form-section workflow-section">
+        {/* Timeline Actions */}
+        <div className="form-section">
           <button
             className="section-header"
             onClick={() => toggleSection('timeline')}
           >
             <div className="section-title">
-              <Zap size={18} />
-              <span>Workflow Automation</span>
-              {workflowBlocks.length > 0 && (
-                <span className="badge">{workflowBlocks.length}</span>
+              <Clock size={18} />
+              <span>Timeline Actions</span>
+              {template.timeline.length > 0 && (
+                <span className="badge">{template.timeline.length}</span>
               )}
             </div>
             {expandedSections.timeline ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
@@ -1120,43 +1079,11 @@ const OffboardingTemplateEditor: React.FC<OffboardingTemplateEditorProps> = ({
 
           {expandedSections.timeline && (
             <div className="section-content">
-              {/* Mode Toggle */}
-              <div className="workflow-mode-toggle">
-                <button
-                  className={`mode-btn ${workflowMode === 'visual' ? 'active' : ''}`}
-                  onClick={() => setWorkflowMode('visual')}
-                >
-                  <Zap size={14} />
-                  Visual Builder
-                </button>
-                <button
-                  className={`mode-btn ${workflowMode === 'timeline' ? 'active' : ''}`}
-                  onClick={() => setWorkflowMode('timeline')}
-                >
-                  <List size={14} />
-                  Timeline View
-                </button>
-              </div>
-
-              {workflowMode === 'visual' ? (
-                <div className="workflow-builder-container">
-                  <WorkflowBuilder
-                    workflowType="offboarding"
-                    initialBlocks={workflowBlocks}
-                    initialTrigger={workflowTrigger}
-                    onSave={async (blocks, trigger) => {
-                      setWorkflowBlocks(blocks);
-                      setWorkflowTrigger(trigger);
-                    }}
-                  />
-                </div>
-              ) : (
-                <TimelineEditor
-                  timeline={Array.isArray(template.timeline) ? template.timeline : []}
-                  onChange={(timeline) => setTemplate((prev) => ({ ...prev, timeline }))}
-                  requestType="offboard"
-                />
-              )}
+              <TimelineEditor
+                timeline={template.timeline}
+                onChange={(timeline) => setTemplate((prev) => ({ ...prev, timeline }))}
+                requestType="offboard"
+              />
             </div>
           )}
         </div>

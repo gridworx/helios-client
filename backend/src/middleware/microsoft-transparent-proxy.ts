@@ -20,7 +20,8 @@ import { encryptionService } from '../services/encryption.service.js';
 import axios from 'axios';
 import { Client } from '@microsoft/microsoft-graph-client';
 import { ClientSecretCredential } from '@azure/identity';
-import { TokenCredentialAuthenticationProvider } from '@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials/index.js';
+// @ts-expect-error - ESM subpath import types not fully supported
+import { TokenCredentialAuthenticationProvider } from '@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials';
 
 export const microsoftTransparentProxyRouter = Router();
 

@@ -107,22 +107,18 @@
   border: 1px solid #fca5a5;
 }
 
-/* Form Sections - Clean card-like styling */
+/* Form Sections - matches UserSlideOut tab-content h3 */
 .form-section {
-  margin-bottom: 1.5rem;
-  padding: 1.25rem;
-  background: #fafbfc;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  margin-bottom: 2rem;
 }
 
 .form-section h3 {
-  margin: 0 0 1rem 0;
-  font-size: 0.875rem;
-  color: #6b7280;
+  margin: 0 0 1.5rem 0;
+  font-size: 1.125rem;
+  color: #1f2937;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--theme-primary);
 }
 
 /* Form Rows */
@@ -265,43 +261,6 @@
   flex-direction: column;
   gap: 0.5rem;
   margin-bottom: 1rem;
-}
-
-/* Inline Password Options - Side by side */
-.password-options-inline {
-  display: flex;
-  gap: 1.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.radio-option-inline {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  font-size: 0.875rem;
-  color: #374151;
-  padding: 0.5rem 0.75rem;
-  background: white;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  transition: all 0.2s;
-}
-
-.radio-option-inline:hover {
-  border-color: var(--theme-primary);
-}
-
-.radio-option-inline:has(input:checked) {
-  border-color: var(--theme-primary);
-  background: rgba(139, 92, 246, 0.05);
-}
-
-.radio-option-inline input {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--theme-primary);
-  margin: 0;
 }
 
 .radio-option {

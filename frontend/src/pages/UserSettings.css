@@ -195,8 +195,8 @@
   margin-top: 4px;
 }
 
-/* Toggle Switch - SCOPED to user-settings-page to prevent conflicts with global ToggleSwitch component */
-.user-settings-page .toggle-switch {
+/* Toggle Switch */
+.toggle-switch {
   position: relative;
   display: inline-block;
   width: 48px;
@@ -204,13 +204,13 @@
   flex-shrink: 0;
 }
 
-.user-settings-page .toggle-switch input {
+.toggle-switch input {
   opacity: 0;
   width: 0;
   height: 0;
 }
 
-.user-settings-page .toggle-slider {
+.toggle-slider {
   position: absolute;
   cursor: pointer;
   inset: 0;
@@ -219,7 +219,7 @@
   border-radius: 26px;
 }
 
-.user-settings-page .toggle-slider:before {
+.toggle-slider:before {
   position: absolute;
   content: "";
   height: 20px;
@@ -232,11 +232,11 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.user-settings-page .toggle-switch input:checked + .toggle-slider {
+.toggle-switch input:checked + .toggle-slider {
   background-color: #8b5cf6;
 }
 
-.user-settings-page .toggle-switch input:checked + .toggle-slider:before {
+.toggle-switch input:checked + .toggle-slider:before {
   transform: translateX(22px);
 }
 

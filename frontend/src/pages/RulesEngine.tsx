@@ -22,12 +22,11 @@ import {
   X,
   ToggleLeft,
   ToggleRight,
+  Info,
   Layers,
 } from 'lucide-react';
 import { authFetch } from '../config/api';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
-import { RuleBuilder } from '../components/rules';
-import type { RuleData, ConditionGroup as RuleConditionGroup } from '../components/rules';
 import './RulesEngine.css';
 
 // Types
@@ -626,111 +625,39 @@ const RulesEnginePage: React.FC = () => {
         </div>
       )}
 
-      {/* Rule Builder Modal */}
-      {showEditor && activeTab === 'rules' && (
+      {/* Editor Modal - Placeholder for now */}
+      {showEditor && (
         <div className="modal-overlay" onClick={() => setShowEditor(false)}>
-          <div className="modal editor-modal large" onClick={(e) => e.stopPropagation()}>
-            <RuleBuilder
-              rule={editingRule ? {
-                id: editingRule.id,
-                name: editingRule.name,
-                description: editingRule.description || '',
-                ruleType: editingRule.ruleType,
-                conditions: editingRule.conditions as RuleConditionGroup,
-                priority: editingRule.priority,
-                isEnabled: editingRule.isEnabled,
-                config: editingRule.config,
-              } : null}
-              onSave={async (ruleData: RuleData) => {
-                const endpoint = ruleData.id
-                  ? `/api/v1/automation/rules/${ruleData.id}`
-                  : '/api/v1/automation/rules';
-                const method = ruleData.id ? 'PUT' : 'POST';
-
-                const response = await authFetch(endpoint, {
-                  method,
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    name: ruleData.name,
-                    description: ruleData.description,
-                    ruleType: ruleData.ruleType,
-                    conditions: ruleData.conditions,
-                    priority: ruleData.priority,
-                    isEnabled: ruleData.isEnabled,
-                    config: ruleData.config,
-                  }),
-                });
-
-                const data = await response.json();
-                if (!response.ok) {
-                  throw new Error(data.error || 'Failed to save rule');
+          <div className="modal editor-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>
+                {activeTab === 'conditions'
+                  ? (editingCondition ? 'Edit Condition' : 'New Condition')
+                  : (editingRule ? 'Edit Rule' : 'New Rule')
                 }
-
-                // Refresh rules list
-                await fetchRules();
-                setShowEditor(false);
-                setEditingRule(null);
-              }}
-              onCancel={() => {
-                setShowEditor(false);
-                setEditingRule(null);
-              }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Condition Builder Modal */}
-      {showEditor && activeTab === 'conditions' && (
-        <div className="modal-overlay" onClick={() => setShowEditor(false)}>
-          <div className="modal editor-modal large" onClick={(e) => e.stopPropagation()}>
-            <RuleBuilder
-              rule={editingCondition ? {
-                id: editingCondition.id,
-                name: editingCondition.displayName,
-                description: editingCondition.description || '',
-                ruleType: 'dynamic_group',
-                conditions: editingCondition.conditions as RuleConditionGroup,
-                priority: 0,
-                isEnabled: true,
-                config: { _conditionName: editingCondition.name },
-              } : null}
-              onSave={async (ruleData: RuleData) => {
-                const conditionName = ruleData.config._conditionName ||
-                  ruleData.name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
-
-                const endpoint = editingCondition
-                  ? `/api/v1/automation/conditions/${editingCondition.id}`
-                  : '/api/v1/automation/conditions';
-                const method = editingCondition ? 'PUT' : 'POST';
-
-                const response = await authFetch(endpoint, {
-                  method,
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    name: conditionName,
-                    displayName: ruleData.name,
-                    description: ruleData.description,
-                    conditions: ruleData.conditions,
-                  }),
-                });
-
-                const data = await response.json();
-                if (!response.ok) {
-                  throw new Error(data.error || 'Failed to save condition');
-                }
-
-                // Refresh conditions list
-                await fetchConditions();
-                setShowEditor(false);
-                setEditingCondition(null);
-              }}
-              onCancel={() => {
-                setShowEditor(false);
-                setEditingCondition(null);
-              }}
-              isConditionEditor={true}
-            />
+              </h2>
+              <button className="btn-icon" onClick={() => setShowEditor(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="editor-placeholder">
+                <Info size={48} />
+                <h3>Rule Builder Coming Soon</h3>
+                <p>
+                  The visual rule builder is under development. For now, you can use the API directly
+                  or contact your administrator to configure rules.
+                </p>
+                <div className="api-hint">
+                  <code>POST /api/v1/automation/{activeTab === 'conditions' ? 'conditions' : 'rules'}</code>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => setShowEditor(false)}>
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

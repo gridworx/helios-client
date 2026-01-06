@@ -319,36 +319,7 @@ export class SyncSchedulerService {
         `, [organizationId, moduleId, JSON.stringify({ user_count: users.length })]);
       }
 
-      logger.info('User sync completed successfully', {
-        organizationId,
-        domain: org.domain,
-        userCount: users.length
-      });
-
-      // Sync groups from Google Workspace
-      try {
-        logger.info('Starting groups sync for organization', { organizationId, domain: org.domain });
-        const groupsResult = await googleWorkspaceService.syncGroups(organizationId);
-
-        if (groupsResult.success) {
-          logger.info('Groups sync completed successfully', {
-            organizationId,
-            domain: org.domain,
-            groupCount: groupsResult.count || 0
-          });
-        } else {
-          logger.warn('Groups sync failed', {
-            organizationId,
-            domain: org.domain,
-            error: groupsResult.error
-          });
-        }
-      } catch (groupError: any) {
-        // Log the error but don't fail the entire sync if groups fail
-        logger.error('Failed to sync groups', { organizationId, error: groupError.message });
-      }
-
-      logger.info('Full sync completed successfully', {
+      logger.info('Sync completed successfully', {
         organizationId,
         domain: org.domain,
         userCount: users.length
@@ -378,24 +349,10 @@ export class SyncSchedulerService {
         [organizationId]
       );
 
-      // Get group stats from access_groups
-      const groupStatsResult = await db.query(
-        `SELECT COUNT(*) as total_groups
-         FROM access_groups
-         WHERE organization_id = $1 AND platform = 'google_workspace' AND is_active = true`,
-        [organizationId]
-      );
-
-      const userStats = statsResult.rows[0] || {};
-      const groupStats = groupStatsResult.rows[0] || {};
-
       return {
         success: true,
         message: 'Sync completed successfully',
-        stats: {
-          ...userStats,
-          total_groups: groupStats.total_groups || 0
-        }
+        stats: statsResult.rows[0] || null
       };
     } catch (error: any) {
       return {

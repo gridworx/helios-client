@@ -183,7 +183,7 @@ export class GoogleWorkspaceService {
 
       // Get the Google Workspace module ID
       const moduleResult = await db.query(
-        `SELECT id FROM modules WHERE slug = 'google_workspace' LIMIT 1`
+        `SELECT id FROM modules WHERE slug = 'google-workspace' LIMIT 1`
       );
 
       if (moduleResult.rows.length > 0) {
@@ -601,7 +601,7 @@ export class GoogleWorkspaceService {
 
         // Get module ID for Google Workspace
         const moduleResult = await db.query(
-          `SELECT id FROM modules WHERE slug = 'google_workspace' LIMIT 1`
+          `SELECT id FROM modules WHERE slug = 'google-workspace' LIMIT 1`
         );
 
         if (moduleResult.rows.length > 0) {
@@ -1152,7 +1152,7 @@ export class GoogleWorkspaceService {
 
         // Update module sync timestamp
         const moduleResult = await db.query(
-          `SELECT id FROM modules WHERE slug = 'google_workspace' LIMIT 1`
+          `SELECT id FROM modules WHERE slug = 'google-workspace' LIMIT 1`
         );
 
         if (moduleResult.rows.length > 0) {
@@ -3487,56 +3487,6 @@ export class GoogleWorkspaceService {
       return { success: true, acl };
     } catch (error: any) {
       logger.error('Failed to list calendar ACL', { organizationId, calendarId, error: error.message });
-      return { success: false, error: error.message };
-    }
-  }
-
-  /**
-   * List domains from Google Workspace
-   * Used for domain verification
-   */
-  async listGoogleWorkspaceDomains(
-    organizationId: string
-  ): Promise<{
-    success: boolean;
-    domains?: any[];
-    error?: string;
-  }> {
-    try {
-      // Get credentials
-      const credResult = await db.query(
-        'SELECT service_account_key, admin_email, domain FROM gw_credentials WHERE organization_id = $1',
-        [organizationId]
-      );
-
-      if (!credResult.rows[0]) {
-        return { success: false, error: 'No Google Workspace credentials configured' };
-      }
-
-      const { service_account_key, admin_email, domain } = credResult.rows[0];
-      const credentials = typeof service_account_key === 'string'
-        ? JSON.parse(service_account_key)
-        : service_account_key;
-
-      // Create admin client with DWD
-      const adminEmail = admin_email || `admin@${domain}`;
-      const adminClient = this.createAdminClient(credentials, adminEmail);
-
-      // List domains
-      const response = await adminClient.domains.list({ customer: 'my_customer' });
-      const domains = response.data.domains || [];
-
-      logger.info('Listed Google Workspace domains', {
-        organizationId,
-        domainCount: domains.length
-      });
-
-      return { success: true, domains };
-    } catch (error: any) {
-      logger.error('Failed to list Google Workspace domains', {
-        organizationId,
-        error: error.message
-      });
       return { success: false, error: error.message };
     }
   }

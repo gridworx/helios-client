@@ -1077,9 +1077,9 @@
       "category": "developer-console",
       "subcategory": "google-workspace",
       "summary": "Transfer Drive file ownership between users",
-      "content": "Transfers ownership of all Google Drive files from one user to another. Useful during offboarding.\n\nNOTE: This is for Google Drive files only. For Helios's built-in file storage (MinIO), use the Files section in the UI.\n\nWARNING: This operation may take several minutes for large file collections.",
+      "content": "Transfers ownership of all Google Drive files from one user to another. Useful during offboarding.\n\nWARNING: This operation may take several minutes for large file collections.",
       "keywords": ["drive", "transfer", "ownership", "files", "google", "offboarding"],
-      "aliases": ["transfer google drive", "move google files"],
+      "aliases": ["transfer drive", "move files"],
       "examples": [
         {
           "description": "Transfer all Drive files",
@@ -1388,72 +1388,18 @@
       "title": "update user <email>",
       "category": "developer-console",
       "subcategory": "helios",
-      "summary": "Update a Helios user (optionally sync to platforms)",
-      "content": "Updates an existing Helios user's profile. Opens a form pre-filled with current values.\n\nOptions:\n- `--gw` - Also update user in Google Workspace\n- `--m365` - Also update user in Microsoft 365\n\nEditable fields:\n- First/last name\n- Department\n- Job title\n- Manager\n- Phone number",
-      "keywords": ["update", "user", "edit", "modify", "helios", "sync"],
+      "summary": "Update a Helios user",
+      "content": "Updates an existing Helios user's profile. Opens a form pre-filled with current values.",
+      "keywords": ["update", "user", "edit", "modify", "helios"],
       "aliases": ["edit user", "modify user"],
       "examples": [
         {
-          "description": "Update user in Helios only",
+          "description": "Update user",
           "code": "update user john@example.com"
-        },
-        {
-          "description": "Update user and sync to Google Workspace",
-          "code": "update user john@example.com --gw"
         }
       ],
-      "relatedIds": ["cmd-get-user", "cmd-delete-user", "cmd-gw-users-update"],
-      "lastUpdated": "2025-12-29T00:00:00Z"
-    },
-    {
-      "id": "cmd-suspend-user",
-      "type": "command",
-      "title": "suspend user <email>",
-      "category": "developer-console",
-      "subcategory": "helios",
-      "summary": "Suspend a user (optionally in connected platforms)",
-      "content": "Suspends a user account in Helios. User loses access immediately but data is preserved.\n\nOptions:\n- `--gw` - Also suspend in Google Workspace\n- `--m365` - Also suspend in Microsoft 365\n- `--revoke` - Also revoke all active sessions and OAuth tokens\n\nUse `activate user` to restore access.",
-      "keywords": ["suspend", "user", "disable", "deactivate", "block", "helios"],
-      "aliases": ["disable user", "deactivate user"],
-      "examples": [
-        {
-          "description": "Suspend in Helios only",
-          "code": "suspend user john@example.com"
-        },
-        {
-          "description": "Suspend in Helios and Google Workspace",
-          "code": "suspend user john@example.com --gw"
-        },
-        {
-          "description": "Full suspension with session revocation",
-          "code": "suspend user john@example.com --gw --revoke"
-        }
-      ],
-      "relatedIds": ["cmd-activate-user", "cmd-delete-user", "cmd-gw-users-suspend"],
-      "lastUpdated": "2025-12-29T00:00:00Z"
-    },
-    {
-      "id": "cmd-activate-user",
-      "type": "command",
-      "title": "activate user <email>",
-      "category": "developer-console",
-      "subcategory": "helios",
-      "summary": "Activate/restore a suspended user",
-      "content": "Restores a previously suspended user account. User regains access immediately.\n\nOptions:\n- `--gw` - Also restore in Google Workspace\n- `--m365` - Also restore in Microsoft 365",
-      "keywords": ["activate", "user", "restore", "enable", "unsuspend", "helios"],
-      "aliases": ["restore user", "enable user", "unsuspend user"],
-      "examples": [
-        {
-          "description": "Activate in Helios only",
-          "code": "activate user john@example.com"
-        },
-        {
-          "description": "Activate in Helios and Google Workspace",
-          "code": "activate user john@example.com --gw"
-        }
-      ],
-      "relatedIds": ["cmd-suspend-user", "cmd-gw-users-restore"],
-      "lastUpdated": "2025-12-29T00:00:00Z"
+      "relatedIds": ["cmd-get-user", "cmd-delete-user"],
+      "lastUpdated": "2025-12-28T00:00:00Z"
     },
     {
       "id": "cmd-delete-user",
@@ -1461,26 +1407,18 @@
       "title": "delete user <email>",
       "category": "developer-console",
       "subcategory": "helios",
-      "summary": "Delete a user (optionally from connected platforms)",
-      "content": "Deletes a user from Helios. Optionally deletes from connected platforms too.\n\nOptions:\n- `--gw` - Also delete from Google Workspace\n- `--m365` - Also delete from Microsoft 365\n- `--force` - Skip confirmation prompt\n- `--transfer-to=<email>` - Transfer data before deletion (when using --gw)\n\nWARNING: Deletion is permanent. Consider using `suspend user` instead.",
-      "keywords": ["delete", "user", "remove", "helios", "permanent"],
+      "summary": "Delete a Helios user",
+      "content": "Deletes a user from Helios. This does NOT delete the user from Google Workspace or M365.\n\nOptions:\n- `--force` - Skip confirmation prompt",
+      "keywords": ["delete", "user", "remove", "helios"],
       "aliases": ["remove user"],
       "examples": [
         {
-          "description": "Delete from Helios only",
+          "description": "Delete user",
           "code": "delete user john@example.com"
-        },
-        {
-          "description": "Delete from Helios and Google Workspace",
-          "code": "delete user john@example.com --gw"
-        },
-        {
-          "description": "Delete with data transfer",
-          "code": "delete user john@example.com --gw --transfer-to=manager@example.com"
         }
       ],
-      "relatedIds": ["cmd-suspend-user", "cmd-gw-users-delete", "cmd-bulk-delete-users"],
-      "lastUpdated": "2025-12-29T00:00:00Z"
+      "relatedIds": ["cmd-list-users", "cmd-gw-users-delete"],
+      "lastUpdated": "2025-12-28T00:00:00Z"
     },
     {
       "id": "cmd-export-users",
@@ -1776,102 +1714,6 @@
       ],
       "relatedIds": [],
       "lastUpdated": "2025-01-15T00:00:00Z"
-    },
-    {
-      "id": "cmd-bulk-delete-users",
-      "type": "command",
-      "title": "bulk delete users",
-      "category": "developer-console",
-      "subcategory": "helios",
-      "summary": "Delete multiple users at once (UI or CLI)",
-      "content": "Delete multiple users in bulk.\n\n**Using UI:**\n1. Go to the Users page\n2. Use checkboxes to select users\n3. Click 'Actions' > 'Delete Selected'\n4. Choose whether to also delete from GW/M365\n\n**Using CLI:**\nUse `delete user` with filter flags.\n\nOptions:\n- `--gw` - Also delete from Google Workspace\n- `--m365` - Also delete from Microsoft 365\n- `--filter=<query>` - Delete users matching filter\n- `--dry-run` - Preview without deleting",
-      "keywords": ["bulk", "delete", "multiple", "users", "mass", "batch", "remove", "selection", "selected"],
-      "aliases": ["delete multiple users", "mass delete users", "batch delete", "remove selected users"],
-      "examples": [
-        {
-          "description": "UI: Select and delete multiple users",
-          "code": "(Use the Users page UI with checkboxes)"
-        },
-        {
-          "description": "CLI: Preview bulk delete",
-          "code": "delete users --filter=test* --dry-run"
-        },
-        {
-          "description": "CLI: Delete matching users from Helios and GW",
-          "code": "delete users --filter=test* --gw --confirm"
-        }
-      ],
-      "relatedIds": ["cmd-delete-user", "cmd-gw-users-delete", "cmd-bulk-suspend-users"],
-      "lastUpdated": "2025-12-29T00:00:00Z"
-    },
-    {
-      "id": "cmd-bulk-suspend-users",
-      "type": "command",
-      "title": "bulk suspend users",
-      "category": "developer-console",
-      "subcategory": "helios",
-      "summary": "Suspend multiple users at once (UI or CLI)",
-      "content": "Suspend multiple users in bulk.\n\n**Using UI:**\n1. Go to the Users page\n2. Use checkboxes to select users\n3. Click 'Actions' > 'Suspend Selected'\n4. Choose whether to also suspend in GW/M365\n\n**Using CLI:**\nUse `suspend user` with filter flags.\n\nOptions:\n- `--gw` - Also suspend in Google Workspace\n- `--m365` - Also suspend in Microsoft 365\n- `--filter=<query>` - Suspend users matching filter\n- `--revoke` - Also revoke sessions and tokens",
-      "keywords": ["bulk", "suspend", "multiple", "users", "mass", "batch", "disable", "deactivate", "selection"],
-      "aliases": ["suspend multiple users", "mass suspend", "batch suspend", "disable selected users"],
-      "examples": [
-        {
-          "description": "UI: Select and suspend multiple users",
-          "code": "(Use the Users page UI with checkboxes)"
-        },
-        {
-          "description": "CLI: Suspend matching users in Helios and GW",
-          "code": "suspend users --filter=contractors* --gw"
-        }
-      ],
-      "relatedIds": ["cmd-suspend-user", "cmd-gw-users-suspend", "cmd-bulk-delete-users", "cmd-bulk-activate-users"],
-      "lastUpdated": "2025-12-29T00:00:00Z"
-    },
-    {
-      "id": "cmd-bulk-activate-users",
-      "type": "command",
-      "title": "bulk activate users",
-      "category": "developer-console",
-      "subcategory": "helios",
-      "summary": "Activate multiple users at once (UI or CLI)",
-      "content": "Activate multiple suspended users in bulk.\n\n**Using UI:**\n1. Go to the Users page\n2. Filter by status 'Suspended'\n3. Use checkboxes to select users\n4. Click 'Actions' > 'Activate Selected'\n\n**Using CLI:**\nUse `activate user` with filter flags.\n\nOptions:\n- `--gw` - Also activate in Google Workspace\n- `--m365` - Also activate in Microsoft 365\n- `--filter=<query>` - Activate users matching filter",
-      "keywords": ["bulk", "activate", "multiple", "users", "mass", "batch", "enable", "restore", "selection"],
-      "aliases": ["activate multiple users", "mass activate", "batch activate", "restore selected users"],
-      "examples": [
-        {
-          "description": "UI: Select and activate multiple users",
-          "code": "(Use the Users page UI with checkboxes)"
-        },
-        {
-          "description": "CLI: Activate all suspended contractors",
-          "code": "activate users --filter=contractors* --gw"
-        }
-      ],
-      "relatedIds": ["cmd-activate-user", "cmd-gw-users-restore", "cmd-bulk-suspend-users"],
-      "lastUpdated": "2025-12-29T00:00:00Z"
-    },
-    {
-      "id": "cmd-filter-users",
-      "type": "command",
-      "title": "filter users",
-      "category": "developer-console",
-      "subcategory": "helios",
-      "summary": "Filter and search users",
-      "content": "Filter users using the Users page filtering options:\n\n**Status Filters:**\n- All: Show all non-deleted users\n- Active: Show only active users\n- Suspended: Show only suspended users\n- Pending: Show users awaiting activation\n\n**User Type Tabs:**\n- Staff: Regular employees\n- Guests: External users with temporary access\n- Contacts: External contacts without login access\n\n**Platform Filter:**\n- All: All platforms\n- Google Workspace: Users synced from GW\n- Microsoft 365: Users synced from M365\n- Local: Helios-only users\n\n**Search:**\nUse the search bar to find users by name or email.",
-      "keywords": ["filter", "search", "users", "status", "active", "suspended", "guests", "staff", "platform"],
-      "aliases": ["search users", "find users", "user filters"],
-      "examples": [
-        {
-          "description": "Filter by status",
-          "code": "(Click status pills: All, Active, Suspended, Pending)"
-        },
-        {
-          "description": "Filter by user type",
-          "code": "(Click tabs: Staff, Guests, Contacts)"
-        }
-      ],
-      "relatedIds": ["cmd-list-users", "cmd-bulk-delete-users"],
-      "lastUpdated": "2025-12-29T00:00:00Z"
     }
   ]
 }

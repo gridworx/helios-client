@@ -450,17 +450,7 @@ CREATE TABLE public.activity_logs (
     metadata jsonb DEFAULT '{}'::jsonb,
     ip_address inet,
     user_agent text,
-    created_at timestamp with time zone DEFAULT now(),
-    actor_type character varying(20) DEFAULT 'internal'::character varying,
-    api_key_id uuid,
-    api_key_name character varying(255),
-    vendor_name character varying(255),
-    vendor_technician_name character varying(255),
-    vendor_technician_email character varying(255),
-    ticket_reference character varying(255),
-    service_name character varying(255),
-    service_owner character varying(255),
-    result character varying(20) DEFAULT 'success'::character varying
+    created_at timestamp with time zone DEFAULT now()
 );
 
 
@@ -589,36 +579,6 @@ CREATE TABLE public.assets (
 );
 
 
--- Name: public_assets; Type: TABLE; Schema: public; Owner: -
-
-CREATE TABLE public.public_assets (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
-    organization_id uuid NOT NULL,
-    asset_key character varying(255) NOT NULL,
-    asset_type character varying(50) NOT NULL,
-    module_source character varying(100),
-    file_name character varying(255) NOT NULL,
-    original_file_name character varying(255),
-    file_path character varying(500) NOT NULL,
-    cdn_url character varying(500),
-    public_url character varying(500) NOT NULL,
-    mime_type character varying(100) NOT NULL,
-    file_size_bytes bigint NOT NULL,
-    width integer,
-    height integer,
-    has_sizes boolean DEFAULT false,
-    aspect_ratio numeric(5,2),
-    usage_count integer DEFAULT 0,
-    download_count integer DEFAULT 0,
-    last_accessed_at timestamp with time zone,
-    is_active boolean DEFAULT true,
-    tags jsonb,
-    uploaded_by uuid,
-    created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now()
-);
-
-
 -- Name: audit_logs; Type: TABLE; Schema: public; Owner: -
 
 CREATE TABLE public.audit_logs (
@@ -674,19 +634,6 @@ CREATE TABLE public.auth_verifications (
     identifier text NOT NULL,
     value text NOT NULL,
     expires_at timestamp with time zone NOT NULL,
-    created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now()
-);
-
-
--- Name: two_factor; Type: TABLE; Schema: public; Owner: -
--- Description: Stores 2FA (TOTP) secrets and backup codes for better-auth
-
-CREATE TABLE public.two_factor (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    user_id uuid NOT NULL,
-    secret text,
-    backup_codes text,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now()
 );
@@ -1358,14 +1305,12 @@ CREATE TABLE public.media_assets (
     folder_id uuid,
     category character varying(50),
     access_token character varying(100) NOT NULL,
-    slug character varying(255),
-    visibility character varying(20) DEFAULT 'public'::character varying NOT NULL,
+    is_public boolean DEFAULT true,
     access_count integer DEFAULT 0,
     last_accessed_at timestamp with time zone,
     created_by uuid,
     created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now(),
-    CONSTRAINT media_assets_visibility_check CHECK (visibility IN ('public', 'private'))
+    updated_at timestamp with time zone DEFAULT now()
 );
 
 
@@ -1626,19 +1571,6 @@ CREATE TABLE public.organization_settings (
 );
 
 
--- Name: system_settings; Type: TABLE; Schema: public; Owner: -
--- Global system-wide settings not tied to any organization (e.g., instance_id, license_state)
-
-CREATE TABLE public.system_settings (
-    key character varying(255) NOT NULL,
-    value text,
-    created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now()
-);
-
-COMMENT ON TABLE public.system_settings IS 'Global system-wide settings not tied to any organization (e.g., instance_id)';
-
-
 -- Name: password_setup_tokens; Type: TABLE; Schema: public; Owner: -
 
 CREATE TABLE public.password_setup_tokens (
@@ -1825,15 +1757,7 @@ CREATE TABLE public.signature_templates (
     created_by uuid,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
-    template_type character varying(20) DEFAULT 'signature'::character varying,
-    subject character varying(500),
-    css_content text,
-    category character varying(100),
-    variables_used jsonb DEFAULT '[]'::jsonb,
-    is_active boolean DEFAULT true,
-    thumbnail_asset_id uuid,
-    CONSTRAINT signature_templates_status_check CHECK (((status)::text = ANY ((ARRAY['draft'::character varying, 'active'::character varying, 'archived'::character varying])::text[]))),
-    CONSTRAINT signature_templates_type_check CHECK (((template_type)::text = ANY ((ARRAY['signature'::character varying, 'email'::character varying, 'page'::character varying])::text[])))
+    CONSTRAINT signature_templates_status_check CHECK (((status)::text = ANY ((ARRAY['draft'::character varying, 'active'::character varying, 'archived'::character varying])::text[])))
 );
 
 
@@ -2439,12 +2363,6 @@ ALTER TABLE ONLY public.api_keys
 ALTER TABLE ONLY public.assets
     ADD CONSTRAINT assets_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.public_assets
-    ADD CONSTRAINT public_assets_pkey PRIMARY KEY (id);
-
-ALTER TABLE ONLY public.public_assets
-    ADD CONSTRAINT public_assets_organization_id_asset_key_key UNIQUE (organization_id, asset_key);
-
 
 -- Name: audit_logs audit_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 
@@ -2858,12 +2776,6 @@ ALTER TABLE ONLY public.organization_settings
 
 ALTER TABLE ONLY public.organization_settings
     ADD CONSTRAINT organization_settings_pkey PRIMARY KEY (id);
-
-
--- Name: system_settings system_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
-
-ALTER TABLE ONLY public.system_settings
-    ADD CONSTRAINT system_settings_pkey PRIMARY KEY (key);
 
 
 -- Name: organization_users organization_users_email_key; Type: CONSTRAINT; Schema: public; Owner: -
@@ -3715,11 +3627,6 @@ CREATE INDEX idx_media_assets_org ON public.media_assets USING btree (organizati
 CREATE INDEX idx_media_assets_token ON public.media_assets USING btree (access_token);
 
 
--- Name: idx_media_assets_slug; Type: INDEX; Schema: public; Owner: -
-
-CREATE UNIQUE INDEX idx_media_assets_slug ON public.media_assets USING btree (organization_id, slug) WHERE slug IS NOT NULL;
-
-
 -- Name: idx_module_entity_providers_entity; Type: INDEX; Schema: public; Owner: -
 
 CREATE INDEX idx_module_entity_providers_entity ON public.module_entity_providers USING btree (entity_canonical_name);
@@ -4504,11 +4411,6 @@ CREATE TRIGGER update_organization_modules_updated_at BEFORE UPDATE ON public.or
 CREATE TRIGGER update_organization_settings_updated_at BEFORE UPDATE ON public.organization_settings FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
 
--- Name: system_settings update_system_settings_updated_at; Type: TRIGGER; Schema: public; Owner: -
-
-CREATE TRIGGER update_system_settings_updated_at BEFORE UPDATE ON public.system_settings FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
-
-
 -- Name: organization_users update_organization_users_updated_at; Type: TRIGGER; Schema: public; Owner: -
 
 CREATE TRIGGER update_organization_users_updated_at BEFORE UPDATE ON public.organization_users FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
@@ -4606,12 +4508,6 @@ ALTER TABLE ONLY public.api_keys
 
 ALTER TABLE ONLY public.assets
     ADD CONSTRAINT assets_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.public_assets
-    ADD CONSTRAINT public_assets_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.public_assets
-    ADD CONSTRAINT public_assets_uploaded_by_fkey FOREIGN KEY (uploaded_by) REFERENCES public.organization_users(id);
 
 
 -- Name: audit_logs audit_logs_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -5432,137 +5328,3 @@ ALTER TABLE ONLY public.workspaces
 
 
 
-
-
--- ============================================================================
--- Default Feature Flags Seed
--- ============================================================================
--- This seeds feature flags with sensible defaults:
--- - Core working features: ENABLED
--- - Underdeveloped/incomplete features: DISABLED
--- Users can enable experimental features in Settings > Feature Flags
--- ============================================================================
-
-INSERT INTO feature_flags (feature_key, name, description, is_enabled, category) VALUES
--- ===== CORE FEATURES (Enabled) =====
--- Directory - fully working
-('nav.section.directory', 'Directory Section', 'User, Group, and Org Unit management', true, 'navigation'),
-('nav.users', 'Users', 'User directory and management', true, 'navigation'),
-('nav.groups', 'Groups', 'Group management', true, 'navigation'),
-('nav.org_units', 'Org Units', 'Organizational unit structure', true, 'navigation'),
-
--- Security & Compliance - working
-('nav.section.security', 'Security Section', 'Security and compliance tools', true, 'navigation'),
-('nav.audit_logs', 'Audit Logs', 'View all system audit logs', true, 'navigation'),
-('nav.security_events', 'Security Events', 'Security event monitoring', true, 'navigation'),
-
--- Developer tools - working
-('nav.developer_console', 'Developer Console', 'API relay with audit trail', true, 'navigation'),
-
--- Settings - always enabled
-('nav.settings', 'Settings', 'System configuration', true, 'navigation'),
-
--- ===== EXPERIMENTAL FEATURES (Disabled by default) =====
--- Journeys - incomplete
-('nav.section.journeys', 'Journeys Section', 'User lifecycle management (experimental)', false, 'navigation'),
-('nav.onboarding', 'Onboarding', 'New user onboarding workflows', false, 'navigation'),
-('nav.offboarding', 'Offboarding', 'User offboarding workflows', false, 'navigation'),
-('nav.training', 'Training', 'Training content and tracking', false, 'navigation'),
-('nav.requests', 'Requests', 'HR and lifecycle requests', false, 'navigation'),
-('nav.tasks', 'Tasks', 'Task management', false, 'navigation'),
-
--- Automation - partially working
-('nav.section.automation', 'Automation Section', 'Automation tools (experimental)', false, 'navigation'),
-('nav.signatures', 'Signatures', 'Email signature management', false, 'navigation'),
-('nav.scheduled_actions', 'Scheduled Actions', 'Scheduled user actions', false, 'navigation'),
-('nav.rules_engine', 'Rules Engine', 'Dynamic rules and automation', false, 'navigation'),
-
--- Insights - incomplete
-('nav.section.insights', 'Insights Section', 'Dashboards and analytics (experimental)', false, 'navigation'),
-('nav.hr_dashboard', 'HR Dashboard', 'HR overview dashboard', false, 'navigation'),
-('nav.manager_dashboard', 'Manager Dashboard', 'Manager view dashboard', false, 'navigation'),
-('nav.lifecycle_analytics', 'Lifecycle Analytics', 'User lifecycle analytics', false, 'navigation'),
-
--- Files - standalone MinIO storage (not Google Drive)
-('nav.section.files', 'Files Section', 'Built-in file storage via MinIO (experimental)', false, 'navigation'),
-('nav.shared_files', 'Shared Files', 'Public assets with shareable URLs - logos, documents, images', false, 'navigation'),
-('nav.my_files', 'My Files', 'Personal file storage for users', false, 'navigation'),
-
--- Security extras - incomplete
-('nav.mail_search', 'Mail Search', 'Email search and discovery', false, 'navigation'),
-('nav.oauth_apps', 'OAuth Apps', 'Third-party app management', false, 'navigation'),
-('nav.licenses', 'Licenses', 'License management', false, 'navigation'),
-('nav.external_sharing', 'External Sharing', 'External sharing controls', false, 'navigation'),
-
--- AI Features - experimental
-('feature.ai_assistant', 'AI Assistant', 'AI-powered help and suggestions', false, 'feature'),
-('feature.ai_chat', 'AI Chat', 'AI chat interface', false, 'feature')
-
-ON CONFLICT (feature_key) DO UPDATE SET
-  name = EXCLUDED.name,
-  description = EXCLUDED.description,
-  category = EXCLUDED.category;
--- Note: ON CONFLICT preserves existing is_enabled values so user customizations aren't overwritten
-
--- ============================================================================
--- Organization Domains - Email domain management for user classification
--- Added: 2025-12-30
--- ============================================================================
-
-CREATE TABLE IF NOT EXISTS organization_domains (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-    domain VARCHAR(255) NOT NULL,
-    domain_type VARCHAR(20) NOT NULL DEFAULT 'alias',
-    verification_status VARCHAR(20) DEFAULT 'verified',
-    verification_token VARCHAR(255),
-    verified_at TIMESTAMP WITH TIME ZONE,
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    created_by UUID REFERENCES organization_users(id),
-    CONSTRAINT valid_domain_type CHECK (domain_type IN ('primary', 'alias')),
-    CONSTRAINT valid_verification_status CHECK (verification_status IN ('pending', 'verified', 'failed')),
-    UNIQUE(organization_id, domain)
-);
-
-CREATE INDEX IF NOT EXISTS idx_org_domains_org_id ON organization_domains(organization_id);
-CREATE INDEX IF NOT EXISTS idx_org_domains_domain ON organization_domains(domain);
-CREATE INDEX IF NOT EXISTS idx_org_domains_active ON organization_domains(organization_id, is_active);
-
--- ============================================================================
--- Contacts - External contact management (vendors, clients, partners)
--- Added: 2025-12-30
--- ============================================================================
-
-CREATE TABLE IF NOT EXISTS contacts (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-    email VARCHAR(255) NOT NULL,
-    first_name VARCHAR(255),
-    last_name VARCHAR(255),
-    display_name VARCHAR(255),
-    company VARCHAR(255),
-    job_title VARCHAR(255),
-    department VARCHAR(255),
-    phone VARCHAR(50),
-    mobile VARCHAR(50),
-    notes TEXT,
-    contact_type VARCHAR(50) DEFAULT 'external',
-    source VARCHAR(50) DEFAULT 'manual',
-    google_contact_id VARCHAR(255),
-    custom_fields JSONB DEFAULT '{}',
-    tags TEXT[] DEFAULT '{}',
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    created_by UUID REFERENCES organization_users(id),
-    CONSTRAINT valid_contact_type CHECK (contact_type IN ('vendor', 'client', 'partner', 'external')),
-    UNIQUE(organization_id, email)
-);
-
-CREATE INDEX IF NOT EXISTS idx_contacts_org_id ON contacts(organization_id);
-CREATE INDEX IF NOT EXISTS idx_contacts_email ON contacts(email);
-CREATE INDEX IF NOT EXISTS idx_contacts_company ON contacts(company);
-CREATE INDEX IF NOT EXISTS idx_contacts_type ON contacts(organization_id, contact_type);
-CREATE INDEX IF NOT EXISTS idx_contacts_search ON contacts USING gin(to_tsvector('english', coalesce(first_name, '') || ' ' || coalesce(last_name, '') || ' ' || email || ' ' || coalesce(company, '')));

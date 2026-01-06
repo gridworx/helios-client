@@ -122,57 +122,12 @@ function getUserId(req: Request): string | null {
 }
 
 // Helper: Generate public URL for an asset
-function getPublicUrl(accessToken: string, slug?: string | null, filename?: string): string {
+function getPublicUrl(accessToken: string, filename?: string): string {
   const baseUrl = process.env['PUBLIC_URL'] || process.env['BACKEND_URL'] || 'http://localhost:3001';
-  // Prefer slug-based URL if available
-  if (slug) {
-    return `${baseUrl}/assets/${slug}`;
-  }
-  // Fallback to token-based URL
   if (filename) {
     return `${baseUrl}/a/${accessToken}/${encodeURIComponent(filename)}`;
   }
   return `${baseUrl}/a/${accessToken}`;
-}
-
-// Helper: Generate URL-safe slug from name
-function generateSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, '') // Remove special chars
-    .replace(/\s+/g, '-')          // Spaces to hyphens
-    .replace(/-+/g, '-')           // Collapse multiple hyphens
-    .replace(/^-|-$/g, '');        // Trim hyphens from ends
-}
-
-// Helper: Ensure slug is unique within organization
-async function ensureUniqueSlug(organizationId: string, baseSlug: string, excludeId?: string): Promise<string> {
-  let slug = baseSlug;
-  let counter = 1;
-
-  while (true) {
-    const query = excludeId
-      ? 'SELECT id FROM media_assets WHERE organization_id = $1 AND slug = $2 AND id != $3'
-      : 'SELECT id FROM media_assets WHERE organization_id = $1 AND slug = $2';
-    const params = excludeId ? [organizationId, slug, excludeId] : [organizationId, slug];
-
-    const result = await db.query(query, params);
-    if (result.rows.length === 0) {
-      return slug;
-    }
-
-    slug = `${baseSlug}-${counter}`;
-    counter++;
-
-    // Safety limit
-    if (counter > 100) {
-      slug = `${baseSlug}-${Date.now()}`;
-      break;
-    }
-  }
-
-  return slug;
 }
 
 // ============================================================================
@@ -262,8 +217,7 @@ router.get('/', async (req: Request, res: Response) => {
         folder_id as "folderId",
         category,
         access_token as "accessToken",
-        slug,
-        visibility,
+        is_public as "isPublic",
         access_count as "accessCount",
         last_accessed_at as "lastAccessedAt",
         created_by as "createdBy",
@@ -310,9 +264,9 @@ router.get('/', async (req: Request, res: Response) => {
     const result = await db.query(query, params);
 
     // Add public URLs
-    const assets: MediaAssetWithUrl[] = result.rows.map((row: any) => ({
+    const assets: MediaAssetWithUrl[] = result.rows.map((row: MediaAsset) => ({
       ...row,
-      publicUrl: getPublicUrl(row.accessToken, row.slug, row.filename),
+      publicUrl: getPublicUrl(row.accessToken, row.filename),
     }));
 
     res.json({
@@ -389,8 +343,7 @@ router.get('/:id', async (req: Request, res: Response, next) => {
         folder_id as "folderId",
         category,
         access_token as "accessToken",
-        slug,
-        visibility,
+        is_public as "isPublic",
         access_count as "accessCount",
         last_accessed_at as "lastAccessedAt",
         created_by as "createdBy",
@@ -407,7 +360,7 @@ router.get('/:id', async (req: Request, res: Response, next) => {
 
     const asset: MediaAssetWithUrl = {
       ...result.rows[0],
-      publicUrl: getPublicUrl(result.rows[0].accessToken, result.rows[0].slug, result.rows[0].filename),
+      publicUrl: getPublicUrl(result.rows[0].accessToken, result.rows[0].filename),
     };
 
     res.json({ success: true, data: asset });
@@ -491,11 +444,6 @@ router.post('/', async (req: Request, res: Response) => {
     const settings = await mediaAssetStorageService.getSettings(organizationId);
     const storageType = body.storageType || settings?.storageBackend || 'google_drive';
 
-    // Generate slug from name
-    const baseSlug = generateSlug(body.name);
-    const slug = await ensureUniqueSlug(organizationId, baseSlug);
-    const visibility = (body as any).visibility || 'public';
-
     const result = await db.query(
       `INSERT INTO media_assets (
         organization_id,
@@ -507,10 +455,9 @@ router.post('/', async (req: Request, res: Response) => {
         size_bytes,
         folder_id,
         category,
-        slug,
-        visibility,
+        is_public,
         created_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, $10)
       RETURNING
         id,
         organization_id as "organizationId",
@@ -523,8 +470,7 @@ router.post('/', async (req: Request, res: Response) => {
         folder_id as "folderId",
         category,
         access_token as "accessToken",
-        slug,
-        visibility,
+        is_public as "isPublic",
         access_count as "accessCount",
         last_accessed_at as "lastAccessedAt",
         created_by as "createdBy",
@@ -540,15 +486,13 @@ router.post('/', async (req: Request, res: Response) => {
         body.sizeBytes || null,
         body.folderId || null,
         body.category || null,
-        slug,
-        visibility,
         userId,
       ]
     );
 
     const asset: MediaAssetWithUrl = {
       ...result.rows[0],
-      publicUrl: getPublicUrl(result.rows[0].accessToken, result.rows[0].slug, result.rows[0].filename),
+      publicUrl: getPublicUrl(result.rows[0].accessToken, result.rows[0].filename),
     };
 
     logger.info('Asset registered', { organizationId, assetId: asset.id, name: asset.name });
@@ -648,30 +592,6 @@ router.put('/:id', async (req: Request, res: Response, next) => {
       paramIndex++;
     }
 
-    // Handle slug update
-    if ((body as any).slug !== undefined) {
-      let newSlug = (body as any).slug;
-      if (newSlug) {
-        // Sanitize and ensure uniqueness
-        newSlug = generateSlug(newSlug);
-        newSlug = await ensureUniqueSlug(organizationId, newSlug, id);
-      }
-      updates.push(`slug = $${paramIndex}`);
-      params.push(newSlug || null);
-      paramIndex++;
-    }
-
-    // Handle visibility update
-    if ((body as any).visibility !== undefined) {
-      const visibility = (body as any).visibility;
-      if (visibility && !['public', 'private'].includes(visibility)) {
-        return res.status(400).json({ success: false, error: 'Invalid visibility. Must be "public" or "private"' });
-      }
-      updates.push(`visibility = $${paramIndex}`);
-      params.push(visibility || 'public');
-      paramIndex++;
-    }
-
     if (updates.length === 0) {
       return res.status(400).json({ success: false, error: 'No fields to update' });
     }
@@ -692,8 +612,7 @@ router.put('/:id', async (req: Request, res: Response, next) => {
          folder_id as "folderId",
          category,
          access_token as "accessToken",
-         slug,
-         visibility,
+         is_public as "isPublic",
          access_count as "accessCount",
          last_accessed_at as "lastAccessedAt",
          created_by as "createdBy",
@@ -708,7 +627,7 @@ router.put('/:id', async (req: Request, res: Response, next) => {
 
     const asset: MediaAssetWithUrl = {
       ...result.rows[0],
-      publicUrl: getPublicUrl(result.rows[0].accessToken, result.rows[0].slug, result.rows[0].filename),
+      publicUrl: getPublicUrl(result.rows[0].accessToken, result.rows[0].filename),
     };
 
     res.json({ success: true, data: asset });
@@ -872,7 +791,7 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
     return res.status(400).json({ success: false, error: 'No file provided' });
   }
 
-  const { name, folderId, category, visibility: reqVisibility, slug: reqSlug } = req.body;
+  const { name, folderId, category } = req.body;
   const file = req.file;
 
   // Validate mime type
@@ -926,12 +845,6 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
       });
     }
 
-    // Generate slug from name or custom slug
-    const assetName = name || file.originalname;
-    const baseSlug = reqSlug ? generateSlug(reqSlug) : generateSlug(assetName.replace(/\.[^.]+$/, '')); // Remove extension for slug
-    const slug = await ensureUniqueSlug(organizationId, baseSlug);
-    const visibility = reqVisibility || 'public';
-
     // Register asset in database
     const result = await db.query(
       `INSERT INTO media_assets (
@@ -944,10 +857,9 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
         size_bytes,
         folder_id,
         category,
-        slug,
-        visibility,
+        is_public,
         created_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, $10)
       RETURNING
         id,
         organization_id as "organizationId",
@@ -960,8 +872,7 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
         folder_id as "folderId",
         category,
         access_token as "accessToken",
-        slug,
-        visibility,
+        is_public as "isPublic",
         access_count as "accessCount",
         last_accessed_at as "lastAccessedAt",
         created_by as "createdBy",
@@ -971,21 +882,19 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
         organizationId,
         settings?.storageBackend || 'google_drive',
         uploadResult.result.storagePath,
-        assetName,
+        name || file.originalname,
         file.originalname,
         file.mimetype,
         file.size,
         folderId || null,
         category || null,
-        slug,
-        visibility,
         userId,
       ]
     );
 
     const asset: MediaAssetWithUrl = {
       ...result.rows[0],
-      publicUrl: getPublicUrl(result.rows[0].accessToken, result.rows[0].slug, result.rows[0].filename),
+      publicUrl: getPublicUrl(result.rows[0].accessToken, result.rows[0].filename),
     };
 
     logger.info('Asset uploaded', { organizationId, assetId: asset.id, filename: file.originalname });

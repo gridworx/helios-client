@@ -17,13 +17,10 @@ import {
   ChevronDown,
   ChevronUp,
   Info,
-  Zap,
-  List,
+  Clock,
 } from 'lucide-react';
 import { authFetch } from '../../config/api';
 import TimelineEditor, { type TimelineEntry } from './TimelineEditor';
-import { WorkflowBuilder } from '../workflow';
-import type { WorkflowBlock, WorkflowTrigger } from '../workflow/types';
 import './OnboardingTemplateEditor.css';
 
 interface GoogleServices {
@@ -41,11 +38,6 @@ interface SharedDriveAccess {
   driveId: string;
   driveName?: string;
   role: 'reader' | 'commenter' | 'writer' | 'fileOrganizer' | 'organizer';
-}
-
-interface WorkflowData {
-  trigger: WorkflowTrigger;
-  blocks: WorkflowBlock[];
 }
 
 interface OnboardingTemplate {
@@ -67,7 +59,7 @@ interface OnboardingTemplate {
   welcomeEmailBody: string;
   isActive: boolean;
   isDefault: boolean;
-  timeline: TimelineEntry[] | WorkflowData | null;
+  timeline: TimelineEntry[];
 }
 
 interface Department {
@@ -125,7 +117,7 @@ Best regards,
 The IT Team`,
   isActive: true,
   isDefault: false,
-  timeline: null,
+  timeline: [],
 };
 
 const OnboardingTemplateEditor: React.FC<OnboardingTemplateEditorProps> = ({
@@ -144,13 +136,10 @@ const OnboardingTemplateEditor: React.FC<OnboardingTemplateEditorProps> = ({
     basic: true,
     google: false,
     groups: false,
-    email: false,
-    timeline: true,  // Workflow section expanded by default to show scratch-like builder
+    email: true,
+    timeline: false,
     options: false,
   });
-  const [workflowMode, setWorkflowMode] = useState<'timeline' | 'visual'>('visual');
-  const [workflowBlocks, setWorkflowBlocks] = useState<WorkflowBlock[]>([]);
-  const [workflowTrigger, setWorkflowTrigger] = useState<WorkflowTrigger>({ type: 'on_request_approved' });
 
   const isEditing = !!templateId;
 
@@ -179,25 +168,11 @@ const OnboardingTemplateEditor: React.FC<OnboardingTemplateEditorProps> = ({
 
       const data = await response.json();
       if (data.success && data.data) {
-        const templateData = data.data;
-
-        // Parse timeline - check if it's WorkflowData format or legacy TimelineEntry[] format
-        const timeline = templateData.timeline;
-        if (timeline && typeof timeline === 'object' && 'blocks' in timeline && 'trigger' in timeline) {
-          // New WorkflowData format
-          setWorkflowBlocks(timeline.blocks || []);
-          setWorkflowTrigger(timeline.trigger || { type: 'on_request_approved' });
-          setWorkflowMode('visual');
-        } else if (Array.isArray(timeline) && timeline.length > 0) {
-          // Legacy TimelineEntry[] format - keep for backwards compatibility
-          setWorkflowMode('timeline');
-        }
-
         setTemplate({
           ...defaultTemplate,
-          ...templateData,
-          googleServices: templateData.googleServices || defaultTemplate.googleServices,
-          timeline: timeline || null,
+          ...data.data,
+          googleServices: data.data.googleServices || defaultTemplate.googleServices,
+          timeline: data.data.timeline || [],
         });
       }
     } catch (err: any) {
@@ -251,28 +226,12 @@ const OnboardingTemplateEditor: React.FC<OnboardingTemplateEditorProps> = ({
         ? `/api/v1/lifecycle/onboarding-templates/${templateId}`
         : '/api/v1/lifecycle/onboarding-templates';
 
-      // Build the timeline based on current mode
-      let timelineData: WorkflowData | TimelineEntry[] | null = null;
-      if (workflowMode === 'visual' && workflowBlocks.length > 0) {
-        timelineData = {
-          trigger: workflowTrigger,
-          blocks: workflowBlocks,
-        };
-      } else if (workflowMode === 'timeline' && Array.isArray(template.timeline)) {
-        timelineData = template.timeline;
-      }
-
-      const payload = {
-        ...template,
-        timeline: timelineData,
-      };
-
       const response = await authFetch(url, {
         method: isEditing ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(template),
       });
 
       if (!response.ok) {
@@ -615,19 +574,17 @@ const OnboardingTemplateEditor: React.FC<OnboardingTemplateEditorProps> = ({
           )}
         </div>
 
-        {/* Workflow Automation */}
-        <div className="form-section workflow-section">
+        {/* Timeline Actions */}
+        <div className="form-section">
           <button
             className="section-header"
             onClick={() => toggleSection('timeline')}
           >
             <div className="section-title">
-              <Zap size={18} />
-              <span>Workflow Automation</span>
-              {workflowBlocks.length > 0 && (
-                <span className="badge">
-                  {workflowBlocks.length}
-                </span>
+              <Clock size={18} />
+              <span>Timeline Actions</span>
+              {template.timeline.length > 0 && (
+                <span className="badge">{template.timeline.length}</span>
               )}
             </div>
             {expandedSections.timeline ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
@@ -635,43 +592,11 @@ const OnboardingTemplateEditor: React.FC<OnboardingTemplateEditorProps> = ({
 
           {expandedSections.timeline && (
             <div className="section-content">
-              {/* Mode Toggle */}
-              <div className="workflow-mode-toggle">
-                <button
-                  className={`mode-btn ${workflowMode === 'visual' ? 'active' : ''}`}
-                  onClick={() => setWorkflowMode('visual')}
-                >
-                  <Zap size={14} />
-                  Visual Builder
-                </button>
-                <button
-                  className={`mode-btn ${workflowMode === 'timeline' ? 'active' : ''}`}
-                  onClick={() => setWorkflowMode('timeline')}
-                >
-                  <List size={14} />
-                  Timeline View
-                </button>
-              </div>
-
-              {workflowMode === 'visual' ? (
-                <div className="workflow-builder-container">
-                  <WorkflowBuilder
-                    workflowType="onboarding"
-                    initialBlocks={workflowBlocks}
-                    initialTrigger={workflowTrigger}
-                    onSave={async (blocks, trigger) => {
-                      setWorkflowBlocks(blocks);
-                      setWorkflowTrigger(trigger);
-                    }}
-                  />
-                </div>
-              ) : (
-                <TimelineEditor
-                  timeline={Array.isArray(template.timeline) ? template.timeline : []}
-                  onChange={(timeline) => setTemplate((prev) => ({ ...prev, timeline }))}
-                  requestType="onboard"
-                />
-              )}
+              <TimelineEditor
+                timeline={template.timeline}
+                onChange={(timeline) => setTemplate((prev) => ({ ...prev, timeline }))}
+                requestType="onboard"
+              />
             </div>
           )}
         </div>

@@ -553,11 +553,6 @@
   max-width: 800px;
 }
 
-.rules-engine-page .modal.editor-modal.large {
-  max-width: 900px;
-  max-height: 90vh;
-}
-
 .rules-engine-page .modal-header {
   display: flex;
   justify-content: space-between;

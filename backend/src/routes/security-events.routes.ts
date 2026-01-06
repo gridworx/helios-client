@@ -79,45 +79,44 @@ router.get('/', async (req: Request, res: Response) => {
 
     let query = `
       SELECT
-        se.id,
-        se.event_type,
-        se.severity,
-        se.user_id,
-        u.email as user_email,
-        se.event_type as title,
-        se.description,
-        se.metadata as details,
-        se.source,
-        se.is_resolved as acknowledged,
-        se.resolved_by as acknowledged_by,
-        se.resolved_at as acknowledged_at,
-        se.created_at
-      FROM security_events se
-      LEFT JOIN organization_users u ON u.id = se.user_id
-      WHERE se.organization_id = $1
+        id,
+        event_type,
+        severity,
+        user_id,
+        user_email,
+        title,
+        description,
+        details,
+        source,
+        acknowledged,
+        acknowledged_by,
+        acknowledged_at,
+        created_at
+      FROM security_events
+      WHERE organization_id = $1
     `;
 
     const params: any[] = [organizationId];
 
     if (severity) {
       params.push(severity);
-      query += ` AND se.severity = $${params.length}`;
+      query += ` AND severity = $${params.length}`;
     }
 
     if (acknowledged === 'true') {
-      query += ` AND se.is_resolved = true`;
+      query += ` AND acknowledged = true`;
     } else if (acknowledged === 'false') {
-      query += ` AND se.is_resolved = false`;
+      query += ` AND acknowledged = false`;
     }
 
-    query += ` ORDER BY se.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    query += ` ORDER BY created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
     params.push(limit, offset);
 
     const result = await db.query(query, params);
 
     // Get unacknowledged count
     const countResult = await db.query(
-      'SELECT COUNT(*) as count FROM security_events WHERE organization_id = $1 AND is_resolved = false',
+      'SELECT COUNT(*) as count FROM security_events WHERE organization_id = $1 AND acknowledged = false',
       [organizationId]
     );
 
@@ -181,10 +180,10 @@ router.patch('/:id/acknowledge', async (req: Request, res: Response) => {
     await db.query(`
       UPDATE security_events
       SET
-        is_resolved = true,
-        resolved_by = $1,
-        resolved_at = NOW(),
-        resolution_notes = $2
+        acknowledged = true,
+        acknowledged_by = $1,
+        acknowledged_at = NOW(),
+        acknowledged_note = $2
       WHERE id = $3 AND organization_id = $4
     `, [req.user?.userId, note, id, organizationId]);
 

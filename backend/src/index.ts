@@ -85,17 +85,13 @@ import { startCampaignSchedulerJob, stopCampaignSchedulerJob } from './jobs/camp
 import { startTrackingRetentionJob, stopTrackingRetentionJob } from './jobs/tracking-retention.job.js';
 import { syncScheduler } from './services/sync-scheduler.service.js';
 import { telemetryService } from './services/telemetry.service.js';
-import { licenseService } from './services/license.service.js';
 
 import transparentProxyRouter from './middleware/transparent-proxy.js';
 import microsoftTransparentProxyRouter from './middleware/microsoft-transparent-proxy.js';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger.js';
 import assetProxyRoutes from './routes/asset-proxy.routes.js';
-import assetsPublicRoutes from './routes/assets-public.routes.js';
 import assetsRoutes from './routes/assets.routes.js';
-import assetsSimpleRoutes from './routes/assets-simple.routes.js';
-import publicAssetsRoutes from './routes/public-assets.routes.js';
 import lifecycleRoutes from './routes/lifecycle.routes.js';
 import trainingRoutes from './routes/training.routes.js';
 import automationRoutes from './routes/automation.routes.js';
@@ -109,8 +105,6 @@ import externalSharingRoutes from './routes/external-sharing.routes.js';
 import loginActivityRoutes from './routes/login-activity.routes.js';
 import initialPasswordsRoutes from './routes/initial-passwords.routes.js';
 import securityRoutes from './routes/security.routes.js';
-import domainsRoutes from './routes/domains.routes.js';
-import contactsRoutes from './routes/contacts.routes.js';
 import { requestIdMiddleware, REQUEST_ID_HEADER } from './middleware/request-id.js';
 import { authHandler, auth } from './lib/auth-handler.js';
 import { auditMiddleware } from './middleware/audit.middleware.js';
@@ -155,13 +149,25 @@ if (rateLimitEnabled) {
   logger.info('Rate limiting disabled (test environment)');
 }
 
-// CORS configuration helper - allows local network IPs for internal deployments
+// CORS configuration helper
 function getCorsOrigins(): (string | boolean | RegExp)[] {
   const frontendUrl = process.env['FRONTEND_URL'];
   const publicUrl = process.env['PUBLIC_URL'];
 
-  // Base origins - always allowed
-  const origins: (string | RegExp)[] = [
+  if (process.env['NODE_ENV'] === 'production') {
+    const origins: string[] = [];
+    if (frontendUrl) origins.push(frontendUrl);
+    if (publicUrl && publicUrl !== frontendUrl) origins.push(publicUrl);
+    // Fallback to legacy env vars if new ones not set
+    if (origins.length === 0) {
+      if (process.env['APPURL']) origins.push(`https://${process.env['APPURL']}`);
+      if (process.env['DOMAIN']) origins.push(`https://${process.env['DOMAIN']}`);
+    }
+    return origins.length > 0 ? origins : [false]; // Disable CORS if no origins configured
+  }
+
+  // Development - allow common local origins AND local network IPs
+  return [
     'http://localhost:3000',
     'http://localhost:3001',
     'http://localhost:5173',
@@ -169,23 +175,10 @@ function getCorsOrigins(): (string | boolean | RegExp)[] {
     'http://localhost:80',
     'http://localhost',
     // Allow local network IPs (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
-    /^https?:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)(:\d+)?$/,
-  ];
-
-  // Add configured URLs
-  if (frontendUrl) origins.push(frontendUrl);
-  if (publicUrl && publicUrl !== frontendUrl) origins.push(publicUrl);
-
-  // Add additional trusted origins from TRUSTED_ORIGINS env var
-  const additionalOrigins = process.env['TRUSTED_ORIGINS'];
-  if (additionalOrigins) {
-    additionalOrigins.split(',').forEach(origin => {
-      const trimmed = origin.trim();
-      if (trimmed) origins.push(trimmed);
-    });
-  }
-
-  return origins;
+    /^http:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)(:\d+)?$/,
+    ...(frontendUrl ? [frontendUrl] : []),
+    ...(publicUrl && publicUrl !== frontendUrl ? [publicUrl] : [])
+  ].filter(Boolean) as (string | RegExp)[];
 }
 
 const corsOptions = {
@@ -488,8 +481,6 @@ app.get('/api/openapi.json', (req, res) => {
 // This serves media assets for email signatures with direct URLs
 // Must be registered BEFORE API auth middleware
 app.use('/a', assetProxyRoutes);
-app.use('/public', publicAssetsRoutes);  // Public asset URLs (/public/company-logo)
-app.use('/assets', assetsPublicRoutes);  // Legacy: Slug-based asset URLs (/assets/company-logo)
 
 // Tracking pixel endpoints - PUBLIC (no auth required)
 // These are loaded by email clients when recipients view emails
@@ -660,12 +651,8 @@ registerRoute('/organization/cost-centers', costCentersRoutes);
 registerRoute('/organization/job-titles', jobTitlesRoutes);
 registerRoute('/organization/licenses', licensesRoutes);
 registerRoute('/organization/data-quality', dataQualityRoutes);
-registerRoute('/organization/domains', domainsRoutes);
 registerRoute('/organization', orgChartRoutes);
 registerRoute('/organization', organizationRoutes);
-
-// Contacts (external contacts - vendors, clients, partners)
-registerRoute('/contacts', contactsRoutes);
 
 // Email features
 registerRoute('/email-security', emailSecurityRoutes);
@@ -691,8 +678,7 @@ registerRoute('/microsoft', microsoftRoutes);
 registerRoute('/modules', modulesRoutes);
 
 // Assets & Lifecycle
-registerRoute('/assets', assetsSimpleRoutes);  // New simplified MinIO-only assets
-// registerRoute('/assets-legacy', assetsRoutes);  // Old Google Drive assets (disabled)
+registerRoute('/assets', assetsRoutes);
 registerRoute('/lifecycle', lifecycleRoutes);
 registerRoute('/training', trainingRoutes);
 
@@ -888,20 +874,6 @@ async function startServer(): Promise<void> {
       logger.info('🗑️ Tracking retention job scheduled (runs daily at 3am)');
     } else {
       logger.info('🗑️ Tracking retention job disabled');
-    }
-
-    // Initialize license service (validates with helios.gridworx.io)
-    try {
-      await licenseService.init();
-      const plan = await licenseService.getPlan();
-      const isLicensed = await licenseService.isLicensed();
-      if (isLicensed) {
-        logger.info(`🔑 License validated: ${plan} plan`);
-      } else {
-        logger.info('🔓 Running in community mode (all features available)');
-      }
-    } catch (err) {
-      logger.warn('License validation failed (non-critical)', err);
     }
 
     // Initialize telemetry service (opt-in anonymous usage tracking)

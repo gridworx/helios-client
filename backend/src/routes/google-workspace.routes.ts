@@ -453,7 +453,7 @@ router.get('/module-status/:organizationId', async (req: Request, res: Response)
         m.slug as slug
       FROM organization_modules om
       JOIN modules m ON m.id = om.module_id
-      WHERE om.organization_id = $1 AND m.slug = 'google_workspace'
+      WHERE om.organization_id = $1 AND m.slug = 'google-workspace'
     `, [organizationId]);
 
     if (result.rows.length === 0) {
@@ -740,7 +740,7 @@ router.post('/disable/:organizationId', async (req: Request, res: Response) => {
 
     // Get Google Workspace module ID
     const moduleResult = await db.query(
-      `SELECT id FROM modules WHERE slug = 'google_workspace' LIMIT 1`
+      `SELECT id FROM modules WHERE slug = 'google-workspace' LIMIT 1`
     );
 
     if (moduleResult.rows.length === 0) {

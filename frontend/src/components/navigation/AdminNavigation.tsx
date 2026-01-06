@@ -3,13 +3,15 @@ import {
   Home,
   Users as UsersIcon,
   UsersRound,
-  Palette,
+  Package,
+  PenTool,
   AlertCircle,
   Settings as SettingsIcon,
   Network,
   MessageSquare,
   ClipboardList,
   FileText,
+  Image,
   UserPlus,
   UserMinus,
   Clock,
@@ -22,7 +24,6 @@ import {
   Zap,
   AppWindow,
   Key,
-  FolderOpen,
 } from 'lucide-react';
 import { useLabels } from '../../contexts/LabelsContext';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
@@ -44,7 +45,7 @@ interface AdminNavigationProps {
  * - Journeys (Onboarding, Offboarding, Training, Requests, Tasks)
  * - Automation (Signatures, Scheduled Actions, Rules Engine)
  * - Insights (HR Dashboard, Manager Dashboard, Analytics)
- * - Assets (Public, Private)
+ * - Assets (IT Assets, Media Files)
  * - Security (Mail Search, Security Events, Audit Logs, External Sharing)
  * - Settings
  */
@@ -62,12 +63,12 @@ export const AdminNavigation: React.FC<AdminNavigationProps> = ({
     'nav.onboarding', 'nav.offboarding', 'nav.training', 'nav.requests', 'nav.tasks'
   );
   const hasAutomationItems = anyEnabled(
-    'nav.template_studio', 'nav.scheduled_actions', 'nav.rules_engine'
+    'nav.signatures', 'nav.scheduled_actions', 'nav.rules_engine'
   );
   const hasInsightsItems = anyEnabled(
     'nav.hr_dashboard', 'nav.manager_dashboard', 'nav.lifecycle_analytics'
   );
-  // Assets section always available if section is enabled (no individual item flags needed)
+  const hasAssetItems = anyEnabled('nav.it_assets', 'nav.media_files');
   const hasSecurityItems = anyEnabled('nav.mail_search', 'nav.security_events', 'nav.oauth_apps', 'nav.audit_logs', 'nav.licenses', 'nav.external_sharing');
 
   return (
@@ -190,14 +191,14 @@ export const AdminNavigation: React.FC<AdminNavigationProps> = ({
       {isEnabled('nav.section.automation') && hasAutomationItems && (
         <div className="nav-section">
           <div className="nav-section-title">Automation</div>
-          {isEnabled('nav.template_studio') && (
+          {isEnabled('nav.signatures') && (
             <button
-              className={`nav-item ${currentPage === 'template-studio' ? 'active' : ''}`}
-              onClick={() => onNavigate('template-studio')}
-              data-testid="nav-template-studio"
+              className={`nav-item ${currentPage === 'signatures' ? 'active' : ''}`}
+              onClick={() => onNavigate('signatures')}
+              data-testid="nav-signatures"
             >
-              <Palette size={16} className="nav-icon" />
-              <span>Template Studio</span>
+              <PenTool size={16} className="nav-icon" />
+              <span>Signatures</span>
             </button>
           )}
           {isEnabled('nav.scheduled_actions') && (
@@ -260,18 +261,30 @@ export const AdminNavigation: React.FC<AdminNavigationProps> = ({
         </div>
       )}
 
-      {/* Assets Section */}
-      {isEnabled('nav.section.files') && (
+      {/* Assets Section - Show if section flag enabled AND has any items */}
+      {isEnabled('nav.section.assets') && hasAssetItems && (
         <div className="nav-section">
           <div className="nav-section-title">Assets</div>
-          <button
-            className={`nav-item ${currentPage === 'assets' ? 'active' : ''}`}
-            onClick={() => onNavigate('assets')}
-            data-testid="nav-assets"
-          >
-            <FolderOpen size={16} className="nav-icon" />
-            <span>Assets</span>
-          </button>
+          {isEnabled('nav.it_assets') && (
+            <button
+              className={`nav-item ${currentPage === 'assets' ? 'active' : ''}`}
+              onClick={() => onNavigate('assets')}
+              data-testid="nav-assets"
+            >
+              <Package size={16} className="nav-icon" />
+              <span>IT Assets</span>
+            </button>
+          )}
+          {isEnabled('nav.media_files') && (
+            <button
+              className={`nav-item ${currentPage === 'files-assets' ? 'active' : ''}`}
+              onClick={() => onNavigate('files-assets')}
+              data-testid="nav-files-assets"
+            >
+              <Image size={16} className="nav-icon" />
+              <span>Media Files</span>
+            </button>
+          )}
         </div>
       )}
 

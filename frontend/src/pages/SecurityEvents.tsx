@@ -149,30 +149,6 @@ const SecurityEvents: React.FC = () => {
         </div>
       )}
 
-      {/* Info box explaining Security Events */}
-      <div className="info-box" style={{
-        background: 'var(--color-surface-2, #f3f4f6)',
-        border: '1px solid var(--color-border, #e5e7eb)',
-        borderRadius: '8px',
-        padding: '16px',
-        marginBottom: '20px'
-      }}>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-          <Info size={20} style={{ color: 'var(--color-primary, #8b5cf6)', flexShrink: 0, marginTop: '2px' }} />
-          <div>
-            <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 600 }}>What are Security Events?</h4>
-            <p style={{ margin: 0, fontSize: '13px', color: 'var(--color-text-secondary, #6b7280)' }}>
-              Security Events are system-generated alerts for potential security concerns. They include:
-            </p>
-            <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px', fontSize: '13px', color: 'var(--color-text-secondary, #6b7280)' }}>
-              <li><strong>Critical:</strong> Failed login attempts, suspicious activity, unauthorized access attempts</li>
-              <li><strong>Warning:</strong> Unusual patterns, policy violations, configuration changes</li>
-              <li><strong>Info:</strong> New device logins, password changes, permission updates</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
       {loading ? (
         <div className="loading-state">
           <div className="loading-spinner" />
@@ -180,13 +156,9 @@ const SecurityEvents: React.FC = () => {
         </div>
       ) : events.length === 0 ? (
         <div className="empty-state">
-          <CheckCircle size={48} style={{ color: 'var(--color-success, #10b981)' }} />
-          <h3>All Clear!</h3>
-          <p>No security events to review. This is a good thing!</p>
-          <p style={{ fontSize: '13px', color: 'var(--color-text-secondary, #6b7280)', marginTop: '12px' }}>
-            Events will appear here when suspicious activity is detected, such as failed logins,
-            unusual access patterns, or policy violations.
-          </p>
+          <ShieldAlert size={48} />
+          <h3>No security events found</h3>
+          <p>No security events match your current filters</p>
         </div>
       ) : (
         <div className="events-list">

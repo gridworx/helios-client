@@ -31,16 +31,10 @@ interface TemplateRow {
   organization_id: string;
   name: string;
   description: string | null;
-  template_type: 'signature' | 'email' | 'page';
   html_content: string;
   plain_text_content: string | null;
-  subject: string | null;
-  css_content: string | null;
-  category: string | null;
   merge_fields: string[];
-  variables_used: string[];
   is_default: boolean;
-  is_active: boolean;
   is_campaign_template: boolean;
   status: SignatureTemplateStatus;
   version: number;
@@ -88,7 +82,6 @@ class SignatureTemplateService {
   async getTemplates(
     organizationId: string,
     options: {
-      templateType?: 'signature' | 'email' | 'page';
       status?: SignatureTemplateStatus;
       isCampaignTemplate?: boolean;
       includeAssignmentCounts?: boolean;
@@ -123,12 +116,6 @@ class SignatureTemplateService {
         SELECT * FROM signature_templates
         WHERE organization_id = $1
       `;
-    }
-
-    if (options.templateType) {
-      query += ` AND template_type = $${paramIndex}`;
-      values.push(options.templateType);
-      paramIndex++;
     }
 
     if (options.status) {
@@ -188,19 +175,11 @@ class SignatureTemplateService {
    */
   async createTemplate(
     organizationId: string,
-    data: CreateSignatureTemplateDTO & {
-      templateType?: 'signature' | 'email' | 'page';
-      subject?: string;
-      cssContent?: string;
-      category?: string;
-    },
+    data: CreateSignatureTemplateDTO,
     createdBy?: string
   ): Promise<SignatureTemplate> {
     // Extract merge fields from content
     const mergeFields = data.mergeFields || this.extractMergeFields(data.htmlContent);
-
-    // Extract variables used ({{variable}} format)
-    const variablesUsed = this.extractVariables(data.htmlContent);
 
     // Generate plain text if not provided
     const plainTextContent = data.plainTextContent || this.htmlToPlainText(data.htmlContent);
@@ -210,32 +189,22 @@ class SignatureTemplateService {
         organization_id,
         name,
         description,
-        template_type,
         html_content,
         plain_text_content,
-        subject,
-        css_content,
-        category,
         merge_fields,
-        variables_used,
         is_default,
         is_campaign_template,
         status,
         created_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *`,
       [
         organizationId,
         data.name,
         data.description || null,
-        data.templateType || 'signature',
         data.htmlContent,
         plainTextContent,
-        data.subject || null,
-        data.cssContent || null,
-        data.category || null,
         JSON.stringify(mergeFields),
-        JSON.stringify(variablesUsed),
         data.isDefault || false,
         data.isCampaignTemplate || false,
         data.status || 'draft',
@@ -246,27 +215,10 @@ class SignatureTemplateService {
     logger.info('Created signature template', {
       templateId: result.rows[0].id,
       name: data.name,
-      templateType: data.templateType || 'signature',
       organizationId,
     });
 
     return this.mapRowToTemplate(result.rows[0]);
-  }
-
-  /**
-   * Extract {{variables}} from template content
-   */
-  private extractVariables(content: string): string[] {
-    const regex = /\{\{([^}]+)\}\}/g;
-    const variables: string[] = [];
-    let match;
-    while ((match = regex.exec(content)) !== null) {
-      const variable = match[1].trim();
-      if (!variables.includes(variable)) {
-        variables.push(variable);
-      }
-    }
-    return variables;
   }
 
   /**
@@ -725,29 +677,16 @@ class SignatureTemplateService {
   // PRIVATE HELPERS
   // ==========================================
 
-  private mapRowToTemplate(row: TemplateRow): SignatureTemplate & {
-    templateType?: string;
-    subject?: string | null;
-    cssContent?: string | null;
-    category?: string | null;
-    variablesUsed?: string[];
-    isActive?: boolean;
-  } {
+  private mapRowToTemplate(row: TemplateRow): SignatureTemplate {
     return {
       id: row.id,
       organizationId: row.organization_id,
       name: row.name,
       description: row.description,
-      templateType: row.template_type || 'signature',
       htmlContent: row.html_content,
       plainTextContent: row.plain_text_content,
-      subject: row.subject,
-      cssContent: row.css_content,
-      category: row.category,
       mergeFields: row.merge_fields || [],
-      variablesUsed: row.variables_used || [],
       isDefault: row.is_default,
-      isActive: row.is_active ?? true,
       isCampaignTemplate: row.is_campaign_template,
       status: row.status,
       version: row.version,

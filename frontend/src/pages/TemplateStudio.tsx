@@ -1,620 +1,656 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  FileText,
-  Plus,
-  Users,
-  BarChart3,
-  Search,
-  Filter,
-  Play,
-  Pause,
-  Edit3,
-  Trash2,
-  CheckCircle,
-  Clock,
-  Target,
-  Copy,
-  Eye,
-  Star,
-  AlertCircle,
-  X,
-  Save,
-  Shield,
-  LayoutDashboard,
-  TrendingUp,
-  Mail,
-  PenTool,
-  Globe,
-} from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useTabPersistence } from '../hooks/useTabPersistence';
+import { PenLine, Mail, Globe, Puzzle, Plus, FileText, Calendar, Target, Search, RefreshCw, Star, Palette, Eye, Pencil, Copy, Trash2, Tag, X, Loader, Check, Image } from 'lucide-react';
 import './TemplateStudio.css';
-import { TemplateEditor, PreviewModal, CampaignEditor, CampaignAnalytics, SignaturePermissions, DeploymentStatus } from '../components/signatures';
+import { AssetPickerModal } from '../components/AssetPickerModal';
 import { authFetch } from '../config/api';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 
-interface SignatureTemplate {
+interface Template {
   id: string;
   name: string;
-  description: string;
-  html_content: string;
-  plain_text_content?: string;
-  mobile_html_content?: string;
-  thumbnail_url?: string;
+  description?: string;
   category?: string;
-  variables_used?: string[];
-  is_active: boolean;
+  template_type?: string;
+  html_content: string;
+  mobile_html_content?: string;
+  plain_text_content?: string;
+  thumbnail_url?: string;
   is_default: boolean;
-  created_at: string;
-  updated_at: string;
-  created_by_email?: string;
-  created_by_name?: string;
+  is_active: boolean;
+  is_system_template?: boolean;
   assignment_count: number;
   usage_count: number;
+  created_at: string;
+  updated_at: string;
+  created_by_name?: string;
 }
 
-interface SignatureCampaign {
+interface Campaign {
   id: string;
-  name: string;
-  description: string;
-  template_id: string;
+  campaign_name: string;
+  campaign_description?: string;
   template_name: string;
-  target_type: 'all' | 'users' | 'groups' | 'departments' | 'org_units';
-  target_ids: string[];
-  priority: number;
-  status: 'draft' | 'pending_approval' | 'approved' | 'active' | 'paused' | 'completed' | 'cancelled';
+  target_type: string;
   start_date: string;
   end_date: string;
+  status: string;
   created_at: string;
-  created_by_name: string;
-  approval_status?: string;
-  approved_by_name?: string;
-  approved_at?: string;
-  applied_count: number;
-  total_target_count: number;
 }
 
-interface TemplateFormData {
-  name: string;
-  description: string;
-  html_content: string;
-  plain_text_content: string;
-  is_active: boolean;
-  is_default: boolean;
-  template_type: TemplateType;
+interface TemplateStudioProps {
+  organizationId: string;
 }
 
-type TemplateType = 'signature' | 'email' | 'page';
+interface User {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  job_title?: string;
+  department?: string;
+  mobile_phone?: string;
+  work_phone?: string;
+  work_phone_extension?: string;
+  location?: string;
+  organizational_unit?: string;
+  employee_id?: string;
+  bio?: string;
+  pronouns?: string;
+  professional_designations?: string;
+  avatar_url?: string;
+  user_linkedin_url?: string;
+  user_twitter_url?: string;
+  user_github_url?: string;
+  user_portfolio_url?: string;
+  user_instagram_url?: string;
+  user_facebook_url?: string;
+}
 
-const Signatures: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'templates' | 'campaigns' | 'analytics' | 'permissions'>('overview');
-  const [filterTemplateType, setFilterTemplateType] = useState<TemplateType | 'all'>('all');
-  const [templates, setTemplates] = useState<SignatureTemplate[]>([]);
-  const [campaigns, setCampaigns] = useState<SignatureCampaign[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState<SignatureTemplate | null>(null);
-  const [editingCampaign, setEditingCampaign] = useState<SignatureCampaign | null>(null);
-  const [analyticsCampaignId, setAnalyticsCampaignId] = useState<string | null>(null);
-  const [showCampaignWizard, setShowCampaignWizard] = useState(false);
-  const [showTemplateEditor, setShowTemplateEditor] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
-  const [previewTemplate, setPreviewTemplate] = useState<SignatureTemplate | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
+export function TemplateStudio({ organizationId }: TemplateStudioProps) {
+  const [activeTab, setActiveTab] = useTabPersistence<'templates' | 'campaigns' | 'assignments'>('helios_template_studio_tab', 'templates');
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [_error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [error, setError] = useState<string | null>(null);
-  const [showNewTemplateMenu, setShowNewTemplateMenu] = useState(false);
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
+  const [templateToDelete, setTemplateToDelete] = useState<Template | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [showTemplatePreview, setShowTemplatePreview] = useState(false);
 
-  const [formData, setFormData] = useState<TemplateFormData>({
-    name: '',
-    description: '',
-    html_content: '',
-    plain_text_content: '',
-    is_active: true,
-    is_default: false,
-    template_type: 'signature',
-  });
-  const [showEditorPreviewModal, setShowEditorPreviewModal] = useState(false);
+  // Create template form state
+  const [newTemplateName, setNewTemplateName] = useState('');
+  const [newTemplateDescription, setNewTemplateDescription] = useState('');
+  const [newTemplateCategory, setNewTemplateCategory] = useState('email_signature');
+  const [newTemplateType, setNewTemplateType] = useState('email_signature');
+  const [newTemplateHtml, setNewTemplateHtml] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [templateWarning, setTemplateWarning] = useState<string | null>(null);
+
+  // Template variables and preview
+  const [users, setUsers] = useState<User[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [showVariablePicker, setShowVariablePicker] = useState(false);
+  const [organizationData, setOrganizationData] = useState<any>(null);
+
+  // Asset picker state
+  const [showAssetPicker, setShowAssetPicker] = useState(false);
+
+  // Template type definitions
+  const templateTypes = [
+    {
+      value: 'email_signature',
+      label: 'Email Signature',
+      description: 'Body content only - no <html> or <body> tags needed',
+      icon: <PenLine size={16} />
+    },
+    {
+      value: 'email_template',
+      label: 'Email Template',
+      description: 'Full HTML email template',
+      icon: <Mail size={16} />
+    },
+    {
+      value: 'public_page',
+      label: 'Public Page',
+      description: 'Complete webpage with <html>, <head>, <body>',
+      icon: <Globe size={16} />
+    },
+    {
+      value: 'html_snippet',
+      label: 'HTML Snippet',
+      description: 'Reusable HTML block for embedding',
+      icon: <Puzzle size={16} />
+    }
+  ];
+
+  // Available template variables
+  const availableVariables = [
+    // Personal Info
+    { key: 'firstName', label: 'First Name', example: 'John', category: 'Personal' },
+    { key: 'lastName', label: 'Last Name', example: 'Doe', category: 'Personal' },
+    { key: 'email', label: 'Email', example: 'john.doe@example.com', category: 'Personal' },
+    { key: 'userPhoto', label: 'Profile Photo', example: '(photo URL)', category: 'Personal' },
+
+    // Job Info
+    { key: 'jobTitle', label: 'Job Title', example: 'Senior Developer', category: 'Job' },
+    { key: 'department', label: 'Department', example: 'Engineering', category: 'Job' },
+    { key: 'organizationalUnit', label: 'Organizational Unit', example: 'Sales Team', category: 'Job' },
+    { key: 'employeeId', label: 'Employee ID', example: 'EMP001', category: 'Job' },
+
+    // Contact
+    { key: 'mobilePhone', label: 'Mobile Phone', example: '+1-555-0123', category: 'Contact' },
+    { key: 'workPhone', label: 'Work Phone', example: '+1-555-0100', category: 'Contact' },
+    { key: 'workPhoneExtension', label: 'Work Phone Extension', example: 'x1234', category: 'Contact' },
+    { key: 'location', label: 'Location', example: 'San Francisco, CA', category: 'Contact' },
+
+    // Personal Details
+    { key: 'bio', label: 'Bio', example: 'Passionate about technology', category: 'Details' },
+    { key: 'pronouns', label: 'Pronouns', example: 'he/him', category: 'Details' },
+    { key: 'professionalDesignations', label: 'Professional Designations', example: 'MBA, PMP', category: 'Details' },
+
+    // User Social
+    { key: 'userLinkedIn', label: 'LinkedIn Profile', example: 'linkedin.com/in/johndoe', category: 'User Social' },
+    { key: 'userTwitter', label: 'Twitter Profile', example: 'twitter.com/johndoe', category: 'User Social' },
+    { key: 'userGitHub', label: 'GitHub Profile', example: 'github.com/johndoe', category: 'User Social' },
+    { key: 'userPortfolio', label: 'Portfolio', example: 'johndoe.com', category: 'User Social' },
+    { key: 'userInstagram', label: 'Instagram', example: 'instagram.com/johndoe', category: 'User Social' },
+    { key: 'userFacebook', label: 'Facebook', example: 'facebook.com/johndoe', category: 'User Social' },
+
+    // Company Social
+    { key: 'companyLinkedIn', label: 'Company LinkedIn', example: 'linkedin.com/company/acme', category: 'Company Social' },
+    { key: 'companyTwitter', label: 'Company Twitter', example: 'twitter.com/acmecorp', category: 'Company Social' },
+    { key: 'companyFacebook', label: 'Company Facebook', example: 'facebook.com/acmecorp', category: 'Company Social' },
+    { key: 'companyInstagram', label: 'Company Instagram', example: 'instagram.com/acmecorp', category: 'Company Social' },
+    { key: 'companyYouTube', label: 'Company YouTube', example: 'youtube.com/acmecorp', category: 'Company Social' },
+    { key: 'companyTikTok', label: 'Company TikTok', example: 'tiktok.com/@acmecorp', category: 'Company Social' },
+    { key: 'companyWebsite', label: 'Company Website', example: 'acmecorp.com', category: 'Company Social' },
+    { key: 'companyBlog', label: 'Company Blog', example: 'blog.acmecorp.com', category: 'Company Social' },
+
+    // Company Info
+    { key: 'companyName', label: 'Company Name', example: 'Acme Corporation', category: 'Company' },
+    { key: 'companyLogo', label: 'Company Logo', example: '(logo URL)', category: 'Company' },
+    { key: 'companyTagline', label: 'Company Tagline', example: 'Innovation at its best', category: 'Company' },
+    { key: 'companyAddress', label: 'Company Address', example: '123 Main St, City', category: 'Company' },
+    { key: 'companyPhone', label: 'Company Phone', example: '+1-555-0000', category: 'Company' },
+    { key: 'companyEmail', label: 'Company Email', example: 'info@acmecorp.com', category: 'Company' }
+  ];
 
   useEffect(() => {
-    if (activeTab === 'overview') {
-      fetchTemplates();
-      fetchCampaigns();
-    } else if (activeTab === 'templates') {
-      fetchTemplates();
-    } else if (activeTab === 'campaigns' || activeTab === 'analytics') {
+    fetchTemplates();
+    fetchUsers();
+    fetchOrganization();
+    if (activeTab === 'campaigns') {
       fetchCampaigns();
     }
-  }, [activeTab]);
+  }, [organizationId, activeTab]);
 
-  const fetchTemplates = async () => {
-    setLoading(true);
-    setError(null);
+  const fetchUsers = async () => {
     try {
-      const response = await authFetch('/api/signatures/templates');
-      const data = await response.json();
-      if (data.success) {
-        setTemplates(data.data || []);
-      } else {
-        setError(data.error || 'Failed to fetch templates');
+      const response = await authFetch('/api/v1/organization/users');
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.users) {
+          setUsers(data.users);
+          if (data.users.length > 0) {
+            setSelectedUserId(data.users[0].id);
+          }
+        }
       }
     } catch (err) {
-      console.error('Error fetching templates:', err);
-      setError('Failed to connect to server');
+      console.error('Error fetching users:', err);
+    }
+  };
+
+  const fetchOrganization = async () => {
+    try {
+      const response = await authFetch('/api/v1/organization/settings');
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.organization) {
+          setOrganizationData(data.organization);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching organization:', err);
+    }
+  };
+
+  const fetchTemplates = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await authFetch('/api/v1/signatures/templates');
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          setTemplates(data.data);
+        } else {
+          setTemplates([]);
+        }
+      } else {
+        setTemplates([]);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to load templates');
+      setTemplates([]);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   const fetchCampaigns = async () => {
-    setLoading(true);
-    setError(null);
     try {
-      const response = await authFetch('/api/signatures/campaigns');
-      const data = await response.json();
-      if (data.success) {
-        setCampaigns(data.data || []);
+      const response = await authFetch('/api/v1/signatures/campaigns');
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          setCampaigns(data.data);
+        } else {
+          setCampaigns([]);
+        }
       } else {
-        setError(data.error || 'Failed to fetch campaigns');
+        setCampaigns([]);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching campaigns:', err);
-      setError('Failed to connect to server');
-    } finally {
-      setLoading(false);
+      setCampaigns([]);
     }
   };
 
-  const openTemplateEditor = useCallback((template?: SignatureTemplate, templateType: TemplateType = 'signature') => {
-    if (template) {
-      setSelectedTemplate(template);
-      setFormData({
-        name: template.name,
-        description: template.description || '',
-        html_content: template.html_content || '',
-        plain_text_content: template.plain_text_content || '',
-        is_active: template.is_active,
-        is_default: template.is_default,
-        template_type: (template.category as TemplateType) || 'signature',
-      });
-    } else {
-      setSelectedTemplate(null);
-      setFormData({
-        name: '',
-        description: '',
-        html_content: getDefaultTemplate(templateType),
-        plain_text_content: '',
-        is_active: true,
-        is_default: false,
-        template_type: templateType,
-      });
-    }
-    setShowTemplateEditor(true);
-  }, []);
-
-  const closeTemplateEditor = useCallback(() => {
-    setShowTemplateEditor(false);
-    setSelectedTemplate(null);
-    setFormData({
-      name: '',
-      description: '',
-      html_content: '',
-      plain_text_content: '',
-      is_active: true,
-      is_default: false,
-      template_type: 'signature',
-    });
-  }, []);
-
-  const saveTemplate = async () => {
-    if (!formData.name.trim()) {
-      setError('Template name is required');
-      return;
-    }
-    if (!formData.html_content.trim()) {
-      setError('Template content is required');
-      return;
-    }
-
-    setSaving(true);
-    setError(null);
-
+  const handleCreateTemplate = async () => {
     try {
-      const url = selectedTemplate
-        ? `/api/signatures/templates/${selectedTemplate.id}`
-        : '/api/signatures/templates';
-      const method = selectedTemplate ? 'PUT' : 'POST';
+      setIsCreating(true);
+      setCreateError(null);
+      setTemplateWarning(null);
 
-      const response = await authFetch(url, {
-        method,
+      if (!newTemplateName || !newTemplateHtml) {
+        setCreateError('Name and HTML content are required');
+        return;
+      }
+
+      // Validate template based on type
+      const validationError = validateTemplate(newTemplateHtml, newTemplateType);
+      if (validationError) {
+        setCreateError(validationError);
+        return;
+      }
+
+      // Process HTML based on template type
+      let processedHtml = newTemplateHtml;
+      if (newTemplateType === 'email_signature') {
+        const { cleaned, wasStripped } = stripFullPageTags(newTemplateHtml);
+        processedHtml = cleaned;
+        if (wasStripped) {
+          setTemplateWarning('Removed full page tags - signatures only need body content');
+        }
+      }
+
+      const response = await authFetch('/api/v1/signatures/templates', {
+        method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          name: newTemplateName,
+          description: newTemplateDescription,
+          category: newTemplateCategory,
+          template_type: newTemplateType,
+          html_content: processedHtml,
+          is_active: true,
+          is_default: false
+        })
       });
 
       const data = await response.json();
 
-      if (data.success) {
-        closeTemplateEditor();
-        fetchTemplates();
-      } else {
-        setError(data.error || 'Failed to save template');
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create template');
       }
-    } catch (err) {
-      console.error('Error saving template:', err);
-      setError('Failed to save template');
+
+      // Success - close modal and refresh list
+      setShowCreateModal(false);
+      setNewTemplateName('');
+      setNewTemplateDescription('');
+      setNewTemplateCategory('email_signature');
+      setNewTemplateType('email_signature');
+      setNewTemplateHtml('');
+      setTemplateWarning(null);
+      await fetchTemplates();
+
+    } catch (err: any) {
+      setCreateError(err.message);
     } finally {
-      setSaving(false);
+      setIsCreating(false);
     }
   };
 
-  const handleDeleteTemplate = (templateId: string) => {
-    setTemplateToDelete(templateId);
+  const handleEditClick = (template: Template) => {
+    setEditingTemplate(template);
+    setNewTemplateName(template.name);
+    setNewTemplateDescription(template.description || '');
+    setNewTemplateCategory(template.category || 'email_signature');
+    setNewTemplateType(template.template_type || 'email_signature');
+    setNewTemplateHtml(template.html_content);
+    setShowEditModal(true);
+  };
+
+  const handleUpdateTemplate = async () => {
+    if (!editingTemplate) return;
+
+    try {
+      setIsCreating(true);
+      setCreateError(null);
+      setTemplateWarning(null);
+
+      if (!newTemplateName || !newTemplateHtml) {
+        setCreateError('Name and HTML content are required');
+        return;
+      }
+
+      // Validate template based on type
+      const validationError = validateTemplate(newTemplateHtml, newTemplateType);
+      if (validationError) {
+        setCreateError(validationError);
+        return;
+      }
+
+      // Process HTML based on template type
+      let processedHtml = newTemplateHtml;
+      if (newTemplateType === 'email_signature') {
+        const { cleaned, wasStripped } = stripFullPageTags(newTemplateHtml);
+        processedHtml = cleaned;
+        if (wasStripped) {
+          setTemplateWarning('Removed full page tags - signatures only need body content');
+        }
+      }
+
+      const response = await authFetch(`/api/v1/signatures/templates/${editingTemplate.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: newTemplateName,
+          description: newTemplateDescription,
+          category: newTemplateCategory,
+          template_type: newTemplateType,
+          html_content: processedHtml
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update template');
+      }
+
+      // Success - close modal and refresh list
+      setShowEditModal(false);
+      setEditingTemplate(null);
+      setNewTemplateName('');
+      setNewTemplateDescription('');
+      setNewTemplateCategory('email_signature');
+      setNewTemplateType('email_signature');
+      setNewTemplateHtml('');
+      setTemplateWarning(null);
+      await fetchTemplates();
+
+    } catch (err: any) {
+      setCreateError(err.message);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleDeleteTemplate = (template: Template) => {
+    if (template.usage_count > 0) {
+      alert(`Cannot delete "${template.name}" - it is currently assigned to ${template.usage_count} user(s)`);
+      return;
+    }
+    setTemplateToDelete(template);
   };
 
   const confirmDeleteTemplate = async () => {
     if (!templateToDelete) return;
 
     try {
-      const response = await authFetch(`/api/signatures/templates/${templateToDelete}`, {
-        method: 'DELETE',
+      const response = await authFetch(`/api/v1/signatures/templates/${templateToDelete.id}`, {
+        method: 'DELETE'
       });
+
       const data = await response.json();
-      if (data.success) {
-        fetchTemplates();
-      } else {
-        setError(data.error || 'Failed to delete template');
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete template');
       }
-    } catch (err) {
-      console.error('Error deleting template:', err);
-      setError('Failed to delete template');
+
+      await fetchTemplates();
+    } catch (err: any) {
+      alert(`Error deleting template: ${err.message}`);
     } finally {
       setTemplateToDelete(null);
     }
   };
 
-  const handleCloneTemplate = async (template: SignatureTemplate) => {
-    setFormData({
-      name: `${template.name} (Copy)`,
-      description: template.description || '',
-      html_content: template.html_content,
-      plain_text_content: template.plain_text_content || '',
-      is_active: false,
-      is_default: false,
-      template_type: (template.category as TemplateType) || 'signature',
+  const stripFullPageTags = (html: string): { cleaned: string; wasStripped: boolean } => {
+    const original = html.trim();
+    let cleaned = original;
+
+    // Remove <!DOCTYPE>, <html>, <head>, and <body> tags
+    cleaned = cleaned.replace(/<!DOCTYPE[^>]*>/gi, '');
+    cleaned = cleaned.replace(/<\/?html[^>]*>/gi, '');
+    cleaned = cleaned.replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '');
+    cleaned = cleaned.replace(/<\/?body[^>]*>/gi, '');
+
+    cleaned = cleaned.trim();
+
+    return {
+      cleaned,
+      wasStripped: cleaned !== original
+    };
+  };
+
+  const validateTemplate = (html: string, type: string): string | null => {
+    if (!html || html.trim().length === 0) {
+      return 'HTML content cannot be empty';
+    }
+
+    if (type === 'email_signature') {
+      // Check if it contains full page tags
+      if (/<html|<head|<body|<!DOCTYPE/i.test(html)) {
+        return 'Email signatures should only contain body content (no <html>, <head>, or <body> tags)';
+      }
+    }
+
+    if (type === 'public_page') {
+      // Check if it has basic structure
+      if (!/<html/i.test(html) || !/<body/i.test(html)) {
+        return 'Public pages should include <html> and <body> tags';
+      }
+    }
+
+    return null;
+  };
+
+  const getEditorHint = (type: string): string => {
+    const hints: Record<string, string> = {
+      email_signature: 'Body content only - no <html> or <body> tags needed. Use {{variables}} for dynamic content.',
+      email_template: 'Full email HTML - include inline styles for email client compatibility.',
+      public_page: 'Complete webpage with <html>, <head>, and <body> tags.',
+      html_snippet: 'Reusable HTML block that can be embedded in other content.'
+    };
+    return hints[type] || 'Enter your HTML template code here';
+  };
+
+  const insertVariable = (variableKey: string) => {
+    const variable = `{{${variableKey}}}`;
+    setNewTemplateHtml(prev => prev + variable);
+    setShowVariablePicker(false);
+  };
+
+  // Insert image from asset picker
+  const handleAssetSelect = (asset: { publicUrl?: string; name: string }) => {
+    if (asset.publicUrl) {
+      const imgTag = `<img src="${asset.publicUrl}" alt="${asset.name}" style="max-width: 100%; height: auto;" />`;
+      setNewTemplateHtml(prev => prev + imgTag);
+    }
+    setShowAssetPicker(false);
+  };
+
+  const renderTemplateWithUserData = (htmlContent: string, user: User | undefined): string => {
+    if (!user && !organizationData) return htmlContent;
+
+    const replacements: Record<string, string> = {
+      // User personal info
+      firstName: user?.first_name || '',
+      lastName: user?.last_name || '',
+      email: user?.email || '',
+      userPhoto: user?.avatar_url || '',
+
+      // User job info
+      jobTitle: user?.job_title || '',
+      department: user?.department || '',
+      organizationalUnit: user?.organizational_unit || '',
+      employeeId: user?.employee_id || '',
+
+      // User contact
+      mobilePhone: user?.mobile_phone || '',
+      workPhone: user?.work_phone || '',
+      workPhoneExtension: user?.work_phone_extension || '',
+      location: user?.location || '',
+
+      // User details
+      bio: user?.bio || '',
+      pronouns: user?.pronouns || '',
+      professionalDesignations: user?.professional_designations || '',
+
+      // User social
+      userLinkedIn: user?.user_linkedin_url || '',
+      userTwitter: user?.user_twitter_url || '',
+      userGitHub: user?.user_github_url || '',
+      userPortfolio: user?.user_portfolio_url || '',
+      userInstagram: user?.user_instagram_url || '',
+      userFacebook: user?.user_facebook_url || '',
+
+      // Company info
+      companyName: organizationData?.name || '',
+      companyLogo: organizationData?.company_logo_url || '',
+      companyTagline: organizationData?.company_tagline || '',
+      companyAddress: organizationData?.company_address || '',
+      companyPhone: organizationData?.company_phone || '',
+      companyEmail: organizationData?.company_email || '',
+
+      // Company social
+      companyLinkedIn: organizationData?.company_linkedin_url || '',
+      companyTwitter: organizationData?.company_twitter_url || '',
+      companyFacebook: organizationData?.company_facebook_url || '',
+      companyInstagram: organizationData?.company_instagram_url || '',
+      companyYouTube: organizationData?.company_youtube_url || '',
+      companyTikTok: organizationData?.company_tiktok_url || '',
+      companyWebsite: organizationData?.company_website_url || '',
+      companyBlog: organizationData?.company_blog_url || ''
+    };
+
+    let rendered = htmlContent;
+    Object.entries(replacements).forEach(([key, value]) => {
+      const regex = new RegExp(`{{${key}}}`, 'g');
+      rendered = rendered.replace(regex, value);
     });
-    setSelectedTemplate(null);
-    setShowTemplateEditor(true);
+
+    return rendered;
   };
 
-  const handleSetDefault = async (templateId: string) => {
-    try {
-      const response = await authFetch(`/api/signatures/templates/${templateId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ is_default: true }),
-      });
-      const data = await response.json();
-      if (data.success) {
-        fetchTemplates();
-      }
-    } catch (err) {
-      console.error('Error setting default template:', err);
-    }
+  const getCategoryBadge = (category: string | undefined) => {
+    const badges: Record<string, { label: string; color: string }> = {
+      email_signature: { label: 'Email Signature', color: '#1976d2' },
+      banner: { label: 'Banner', color: '#388e3c' },
+      announcement: { label: 'Announcement', color: '#f57c00' },
+      promotional: { label: 'Promotional', color: '#c2185b' },
+      default: { label: 'Other', color: '#666' }
+    };
+    return badges[category || 'default'] || badges.default;
   };
 
-  const handleCampaignStatusChange = async (campaignId: string, newStatus: string) => {
-    try {
-      const response = await authFetch(`/api/signatures/campaigns/${campaignId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      const data = await response.json();
-      if (data.success) {
-        fetchCampaigns();
-      }
-    } catch (err) {
-      console.error('Error updating campaign status:', err);
-    }
-  };
-
-  const handleManualSync = async () => {
-    try {
-      const response = await authFetch('/api/signatures/sync', {
-        method: 'POST',
-      });
-      const data = await response.json();
-      if (data.success) {
-        alert(`Signature sync initiated for ${data.data?.userCount || 0} users`);
-      } else {
-        alert(data.error || 'Sync not available');
-      }
-    } catch (err) {
-      console.error('Error initiating sync:', err);
-      alert('Failed to initiate sync');
-    }
-  };
-
-  const getStatusBadgeClass = (status: string) => {
-    switch (status) {
-      case 'active': return 'badge-active';
-      case 'approved': return 'badge-approved';
-      case 'draft': return 'badge-draft';
-      case 'pending_approval': return 'badge-pending';
-      case 'paused': return 'badge-paused';
-      case 'completed': return 'badge-completed';
-      case 'cancelled': return 'badge-cancelled';
-      default: return 'badge-default';
-    }
+  const getStatusBadge = (status: string) => {
+    const badges: Record<string, { label: string; color: string; bg: string }> = {
+      active: { label: 'Active', color: '#15803d', bg: '#dcfce7' },
+      scheduled: { label: 'Scheduled', color: '#0369a1', bg: '#e0f2fe' },
+      completed: { label: 'Completed', color: '#6b7280', bg: '#f3f4f6' },
+      cancelled: { label: 'Cancelled', color: '#b91c1c', bg: '#fee2e2' },
+      draft: { label: 'Draft', color: '#a16207', bg: '#fef3c7' }
+    };
+    return badges[status] || badges.draft;
   };
 
   const filteredTemplates = templates.filter(template => {
     const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      template.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = filterTemplateType === 'all' || (template.category || 'signature') === filterTemplateType;
-    return matchesSearch && matchesType;
+                         template.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = filterCategory === 'all' || template.category === filterCategory;
+    return matchesSearch && matchesCategory;
   });
 
-  const filteredCampaigns = campaigns.filter(campaign => {
-    const matchesSearch = campaign.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      campaign.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || campaign.status === filterStatus;
-    return matchesSearch && matchesStatus;
-  });
+  const uniqueCategories = Array.from(new Set(templates.map(t => t.category).filter(Boolean)));
+
+  if (isLoading) {
+    return (
+      <div className="page-container">
+        <div className="loading-spinner">Loading templates...</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="signatures-container">
-      <div className="signatures-header">
-        <div className="header-content">
+    <div className="page-container">
+      <div className="page-header">
+        <div>
           <h1>Template Studio</h1>
-          <p>Create and manage email signatures, email templates, and page templates</p>
+          <p>Create and manage email signature templates and campaigns</p>
         </div>
-        <div className="header-actions">
-          <button className="btn-secondary" onClick={handleManualSync}>
-            <Play size={16} />
-            Manual Sync
-          </button>
-          {activeTab === 'templates' ? (
-            <div className="dropdown-container">
-              <button
-                className="btn-primary"
-                onClick={() => setShowNewTemplateMenu(!showNewTemplateMenu)}
-              >
-                <Plus size={16} />
-                New Template
-              </button>
-              {showNewTemplateMenu && (
-                <div className="dropdown-menu template-type-menu">
-                  <button
-                    className="dropdown-item"
-                    onClick={() => {
-                      setShowNewTemplateMenu(false);
-                      openTemplateEditor(undefined, 'signature');
-                    }}
-                  >
-                    <PenTool size={16} />
-                    <div>
-                      <span className="dropdown-item-title">Signature Template</span>
-                      <span className="dropdown-item-desc">Email signature for users</span>
-                    </div>
-                  </button>
-                  <button
-                    className="dropdown-item disabled"
-                    disabled
-                  >
-                    <Mail size={16} />
-                    <div>
-                      <span className="dropdown-item-title">Email Template</span>
-                      <span className="dropdown-item-desc">Coming Soon</span>
-                    </div>
-                  </button>
-                  <button
-                    className="dropdown-item disabled"
-                    disabled
-                  >
-                    <Globe size={16} />
-                    <div>
-                      <span className="dropdown-item-title">Page Template</span>
-                      <span className="dropdown-item-desc">Coming Soon</span>
-                    </div>
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : activeTab === 'campaigns' ? (
-            <button className="btn-primary" onClick={() => setShowCampaignWizard(true)}>
-              <Plus size={16} />
-              New Campaign
-            </button>
-          ) : null}
-        </div>
+        <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
+          <Plus size={16} /> Create Template
+        </button>
       </div>
 
-      {error && (
-        <div className="error-banner">
-          <AlertCircle size={16} />
-          <span>{error}</span>
-          <button onClick={() => setError(null)}>
-            <X size={14} />
-          </button>
-        </div>
-      )}
-
-      <div className="signatures-tabs">
-        <button
-          className={`tab-button ${activeTab === 'overview' ? 'active' : ''}`}
-          onClick={() => setActiveTab('overview')}
-        >
-          <LayoutDashboard size={16} />
-          Overview
-        </button>
+      {/* Tabs */}
+      <div className="template-tabs">
         <button
           className={`tab-button ${activeTab === 'templates' ? 'active' : ''}`}
           onClick={() => setActiveTab('templates')}
         >
-          <FileText size={16} />
-          Templates
+          <FileText size={16} /> Templates ({templates.length})
         </button>
         <button
           className={`tab-button ${activeTab === 'campaigns' ? 'active' : ''}`}
           onClick={() => setActiveTab('campaigns')}
         >
-          <Target size={16} />
-          Campaigns
+          <Calendar size={16} /> Campaigns ({campaigns.length})
         </button>
         <button
-          className={`tab-button ${activeTab === 'analytics' ? 'active' : ''}`}
-          onClick={() => setActiveTab('analytics')}
+          className={`tab-button ${activeTab === 'assignments' ? 'active' : ''}`}
+          onClick={() => setActiveTab('assignments')}
         >
-          <BarChart3 size={16} />
-          Analytics
-        </button>
-        <button
-          className={`tab-button ${activeTab === 'permissions' ? 'active' : ''}`}
-          onClick={() => setActiveTab('permissions')}
-        >
-          <Shield size={16} />
-          Permissions
+          <Target size={16} /> Assignment Rules
         </button>
       </div>
 
-      {activeTab === 'overview' && (
-        <div className="overview-section">
-          {/* Deployment Status */}
-          <DeploymentStatus showActions={true} />
-
-          {/* Quick Stats */}
-          <div className="overview-stats">
-            <div className="stat-card">
-              <div className="stat-icon templates">
-                <FileText size={24} />
-              </div>
-              <div className="stat-content">
-                <span className="stat-value">{templates.length}</span>
-                <span className="stat-label">Templates</span>
-              </div>
-              <button
-                className="stat-action"
-                onClick={() => setActiveTab('templates')}
-              >
-                View All
-              </button>
-            </div>
-
-            <div className="stat-card">
-              <div className="stat-icon campaigns">
-                <Target size={24} />
-              </div>
-              <div className="stat-content">
-                <span className="stat-value">
-                  {campaigns.filter(c => c.status === 'active').length}
-                </span>
-                <span className="stat-label">Active Campaigns</span>
-              </div>
-              <button
-                className="stat-action"
-                onClick={() => setActiveTab('campaigns')}
-              >
-                View All
-              </button>
-            </div>
-
-            <div className="stat-card">
-              <div className="stat-icon scheduled">
-                <Clock size={24} />
-              </div>
-              <div className="stat-content">
-                <span className="stat-value">
-                  {campaigns.filter(c => c.status === 'approved' || c.status === 'pending_approval').length}
-                </span>
-                <span className="stat-label">Scheduled</span>
-              </div>
-            </div>
-
-            <div className="stat-card">
-              <div className="stat-icon analytics">
-                <TrendingUp size={24} />
-              </div>
-              <div className="stat-content">
-                <span className="stat-value">
-                  {campaigns.filter(c => c.status === 'completed').length}
-                </span>
-                <span className="stat-label">Completed</span>
-              </div>
-              <button
-                className="stat-action"
-                onClick={() => setActiveTab('analytics')}
-              >
-                Analytics
-              </button>
-            </div>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="overview-actions">
-            <h3>Quick Actions</h3>
-            <div className="action-buttons">
-              <button
-                className="action-btn primary"
-                onClick={() => {
-                  setActiveTab('templates');
-                  setTimeout(() => openTemplateEditor(), 100);
-                }}
-              >
-                <Plus size={16} />
-                Create Template
-              </button>
-              <button
-                className="action-btn secondary"
-                onClick={() => {
-                  setActiveTab('campaigns');
-                  setTimeout(() => setShowCampaignWizard(true), 100);
-                }}
-              >
-                <Target size={16} />
-                New Campaign
-              </button>
-              <button className="action-btn secondary" onClick={handleManualSync}>
-                <Play size={16} />
-                Manual Sync
-              </button>
-            </div>
-          </div>
-
-          {/* Recent Activity */}
-          {campaigns.length > 0 && (
-            <div className="overview-recent">
-              <h3>Recent Campaigns</h3>
-              <div className="recent-list">
-                {campaigns.slice(0, 5).map(campaign => (
-                  <div key={campaign.id} className="recent-item">
-                    <div className="recent-info">
-                      <span className="recent-name">{campaign.name}</span>
-                      <span className="recent-meta">
-                        {campaign.template_name} &bull; {campaign.applied_count}/{campaign.total_target_count} users
-                      </span>
-                    </div>
-                    <span className={`status-badge ${getStatusBadgeClass(campaign.status)}`}>
-                      {campaign.status.replace('_', ' ')}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
+      {/* Templates Tab */}
       {activeTab === 'templates' && (
-        <div className="templates-section">
-          <div className="section-toolbar">
+        <>
+          {/* Controls */}
+          <div className="page-controls">
             <div className="search-box">
-              <Search size={16} />
+              <span className="search-icon"><Search size={16} /></span>
               <input
                 type="text"
                 placeholder="Search templates..."
@@ -622,530 +658,643 @@ const Signatures: React.FC = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <div className="filter-dropdown">
-              <Filter size={16} />
-              <select value={filterTemplateType} onChange={(e) => setFilterTemplateType(e.target.value as TemplateType | 'all')}>
-                <option value="all">All Types</option>
-                <option value="signature">Signatures</option>
-                <option value="email">Emails</option>
-                <option value="page">Pages</option>
-              </select>
-            </div>
+            <select
+              className="filter-select"
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+            >
+              <option value="all">All Categories</option>
+              {uniqueCategories.map(category => (
+                <option key={category} value={category}>
+                  {getCategoryBadge(category).label}
+                </option>
+              ))}
+            </select>
+            <button className="btn-secondary" onClick={fetchTemplates}>
+              <RefreshCw size={14} /> Refresh
+            </button>
           </div>
 
-          {loading ? (
-            <div className="loading-state">Loading templates...</div>
-          ) : filteredTemplates.length === 0 ? (
+          {/* Templates Grid */}
+          {filteredTemplates.length === 0 ? (
             <div className="empty-state">
-              <FileText size={48} />
+              <span className="empty-icon"><FileText size={32} /></span>
               <h3>No templates found</h3>
-              <p>Create your first signature template to get started</p>
-              <button className="btn-primary" onClick={() => openTemplateEditor()}>
-                <Plus size={16} />
-                Create Template
-              </button>
+              <p>
+                {searchQuery || filterCategory !== 'all'
+                  ? 'Try adjusting your filters'
+                  : 'Create your first template to get started'
+                }
+              </p>
+              {!searchQuery && filterCategory === 'all' && (
+                <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
+                  <Plus size={16} /> Create Template
+                </button>
+              )}
             </div>
           ) : (
             <div className="templates-grid">
-              {filteredTemplates.map(template => (
-                <div key={template.id} className={`template-card ${template.is_default ? 'default' : ''}`}>
-                  <div className="template-header">
-                    <h3>{template.name}</h3>
-                    <div className="template-badges">
-                      {template.is_default && (
-                        <span className="badge badge-primary">
-                          <Star size={10} />
-                          Default
-                        </span>
-                      )}
-                      {template.is_active ? (
-                        <span className="badge badge-active">Active</span>
+              {filteredTemplates.map(template => {
+                const category = getCategoryBadge(template.category);
+                return (
+                  <div key={template.id} className="template-card">
+                    <div className="template-card-header">
+                      {template.thumbnail_url ? (
+                        <div
+                          className="template-thumbnail"
+                          style={{ backgroundImage: `url(${template.thumbnail_url})` }}
+                        />
                       ) : (
-                        <span className="badge badge-inactive">Inactive</span>
+                        <div className="template-thumbnail placeholder">
+                          <span className="thumbnail-icon"><FileText size={24} /></span>
+                        </div>
+                      )}
+                      {template.is_default && (
+                        <span className="default-badge"><Star size={12} /> Default</span>
+                      )}
+                      {template.is_system_template && (
+                        <span className="system-badge"><Palette size={12} /> Pre-built</span>
                       )}
                     </div>
-                  </div>
-                  <p className="template-description">{template.description || 'No description'}</p>
-                  <div className="template-stats">
-                    <div className="stat">
-                      <Users size={14} />
-                      <span>{template.assignment_count || 0} assignments</span>
+                    <div className="template-card-body">
+                      <h3 className="template-name">{template.name}</h3>
+                      {template.description && (
+                        <p className="template-description">{template.description}</p>
+                      )}
+                      <div className="template-meta">
+                        <span
+                          className="category-badge"
+                          style={{ backgroundColor: category.color }}
+                        >
+                          {category.label}
+                        </span>
+                        <span className="template-stats">
+                          {template.usage_count} user{template.usage_count !== 1 ? 's' : ''}
+                        </span>
+                      </div>
                     </div>
-                    <div className="stat">
-                      <CheckCircle size={14} />
-                      <span>{template.usage_count || 0} users</span>
-                    </div>
-                  </div>
-                  <div className="template-preview-box">
-                    <div
-                      className="template-preview-content"
-                      dangerouslySetInnerHTML={{ __html: template.html_content?.substring(0, 300) + '...' }}
-                    />
-                    <div className="template-preview-fade" />
-                  </div>
-                  <div className="template-actions">
-                    <button
-                      className="btn-icon"
-                      onClick={() => {
-                        setPreviewTemplate(template);
-                        setShowPreview(true);
-                      }}
-                      title="Preview"
-                    >
-                      <Eye size={16} />
-                    </button>
-                    <button
-                      className="btn-icon"
-                      onClick={() => openTemplateEditor(template)}
-                      title="Edit template"
-                    >
-                      <Edit3 size={16} />
-                    </button>
-                    <button
-                      className="btn-icon"
-                      onClick={() => handleCloneTemplate(template)}
-                      title="Clone template"
-                    >
-                      <Copy size={16} />
-                    </button>
-                    {!template.is_default && (
+                    <div className="template-card-footer">
                       <button
                         className="btn-icon"
-                        onClick={() => handleSetDefault(template.id)}
-                        title="Set as default"
+                        title="Preview template"
+                        onClick={() => {
+                          setSelectedTemplate(template);
+                          setShowTemplatePreview(true);
+                        }}
                       >
-                        <Star size={16} />
+                        <Eye size={16} />
                       </button>
-                    )}
-                    <button
-                      className="btn-icon"
-                      onClick={() => {
-                        setSelectedTemplate(template);
-                        setShowCampaignWizard(true);
-                      }}
-                      title="Create campaign"
-                    >
-                      <Target size={16} />
-                    </button>
-                    <button
-                      className="btn-icon danger"
-                      onClick={() => handleDeleteTemplate(template.id)}
-                      title="Delete template"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                      <button
+                        className="btn-icon"
+                        title="Edit template"
+                        onClick={() => handleEditClick(template)}
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        className="btn-icon"
+                        title="Duplicate template"
+                        onClick={() => alert('Duplicate functionality coming soon')}
+                      >
+                        <Copy size={16} />
+                      </button>
+                      <button
+                        className="btn-icon danger"
+                        title="Delete template"
+                        onClick={() => handleDeleteTemplate(template)}
+                        disabled={template.usage_count > 0}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
-        </div>
+        </>
       )}
 
+      {/* Campaigns Tab */}
       {activeTab === 'campaigns' && (
-        <div className="campaigns-section">
-          <div className="section-toolbar">
-            <div className="search-box">
-              <Search size={16} />
-              <input
-                type="text"
-                placeholder="Search campaigns..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <div className="filter-dropdown">
-              <Filter size={16} />
-              <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-                <option value="all">All Status</option>
-                <option value="draft">Draft</option>
-                <option value="pending_approval">Pending Approval</option>
-                <option value="approved">Approved</option>
-                <option value="active">Active</option>
-                <option value="paused">Paused</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </div>
+        <>
+          <div className="page-controls">
+            <button className="btn-primary" onClick={() => alert('Create campaign functionality coming soon')}>
+              <Plus size={16} /> Create Campaign
+            </button>
+            <button className="btn-secondary" onClick={fetchCampaigns}>
+              <RefreshCw size={14} /> Refresh
+            </button>
           </div>
 
-          {loading ? (
-            <div className="loading-state">Loading campaigns...</div>
-          ) : filteredCampaigns.length === 0 ? (
+          {campaigns.length === 0 ? (
             <div className="empty-state">
-              <Target size={48} />
+              <span className="empty-icon"><Calendar size={32} /></span>
               <h3>No campaigns found</h3>
-              <p>Create your first signature campaign to engage your audience</p>
-              <button className="btn-primary" onClick={() => setShowCampaignWizard(true)}>
-                <Plus size={16} />
-                Create Campaign
+              <p>Create time-bound template campaigns to rollout signatures for events</p>
+              <button className="btn-primary" onClick={() => alert('Create campaign functionality coming soon')}>
+                <Plus size={16} /> Create Campaign
               </button>
             </div>
           ) : (
-            <div className="campaigns-list">
-              {filteredCampaigns.map(campaign => (
-                <div key={campaign.id} className="campaign-card">
-                  <div className="campaign-header">
-                    <div className="campaign-info">
-                      <h3>{campaign.name}</h3>
-                      <p>{campaign.description}</p>
-                    </div>
-                    <span className={`status-badge ${getStatusBadgeClass(campaign.status)}`}>
-                      {campaign.status.replace('_', ' ')}
-                    </span>
-                  </div>
-                  <div className="campaign-details">
-                    <div className="detail-group">
-                      <span className="detail-label">Template:</span>
-                      <span className="detail-value">{campaign.template_name}</span>
-                    </div>
-                    <div className="detail-group">
-                      <span className="detail-label">Target:</span>
-                      <span className="detail-value">{campaign.target_type}</span>
-                    </div>
-                    <div className="detail-group">
-                      <span className="detail-label">Duration:</span>
-                      <span className="detail-value">
-                        {new Date(campaign.start_date).toLocaleDateString()} - {new Date(campaign.end_date).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div className="detail-group">
-                      <span className="detail-label">Progress:</span>
-                      <div className="progress-bar">
-                        <div
-                          className="progress-fill"
-                          style={{width: `${campaign.total_target_count ? (campaign.applied_count / campaign.total_target_count) * 100 : 0}%`}}
-                        />
-                      </div>
-                      <span className="detail-value">{campaign.applied_count}/{campaign.total_target_count}</span>
-                    </div>
-                  </div>
-                  <div className="campaign-actions">
-                    {campaign.status === 'draft' && (
-                      <button
-                        className="btn-secondary"
-                        onClick={() => handleCampaignStatusChange(campaign.id, 'pending_approval')}
-                      >
-                        Submit for Approval
-                      </button>
-                    )}
-                    {campaign.status === 'approved' && (
-                      <button
-                        className="btn-primary"
-                        onClick={() => handleCampaignStatusChange(campaign.id, 'active')}
-                      >
-                        <Play size={16} />
-                        Activate
-                      </button>
-                    )}
-                    {campaign.status === 'active' && (
-                      <button
-                        className="btn-secondary"
-                        onClick={() => handleCampaignStatusChange(campaign.id, 'paused')}
-                      >
-                        <Pause size={16} />
-                        Pause
-                      </button>
-                    )}
-                    {campaign.status === 'paused' && (
-                      <button
-                        className="btn-primary"
-                        onClick={() => handleCampaignStatusChange(campaign.id, 'active')}
-                      >
-                        <Play size={16} />
-                        Resume
-                      </button>
-                    )}
-                    <button
-                      className="btn-icon"
-                      onClick={() => {
-                        setEditingCampaign(campaign);
-                        setShowCampaignWizard(true);
-                      }}
-                      title="Edit campaign"
-                    >
-                      <Edit3 size={16} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {activeTab === 'analytics' && (
-        <div className="analytics-section">
-          {analyticsCampaignId ? (
-            <CampaignAnalytics
-              campaignId={analyticsCampaignId}
-              onBack={() => setAnalyticsCampaignId(null)}
-            />
-          ) : (
-            <div className="analytics-campaign-selector">
-              <div className="selector-header">
-                <h2>Campaign Analytics</h2>
-                <p>Select a campaign to view detailed analytics and performance metrics</p>
+            <div className="data-grid">
+              <div className="grid-header">
+                <div>Campaign Name</div>
+                <div>Template</div>
+                <div>Target</div>
+                <div>Dates</div>
+                <div>Status</div>
+                <div>Actions</div>
               </div>
-              {campaigns.length === 0 ? (
-                <div className="empty-state">
-                  <BarChart3 size={48} />
-                  <h3>No campaigns available</h3>
-                  <p>Create a campaign to start tracking analytics</p>
-                  <button className="btn-primary" onClick={() => {
-                    setActiveTab('campaigns');
-                    setShowCampaignWizard(true);
-                  }}>
-                    <Plus size={16} />
-                    Create Campaign
-                  </button>
-                </div>
-              ) : (
-                <div className="campaign-cards-grid">
-                  {campaigns.map(campaign => (
-                    <div
-                      key={campaign.id}
-                      className="campaign-analytics-card"
-                      onClick={() => setAnalyticsCampaignId(campaign.id)}
-                    >
-                      <div className="card-header">
-                        <h3>{campaign.name}</h3>
-                        <span className={`status-badge ${getStatusBadgeClass(campaign.status)}`}>
-                          {campaign.status.replace('_', ' ')}
+              <div className="grid-body">
+                {campaigns.map(campaign => {
+                  const statusBadge = getStatusBadge(campaign.status);
+                  return (
+                    <div key={campaign.id} className="grid-row">
+                      <div>{campaign.campaign_name}</div>
+                      <div>{campaign.template_name}</div>
+                      <div>{campaign.target_type}</div>
+                      <div>
+                        {new Date(campaign.start_date).toLocaleDateString()} -{' '}
+                        {new Date(campaign.end_date).toLocaleDateString()}
+                      </div>
+                      <div>
+                        <span
+                          className="status-badge"
+                          style={{
+                            backgroundColor: statusBadge.bg,
+                            color: statusBadge.color
+                          }}
+                        >
+                          {statusBadge.label}
                         </span>
                       </div>
-                      <p className="card-description">{campaign.description || 'No description'}</p>
-                      <div className="card-meta">
-                        <span>
-                          <Clock size={14} />
-                          {new Date(campaign.start_date).toLocaleDateString()} - {new Date(campaign.end_date).toLocaleDateString()}
-                        </span>
-                        <span>
-                          <Users size={14} />
-                          {campaign.applied_count}/{campaign.total_target_count} users
-                        </span>
+                      <div className="action-buttons">
+                        <button className="btn-icon" title="View campaign">
+                          <Eye size={16} />
+                        </button>
+                        <button className="btn-icon" title="Edit campaign">
+                          <Pencil size={16} />
+                        </button>
                       </div>
-                      <button className="btn-view-analytics">
-                        <BarChart3 size={16} />
-                        View Analytics
-                      </button>
                     </div>
-                  ))}
-                </div>
-              )}
+                  );
+                })}
+              </div>
             </div>
           )}
+        </>
+      )}
+
+      {/* Assignments Tab */}
+      {activeTab === 'assignments' && (
+        <div className="empty-state">
+          <span className="empty-icon"><Target size={32} /></span>
+          <h3>Assignment Rules</h3>
+          <p>Create rules to automatically assign templates to users, groups, or departments</p>
+          <button className="btn-primary" onClick={() => alert('Create assignment rule functionality coming soon')}>
+            <Plus size={16} /> Create Rule
+          </button>
         </div>
       )}
 
-      {activeTab === 'permissions' && (
-        <div className="permissions-section">
-          <SignaturePermissions />
-        </div>
-      )}
-
-      {/* Template Editor Modal */}
-      {showTemplateEditor && (
-        <div className="modal-overlay" onClick={closeTemplateEditor}>
-          <div className="modal-content extra-large" onClick={(e) => e.stopPropagation()}>
+      {/* Create Template Modal */}
+      {showCreateModal && (
+        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
+          <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>{selectedTemplate ? 'Edit Template' : 'Create Template'}</h2>
-              <button className="btn-close" onClick={closeTemplateEditor}>
+              <h2>Create New Template</h2>
+              <button className="modal-close" onClick={() => setShowCreateModal(false)}>
                 <X size={20} />
               </button>
             </div>
-            <div className="modal-body template-editor-modal">
-              <div className="editor-form">
-                <div className="form-row">
-                  <div className="form-field">
-                    <label>Template Name *</label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="Enter template name"
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label>Description</label>
-                    <input
-                      type="text"
-                      value={formData.description}
-                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Enter a brief description"
-                    />
-                  </div>
-                </div>
 
-                <div className="form-row checkboxes">
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={formData.is_active}
-                      onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
-                    />
-                    <span>Active</span>
-                  </label>
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={formData.is_default}
-                      onChange={(e) => setFormData(prev => ({ ...prev, is_default: e.target.checked }))}
-                    />
-                    <span>Set as default template</span>
-                  </label>
-                </div>
+            <div className="modal-body">
+              {createError && (
+                <div className="error-message">{createError}</div>
+              )}
+              {templateWarning && (
+                <div className="warning-message">{templateWarning}</div>
+              )}
 
-                <div className="editor-full-width">
-                  <label>Signature Content</label>
-                  <TemplateEditor
-                    value={formData.html_content}
-                    onChange={(html) => setFormData(prev => ({ ...prev, html_content: html }))}
-                    placeholder="Design your email signature..."
-                    onPreview={() => setShowEditorPreviewModal(true)}
-                  />
+              <div className="form-group">
+                <label>
+                  Template Type <span className="required">*</span>
+                </label>
+                <div className="template-type-selector">
+                  {templateTypes.map(type => (
+                    <button
+                      key={type.value}
+                      type="button"
+                      className={`type-option ${newTemplateType === type.value ? 'selected' : ''}`}
+                      onClick={() => setNewTemplateType(type.value)}
+                      disabled={isCreating}
+                    >
+                      <span className="type-icon">{type.icon}</span>
+                      <div className="type-info">
+                        <div className="type-label">{type.label}</div>
+                        <div className="type-description">{type.description}</div>
+                      </div>
+                    </button>
+                  ))}
                 </div>
               </div>
+
+              <div className="form-group">
+                <label>
+                  Template Name <span className="required">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newTemplateName}
+                  onChange={(e) => setNewTemplateName(e.target.value)}
+                  placeholder="Professional Signature 2024"
+                  disabled={isCreating}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Description</label>
+                <input
+                  type="text"
+                  value={newTemplateDescription}
+                  onChange={(e) => setNewTemplateDescription(e.target.value)}
+                  placeholder="Standard email signature for all staff"
+                  disabled={isCreating}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Category</label>
+                <select
+                  value={newTemplateCategory}
+                  onChange={(e) => setNewTemplateCategory(e.target.value)}
+                  disabled={isCreating}
+                >
+                  <option value="email_signature">Email Signature</option>
+                  <option value="banner">Banner</option>
+                  <option value="announcement">Announcement</option>
+                  <option value="promotional">Promotional</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>
+                  HTML Content <span className="required">*</span>
+                </label>
+                <div className="editor-toolbar">
+                  <button
+                    type="button"
+                    className="btn-toolbar"
+                    onClick={() => setShowVariablePicker(!showVariablePicker)}
+                    disabled={isCreating}
+                  >
+                    <Tag size={14} /> Insert Variable
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-toolbar"
+                    onClick={() => setShowAssetPicker(true)}
+                    disabled={isCreating}
+                  >
+                    <Image size={14} /> Insert Image
+                  </button>
+                </div>
+                {showVariablePicker && (
+                  <div className="variable-picker">
+                    <div className="variable-picker-header">
+                      <strong>Available Variables</strong>
+                      <button
+                        type="button"
+                        className="close-picker"
+                        onClick={() => setShowVariablePicker(false)}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                    <div className="variable-list">
+                      {availableVariables.map(variable => (
+                        <button
+                          key={variable.key}
+                          type="button"
+                          className="variable-item"
+                          onClick={() => insertVariable(variable.key)}
+                          disabled={isCreating}
+                        >
+                          <div className="variable-key">
+                            {'{{' + variable.key + '}}'}
+                          </div>
+                          <div className="variable-info">
+                            <span className="variable-label">{variable.label}</span>
+                            <span className="variable-example">e.g., {variable.example}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <textarea
+                  value={newTemplateHtml}
+                  onChange={(e) => setNewTemplateHtml(e.target.value)}
+                  placeholder="<div>Your HTML template here...</div>"
+                  rows={12}
+                  disabled={isCreating}
+                  className="html-editor"
+                />
+                <p className="form-hint">
+                  {getEditorHint(newTemplateType)}
+                </p>
+              </div>
             </div>
+
             <div className="modal-footer">
-              <button className="btn-secondary" onClick={closeTemplateEditor}>
+              <button
+                className="btn-secondary"
+                onClick={() => setShowCreateModal(false)}
+                disabled={isCreating}
+              >
                 Cancel
               </button>
               <button
                 className="btn-primary"
-                onClick={saveTemplate}
-                disabled={saving}
+                onClick={handleCreateTemplate}
+                disabled={isCreating || !newTemplateName || !newTemplateHtml}
               >
-                <Save size={16} />
-                {saving ? 'Saving...' : (selectedTemplate ? 'Update Template' : 'Create Template')}
+                {isCreating ? <><Loader size={14} className="spin" /> Creating...</> : <><Check size={14} /> Create Template</>}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Template List Preview Modal */}
-      <PreviewModal
-        isOpen={showPreview && previewTemplate !== null}
-        onClose={() => {
-          setShowPreview(false);
-          setPreviewTemplate(null);
-        }}
-        htmlContent={previewTemplate?.html_content || ''}
-        plainTextContent={previewTemplate?.plain_text_content}
-        templateName={previewTemplate?.name || 'Template Preview'}
-      />
+      {/* Edit Template Modal */}
+      {showEditModal && editingTemplate && (
+        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+          <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Edit Template</h2>
+              <button className="modal-close" onClick={() => setShowEditModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
 
-      {/* Campaign Editor Modal */}
-      {showCampaignWizard && (
-        <CampaignEditor
-          campaign={editingCampaign ? {
-            id: editingCampaign.id,
-            name: editingCampaign.name,
-            description: editingCampaign.description,
-            template_id: editingCampaign.template_id,
-            start_date: editingCampaign.start_date,
-            end_date: editingCampaign.end_date,
-            status: editingCampaign.status,
-          } : undefined}
-          preselectedTemplateId={selectedTemplate?.id}
-          onClose={() => {
-            setShowCampaignWizard(false);
-            setSelectedTemplate(null);
-            setEditingCampaign(null);
-          }}
-          onSave={() => {
-            setShowCampaignWizard(false);
-            setSelectedTemplate(null);
-            setEditingCampaign(null);
-            fetchCampaigns();
-          }}
-        />
+            <div className="modal-body">
+              {createError && (
+                <div className="error-message">{createError}</div>
+              )}
+              {templateWarning && (
+                <div className="warning-message">{templateWarning}</div>
+              )}
+
+              <div className="form-group">
+                <label>
+                  Template Type <span className="required">*</span>
+                </label>
+                <div className="template-type-selector">
+                  {templateTypes.map(type => (
+                    <button
+                      key={type.value}
+                      type="button"
+                      className={`type-option ${newTemplateType === type.value ? 'selected' : ''}`}
+                      onClick={() => setNewTemplateType(type.value)}
+                      disabled={isCreating}
+                    >
+                      <span className="type-icon">{type.icon}</span>
+                      <div className="type-info">
+                        <div className="type-label">{type.label}</div>
+                        <div className="type-description">{type.description}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>
+                  Template Name <span className="required">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newTemplateName}
+                  onChange={(e) => setNewTemplateName(e.target.value)}
+                  placeholder="Professional Signature 2024"
+                  disabled={isCreating}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Description</label>
+                <input
+                  type="text"
+                  value={newTemplateDescription}
+                  onChange={(e) => setNewTemplateDescription(e.target.value)}
+                  placeholder="Standard email signature for all staff"
+                  disabled={isCreating}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Category</label>
+                <select
+                  value={newTemplateCategory}
+                  onChange={(e) => setNewTemplateCategory(e.target.value)}
+                  disabled={isCreating}
+                >
+                  <option value="email_signature">Email Signature</option>
+                  <option value="banner">Banner</option>
+                  <option value="announcement">Announcement</option>
+                  <option value="promotional">Promotional</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>
+                  HTML Content <span className="required">*</span>
+                </label>
+                <div className="editor-toolbar">
+                  <button
+                    type="button"
+                    className="btn-toolbar"
+                    onClick={() => setShowVariablePicker(!showVariablePicker)}
+                    disabled={isCreating}
+                  >
+                    <Tag size={14} /> Insert Variable
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-toolbar"
+                    onClick={() => setShowAssetPicker(true)}
+                    disabled={isCreating}
+                  >
+                    <Image size={14} /> Insert Image
+                  </button>
+                </div>
+                {showVariablePicker && (
+                  <div className="variable-picker">
+                    <div className="variable-picker-header">
+                      <strong>Available Variables</strong>
+                      <button
+                        type="button"
+                        className="close-picker"
+                        onClick={() => setShowVariablePicker(false)}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                    <div className="variable-list">
+                      {availableVariables.map(variable => (
+                        <button
+                          key={variable.key}
+                          type="button"
+                          className="variable-item"
+                          onClick={() => insertVariable(variable.key)}
+                          disabled={isCreating}
+                        >
+                          <div className="variable-key">
+                            {'{{' + variable.key + '}}'}
+                          </div>
+                          <div className="variable-info">
+                            <span className="variable-label">{variable.label}</span>
+                            <span className="variable-example">e.g., {variable.example}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <textarea
+                  value={newTemplateHtml}
+                  onChange={(e) => setNewTemplateHtml(e.target.value)}
+                  placeholder="<div>Your HTML template here...</div>"
+                  rows={12}
+                  disabled={isCreating}
+                  className="html-editor"
+                />
+                <p className="form-hint">
+                  {getEditorHint(newTemplateType)}
+                </p>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className="btn-secondary"
+                onClick={() => setShowEditModal(false)}
+                disabled={isCreating}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-primary"
+                onClick={handleUpdateTemplate}
+                disabled={isCreating || !newTemplateName || !newTemplateHtml}
+              >
+                {isCreating ? <><Loader size={14} className="spin" /> Updating...</> : <><Check size={14} /> Update Template</>}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
+
+      {/* Template Preview Modal */}
+      {showTemplatePreview && selectedTemplate && (
+        <div className="modal-overlay" onClick={() => setShowTemplatePreview(false)}>
+          <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{selectedTemplate.name}</h2>
+              <button className="modal-close" onClick={() => setShowTemplatePreview(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {selectedTemplate.description && (
+                <p className="template-preview-description">{selectedTemplate.description}</p>
+              )}
+
+              {/* User Selection for Preview */}
+              {users.length > 0 && (
+                <div className="preview-user-selector">
+                  <label>Preview with user data:</label>
+                  <select
+                    value={selectedUserId}
+                    onChange={(e) => setSelectedUserId(e.target.value)}
+                    className="user-select"
+                  >
+                    {users.map(user => (
+                      <option key={user.id} value={user.id}>
+                        {user.first_name} {user.last_name} ({user.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="template-preview-frame">
+                <div dangerouslySetInnerHTML={{
+                  __html: renderTemplateWithUserData(
+                    selectedTemplate.html_content,
+                    users.find(u => u.id === selectedUserId)
+                  )
+                }} />
+              </div>
+              <div className="template-preview-info">
+                <div className="info-row">
+                  <span className="info-label">Category:</span>
+                  <span className="info-value">{getCategoryBadge(selectedTemplate.category).label}</span>
+                </div>
+                <div className="info-row">
+                  <span className="info-label">Used by:</span>
+                  <span className="info-value">{selectedTemplate.usage_count} user(s)</span>
+                </div>
+                <div className="info-row">
+                  <span className="info-label">Created:</span>
+                  <span className="info-value">{new Date(selectedTemplate.created_at).toLocaleString()}</span>
+                </div>
+                {selectedTemplate.created_by_name && (
+                  <div className="info-row">
+                    <span className="info-label">Created by:</span>
+                    <span className="info-value">{selectedTemplate.created_by_name}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => setShowTemplatePreview(false)}>
+                Close
+              </button>
+              <button className="btn-primary" onClick={() => {
+                setShowTemplatePreview(false);
+                handleEditClick(selectedTemplate!);
+              }}>
+                <Pencil size={14} /> Edit Template
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Asset Picker Modal */}
+      <AssetPickerModal
+        isOpen={showAssetPicker}
+        onClose={() => setShowAssetPicker(false)}
+        onSelect={handleAssetSelect}
+        title="Insert Image"
+        acceptedTypes={['image/*']}
+        category="signatures"
+      />
 
       {/* Delete Template Confirmation */}
       <ConfirmDialog
         isOpen={templateToDelete !== null}
         title="Delete Template"
-        message="Are you sure you want to delete this template? This action cannot be undone."
+        message={`Are you sure you want to delete "${templateToDelete?.name}"? This action cannot be undone.`}
         variant="danger"
         confirmText="Delete"
         onConfirm={confirmDeleteTemplate}
         onCancel={() => setTemplateToDelete(null)}
       />
-
-      {/* Editor Preview Modal */}
-      <PreviewModal
-        isOpen={showEditorPreviewModal}
-        onClose={() => setShowEditorPreviewModal(false)}
-        htmlContent={formData.html_content}
-        plainTextContent={formData.plain_text_content}
-        templateName={formData.name || 'New Template'}
-      />
     </div>
   );
-};
-
-// Default templates by type
-function getDefaultTemplate(templateType: TemplateType = 'signature'): string {
-  switch (templateType) {
-    case 'signature':
-      return `<table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif; font-size: 14px; color: #333333;">
-  <tr>
-    <td style="padding-right: 16px; border-right: 2px solid #8b5cf6;">
-      <!-- Profile image placeholder -->
-      <div style="width: 80px; height: 80px; background: #e5e7eb; border-radius: 4px;"></div>
-    </td>
-    <td style="padding-left: 16px; vertical-align: top;">
-      <div style="font-weight: 600; font-size: 16px; color: #1f2937; margin-bottom: 4px;">{{full_name}}</div>
-      <div style="color: #6b7280; margin-bottom: 8px;">{{job_title}}</div>
-      <div style="font-size: 13px; color: #4b5563;">
-        <div style="margin-bottom: 2px;">{{email}}</div>
-        <div style="margin-bottom: 2px;">{{work_phone}}</div>
-        <div style="color: #8b5cf6;">{{company_website}}</div>
-      </div>
-    </td>
-  </tr>
-</table>`;
-    case 'email':
-      return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Email Template</title>
-</head>
-<body style="font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5;">
-  <div style="max-width: 600px; margin: 0 auto; background: white; padding: 32px; border-radius: 8px;">
-    <h1 style="color: #1f2937; margin-bottom: 16px;">{{subject}}</h1>
-    <p style="color: #4b5563; line-height: 1.6;">Dear {{recipient_name}},</p>
-    <p style="color: #4b5563; line-height: 1.6;">Your email content here...</p>
-    <p style="color: #4b5563; line-height: 1.6;">Best regards,<br>{{sender_name}}</p>
-  </div>
-</body>
-</html>`;
-    case 'page':
-      return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Page Template</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
-    .container { max-width: 1200px; margin: 0 auto; padding: 32px; }
-    h1 { color: #1f2937; }
-    p { color: #4b5563; line-height: 1.6; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>{{page_title}}</h1>
-    <p>Your page content here...</p>
-  </div>
-</body>
-</html>`;
-    default:
-      return '';
-  }
 }
-
-export default Signatures;

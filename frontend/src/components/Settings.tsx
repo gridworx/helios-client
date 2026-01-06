@@ -12,7 +12,6 @@ import { MasterDataSection } from './settings/MasterDataSection';
 import { TrackingSettings } from './settings/TrackingSettings';
 import { FeatureFlagsSettings } from './settings/FeatureFlagsSettings';
 import { EntityLabelSettings } from './settings/EntityLabelSettings';
-import { DomainsSection } from './settings/DomainsSection';
 import { useTabPersistence } from '../hooks/useTabPersistence';
 import { Package, Building2, Shield, Lock, Palette, Settings as SettingsIcon, Key, Search as SearchIcon, RefreshCw, BarChart3, Info, MoreVertical, Power, Database, Bot, ToggleLeft, Link } from 'lucide-react';
 import { authFetch } from '../config/api';
@@ -64,14 +63,6 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
   const [savingSyncSettings, setSavingSyncSettings] = useState(false);
   const syncSettingsChanged = JSON.stringify(syncSettings) !== JSON.stringify(originalSyncSettings);
 
-  // Security policies state
-  const [securityPolicies, setSecurityPolicies] = useState({
-    require2FA: false,
-    requireSSO: false,
-    hasSSOConfigured: false
-  });
-  const [savingSecurityPolicy, setSavingSecurityPolicy] = useState<string | null>(null);
-
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -116,7 +107,6 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
   // Fetch module status on component mount
   useEffect(() => {
     fetchModuleStatus();
-    fetchSecurityPolicies();
   }, [organizationId]);
 
   const fetchModuleStatus = async () => {
@@ -142,44 +132,6 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
       console.error('Failed to fetch module status:', error);
     } finally {
       setIsLoadingStatus(false);
-    }
-  };
-
-  const fetchSecurityPolicies = async () => {
-    try {
-      const response = await authFetch('/api/v1/organization/security-policies');
-      const data = await response.json();
-      if (data.success && data.data) {
-        setSecurityPolicies({
-          require2FA: data.data.require2FA || false,
-          requireSSO: data.data.requireSSO || false,
-          hasSSOConfigured: data.data.hasSSOConfigured || false
-        });
-      }
-    } catch (error) {
-      console.error('Failed to fetch security policies:', error);
-    }
-  };
-
-  const updateSecurityPolicy = async (key: 'require2FA' | 'requireSSO', value: boolean) => {
-    try {
-      setSavingSecurityPolicy(key);
-      const response = await authFetch('/api/v1/organization/security-policies', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [key]: value })
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setSecurityPolicies(prev => ({ ...prev, [key]: value }));
-      } else {
-        console.error('Failed to update security policy:', data.error);
-      }
-    } catch (error) {
-      console.error('Failed to update security policy:', error);
-    } finally {
-      setSavingSecurityPolicy(null);
     }
   };
 
@@ -674,9 +626,6 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                   </div>
                 </div>
               </div>
-
-              {/* Domains Management */}
-              <DomainsSection organizationId={organizationId} />
             </div>
           )}
 
@@ -803,43 +752,18 @@ export function Settings({ organizationName, domain, organizationId, showPasswor
                   <div className="policy-settings">
                     <div className="policy-row">
                       <label className="checkbox-label">
-                        <input
-                          type="checkbox"
-                          checked={securityPolicies.require2FA}
-                          onChange={(e) => updateSecurityPolicy('require2FA', e.target.checked)}
-                          disabled={savingSecurityPolicy === 'require2FA' || currentUser?.role !== 'admin'}
-                        />
-                        <span>Require Two-Factor Authentication for all users</span>
-                        {savingSecurityPolicy === 'require2FA' && (
-                          <span style={{ marginLeft: '8px', fontSize: '12px', color: '#6b7280' }}>Saving...</span>
-                        )}
+                        <input type="checkbox" disabled />
+                        <span style={{ color: '#9ca3af' }}>Require Two-Factor Authentication for all users</span>
                       </label>
                     </div>
                     <div className="policy-row">
                       <label className="checkbox-label">
-                        <input
-                          type="checkbox"
-                          checked={securityPolicies.requireSSO}
-                          onChange={(e) => updateSecurityPolicy('requireSSO', e.target.checked)}
-                          disabled={savingSecurityPolicy === 'requireSSO' || currentUser?.role !== 'admin' || !securityPolicies.hasSSOConfigured}
-                        />
-                        <span style={{ color: securityPolicies.hasSSOConfigured ? 'inherit' : '#9ca3af' }}>
-                          Require SSO for all users
-                        </span>
-                        {savingSecurityPolicy === 'requireSSO' && (
-                          <span style={{ marginLeft: '8px', fontSize: '12px', color: '#6b7280' }}>Saving...</span>
-                        )}
+                        <input type="checkbox" disabled />
+                        <span style={{ color: '#9ca3af' }}>Require SSO for all users</span>
                       </label>
-                      {!securityPolicies.hasSSOConfigured && (
-                        <p style={{ fontSize: '11px', color: '#9ca3af', margin: '4px 0 0 24px' }}>
-                          Configure an SSO provider below to enable this option
-                        </p>
-                      )}
                     </div>
                   </div>
-                  {currentUser?.role !== 'admin' && (
-                    <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '8px' }}>Only administrators can modify these settings.</p>
-                  )}
+                  <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '8px' }}>Contact your administrator to enable these features.</p>
                 </div>
 
                 <div className="security-card">

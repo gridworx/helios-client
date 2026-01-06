@@ -61,8 +61,7 @@ interface MediaAsset {
   folderId: string | null;
   category: string | null;
   accessToken: string;
-  slug: string | null;
-  visibility: 'public' | 'private';
+  isPublic: boolean;
   accessCount: number;
   lastAccessedAt: string | null;
   createdBy: string | null;
@@ -355,8 +354,8 @@ export function FilesAssets({ organizationId: _organizationId }: FilesAssetsProp
     <div className="page-container files-assets">
       <div className="page-header">
         <div>
-          <h1>Private Assets</h1>
-          <p>Manage private images and files for internal use</p>
+          <h1>Files & Assets</h1>
+          <p>Manage images and files for signatures and templates</p>
         </div>
         {status?.isConfigured && (
           <button className="btn-primary" onClick={() => setShowUploadModal(true)}>
@@ -472,7 +471,7 @@ export function FilesAssets({ organizationId: _organizationId }: FilesAssetsProp
           <div className="info-card">
             <h3>How It Works</h3>
             <p>
-              Assets provides a way to host images and files that can be used in email
+              Files & Assets provides a way to host images and files that can be used in email
               signatures and templates. Assets are stored in your Google Shared Drive and served
               through public proxy URLs that work anywhere.
             </p>
@@ -621,16 +620,6 @@ export function FilesAssets({ organizationId: _organizationId }: FilesAssetsProp
                   <div className="detail-row">
                     <span className="detail-label">Name</span>
                     <span className="detail-value">{selectedAsset.name}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Slug</span>
-                    <span className="detail-value">{selectedAsset.slug || '(none)'}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Visibility</span>
-                    <span className={`detail-value visibility-badge ${selectedAsset.visibility}`}>
-                      {selectedAsset.visibility === 'public' ? 'Public' : 'Private'}
-                    </span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Filename</span>
@@ -1009,7 +998,6 @@ function UploadModal({
 }) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [name, setName] = useState('');
-  const [visibility, setVisibility] = useState<'public' | 'private'>('public');
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -1042,7 +1030,6 @@ function UploadModal({
       const formData = new FormData();
       formData.append('file', selectedFile);
       formData.append('name', name || selectedFile.name);
-      formData.append('visibility', visibility);
       if (selectedFolder) {
         formData.append('folderId', selectedFolder);
       }
@@ -1144,51 +1131,16 @@ function UploadModal({
           </div>
 
           {selectedFile && (
-            <>
-              <div className="form-group">
-                <label>Display Name</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter a name for this asset"
-                  disabled={isUploading}
-                />
-              </div>
-              <div className="form-group">
-                <label>Visibility</label>
-                <div className="visibility-options">
-                  <label className={`visibility-option ${visibility === 'public' ? 'selected' : ''}`}>
-                    <input
-                      type="radio"
-                      name="visibility"
-                      value="public"
-                      checked={visibility === 'public'}
-                      onChange={() => setVisibility('public')}
-                      disabled={isUploading}
-                    />
-                    <div>
-                      <strong>Public</strong>
-                      <span>Anyone with the URL can view</span>
-                    </div>
-                  </label>
-                  <label className={`visibility-option ${visibility === 'private' ? 'selected' : ''}`}>
-                    <input
-                      type="radio"
-                      name="visibility"
-                      value="private"
-                      checked={visibility === 'private'}
-                      onChange={() => setVisibility('private')}
-                      disabled={isUploading}
-                    />
-                    <div>
-                      <strong>Private</strong>
-                      <span>Only organization members can view</span>
-                    </div>
-                  </label>
-                </div>
-              </div>
-            </>
+            <div className="form-group">
+              <label>Display Name</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter a name for this asset"
+                disabled={isUploading}
+              />
+            </div>
           )}
         </div>
 

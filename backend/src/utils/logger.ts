@@ -44,22 +44,24 @@ const logger = winston.createLogger({
   ],
 });
 
-// Always add console transport (needed for Docker logs)
-logger.add(new winston.transports.Console({
-  format: winston.format.combine(
-    winston.format.colorize(),
-    winston.format.printf(({ level, message, timestamp, requestId, ...meta }) => {
-      const rid = requestId ? `[${requestId}] ` : '';
-      let msg = `${timestamp} ${rid}[${level}]: ${message}`;
-      // Filter out service from meta for cleaner console output
-      const { service, ...restMeta } = meta;
-      if (Object.keys(restMeta).length > 0) {
-        msg += ` ${JSON.stringify(restMeta)}`;
-      }
-      return msg;
-    })
-  )
-}));
+// If we're not in production, add console transport
+if (process.env['NODE_ENV'] !== 'production') {
+  logger.add(new winston.transports.Console({
+    format: winston.format.combine(
+      winston.format.colorize(),
+      winston.format.printf(({ level, message, timestamp, requestId, ...meta }) => {
+        const rid = requestId ? `[${requestId}] ` : '';
+        let msg = `${timestamp} ${rid}[${level}]: ${message}`;
+        // Filter out service from meta for cleaner console output
+        const { service, ...restMeta } = meta;
+        if (Object.keys(restMeta).length > 0) {
+          msg += ` ${JSON.stringify(restMeta)}`;
+        }
+        return msg;
+      })
+    )
+  }));
+}
 
 // Create a stream object with 'write' function that will be used by morgan
 const logStream = {

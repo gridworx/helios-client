@@ -1,19 +1,5 @@
-import React, { useCallback, useMemo, useEffect } from 'react';
-import {
-  ReactFlow,
-  useNodesState,
-  useEdgesState,
-  Controls,
-  Background,
-  BackgroundVariant,
-  useReactFlow,
-  ReactFlowProvider,
-  Handle,
-  Position,
-} from '@xyflow/react';
-import type { Node, Edge } from '@xyflow/react';
-import dagre from 'dagre';
-import '@xyflow/react/dist/style.css';
+import React, { useEffect, useRef, useState } from 'react';
+import * as d3 from 'd3';
 import './OrgChartTree.css';
 
 interface OrgNode {
@@ -39,283 +25,318 @@ interface OrgChartTreeProps {
   orientation?: TreeOrientation;
   onNodeClick: (nodeId: string) => void;
   onNodeToggle: (nodeId: string) => void;
-  onNodeOpen?: (node: OrgNode) => void;
+  onNodeOpen?: (node: OrgNode) => void; // Shift+click to open user details
 }
 
-interface OrgNodeData extends Record<string, unknown> {
-  orgNode: OrgNode;
-  isSelected: boolean;
-  isSearchMatch: boolean;
-  isExpanded: boolean;
-  hasChildren: boolean;
-  onToggle: () => void;
-  onOpen?: () => void;
-}
-
-// Custom node component for org chart cards
-const OrgChartNode: React.FC<{ data: OrgNodeData }> = ({ data }) => {
-  const { orgNode, isSelected, isSearchMatch, isExpanded, hasChildren, onToggle, onOpen } = data;
-
-  const handleDoubleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onOpen) {
-      onOpen();
-    }
-  };
-
-  const handleToggleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onToggle();
-  };
-
-  const getInitials = (name: string) => {
-    return name.substring(0, 1).toUpperCase();
-  };
-
-  return (
-    <>
-      <Handle type="target" position={Position.Top} className="org-handle" />
-      <div
-        className={`org-node-card ${isSelected ? 'selected' : ''} ${isSearchMatch ? 'search-match' : ''}`}
-        onDoubleClick={handleDoubleClick}
-      >
-        <div className="org-node-content">
-          <div className="org-node-photo">
-            {orgNode.photoUrl ? (
-              <img src={orgNode.photoUrl} alt={orgNode.name} />
-            ) : (
-              <div className="org-node-initials">{getInitials(orgNode.name)}</div>
-            )}
-          </div>
-          <div className="org-node-info">
-            <div className="org-node-name" title={orgNode.name}>
-              {orgNode.name.length > 18 ? orgNode.name.substring(0, 16) + '...' : orgNode.name}
-            </div>
-            <div className="org-node-title" title={orgNode.title}>
-              {(orgNode.title || '').length > 20 ? (orgNode.title || '').substring(0, 18) + '...' : (orgNode.title || '')}
-            </div>
-            <div className="org-node-department" title={orgNode.department}>
-              {(orgNode.department || '').length > 22 ? (orgNode.department || '').substring(0, 20) + '...' : (orgNode.department || '')}
-            </div>
-          </div>
-          {orgNode.directReports.length > 0 && (
-            <div className="org-node-reports-badge">
-              {orgNode.directReports.length} reports
-            </div>
-          )}
-        </div>
-        {hasChildren && (
-          <button
-            className={`org-node-toggle ${isExpanded ? 'expanded' : 'collapsed'}`}
-            onClick={handleToggleClick}
-            title={isExpanded ? 'Collapse' : 'Expand'}
-          >
-            {isExpanded ? '−' : '+'}
-          </button>
-        )}
-      </div>
-      <Handle type="source" position={Position.Bottom} className="org-handle" />
-    </>
-  );
-};
-
-const nodeTypes = {
-  orgNode: OrgChartNode,
-};
-
-// Layout function using dagre
-const getLayoutedElements = (
-  nodes: Node[],
-  edges: Edge[],
-  direction: 'TB' | 'LR' = 'TB'
-) => {
-  const dagreGraph = new dagre.graphlib.Graph();
-  dagreGraph.setDefaultEdgeLabel(() => ({}));
-
-  const nodeWidth = 200;
-  const nodeHeight = 80;
-
-  dagreGraph.setGraph({
-    rankdir: direction,
-    nodesep: 40,
-    ranksep: 80,
-    marginx: 50,
-    marginy: 50,
-  });
-
-  nodes.forEach((node) => {
-    dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
-  });
-
-  edges.forEach((edge) => {
-    dagreGraph.setEdge(edge.source, edge.target);
-  });
-
-  dagre.layout(dagreGraph);
-
-  const layoutedNodes = nodes.map((node) => {
-    const nodeWithPosition = dagreGraph.node(node.id);
-    return {
-      ...node,
-      position: {
-        x: nodeWithPosition.x - nodeWidth / 2,
-        y: nodeWithPosition.y - nodeHeight / 2,
-      },
-    };
-  });
-
-  return { nodes: layoutedNodes, edges };
-};
-
-// Convert hierarchical data to flow nodes and edges
-const convertToFlowElements = (
-  root: OrgNode,
-  expandedNodes: Set<string>,
-  selectedNode: string | null,
-  searchTerm: string,
-  onNodeToggle: (nodeId: string) => void,
-  onNodeOpen?: (node: OrgNode) => void
-): { nodes: Node[]; edges: Edge[] } => {
-  const nodes: Node[] = [];
-  const edges: Edge[] = [];
-
-  const matchesSearch = (node: OrgNode): boolean => {
-    if (!searchTerm) return false;
-    const term = searchTerm.toLowerCase();
-    return !!(
-      node.name.toLowerCase().includes(term) ||
-      node.email.toLowerCase().includes(term) ||
-      (node.title && node.title.toLowerCase().includes(term)) ||
-      (node.department && node.department.toLowerCase().includes(term))
-    );
-  };
-
-  const processNode = (node: OrgNode, parentId?: string) => {
-    const isExpanded = expandedNodes.has(node.userId);
-
-    nodes.push({
-      id: node.userId,
-      type: 'orgNode',
-      position: { x: 0, y: 0 }, // Will be set by dagre
-      data: {
-        orgNode: node,
-        isSelected: selectedNode === node.userId,
-        isSearchMatch: matchesSearch(node),
-        isExpanded,
-        hasChildren: node.directReports.length > 0,
-        onToggle: () => onNodeToggle(node.userId),
-        onOpen: onNodeOpen ? () => onNodeOpen(node) : undefined,
-      } as OrgNodeData,
-    });
-
-    if (parentId) {
-      edges.push({
-        id: `${parentId}-${node.userId}`,
-        source: parentId,
-        target: node.userId,
-        type: 'smoothstep',
-        style: { stroke: '#d1d5db', strokeWidth: 1 },
-      });
-    }
-
-    if (isExpanded) {
-      node.directReports.forEach((child) => {
-        processNode(child, node.userId);
-      });
-    }
-  };
-
-  processNode(root);
-
-  return { nodes, edges };
-};
-
-// Inner component that uses hooks
-const OrgChartTreeInner: React.FC<OrgChartTreeProps> = ({
+const OrgChartTree: React.FC<OrgChartTreeProps> = ({
   data,
   expandedNodes,
   selectedNode,
   searchTerm,
-  orientation = 'vertical',
+  orientation = 'horizontal',
   onNodeClick,
   onNodeToggle,
-  onNodeOpen,
+  onNodeOpen
 }) => {
-  const { fitView } = useReactFlow();
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
-  // Convert data to flow elements
-  const { initialNodes, initialEdges } = useMemo(() => {
-    const { nodes, edges } = convertToFlowElements(
-      data,
-      expandedNodes,
-      selectedNode,
-      searchTerm,
-      onNodeToggle,
-      onNodeOpen
-    );
-    const direction = orientation === 'vertical' ? 'TB' : 'LR';
-    const layouted = getLayoutedElements(nodes, edges, direction);
-    return { initialNodes: layouted.nodes, initialEdges: layouted.edges };
-  }, [data, expandedNodes, selectedNode, searchTerm, orientation, onNodeToggle, onNodeOpen]);
-
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-
-  // Update nodes when data changes
   useEffect(() => {
-    setNodes(initialNodes);
-    setEdges(initialEdges);
-    // Fit view after layout updates
-    setTimeout(() => {
-      fitView({ padding: 0.2, duration: 300 });
-    }, 50);
-  }, [initialNodes, initialEdges, setNodes, setEdges, fitView]);
+    const updateDimensions = () => {
+      if (svgRef.current?.parentElement) {
+        const { width, height } = svgRef.current.parentElement.getBoundingClientRect();
+        setDimensions({ width, height });
+      }
+    };
 
-  const handleNodeClick = useCallback(
-    (_event: React.MouseEvent, node: Node) => {
-      onNodeClick(node.id);
-    },
-    [onNodeClick]
-  );
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+    return () => window.removeEventListener('resize', updateDimensions);
+  }, []);
+
+  useEffect(() => {
+    if (!svgRef.current || dimensions.width === 0) return;
+
+    renderTree();
+  }, [data, expandedNodes, selectedNode, searchTerm, dimensions, orientation]);
+
+  const renderTree = () => {
+    const svg = d3.select(svgRef.current);
+    svg.selectAll('*').remove();
+
+    const isVertical = orientation === 'vertical';
+    const margin = isVertical
+      ? { top: 80, right: 40, bottom: 40, left: 40 }
+      : { top: 40, right: 120, bottom: 40, left: 120 };
+
+    // Create zoom behavior
+    const zoom = d3.zoom()
+      .scaleExtent([0.1, 3])
+      .on('zoom', (event) => {
+        g.attr('transform', event.transform);
+      });
+
+    svg.call(zoom as any);
+
+    // Add shadow filter definition - stronger shadow for better visibility
+    const defs = svg.append('defs');
+    const filter = defs.append('filter')
+      .attr('id', 'card-shadow')
+      .attr('x', '-20%')
+      .attr('y', '-20%')
+      .attr('width', '140%')
+      .attr('height', '140%');
+    filter.append('feDropShadow')
+      .attr('dx', '0')
+      .attr('dy', '2')
+      .attr('stdDeviation', '3')
+      .attr('flood-opacity', '0.15');
+
+    const g = svg.append('g')
+      .attr('transform', `translate(${margin.left},${margin.top})`);
+
+    // Convert data to hierarchy with expansion control
+    const processNode = (node: OrgNode): any => {
+      const isExpanded = expandedNodes.has(node.userId);
+      return {
+        ...node,
+        children: isExpanded ? node.directReports.map(processNode) : [],
+        _children: node.directReports.map(processNode),
+        hasChildren: node.directReports.length > 0
+      };
+    };
+
+    const root = d3.hierarchy(processNode(data));
+
+    // Use nodeSize for better control over spacing between nodes
+    // Node dimensions: 180x64, so we need more than that for spacing
+    const nodeWidth = 180;
+    const nodeHeight = 64;
+    const horizontalSpacing = nodeWidth + 40; // Space between nodes horizontally
+    const verticalSpacing = nodeHeight + 60; // Space between levels
+
+    // Create tree layout with explicit node sizing
+    const treeLayout = d3.tree<any>()
+      .nodeSize(isVertical ? [horizontalSpacing, verticalSpacing] : [verticalSpacing, horizontalSpacing])
+      .separation((a, b) => a.parent === b.parent ? 1.2 : 1.5);
+
+    treeLayout(root);
+
+    // Draw links - use different link generator based on orientation
+    const linkGenerator = isVertical
+      ? d3.linkVertical<any, any>().x((d: any) => d.x).y((d: any) => d.y)
+      : d3.linkHorizontal<any, any>().x((d: any) => d.y).y((d: any) => d.x);
+
+    g.selectAll('.link')
+      .data(root.links())
+      .enter()
+      .append('path')
+      .attr('class', 'link')
+      .attr('d', linkGenerator)
+      .style('fill', 'none')
+      .style('stroke', '#d1d5db')
+      .style('stroke-width', 1);
+
+    // Draw nodes - position based on orientation
+    const node = g.selectAll('.node')
+      .data(root.descendants())
+      .enter()
+      .append('g')
+      .attr('class', 'node')
+      .attr('transform', (d: any) => {
+        const x = isVertical ? d.x : d.y;
+        const y = isVertical ? d.y : d.x;
+        return `translate(${x},${y})`;
+      });
+
+    // Add node rectangles (using nodeWidth/nodeHeight defined above)
+    node.append('rect')
+      .attr('width', nodeWidth)
+      .attr('height', nodeHeight)
+      .attr('x', -nodeWidth / 2)
+      .attr('y', -nodeHeight / 2)
+      .attr('rx', 8)
+      .attr('filter', 'url(#card-shadow)')
+      .style('fill', (d: any) => {
+        if (selectedNode === d.data.userId) return '#ede9fe';
+        if (searchTerm && matchesSearch(d.data)) return '#fef3c7';
+        return 'white';
+      })
+      .style('stroke', (d: any) => {
+        if (selectedNode === d.data.userId) return 'var(--theme-primary)';
+        if (searchTerm && matchesSearch(d.data)) return '#f59e0b';
+        return '#d1d5db';
+      })
+      .style('stroke-width', (d: any) => {
+        if (selectedNode === d.data.userId) return 2;
+        if (searchTerm && matchesSearch(d.data)) return 2;
+        return 1;
+      })
+      .style('cursor', 'pointer')
+      .on('click', (event, d: any) => {
+        event.stopPropagation();
+        if (event.shiftKey && onNodeOpen) {
+          // Shift+click opens user details
+          onNodeOpen(d.data);
+        } else {
+          onNodeClick(d.data.userId);
+        }
+      })
+      .on('dblclick', (event, d: any) => {
+        // Double-click also opens user details
+        event.stopPropagation();
+        if (onNodeOpen) {
+          onNodeOpen(d.data);
+        }
+      });
+
+    // Add expand/collapse button for nodes with children
+    node.filter((d: any) => d.data.hasChildren)
+      .append('circle')
+      .attr('cx', nodeWidth / 2 + 10)
+      .attr('cy', 0)
+      .attr('r', 10)
+      .style('fill', 'white')
+      .style('stroke', '#d1d5db')
+      .style('stroke-width', 1)
+      .style('cursor', 'pointer')
+      .on('click', (event, d: any) => {
+        event.stopPropagation();
+        onNodeToggle(d.data.userId);
+      });
+
+    node.filter((d: any) => d.data.hasChildren)
+      .append('text')
+      .attr('x', nodeWidth / 2 + 10)
+      .attr('y', 4)
+      .attr('text-anchor', 'middle')
+      .style('font-size', '12px')
+      .style('fill', '#6b7280')
+      .style('pointer-events', 'none')
+      .text((d: any) => expandedNodes.has(d.data.userId) ? '−' : '+');
+
+    // Add user photo or icon
+    const photoSize = 32;
+    node.append('clipPath')
+      .attr('id', (_d: any, i: number) => `clip-${i}`)
+      .append('circle')
+      .attr('cx', -nodeWidth / 2 + 24)
+      .attr('cy', 0)
+      .attr('r', photoSize / 2);
+
+    // Add photo if available, otherwise show icon
+    node.each(function(this: SVGGElement, d: any, i: number) {
+      const nodeSelection = d3.select(this);
+
+      if (d.data.photoUrl) {
+        nodeSelection.append('image')
+          .attr('x', -nodeWidth / 2 + 24 - photoSize / 2)
+          .attr('y', -photoSize / 2)
+          .attr('width', photoSize)
+          .attr('height', photoSize)
+          .attr('clip-path', `url(#clip-${i})`)
+          .attr('href', d.data.photoUrl);
+      } else {
+        nodeSelection.append('circle')
+          .attr('cx', -nodeWidth / 2 + 24)
+          .attr('cy', 0)
+          .attr('r', photoSize / 2)
+          .style('fill', '#f3f4f6')
+          .style('stroke', '#e5e7eb')
+          .style('stroke-width', 1);
+
+        nodeSelection.append('text')
+          .attr('x', -nodeWidth / 2 + 24)
+          .attr('y', 4)
+          .attr('text-anchor', 'middle')
+          .style('font-size', '14px')
+          .style('fill', '#6b7280')
+          .text(d.data.name.substring(0, 1).toUpperCase());
+      }
+    });
+
+    // Add name
+    node.append('text')
+      .attr('x', -nodeWidth / 2 + 52)
+      .attr('y', -8)
+      .style('font-size', '14px')
+      .style('font-weight', '600')
+      .style('fill', '#1f2937')
+      .text((d: any) => truncateText(d.data.name, 18));
+
+    // Add title
+    node.append('text')
+      .attr('x', -nodeWidth / 2 + 52)
+      .attr('y', 8)
+      .style('font-size', '12px')
+      .style('fill', '#4b5563')
+      .text((d: any) => truncateText(d.data.title || '', 20));
+
+    // Add department
+    node.append('text')
+      .attr('x', -nodeWidth / 2 + 52)
+      .attr('y', 22)
+      .style('font-size', '11px')
+      .style('fill', '#6b7280')
+      .text((d: any) => truncateText(d.data.department || '', 22));
+
+    // Add direct reports count
+    node.filter((d: any) => d.data.directReports.length > 0)
+      .append('text')
+      .attr('x', nodeWidth / 2 - 10)
+      .attr('y', -nodeHeight / 2 + 12)
+      .attr('text-anchor', 'end')
+      .style('font-size', '10px')
+      .style('fill', 'var(--theme-primary)')
+      .style('font-weight', '500')
+      .text((d: any) => `${d.data.directReports.length} reports`);
+
+    // Center the root node based on orientation with smooth transition
+    const initialTransform = isVertical
+      ? d3.zoomIdentity.translate(dimensions.width / 2, margin.top)
+      : d3.zoomIdentity.translate(margin.left, dimensions.height / 2);
+
+    svg.transition()
+      .duration(300)
+      .call(zoom.transform as any, initialTransform);
+  };
+
+  const matchesSearch = (node: OrgNode): boolean => {
+    if (!searchTerm) return false;
+    const term = searchTerm.toLowerCase();
+    return !!(node.name.toLowerCase().includes(term) ||
+           node.email.toLowerCase().includes(term) ||
+           (node.title && node.title.toLowerCase().includes(term)) ||
+           (node.department && node.department.toLowerCase().includes(term)));
+  };
+
+  const truncateText = (text: string, maxLength: number): string => {
+    return text.length > maxLength ? text.substring(0, maxLength - 2) + '...' : text;
+  };
 
   return (
     <div className="org-chart-tree">
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onNodeClick={handleNodeClick}
-        nodeTypes={nodeTypes}
-        nodesDraggable={false}
-        nodesConnectable={false}
-        elementsSelectable={true}
-        fitView
-        fitViewOptions={{ padding: 0.2 }}
-        minZoom={0.1}
-        maxZoom={2}
-        attributionPosition="bottom-left"
-        proOptions={{ hideAttribution: true }}
-      >
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#e5e7eb" />
-        <Controls showInteractive={false} />
-      </ReactFlow>
+      <svg ref={svgRef} width="100%" height="100%"></svg>
+      <div className="org-chart-controls-overlay">
+        <button className="zoom-btn" onClick={() => {
+          const svg = d3.select(svgRef.current);
+          svg.transition().duration(750).call(
+            d3.zoom().scaleExtent([0.1, 3]).transform as any,
+            d3.zoomIdentity
+          );
+        }}>
+          Reset Zoom
+        </button>
+      </div>
       <div className="org-chart-hints">
-        <span className="org-chart-hint">Scroll to zoom, drag canvas to pan</span>
+        <span className="org-chart-hint">Scroll to zoom, drag to pan</span>
         {onNodeOpen && (
-          <span className="org-chart-hint">Double-click node to open user details</span>
+          <span className="org-chart-hint">
+            Double-click or Shift+click to open user
+          </span>
         )}
       </div>
     </div>
-  );
-};
-
-// Wrapper component with provider
-const OrgChartTree: React.FC<OrgChartTreeProps> = (props) => {
-  return (
-    <ReactFlowProvider>
-      <OrgChartTreeInner {...props} />
-    </ReactFlowProvider>
   );
 };
 

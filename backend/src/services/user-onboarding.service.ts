@@ -130,9 +130,8 @@ class UserOnboardingService {
         welcome_email_body,
         is_active,
         is_default,
-        timeline,
         created_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
       RETURNING *
     `;
 
@@ -164,7 +163,6 @@ class UserOnboardingService {
       dto.welcomeEmailBody || this.getDefaultWelcomeEmailBody(),
       dto.isActive ?? true,
       dto.isDefault ?? false,
-      dto.timeline ? JSON.stringify(dto.timeline) : null,
       createdBy || null,
     ];
 
@@ -232,12 +230,6 @@ class UserOnboardingService {
     if (dto.calendarSubscriptions !== undefined) {
       updates.push(`calendar_subscriptions = $${paramIndex}`);
       values.push(dto.calendarSubscriptions);
-      paramIndex++;
-    }
-
-    if (dto.timeline !== undefined) {
-      updates.push(`timeline = $${paramIndex}`);
-      values.push(dto.timeline ? JSON.stringify(dto.timeline) : null);
       paramIndex++;
     }
 
@@ -975,7 +967,6 @@ Welcome to the team!`;
       welcomeEmailBody: row.welcome_email_body,
       isActive: row.is_active,
       isDefault: row.is_default,
-      timeline: row.timeline || null,
       createdBy: row.created_by,
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),

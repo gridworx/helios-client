@@ -30,39 +30,6 @@ export type LicenseAction = 'remove_immediately' | 'remove_on_suspension' | 'kee
 export type RecurrenceInterval = 'daily' | 'weekly' | 'monthly';
 
 // ==========================================
-// WORKFLOW TYPES
-// ==========================================
-
-export type WorkflowTriggerType =
-  | 'on_request_submitted'
-  | 'on_request_approved'
-  | 'on_request_rejected'
-  | 'days_before_start'
-  | 'on_start_date'
-  | 'days_after_start'
-  | 'on_last_day'
-  | 'days_after_end';
-
-export interface WorkflowTrigger {
-  type: WorkflowTriggerType;
-  offsetDays?: number;
-}
-
-export interface WorkflowBlock {
-  id: string;
-  type: string;
-  inputs: Record<string, string | number | boolean>;
-  trigger?: WorkflowTrigger;
-  children?: WorkflowBlock[];
-  enabled: boolean;
-}
-
-export interface WorkflowData {
-  trigger: WorkflowTrigger;
-  blocks: WorkflowBlock[];
-}
-
-// ==========================================
 // GOOGLE WORKSPACE TYPES
 // ==========================================
 
@@ -125,9 +92,6 @@ export interface OnboardingTemplate {
   isActive: boolean;
   isDefault: boolean;
 
-  // Workflow automation
-  timeline: WorkflowData | null;
-
   // Audit
   createdBy?: string | null;
   createdAt: Date;
@@ -152,7 +116,6 @@ export interface CreateOnboardingTemplateDTO {
   welcomeEmailBody?: string;
   isActive?: boolean;
   isDefault?: boolean;
-  timeline?: WorkflowData;
 }
 
 export interface UpdateOnboardingTemplateDTO extends Partial<CreateOnboardingTemplateDTO> {}
@@ -224,9 +187,6 @@ export interface OffboardingTemplate {
   isActive: boolean;
   isDefault: boolean;
 
-  // Workflow automation
-  timeline: WorkflowData | null;
-
   // Audit
   createdBy?: string | null;
   createdAt: Date;
@@ -291,9 +251,6 @@ export interface CreateOffboardingTemplateDTO {
   // Status
   isActive?: boolean;
   isDefault?: boolean;
-
-  // Workflow automation
-  timeline?: WorkflowData;
 }
 
 export interface UpdateOffboardingTemplateDTO extends Partial<CreateOffboardingTemplateDTO> {}

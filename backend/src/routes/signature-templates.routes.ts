@@ -95,12 +95,6 @@ router.get('/merge-fields/list', async (req: Request, res: Response) => {
  *       - BearerAuth: []
  *     parameters:
  *       - in: query
- *         name: type
- *         schema:
- *           type: string
- *           enum: [signature, email, page]
- *         description: Filter by template type
- *       - in: query
  *         name: status
  *         schema:
  *           type: string
@@ -123,10 +117,9 @@ router.get('/', async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, error: 'Organization ID required' });
     }
 
-    const { type, status, isCampaignTemplate, includeAssignments } = req.query;
+    const { status, isCampaignTemplate, includeAssignments } = req.query;
 
     const templates = await signatureTemplateService.getTemplates(organizationId, {
-      templateType: type as 'signature' | 'email' | 'page' | undefined,
       status: status as SignatureTemplateStatus | undefined,
       isCampaignTemplate: isCampaignTemplate === 'true' ? true : isCampaignTemplate === 'false' ? false : undefined,
       includeAssignmentCounts: includeAssignments === 'true',
@@ -201,18 +194,7 @@ router.get('/:id', async (req: Request, res: Response) => {
  *             properties:
  *               name:
  *                 type: string
- *               templateType:
- *                 type: string
- *                 enum: [signature, email, page]
  *               htmlContent:
- *                 type: string
- *               subject:
- *                 type: string
- *                 description: Subject line for email templates
- *               cssContent:
- *                 type: string
- *                 description: CSS content for page templates
- *               category:
  *                 type: string
  *               status:
  *                 type: string

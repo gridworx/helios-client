@@ -1,0 +1,432 @@
+{
+  "iterations": 2059,
+  "tasks_completed": [
+    "BUG-001: Module not showing as enabled - FIXED",
+    "BUG-004: Users list - VERIFIED WORKING (4 users in DB, API returns correctly)",
+    "BUG-005: Groups list - VERIFIED WORKING (3 groups in access_groups table)",
+    "admin-user-separation: All 29 tasks COMPLETED (but with regressions)",
+    "group-management-slideout: COMPLETED",
+    "people-directory: COMPLETED",
+    "user-slideout-ux-fixes: COMPLETED (9/9 tests passed, archived)"
+  ],
+  "current_task": "Pre-Release Infrastructure (BLOCKING - API versioning, OpenAPI docs, MCP prep)",
+  "started_at": "2025-12-07 12:13:26",
+  "last_session": "2025-12-22 02:14:03",
+  "bugs_resolved": {
+    "BUG-004": {
+      "status": "verified_working",
+      "evidence": {
+        "organization_users_count": 4,
+        "gw_synced_users_count": 4,
+        "api_returns_correctly": true
+      }
+    },
+    "BUG-005": {
+      "status": "verified_working",
+      "evidence": {
+        "access_groups_count": 3,
+        "gw_groups_count": 3,
+        "groups": [
+          "IT Dept",
+          "Marcomm",
+          "Sales"
+        ]
+      }
+    }
+  },
+  "openspec_queue": [
+    {
+      "id": "ux-and-functionality-fixes",
+      "priority": -2,
+      "path": "openspec/changes/ux-and-functionality-fixes/",
+      "title": "UX & Functionality Fixes - Critical Issues (USER REPORTED)",
+      "description": "Fix broken core functionality: deleted count mismatch, filter buttons, add to group, create in GW, activity log, header layout, slideout layout, scheduled actions layout",
+      "files": {
+        "proposal": "proposal.md",
+        "tasks": "tasks.md"
+      },
+      "start_phase": 1,
+      "start_task": "TASK-FIX-001",
+      "urgency": "P-2 (HIGHEST) - User-reported broken functionality",
+      "status": "NOT_STARTED",
+      "key_bugs": [
+        "Deleted count shows 7 but 11 users displayed",
+        "Filter buttons (3 lines, 2 lines) do nothing",
+        "Add to Group doesn't persist",
+        "Create in Google Workspace fails silently",
+        "Activity Log shows nothing",
+        "Department shows Google OU path instead of name",
+        "User creation flow broken",
+        "Stats/search/filters not aligned",
+        "User Slideout single-column wastes space",
+        "Scheduled Actions weird split layout"
+      ],
+      "estimated_effort": "3-4 days"
+    },
+    {
+      "id": "critical-fixes-q4-2025",
+      "priority": -1,
+      "path": "openspec/changes/archive/critical-fixes-q4-2025/",
+      "title": "Critical Bug Fixes - Q4 2025 (ARCHIVED - check if still relevant)",
+      "description": "Fix 500 error on refresh, dashboard loading, Add User broken, template creation broken, quick actions, Microsoft 365 integration",
+      "files": {
+        "proposal": "proposal.md",
+        "tasks": "tasks.md"
+      },
+      "start_phase": 1,
+      "start_task": "TASK-FIX-001",
+      "urgency": "P-1 (HIGHEST) - User-reported production bugs",
+      "status": "NOT_STARTED",
+      "key_bugs": [
+        "500 error on page refresh (nginx SPA routing)",
+        "Dashboard loading forever (error handling)",
+        "Add User not working (quick add & onboarding)",
+        "Templates creation broken",
+        "Dashboard customization not persisting",
+        "Quick Actions buttons do nothing"
+      ],
+      "new_features": [
+        "Microsoft 365 integration (Tenant ID, Client ID, Secret)",
+        "Google External Sharing Manager (audit, bulk revoke)"
+      ],
+      "estimated_effort": "2-3 days for bug fixes, 5-7 days for Microsoft"
+    },
+    {
+      "id": "pre-release-infrastructure",
+      "priority": 0,
+      "path": "openspec/changes/pre-release-infrastructure/",
+      "title": "Pre-Release Infrastructure Cleanup (BLOCKS RELEASE)",
+      "description": "API versioning (/api/v1/), complete OpenAPI docs, MCP server prep, CORS fixes, request tracing, env validation",
+      "files": {
+        "proposal": "proposal.md",
+        "tasks": "tasks.md"
+      },
+      "start_phase": 1,
+      "start_task": "TASK-INFRA-001",
+      "urgency": "P0 - BLOCKS FIRST RELEASE",
+      "status": "NOT_STARTED",
+      "key_deliverables": [
+        "All routes use /api/v1/ prefix",
+        "All 38 route files have OpenAPI JSDoc annotations",
+        "MCP server skeleton ready for AI features",
+        "X-Request-ID tracing in all requests",
+        "Standardized response format across all endpoints",
+        "Environment validation on startup",
+        "WebSocket proxy through nginx"
+      ],
+      "estimated_effort": "4-5 days",
+      "note": "Work alongside frontend-api-url-refactor - both change API paths"
+    },
+    {
+      "id": "frontend-api-url-refactor",
+      "priority": 0.1,
+      "path": "openspec/changes/frontend-api-url-refactor/",
+      "title": "Frontend Hardcoded URL Refactor (BLOCKING)",
+      "description": "Refactor 176 hardcoded localhost:3001 URLs to use relative URLs. BLOCKS remote access.",
+      "files": {
+        "proposal": "proposal.md",
+        "tasks": "tasks.md"
+      },
+      "start_phase": 2,
+      "start_task": "TASK-URL-004",
+      "urgency": "P0.1 - BLOCKING - Remote access completely broken until fixed",
+      "status": "IN_PROGRESS",
+      "completed_phases": [
+        "Phase 1: Foundation (5 tasks)",
+        "Phase 8: Environment (partial)"
+      ],
+      "remaining_phases": [
+        "Phase 2: Service Files (9 tasks) - frontend fetch URLs",
+        "Phase 3: Core Application Files (8 tasks) - App.tsx, Login, etc.",
+        "Phase 4: Page Files (16 tasks) - all page components",
+        "Phase 5: Component Files (11 tasks) - all other components",
+        "Phase 6: Context Files (2 tasks) - React contexts",
+        "Phase 7: Backend URL Generation (4 tasks) - asset URLs, photo URLs",
+        "Phase 9: Testing & Verification (5 tasks)"
+      ],
+      "quick_fix_pattern": "Replace 'http://localhost:3001/api/...' with '/api/v1/...' (versioned URL)",
+      "estimated_effort": "8-9 hours",
+      "user_requirement": "Anyone should be able to: clone repo -> update .env -> setup DNS -> Profit!"
+    },
+    {
+      "id": "admin-user-separation-fixes",
+      "priority": 0,
+      "path": "openspec/changes/admin-user-separation-fixes/",
+      "title": "Admin/User Separation Bug Fixes (BLOCKING)",
+      "description": "Fix regressions: ViewSwitcher not persistent, Settings link wrong context, Dashboard design regression, Dashboard stats empty",
+      "files": {
+        "proposal": "proposal.md",
+        "tasks": "tasks.md",
+        "specs": "specs.md"
+      },
+      "start_phase": 1,
+      "start_task": "TASK-FIX-001",
+      "urgency": "P0 - BLOCKING - Must fix before any other work",
+      "bugs": [
+        "BUG-AUS-001: ViewSwitcher disappears after onboarding",
+        "BUG-AUS-002: Settings link ignores view context (exposes admin settings in user view)",
+        "BUG-AUS-003: Dashboard design reverted to chunky style",
+        "BUG-AUS-004: Dashboard stats showing empty despite data in DB"
+      ]
+    },
+    {
+      "id": "org-chart-seed-data",
+      "priority": 0.5,
+      "path": "openspec/changes/org-chart-seed-data/",
+      "title": "Org Chart Seed Data & Remove UI Placeholders",
+      "description": "Populate database with 28 realistic test users, proper org hierarchy, remove hardcoded placeholder data from UI",
+      "files": {
+        "proposal": "proposal.md",
+        "tasks": "tasks.md",
+        "specs": "specs.md"
+      },
+      "start_phase": 1,
+      "start_task": "TASK-SEED-001",
+      "urgency": "P0.5 - DATA FOUNDATION - Real test data needed for all features",
+      "key_features": [
+        "28 users across 5 hierarchy levels (CEO -> C-Suite -> VPs -> Managers -> Staff)",
+        "7 departments with proper assignments",
+        "3 orphaned users for edge case testing (contractor, new hire, intern)",
+        "4 groups including cross-functional teams",
+        "Remove all hardcoded UI placeholders",
+        "Migration file ready: database/migrations/039_seed_test_users_and_org_chart.sql"
+      ],
+      "technical_notes": {
+        "source_of_truth": "Helios is primary - Google Workspace sync is optional downstream",
+        "org_chart": "Built from reporting_manager_id relationships, NOT department hierarchy",
+        "orphan_detection": "Users with reporting_manager_id=NULL who are not CEO",
+        "migration": "Idempotent - uses ON CONFLICT DO UPDATE",
+        "schema_columns": "Uses job_title, reporting_manager_id, user_status, employee_type (agent already fixed)"
+      },
+      "estimated_effort": "4 days"
+    },
+    {
+      "id": "infrastructure-fixes",
+      "priority": 1,
+      "path": "openspec/changes/infrastructure-fixes/",
+      "title": "Infrastructure Fixes (Foundation)",
+      "description": "Fix MinIO credentials, missing database tables, field visibility settings",
+      "files": {
+        "proposal": "proposal.md",
+        "tasks": "tasks.md",
+        "specs": "specs.md"
+      },
+      "start_phase": 1,
+      "start_task": "TASK-INFRA-001",
+      "urgency": "P0.5 - FOUNDATION - Blocks media uploads and dashboard features",
+      "bugs": [
+        "MinIO credentials mismatch (docker-compose defaults differ from backend)",
+        "Missing table: user_dashboard_widgets",
+        "Missing table: available_modules",
+        "Missing column: status on some tables",
+        "Pronouns not in user_field_visibility"
+      ],
+      "estimated_effort": "2.5 days"
+    },
+    {
+      "id": "google-drive-asset-proxy",
+      "priority": 2,
+      "path": "openspec/changes/google-drive-asset-proxy/",
+      "title": "Google Drive Asset Proxy",
+      "description": "Proxy service for Google Shared Drive files with direct embeddable URLs for signatures",
+      "files": {
+        "proposal": "proposal.md",
+        "tasks": "tasks.md",
+        "specs": "specs.md"
+      },
+      "start_phase": 1,
+      "start_task": "TASK-ASSET-001",
+      "urgency": "P1 - HIGH - Foundation for signature images",
+      "key_features": [
+        "Public proxy endpoint /a/{token}/{filename}",
+        "Redis caching (1 hour TTL)",
+        "Google Drive API integration via service account",
+        "Shared Drive setup wizard",
+        "MinIO fallback for non-Google setups",
+        "Asset browser UI with folder organization"
+      ],
+      "technical_notes": {
+        "problem": "Google broke direct Drive links in Jan 2024",
+        "solution": "Helios proxies files from customer's Shared Drive with direct URLs",
+        "architecture": "Customer Shared Drive -> Service Account -> Helios Proxy -> Redis Cache -> Public URL"
+      },
+      "estimated_effort": "11.5 days"
+    },
+    {
+      "id": "user-lifecycle",
+      "priority": 3,
+      "path": "openspec/changes/user-lifecycle/",
+      "title": "User Lifecycle Management",
+      "description": "Automated user onboarding and offboarding workflows with templates",
+      "files": {
+        "proposal": "proposal.md",
+        "tasks": "tasks.md",
+        "specs": "specs.md"
+      },
+      "start_phase": 1,
+      "start_task": "TASK-LIFE-001",
+      "urgency": "P2 - MEDIUM - Major MSP time-saver",
+      "key_features": [
+        "Onboarding templates (groups, signatures, Shared Drives)",
+        "One-click user provisioning",
+        "Offboarding workflow (data transfer, access revocation)",
+        "Scheduled actions (execute on start/last day)",
+        "Full audit logging of all steps"
+      ],
+      "technical_notes": {
+        "google_apis": "Admin SDK for user creation, Gmail API for forwarding, Drive API for transfers",
+        "scheduling": "Cron job processes pending actions every minute"
+      },
+      "estimated_effort": "14 days"
+    },
+    {
+      "id": "signature-management",
+      "priority": 4,
+      "path": "openspec/changes/signature-management/",
+      "title": "Email Signature Management",
+      "description": "Template creation, flexible assignment, campaigns with tracking pixels",
+      "files": {
+        "proposal": "proposal.md",
+        "tasks": "tasks.md",
+        "specs": "specs.md"
+      },
+      "start_phase": 1,
+      "start_task": "TASK-SIG-001",
+      "urgency": "P3 - Core feature after infrastructure ready",
+      "key_features": [
+        "Template editor with merge fields",
+        "Multi-method assignment (users/groups/dynamic groups/OU/department)",
+        "Priority-based resolution when multiple apply",
+        "Campaign mode with start/end dates",
+        "1px tracking pixel per user per campaign",
+        "Analytics dashboard for campaigns",
+        "Role-based permissions"
+      ],
+      "technical_notes": {
+        "tracking_pixels": "Dynamically served at /api/t/p/{token}.gif - logs request, returns 43-byte transparent GIF",
+        "google_api": "Uses gmail.users.settings.sendAs.update for signature deployment",
+        "depends_on": "google-drive-asset-proxy for hosting signature images"
+      },
+      "estimated_effort": "15-20 days"
+    },
+    {
+      "id": "hybrid-email-tracking",
+      "priority": 5,
+      "path": "openspec/changes/hybrid-email-tracking/",
+      "title": "Hybrid Email Tracking System",
+      "description": "Always-on user tracking + campaign tracking. Users see personal email engagement metrics.",
+      "files": {
+        "proposal": "proposal.md",
+        "tasks": "tasks.md"
+      },
+      "start_phase": 1,
+      "start_task": "TASK-TRK-001",
+      "urgency": "P4 - Enhancement after signature-management complete",
+      "key_features": [
+        "Always-on user tracking pixel (permanent in signature)",
+        "Personal engagement dashboard widget",
+        "Admin team analytics page",
+        "Peak hours and trend analysis",
+        "Department-level engagement breakdown",
+        "Admin toggle to enable/disable tracking",
+        "Data retention settings (auto-purge)",
+        "Privacy controls and disclaimers"
+      ],
+      "technical_notes": {
+        "architecture": "Hybrid: user pixels for personal stats + campaign pixels for campaign analytics",
+        "new_endpoint": "/api/t/u/:token.gif for user tracking (alongside existing /api/t/p/:token.gif)",
+        "new_table": "signature_user_tracking for always-on tokens",
+        "privacy": "IP hashed, no recipient identification, configurable retention",
+        "limitation": "Cannot track specific emails (Gmail signatures are static)"
+      },
+      "depends_on": "signature-management (uses existing tracking infrastructure)",
+      "estimated_effort": "~30 hours (4 days)"
+    }
+  ],
+  "completed_proposals": [
+    {
+      "id": "group-management-slideout",
+      "title": "Group Management SlideOut with Dynamic Groups",
+      "status": "COMPLETED"
+    },
+    {
+      "id": "people-directory",
+      "title": "People Directory (User-Facing)",
+      "status": "COMPLETED"
+    },
+    {
+      "id": "admin-user-separation",
+      "title": "Admin/User UI Separation",
+      "status": "COMPLETED_WITH_BUGS",
+      "note": "Implementation complete but introduced regressions - see admin-user-separation-fixes"
+    }
+  ],
+  "agent_instructions": {
+    "CRITICAL_FIRST": "READ autonomous/AGENT-RULES.md BEFORE EVERY TASK",
+    "methodology": "TDD + OpenSpec SDD",
+    "process": [
+      "1. Read proposal.md to understand full feature scope",
+      "2. Read specs.md to find Gherkin scenarios",
+      "3. Write FAILING test based on first scenario",
+      "4. Implement minimum code to pass test",
+      "5. Refactor and clean up",
+      "6. Move to next scenario in specs.md",
+      "7. After completing a phase, run full test suite",
+      "8. CHECK FOR REGRESSIONS before marking task complete"
+    ],
+    "testing_reference": "openspec/TESTING-METHODOLOGY.md",
+    "critical_rules": [
+      "NEVER implement without a failing test first",
+      "Use specs.md Gherkin scenarios as test cases",
+      "Create E2E tests for UI scenarios (Playwright)",
+      "Create unit tests for backend services (Jest)",
+      "Screenshots required at key UI states",
+      "CHECK FOR REGRESSIONS after each change",
+      "DO NOT refactor unrelated code",
+      "STAY IN SCOPE - only work on current task"
+    ]
+  },
+  "next_task": {
+    "type": "openspec",
+    "proposal": "openspec/changes/ux-and-functionality-fixes",
+    "approach": "implement",
+    "priority": "P-2",
+    "instructions": "Fix critical UX and functionality issues reported by user. Start with Phase 1 (Data Integrity - TASK-FIX-001 deleted count). Follow TDD approach. Key issues: deleted count mismatch, filter buttons broken, add to group broken, create in GW broken, activity log empty, department showing OU paths. Read proposal.md and tasks.md first."
+  },
+  "previous_action": {
+    "type": "openspec",
+    "proposal": "openspec/changes/user-slideout-ux-fixes",
+    "status": "COMPLETED",
+    "note": "All 9 E2E tests passed. Task checklist complete. Proposal archived."
+  },
+  "deferred_actions": [
+    {
+      "proposal": "admin-user-separation-fixes",
+      "reason": "Deferred until infrastructure complete"
+    },
+    {
+      "proposal": "infrastructure-fixes",
+      "reason": "Merged into pre-release-infrastructure"
+    }
+  ],
+  "queue_summary": {
+    "total_proposals": 9,
+    "total_estimated_days": "59-69 days",
+    "priority_order": [
+      "P0: pre-release-infrastructure (BLOCKS RELEASE - API versioning, OpenAPI, MCP)",
+      "P0: frontend-api-url-refactor (work in parallel with above)",
+      "P0.5: admin-user-separation-fixes (after infrastructure)",
+      "P1: org-chart-seed-data (real test data)",
+      "P2: google-drive-asset-proxy (enables signatures)",
+      "P3: user-lifecycle (workflows)",
+      "P4: signature-management (core feature)",
+      "P5: hybrid-email-tracking (engagement metrics)"
+    ],
+    "release_blockers": [
+      "pre-release-infrastructure",
+      "frontend-api-url-refactor"
+    ],
+    "ai_features_enabled_by": "pre-release-infrastructure (MCP server + OpenAPI)",
+    "user_goal": "Clone repo -> update .env -> setup DNS -> Profit!"
+  }
+}

@@ -1,0 +1,7 @@
+# Don't commit progress or settings
+progress.json
+../.claude_settings_autonomous.json
+
+# Python
+__pycache__/
+*.pyc

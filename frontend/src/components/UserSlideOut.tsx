@@ -31,34 +31,6 @@ interface User {
   updatedAt?: string;
   managerId?: string;
   managerName?: string;
-  employeeId?: string;
-  employeeType?: string;
-  costCenter?: string;
-  startDate?: string;
-  endDate?: string;
-  alternateEmail?: string;
-  timezone?: string;
-  preferredLanguage?: string;
-  bio?: string;
-  pronouns?: string;
-  linkedinUrl?: string;
-  twitterUrl?: string;
-  githubUrl?: string;
-  customFields?: Record<string, any>;
-}
-
-interface CustomFieldDefinition {
-  id: string;
-  fieldKey: string;
-  fieldLabel: string;
-  fieldType: 'text' | 'email' | 'url' | 'phone' | 'select' | 'multiselect' | 'date' | 'image' | 'badge';
-  fieldCategory: 'general' | 'professional' | 'social' | 'branding';
-  isRequired: boolean;
-  isVisibleToUser: boolean;
-  isVisibleInProfile: boolean;
-  fieldOptions?: string[];
-  placeholder?: string;
-  helpText?: string;
 }
 
 interface UserSlideOutProps {
@@ -98,18 +70,6 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
   // Dropdown data for edit mode
   const [availableManagers, setAvailableManagers] = useState<any[]>([]);
   const [availableGroups, setAvailableGroups] = useState<any[]>([]);
-
-  // Custom fields
-  const [customFieldDefinitions, setCustomFieldDefinitions] = useState<CustomFieldDefinition[]>([]);
-  const [editedCustomFields, setEditedCustomFields] = useState<Record<string, any>>(user.customFields || {});
-
-  // Email delegation/forwarding users dropdown
-  const [availableEmailUsers, setAvailableEmailUsers] = useState<any[]>([]);
-  const [emailUsersLoading, setEmailUsersLoading] = useState(false);
-  const [delegateSearchTerm, setDelegateSearchTerm] = useState('');
-  const [forwardingSearchTerm, setForwardingSearchTerm] = useState('');
-  const [showDelegateDropdown, setShowDelegateDropdown] = useState(false);
-  const [showForwardingDropdown, setShowForwardingDropdown] = useState(false);
 
   // Confirmation dialog state
   const [statusChangeConfirm, setStatusChangeConfirm] = useState<string | null>(null);
@@ -238,19 +198,6 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
     } catch (error) {
       console.error('Error fetching departments:', error);
     }
-
-    // Fetch custom field definitions
-    try {
-      const customFieldsResponse = await authFetch(`/api/v1/organization/custom-fields/definitions`);
-      if (customFieldsResponse.ok) {
-        const customFieldsData = await customFieldsResponse.json();
-        if (customFieldsData.success && customFieldsData.data) {
-          setCustomFieldDefinitions(customFieldsData.data);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching custom field definitions:', error);
-    }
   };
 
   const fetchUserGroups = async () => {
@@ -283,54 +230,9 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
     }
   };
 
-  // Fetch available users for email delegation/forwarding
-  const fetchAvailableEmailUsers = async () => {
-    if (availableEmailUsers.length > 0) return; // Already loaded
-
-    setEmailUsersLoading(true);
-    try {
-      const response = await authFetch(`/api/v1/organization/users?status=active`);
-      if (response.ok) {
-        const data = await response.json();
-        // Filter out the current user - can't delegate to yourself
-        const users = (data.data || []).filter((u: any) => u.email !== user.email);
-        setAvailableEmailUsers(users);
-      }
-    } catch (error) {
-      console.error('Error fetching users for email settings:', error);
-    } finally {
-      setEmailUsersLoading(false);
-    }
-  };
-
-  // Filter users for delegate dropdown
-  const getFilteredDelegateUsers = () => {
-    if (!delegateSearchTerm.trim()) return availableEmailUsers;
-    const term = delegateSearchTerm.toLowerCase();
-    return availableEmailUsers.filter((u: any) => {
-      const fullName = `${u.first_name || u.firstName || ''} ${u.last_name || u.lastName || ''}`.toLowerCase();
-      const email = (u.email || '').toLowerCase();
-      return fullName.includes(term) || email.includes(term);
-    });
-  };
-
-  // Filter users for forwarding dropdown
-  const getFilteredForwardingUsers = () => {
-    if (!forwardingSearchTerm.trim()) return availableEmailUsers;
-    const term = forwardingSearchTerm.toLowerCase();
-    return availableEmailUsers.filter((u: any) => {
-      const fullName = `${u.first_name || u.firstName || ''} ${u.last_name || u.lastName || ''}`.toLowerCase();
-      const email = (u.email || '').toLowerCase();
-      return fullName.includes(term) || email.includes(term);
-    });
-  };
-
   // Email Settings Functions
   const fetchEmailSettings = async () => {
     if (!user.googleWorkspaceId) return;
-
-    // Also fetch available users for delegation/forwarding dropdowns
-    fetchAvailableEmailUsers();
 
     setEmailLoading(true);
     try {
@@ -422,7 +324,6 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
       if (response.ok) {
         showSuccess(`Added ${newDelegateEmail} as delegate`);
         setNewDelegateEmail('');
-        setDelegateSearchTerm('');
         fetchEmailSettings(); // Refresh the list
       } else {
         const errorData = await response.json();
@@ -502,7 +403,6 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
         showSuccess(`Forwarding enabled to ${newForwardingEmail}`);
         setShowForwardingModal(false);
         setNewForwardingEmail('');
-        setForwardingSearchTerm('');
         fetchEmailSettings(); // Refresh
       } else {
         const errorData = await enableResponse.json();
@@ -561,20 +461,7 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
             mobilePhone: editedUser.mobilePhone,
             workPhone: editedUser.workPhone,
             role: editedUser.role,
-            managerId: editedUser.managerId || null,
-            // Additional standard fields
-            employeeId: editedUser.employeeId,
-            employeeType: editedUser.employeeType,
-            costCenter: editedUser.costCenter,
-            alternateEmail: editedUser.alternateEmail,
-            timezone: editedUser.timezone,
-            pronouns: editedUser.pronouns,
-            bio: editedUser.bio,
-            linkedinUrl: editedUser.linkedinUrl,
-            twitterUrl: editedUser.twitterUrl,
-            githubUrl: editedUser.githubUrl,
-            // Custom fields
-            customFields: editedCustomFields
+            managerId: editedUser.managerId || null
           })
         }
       );
@@ -596,7 +483,6 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
 
   const handleCancelEdit = () => {
     setEditedUser(user);
-    setEditedCustomFields(user.customFields || {});
     setIsEditing(false);
   };
 
@@ -1174,7 +1060,7 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
                 </>
               )}
 
-              {(isEditing || user.mobilePhone || user.workPhone || user.alternateEmail) && (
+              {(isEditing || user.mobilePhone || user.workPhone) && (
                 <>
                   <h3>Contact Information</h3>
                   <div className="info-grid">
@@ -1202,286 +1088,9 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
                         <div>{user.workPhone || '-'}</div>
                       )}
                     </div>
-                    <div className="info-item full-width">
-                      <label>Alternate Email</label>
-                      {isEditing ? (
-                        <input
-                          type="email"
-                          value={editedUser.alternateEmail || ''}
-                          onChange={(e) => setEditedUser({ ...editedUser, alternateEmail: e.target.value })}
-                          placeholder="backup@example.com"
-                        />
-                      ) : (
-                        <div>{user.alternateEmail || '-'}</div>
-                      )}
-                    </div>
                   </div>
                 </>
               )}
-
-              {(isEditing || user.employeeId || user.employeeType || user.costCenter || user.timezone || user.pronouns) && (
-                <>
-                  <h3>Employment Details</h3>
-                  <div className="info-grid">
-                    <div className="info-item">
-                      <label>Employee ID</label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={editedUser.employeeId || ''}
-                          onChange={(e) => setEditedUser({ ...editedUser, employeeId: e.target.value })}
-                          placeholder="E12345"
-                        />
-                      ) : (
-                        <div>{user.employeeId || '-'}</div>
-                      )}
-                    </div>
-                    <div className="info-item">
-                      <label>Employee Type</label>
-                      {isEditing ? (
-                        <select
-                          value={editedUser.employeeType || ''}
-                          onChange={(e) => setEditedUser({ ...editedUser, employeeType: e.target.value })}
-                        >
-                          <option value="">Select Type...</option>
-                          <option value="Full Time">Full Time</option>
-                          <option value="Part Time">Part Time</option>
-                          <option value="Contractor">Contractor</option>
-                          <option value="Intern">Intern</option>
-                          <option value="Temporary">Temporary</option>
-                        </select>
-                      ) : (
-                        <div>{user.employeeType || '-'}</div>
-                      )}
-                    </div>
-                    <div className="info-item">
-                      <label>Cost Center</label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={editedUser.costCenter || ''}
-                          onChange={(e) => setEditedUser({ ...editedUser, costCenter: e.target.value })}
-                        />
-                      ) : (
-                        <div>{user.costCenter || '-'}</div>
-                      )}
-                    </div>
-                    <div className="info-item">
-                      <label>Timezone</label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={editedUser.timezone || ''}
-                          onChange={(e) => setEditedUser({ ...editedUser, timezone: e.target.value })}
-                          placeholder="America/New_York"
-                        />
-                      ) : (
-                        <div>{user.timezone || '-'}</div>
-                      )}
-                    </div>
-                    <div className="info-item">
-                      <label>Pronouns</label>
-                      {isEditing ? (
-                        <select
-                          value={editedUser.pronouns || ''}
-                          onChange={(e) => setEditedUser({ ...editedUser, pronouns: e.target.value })}
-                        >
-                          <option value="">Select Pronouns...</option>
-                          <option value="he/him">he/him</option>
-                          <option value="she/her">she/her</option>
-                          <option value="they/them">they/them</option>
-                          <option value="he/they">he/they</option>
-                          <option value="she/they">she/they</option>
-                        </select>
-                      ) : (
-                        <div>{user.pronouns || '-'}</div>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {(isEditing || user.bio) && (
-                <>
-                  <h3>About</h3>
-                  <div className="info-grid">
-                    <div className="info-item full-width">
-                      <label>Bio</label>
-                      {isEditing ? (
-                        <textarea
-                          value={editedUser.bio || ''}
-                          onChange={(e) => setEditedUser({ ...editedUser, bio: e.target.value })}
-                          placeholder="A brief description about yourself..."
-                          rows={3}
-                          style={{ width: '100%', resize: 'vertical' }}
-                        />
-                      ) : (
-                        <div style={{ whiteSpace: 'pre-wrap' }}>{user.bio || '-'}</div>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {(isEditing || user.linkedinUrl || user.twitterUrl || user.githubUrl) && (
-                <>
-                  <h3>Social Links</h3>
-                  <div className="info-grid">
-                    <div className="info-item">
-                      <label>LinkedIn</label>
-                      {isEditing ? (
-                        <input
-                          type="url"
-                          value={editedUser.linkedinUrl || ''}
-                          onChange={(e) => setEditedUser({ ...editedUser, linkedinUrl: e.target.value })}
-                          placeholder="https://linkedin.com/in/username"
-                        />
-                      ) : (
-                        <div>
-                          {user.linkedinUrl ? (
-                            <a href={user.linkedinUrl} target="_blank" rel="noopener noreferrer">{user.linkedinUrl}</a>
-                          ) : '-'}
-                        </div>
-                      )}
-                    </div>
-                    <div className="info-item">
-                      <label>Twitter/X</label>
-                      {isEditing ? (
-                        <input
-                          type="url"
-                          value={editedUser.twitterUrl || ''}
-                          onChange={(e) => setEditedUser({ ...editedUser, twitterUrl: e.target.value })}
-                          placeholder="https://twitter.com/username"
-                        />
-                      ) : (
-                        <div>
-                          {user.twitterUrl ? (
-                            <a href={user.twitterUrl} target="_blank" rel="noopener noreferrer">{user.twitterUrl}</a>
-                          ) : '-'}
-                        </div>
-                      )}
-                    </div>
-                    <div className="info-item">
-                      <label>GitHub</label>
-                      {isEditing ? (
-                        <input
-                          type="url"
-                          value={editedUser.githubUrl || ''}
-                          onChange={(e) => setEditedUser({ ...editedUser, githubUrl: e.target.value })}
-                          placeholder="https://github.com/username"
-                        />
-                      ) : (
-                        <div>
-                          {user.githubUrl ? (
-                            <a href={user.githubUrl} target="_blank" rel="noopener noreferrer">{user.githubUrl}</a>
-                          ) : '-'}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* Custom Fields Section */}
-              {(isEditing && customFieldDefinitions.length > 0) || (Object.keys(user.customFields || {}).length > 0) ? (
-                <>
-                  <h3>Custom Fields</h3>
-                  <div className="info-grid">
-                    {isEditing ? (
-                      // In edit mode, show all defined custom fields
-                      customFieldDefinitions
-                        .filter(field => field.isVisibleInProfile)
-                        .map(field => (
-                          <div key={field.fieldKey} className={`info-item ${field.fieldType === 'text' && field.fieldKey === 'bio' ? 'full-width' : ''}`}>
-                            <label>
-                              {field.fieldLabel}
-                              {field.isRequired && <span style={{ color: '#ef4444' }}> *</span>}
-                            </label>
-                            {field.fieldType === 'select' ? (
-                              <select
-                                value={editedCustomFields[field.fieldKey] || ''}
-                                onChange={(e) => setEditedCustomFields({
-                                  ...editedCustomFields,
-                                  [field.fieldKey]: e.target.value
-                                })}
-                              >
-                                <option value="">{field.placeholder || `Select ${field.fieldLabel}...`}</option>
-                                {(field.fieldOptions || []).map(option => (
-                                  <option key={option} value={option}>{option}</option>
-                                ))}
-                              </select>
-                            ) : field.fieldType === 'date' ? (
-                              <input
-                                type="date"
-                                value={editedCustomFields[field.fieldKey] || ''}
-                                onChange={(e) => setEditedCustomFields({
-                                  ...editedCustomFields,
-                                  [field.fieldKey]: e.target.value
-                                })}
-                              />
-                            ) : field.fieldType === 'url' ? (
-                              <input
-                                type="url"
-                                value={editedCustomFields[field.fieldKey] || ''}
-                                onChange={(e) => setEditedCustomFields({
-                                  ...editedCustomFields,
-                                  [field.fieldKey]: e.target.value
-                                })}
-                                placeholder={field.placeholder || `Enter ${field.fieldLabel.toLowerCase()}...`}
-                              />
-                            ) : field.fieldType === 'email' ? (
-                              <input
-                                type="email"
-                                value={editedCustomFields[field.fieldKey] || ''}
-                                onChange={(e) => setEditedCustomFields({
-                                  ...editedCustomFields,
-                                  [field.fieldKey]: e.target.value
-                                })}
-                                placeholder={field.placeholder || `Enter ${field.fieldLabel.toLowerCase()}...`}
-                              />
-                            ) : field.fieldType === 'phone' ? (
-                              <input
-                                type="tel"
-                                value={editedCustomFields[field.fieldKey] || ''}
-                                onChange={(e) => setEditedCustomFields({
-                                  ...editedCustomFields,
-                                  [field.fieldKey]: e.target.value
-                                })}
-                                placeholder={field.placeholder || `Enter ${field.fieldLabel.toLowerCase()}...`}
-                              />
-                            ) : (
-                              <input
-                                type="text"
-                                value={editedCustomFields[field.fieldKey] || ''}
-                                onChange={(e) => setEditedCustomFields({
-                                  ...editedCustomFields,
-                                  [field.fieldKey]: e.target.value
-                                })}
-                                placeholder={field.placeholder || `Enter ${field.fieldLabel.toLowerCase()}...`}
-                              />
-                            )}
-                            {field.helpText && (
-                              <span className="field-help" style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px', display: 'block' }}>
-                                {field.helpText}
-                              </span>
-                            )}
-                          </div>
-                        ))
-                    ) : (
-                      // In view mode, show only populated custom fields
-                      Object.entries(user.customFields || {}).map(([key, value]) => {
-                        const fieldDef = customFieldDefinitions.find(f => f.fieldKey === key);
-                        return (
-                          <div key={key} className="info-item">
-                            <label>{fieldDef?.fieldLabel || key}</label>
-                            <div>{String(value) || '-'}</div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </>
-              ) : null}
             </div>
           )}
 
@@ -1626,103 +1235,14 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
                       </div>
                     )}
 
-                    <div className="add-delegate-form" style={{ position: 'relative' }}>
-                      <div style={{ flex: 1, position: 'relative' }}>
-                        <input
-                          type="text"
-                          placeholder="Search for a user to add as delegate..."
-                          value={delegateSearchTerm}
-                          onChange={(e) => {
-                            setDelegateSearchTerm(e.target.value);
-                            setShowDelegateDropdown(true);
-                          }}
-                          onFocus={() => setShowDelegateDropdown(true)}
-                          onBlur={() => {
-                            // Delay to allow click on dropdown items
-                            setTimeout(() => setShowDelegateDropdown(false), 200);
-                          }}
-                        />
-                        {showDelegateDropdown && (
-                          <div className="user-dropdown" style={{
-                            position: 'absolute',
-                            top: '100%',
-                            left: 0,
-                            right: 0,
-                            maxHeight: '200px',
-                            overflowY: 'auto',
-                            backgroundColor: 'white',
-                            border: '1px solid #e5e7eb',
-                            borderRadius: '6px',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                            zIndex: 1000,
-                            marginTop: '4px'
-                          }}>
-                            {emailUsersLoading ? (
-                              <div style={{ padding: '12px', textAlign: 'center', color: '#6b7280' }}>
-                                <Loader2 size={16} className="animate-spin" style={{ marginRight: '8px' }} />
-                                Loading users...
-                              </div>
-                            ) : getFilteredDelegateUsers().length === 0 ? (
-                              <div style={{ padding: '12px', textAlign: 'center', color: '#6b7280' }}>
-                                No users found
-                              </div>
-                            ) : (
-                              getFilteredDelegateUsers()
-                                .filter((u: any) => !emailDelegates.some(d => d.delegateEmail === u.email))
-                                .slice(0, 10)
-                                .map((u: any) => (
-                                  <div
-                                    key={u.id}
-                                    className="user-dropdown-item"
-                                    style={{
-                                      padding: '10px 12px',
-                                      cursor: 'pointer',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: '10px',
-                                      borderBottom: '1px solid #f3f4f6'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                      e.currentTarget.style.backgroundColor = '#f9fafb';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      e.currentTarget.style.backgroundColor = 'white';
-                                    }}
-                                    onMouseDown={(e) => {
-                                      e.preventDefault();
-                                      setNewDelegateEmail(u.email);
-                                      setDelegateSearchTerm(`${u.first_name || u.firstName || ''} ${u.last_name || u.lastName || ''} (${u.email})`);
-                                      setShowDelegateDropdown(false);
-                                    }}
-                                  >
-                                    <div style={{
-                                      width: '32px',
-                                      height: '32px',
-                                      borderRadius: '50%',
-                                      backgroundColor: '#8b5cf6',
-                                      color: 'white',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      fontSize: '12px',
-                                      fontWeight: 600
-                                    }}>
-                                      {((u.first_name || u.firstName || '?')[0] + (u.last_name || u.lastName || '?')[0]).toUpperCase()}
-                                    </div>
-                                    <div>
-                                      <div style={{ fontWeight: 500, fontSize: '14px' }}>
-                                        {u.first_name || u.firstName} {u.last_name || u.lastName}
-                                      </div>
-                                      <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                                        {u.email}
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))
-                            )}
-                          </div>
-                        )}
-                      </div>
+                    <div className="add-delegate-form">
+                      <input
+                        type="email"
+                        placeholder="Enter delegate email address"
+                        value={newDelegateEmail}
+                        onChange={(e) => setNewDelegateEmail(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleAddDelegate()}
+                      />
                       <button
                         className="btn-primary"
                         onClick={handleAddDelegate}
@@ -1784,10 +1304,7 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
                         <p className="empty-message">Forwarding is not enabled</p>
                         <button
                           className="btn-primary"
-                          onClick={() => {
-                            fetchAvailableEmailUsers();
-                            setShowForwardingModal(true);
-                          }}
+                          onClick={() => setShowForwardingModal(true)}
                         >
                           <Forward size={14} />
                           Set Up Forwarding
@@ -2736,23 +2253,15 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
               Forward emails from <strong>{user.email}</strong> to another address.
             </p>
 
-            <div className="form-group" style={{ marginBottom: '16px', position: 'relative' }}>
+            <div className="form-group" style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontWeight: '500', marginBottom: '8px' }}>
                 Forward to:
               </label>
               <input
-                type="text"
-                placeholder="Search for a user..."
-                value={forwardingSearchTerm}
-                onChange={(e) => {
-                  setForwardingSearchTerm(e.target.value);
-                  setShowForwardingDropdown(true);
-                }}
-                onFocus={() => setShowForwardingDropdown(true)}
-                onBlur={() => {
-                  // Delay to allow click on dropdown items
-                  setTimeout(() => setShowForwardingDropdown(false), 200);
-                }}
+                type="email"
+                placeholder="recipient@example.com"
+                value={newForwardingEmail}
+                onChange={(e) => setNewForwardingEmail(e.target.value)}
                 style={{
                   width: '100%',
                   padding: '10px 12px',
@@ -2761,85 +2270,6 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
                   fontSize: '14px'
                 }}
               />
-              {showForwardingDropdown && (
-                <div className="user-dropdown" style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  maxHeight: '200px',
-                  overflowY: 'auto',
-                  backgroundColor: 'white',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '6px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                  zIndex: 1000,
-                  marginTop: '4px'
-                }}>
-                  {emailUsersLoading ? (
-                    <div style={{ padding: '12px', textAlign: 'center', color: '#6b7280' }}>
-                      <Loader2 size={16} className="animate-spin" style={{ marginRight: '8px' }} />
-                      Loading users...
-                    </div>
-                  ) : getFilteredForwardingUsers().length === 0 ? (
-                    <div style={{ padding: '12px', textAlign: 'center', color: '#6b7280' }}>
-                      No users found
-                    </div>
-                  ) : (
-                    getFilteredForwardingUsers()
-                      .slice(0, 10)
-                      .map((u: any) => (
-                        <div
-                          key={u.id}
-                          className="user-dropdown-item"
-                          style={{
-                            padding: '10px 12px',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '10px',
-                            borderBottom: '1px solid #f3f4f6'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#f9fafb';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'white';
-                          }}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            setNewForwardingEmail(u.email);
-                            setForwardingSearchTerm(`${u.first_name || u.firstName || ''} ${u.last_name || u.lastName || ''} (${u.email})`);
-                            setShowForwardingDropdown(false);
-                          }}
-                        >
-                          <div style={{
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '50%',
-                            backgroundColor: '#8b5cf6',
-                            color: 'white',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '12px',
-                            fontWeight: 600
-                          }}>
-                            {((u.first_name || u.firstName || '?')[0] + (u.last_name || u.lastName || '?')[0]).toUpperCase()}
-                          </div>
-                          <div>
-                            <div style={{ fontWeight: 500, fontSize: '14px' }}>
-                              {u.first_name || u.firstName} {u.last_name || u.lastName}
-                            </div>
-                            <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                              {u.email}
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                  )}
-                </div>
-              )}
             </div>
 
             <div className="form-group" style={{ marginBottom: '24px' }}>
@@ -2871,7 +2301,6 @@ export function UserSlideOut({ user, organizationId, onClose, onUserUpdated }: U
                 onClick={() => {
                   setShowForwardingModal(false);
                   setNewForwardingEmail('');
-                  setForwardingSearchTerm('');
                 }}
               >
                 Cancel

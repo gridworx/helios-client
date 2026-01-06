@@ -137,15 +137,17 @@ export function ClientUserMenu({ userName, userEmail, userRole, onLogout, onChan
             )}
             <button className="menu-item" onClick={() => {
               setIsOpen(false);
-              // User menu Settings always goes to personal user settings
-              if (onNavigateToUserSettings) {
+              // Navigate based on current view context
+              if (currentView === 'user' && onNavigateToUserSettings) {
                 onNavigateToUserSettings();
+              } else if (onNavigateToSettings) {
+                onNavigateToSettings();
               } else {
-                alert('User settings coming soon!');
+                alert('Settings coming soon!');
               }
             }}>
               <SettingsIcon size={14} className="menu-icon-svg" />
-              <span>My Settings</span>
+              <span>Settings</span>
             </button>
           </div>
 

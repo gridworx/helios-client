@@ -111,8 +111,7 @@ async function getAssetByToken(accessToken: string): Promise<MediaAsset | null> 
         folder_id as "folderId",
         category,
         access_token as "accessToken",
-        slug,
-        visibility,
+        is_public as "isPublic",
         access_count as "accessCount",
         last_accessed_at as "lastAccessedAt",
         created_by as "createdBy",
@@ -290,9 +289,8 @@ router.get(
         });
       }
 
-      // Check if asset is public (support both old isPublic and new visibility)
-      const isPublic = (asset as any).visibility ? (asset as any).visibility === 'public' : (asset as any).isPublic;
-      if (!isPublic) {
+      // Check if asset is public
+      if (!asset.isPublic) {
         logger.debug('Asset is not public', { token, assetId: asset.id });
         return res.status(403).json({
           success: false,

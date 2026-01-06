@@ -15,10 +15,7 @@ class DatabaseConnection {
       max: 20, // maximum number of clients in the pool
       idleTimeoutMillis: 30000, // how long a client is allowed to remain idle
       connectionTimeoutMillis: 2000, // how long to wait when connecting a new client
-      // DB_SSL controls SSL: 'true', 'false', or 'require' (default: false for docker, true for external)
-      ssl: process.env['DB_SSL'] === 'true' || process.env['DB_SSL'] === 'require'
-        ? { rejectUnauthorized: process.env['DB_SSL'] !== 'require' ? false : true }
-        : false,
+      ssl: process.env['NODE_ENV'] === 'production' ? { rejectUnauthorized: false } : false,
     });
 
     // Handle pool errors

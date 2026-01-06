@@ -4,13 +4,14 @@ This directory contains the database schema for the Helios Client Portal.
 
 ## Quick Start
 
-For fresh installations, just run:
+For fresh installations, use the consolidated schema file:
 
 ```bash
-docker compose up -d
+# Create the database schema
+docker exec helios_client_postgres psql -U postgres -d helios_client -f /path/to/schema_organization.sql
 ```
 
-The database auto-initializes on first startup - no manual imports needed. PostgreSQL runs `schema_organization.sql` automatically via `docker-entrypoint-initdb.d/`.
+Or, the backend will automatically initialize the database on first run.
 
 ## Database Architecture
 

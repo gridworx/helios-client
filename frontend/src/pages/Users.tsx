@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { UserPlus, ChevronDown, Download, RefreshCw, CheckCircle, PauseCircle, Trash2, FileSpreadsheet, FileJson, Filter, Columns } from 'lucide-react';
+import { UserPlus, ChevronDown, Download, RefreshCw, CheckCircle, PauseCircle, Trash2, FileSpreadsheet, FileJson, Filter } from 'lucide-react';
 import { UserTable } from '../components/UserTable';
 import { QuickAddUserSlideOut } from '../components/QuickAddUserSlideOut';
 import { FilterPanel } from '../components/FilterPanel';
 import type { FilterOptions } from '../components/FilterPanel';
-import { ColumnSelector, type ColumnConfig } from '../components/ColumnSelector';
 import { useTabPersistence } from '../hooks/useTabPersistence';
 import { useEntityLabels } from '../contexts/LabelsContext';
 import { ENTITIES } from '../config/entities';
@@ -62,31 +61,7 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [advancedFilters, setAdvancedFilters] = useState<FilterOptions>({});
   const [departments, setDepartments] = useState<string[]>([]);
-  const [showColumnSelector, setShowColumnSelector] = useState(false);
-
-  // Available columns configuration for the column selector
-  const [columnConfigs, setColumnConfigs] = useState<ColumnConfig[]>(() => {
-    // Default columns for staff view
-    return [
-      { key: 'firstName', label: 'First Name', visible: true, required: true },
-      { key: 'lastName', label: 'Last Name', visible: true, required: true },
-      { key: 'email', label: 'Email', visible: true, required: true },
-      { key: 'jobTitle', label: 'Job Title', visible: true },
-      { key: 'department', label: 'Department', visible: true },
-      { key: 'location', label: 'Location', visible: false },
-      { key: 'role', label: 'Role', visible: true },
-      { key: 'platforms', label: 'Integrations', visible: true },
-      { key: 'status', label: 'Status', visible: true },
-      { key: 'employeeType', label: 'Employee Type', visible: false },
-      { key: 'lastLogin', label: 'Last Login', visible: true },
-      { key: 'mobilePhone', label: 'Mobile Phone', visible: false },
-      { key: 'workPhone', label: 'Work Phone', visible: false },
-      { key: 'createdAt', label: 'Created Date', visible: false },
-    ];
-  });
-
   const addDropdownRef = useRef<HTMLDivElement>(null);
-  const columnSelectorRef = useRef<HTMLDivElement>(null);
   const exportDropdownRef = useRef<HTMLDivElement>(null);
   const actionsDropdownRef = useRef<HTMLDivElement>(null);
   const platformDropdownRef = useRef<HTMLDivElement>(null);
@@ -314,48 +289,28 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
           </button>
           {showAddDropdown && (
             <div className="add-dropdown-menu">
-              {activeTab === 'staff' ? (
-                <>
-                  <button
-                    className="dropdown-item"
-                    onClick={() => {
-                      setShowAddDropdown(false);
-                      setShowQuickAddSlideOut(true);
-                    }}
-                  >
-                    <UserPlus size={16} />
-                    Quick Add
-                    <span className="dropdown-item-desc">Add basic user details quickly</span>
-                  </button>
-                  <button
-                    className="dropdown-item highlight"
-                    onClick={() => {
-                      setShowAddDropdown(false);
-                      onNavigate?.('new-user-onboarding');
-                    }}
-                  >
-                    <UserPlus size={16} />
-                    Full Onboarding
-                    <span className="dropdown-item-desc">Use template with groups, access & welcome email</span>
-                  </button>
-                </>
-              ) : (
-                <button
-                  className="dropdown-item"
-                  onClick={() => {
-                    setShowAddDropdown(false);
-                    setShowQuickAddSlideOut(true);
-                  }}
-                >
-                  <UserPlus size={16} />
-                  Add {activeTab === 'guests' ? 'Guest' : 'Contact'}
-                  <span className="dropdown-item-desc">
-                    {activeTab === 'guests'
-                      ? 'Add external collaborator with limited access'
-                      : 'Add directory entry for reference'}
-                  </span>
-                </button>
-              )}
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  setShowAddDropdown(false);
+                  setShowQuickAddSlideOut(true);
+                }}
+              >
+                <UserPlus size={16} />
+                Quick Add
+                <span className="dropdown-item-desc">Create user in slideout panel</span>
+              </button>
+              <button
+                className="dropdown-item highlight"
+                onClick={() => {
+                  setShowAddDropdown(false);
+                  onNavigate?.('new-user-onboarding');
+                }}
+              >
+                <UserPlus size={16} />
+                Full Onboarding
+                <span className="dropdown-item-desc">Use template with groups, access & welcome email</span>
+              </button>
             </div>
           )}
         </div>
@@ -395,25 +350,6 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
               currentFilters={advancedFilters}
               departments={departments}
               roles={['admin', 'manager', 'user']}
-            />
-          </div>
-
-          {/* Column Selector Button */}
-          <div className="dropdown-wrapper" ref={columnSelectorRef}>
-            <button
-              className={`btn-icon ${showColumnSelector ? 'active' : ''}`}
-              onClick={() => setShowColumnSelector(!showColumnSelector)}
-              title="Edit Columns"
-            >
-              <Columns size={16} />
-            </button>
-            <ColumnSelector
-              isOpen={showColumnSelector}
-              onClose={() => setShowColumnSelector(false)}
-              columns={columnConfigs}
-              onColumnsChange={setColumnConfigs}
-              storageKey="helios_user_columns"
-              maxColumns={10}
             />
           </div>
 
@@ -524,7 +460,6 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
           searchQuery={searchQuery}
           statusFilter={statusFilter}
           platformFilter={platformFilter}
-          columnConfigs={columnConfigs}
           onStatusCountsChange={setStatusCounts}
           onDepartmentsChange={setDepartments}
           onNavigate={(page, params) => {
@@ -541,7 +476,6 @@ export function Users({ organizationId, onNavigate }: UsersProps) {
       {showQuickAddSlideOut && (
         <QuickAddUserSlideOut
           organizationId={organizationId}
-          userType={activeTab === 'guests' ? 'guest' : activeTab === 'contacts' ? 'contact' : 'staff'}
           onClose={() => setShowQuickAddSlideOut(false)}
           onUserCreated={() => {
             fetchCounts();

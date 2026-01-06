@@ -9,7 +9,7 @@
  * - Row selection for bulk operations
  */
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { VisibilityState, RowSelectionState } from '@tanstack/react-table';
 import {
@@ -20,7 +20,6 @@ import {
 } from './ui/DataTable';
 import { UserSlideOut } from './UserSlideOut';
 import { PlatformIcon } from './ui/PlatformIcon';
-import type { ColumnConfig } from './ColumnSelector';
 import {
   useUsers,
   useUserStatusCounts,
@@ -52,7 +51,6 @@ interface UserTableProps {
   statusFilter?: string;
   platformFilter?: string;
   searchQuery?: string;
-  columnConfigs?: ColumnConfig[];
   onStatusCountsChange?: (counts: any) => void;
   onDepartmentsChange?: (departments: string[]) => void;
   onNavigate?: (page: string, params?: Record<string, string>) => void;
@@ -64,7 +62,6 @@ export function UserTable({
   statusFilter = 'all',
   platformFilter = 'all',
   searchQuery = '',
-  columnConfigs,
   onStatusCountsChange,
   onDepartmentsChange,
   onNavigate,
@@ -82,7 +79,7 @@ export function UserTable({
   // Bulk action confirmation state
   const [bulkConfirmAction, setBulkConfirmAction] = useState<'activate' | 'suspend' | 'delete' | null>(null);
 
-  // Column visibility (derived from columnConfigs prop or localStorage fallback)
+  // Column visibility (persisted in localStorage)
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() => {
     try {
       const saved = localStorage.getItem('helios_user_columns_v2');
@@ -91,17 +88,6 @@ export function UserTable({
       return {};
     }
   });
-
-  // Sync column visibility from columnConfigs prop
-  useEffect(() => {
-    if (columnConfigs) {
-      const visibility: VisibilityState = {};
-      columnConfigs.forEach((col) => {
-        visibility[col.key] = col.visible;
-      });
-      setColumnVisibility(visibility);
-    }
-  }, [columnConfigs]);
 
   // Row selection
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
@@ -216,22 +202,16 @@ export function UserTable({
   const executeBulkAction = async () => {
     if (!bulkConfirmAction) return;
 
-    try {
-      if (bulkConfirmAction === 'activate') {
-        await bulkUpdateMutation.mutateAsync({ userIds: selectedUserIds, status: 'active' });
-      } else if (bulkConfirmAction === 'suspend') {
-        await bulkUpdateMutation.mutateAsync({ userIds: selectedUserIds, status: 'suspended' });
-      } else if (bulkConfirmAction === 'delete') {
-        await bulkDeleteMutation.mutateAsync({ userIds: selectedUserIds });
-      }
-      setRowSelection({});
-    } catch (error: any) {
-      console.error('Bulk action failed:', error);
-      alert(`Bulk action failed: ${error.message || 'Unknown error'}`);
-    } finally {
-      // Always close the dialog, even on error
-      setBulkConfirmAction(null);
+    if (bulkConfirmAction === 'activate') {
+      await bulkUpdateMutation.mutateAsync({ userIds: selectedUserIds, status: 'active' });
+    } else if (bulkConfirmAction === 'suspend') {
+      await bulkUpdateMutation.mutateAsync({ userIds: selectedUserIds, status: 'suspended' });
+    } else if (bulkConfirmAction === 'delete') {
+      await bulkDeleteMutation.mutateAsync({ userIds: selectedUserIds });
     }
+
+    setRowSelection({});
+    setBulkConfirmAction(null);
   };
 
   // Role badge renderer
@@ -430,28 +410,6 @@ export function UserTable({
             if (days <= 7) return <span className="login-active">{days} days ago</span>;
             if (days <= 30) return <span className="login-inactive">{days} days ago</span>;
             return <span className="login-warning">{Math.floor(days / 7)} weeks ago</span>;
-          },
-        }),
-        columnHelper.accessor('mobilePhone', {
-          header: 'Mobile Phone',
-          size: 120,
-          minSize: 100,
-          cell: (info) => info.getValue() || '-',
-        }),
-        columnHelper.accessor('workPhone', {
-          header: 'Work Phone',
-          size: 120,
-          minSize: 100,
-          cell: (info) => info.getValue() || '-',
-        }),
-        columnHelper.accessor('createdAt', {
-          header: 'Created Date',
-          size: 100,
-          minSize: 80,
-          cell: (info) => {
-            const date = info.getValue();
-            if (!date) return '-';
-            return new Date(date).toLocaleDateString();
           },
         }),
         createActionsColumn(renderActions),
