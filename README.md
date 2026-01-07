@@ -2,16 +2,18 @@
 
 **Self-hosted Google Workspace administration portal.**
 
-> Open source. Self-host for free, or let us host it for you.
+🚧 Developer Preview (Alpha) 🚧
+
+This project is currently in active development. Features, database schemas, and APIs are subject to change. It is currently intended for developers and testing environments.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         Your Options                             │
-│                                                                  │
+│                         Your Options                            │
+│                                                                 │
 │  ┌─────────────────────┐          ┌─────────────────────┐       │
 │  │    Self-Hosted      │    OR    │      Hosted         │       │
 │  │                     │          │                     │       │
-│  │  • Free forever     │          │  • $9-19/month      │       │
+│  │  • Free forever     │          │  • Coming Soon      │       │
 │  │  • Your server      │          │  • We manage it     │       │
 │  │  • Full control     │          │  • Auto-updates     │       │
 │  │  • GitHub support   │          │  • Chat support     │       │
@@ -60,6 +62,9 @@ cd helios-client
 # Copy environment template
 cp .env.example .env
 
+# Build the container
+docker-compose up -d --build
+
 # Start services
 docker-compose up -d
 
@@ -75,8 +80,8 @@ Visit [helios.gridworx.io](https://helios.gridworx.io) to sign up.
 
 | Plan | Price | Includes |
 |------|-------|----------|
-| Starter | $9/mo | Hosting, backups, updates, email support |
-| Pro | $19/mo | + Custom domain, chat support, priority updates |
+| Starter | TBD | Hosting, backups, updates, email support |
+| Pro | TBD | + Custom domain, chat support, priority updates |
 
 **What hosted means:** We run the server infrastructure. You have full admin access. We never access your data.
 
