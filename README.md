@@ -59,18 +59,24 @@ Helios is a web-based admin portal for Google Workspace. It gives you a modern U
 git clone https://github.com/gridworx/helios-client.git
 cd helios-client
 
-# Copy environment template
+# Copy environment template and configure
 cp .env.example .env
+# Edit .env with your secrets (DB_PASSWORD, JWT_SECRET, etc.)
 
-# Build the container
-docker-compose up -d --build
+# Production
+docker compose up -d --build
+# Access: http://localhost (setup wizard on first run)
 
-# Start services
-docker-compose up -d
-
-# Access the portal
-open http://localhost:3000
+# Development (with hot-reload and default admin)
+docker compose -f docker-compose.dev.yml up -d --build
+# Access: http://localhost
+# Default login: admin@example.com / admin123
 ```
+
+| File | Purpose |
+|------|---------|
+| `docker-compose.yml` | **Production** - Secure defaults, requires `.env` configuration |
+| `docker-compose.dev.yml` | **Development** - Hot reload, default admin credentials |
 
 See [docs/guides/SETUP.md](docs/guides/SETUP.md) for complete setup including Google Workspace service account configuration.
 

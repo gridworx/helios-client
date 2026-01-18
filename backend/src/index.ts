@@ -791,8 +791,11 @@ async function startServer(): Promise<void> {
     if (!schemaHealthy) {
       logger.info('Database schema not found, initializing...');
       await dbInitializer.initializeDatabase();
-      await dbInitializer.seedInitialData();
     }
+
+    // Seed default admin if configured via environment variables
+    // This only runs ONCE if no organization exists yet
+    await dbInitializer.seedDefaultAdmin();
 
     // CRITICAL: Verify single-tenant integrity
     // This ensures only ONE organization exists in the system
