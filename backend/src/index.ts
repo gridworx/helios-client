@@ -108,6 +108,7 @@ import securityRoutes from './routes/security.routes.js';
 import { requestIdMiddleware, REQUEST_ID_HEADER } from './middleware/request-id.js';
 import { authHandler, auth } from './lib/auth-handler.js';
 import { auditMiddleware } from './middleware/audit.middleware.js';
+
 const app = express();
 const httpServer = createServer(app);
 const PORT = process.env['PORT'] || 3001;

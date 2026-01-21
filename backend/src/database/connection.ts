@@ -6,6 +6,13 @@ class DatabaseConnection {
   private static instance: DatabaseConnection;
 
   private constructor() {
+    // DB_SSL controls SSL: 'true', 'false', or 'require' (default: false for docker, true for external)
+    const sslMode = process.env['DB_SSL'];
+    let ssl: boolean | { rejectUnauthorized: boolean } = false;
+    if (sslMode === 'true' || sslMode === 'require') {
+      ssl = { rejectUnauthorized: sslMode === 'require' };
+    }
+
     this.pool = new Pool({
       host: process.env['DB_HOST'] || 'localhost',
       port: parseInt(process.env['DB_PORT'] || '5432'),
@@ -15,7 +22,7 @@ class DatabaseConnection {
       max: 20, // maximum number of clients in the pool
       idleTimeoutMillis: 30000, // how long a client is allowed to remain idle
       connectionTimeoutMillis: 2000, // how long to wait when connecting a new client
-      ssl: process.env['NODE_ENV'] === 'production' ? { rejectUnauthorized: false } : false,
+      ssl,
     });
 
     // Handle pool errors

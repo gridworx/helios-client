@@ -59,7 +59,7 @@ services:
     image: redis:7-alpine
     container_name: helios_client_redis
     # NO ports exposed - internal only
-    command: redis-server --requirepass ${REDIS_PASSWORD:-}
+    # Note: No password by default for simplicity. Set REDIS_PASSWORD in .env for production.
     networks:
       - helios_client_network
     healthcheck:
@@ -98,12 +98,13 @@ services:
       NODE_ENV: production
       PORT: 3001
 
-      # Database
+      # Database (internal postgres, no SSL needed)
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: ${DB_NAME:-helios_client}
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      DB_SSL: "false"
 
       # Redis
       REDIS_HOST: redis
@@ -115,6 +116,7 @@ services:
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
       REFRESH_TOKEN_EXPIRES_IN: ${REFRESH_TOKEN_EXPIRES_IN:-7d}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
+      EMAIL_ENCRYPTION_KEY: ${EMAIL_ENCRYPTION_KEY:?EMAIL_ENCRYPTION_KEY is required}
 
       # URLs - use PUBLIC_URL for asset URLs, empty = relative URLs
       PUBLIC_URL: ${PUBLIC_URL:-}

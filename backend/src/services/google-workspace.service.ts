@@ -352,6 +352,64 @@ export class GoogleWorkspaceService {
   }
 
   /**
+   * List Google Workspace domains for an organization
+   * Used for domain verification against Google Workspace
+   */
+  async listGoogleWorkspaceDomains(organizationId: string): Promise<{
+    success: boolean;
+    domains?: any[];
+    error?: string;
+  }> {
+    try {
+      const credentials = await this.getCredentials(organizationId);
+
+      if (!credentials) {
+        return {
+          success: false,
+          error: 'Service account credentials not found. Please configure Google Workspace integration.'
+        };
+      }
+
+      // Get admin email from credentials table
+      const credResult = await db.query(
+        'SELECT admin_email, domain FROM gw_credentials WHERE organization_id = $1',
+        [organizationId]
+      );
+
+      if (credResult.rows.length === 0) {
+        return {
+          success: false,
+          error: 'No Google Workspace credentials found for this organization.'
+        };
+      }
+
+      const { admin_email, domain } = credResult.rows[0];
+      const adminEmail = admin_email || `admin@${domain}`;
+
+      const adminClient = this.createAdminClient(credentials, adminEmail);
+
+      // List all domains in the Google Workspace account
+      const response = await adminClient.domains.list({ customer: 'my_customer' });
+
+      return {
+        success: true,
+        domains: response.data.domains || []
+      };
+
+    } catch (error: any) {
+      logger.error('Failed to list Google Workspace domains', {
+        organizationId,
+        error: error.message
+      });
+
+      return {
+        success: false,
+        error: error.message || 'Failed to retrieve Google Workspace domains'
+      };
+    }
+  }
+
+  /**
    * Get Google Workspace users using Domain-Wide Delegation
    */
   async getUsers(
