@@ -928,6 +928,21 @@ async function startServer(): Promise<void> {
   }
 }
 
+// Handle unhandled promise rejections
+// These are fatal errors that indicate the application is in an undefined state
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  logger.error('Unhandled Rejection', { reason, promise });
+  // Exit the process to prevent running in a degraded/undefined state
+  process.exit(1);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  logger.error('Uncaught Exception', error);
+  process.exit(1);
+});
+
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully');
@@ -954,5 +969,9 @@ process.on('SIGINT', async () => {
 });
 
 // Start the server
-startServer();
+startServer().catch((error) => {
+  console.error('Fatal error starting server:', error);
+  logger.error('Fatal error starting server', error);
+  process.exit(1);
+});
 
